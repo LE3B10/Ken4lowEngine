@@ -472,7 +472,7 @@ Camera* TitleScene::EnsureCamera()
 void TitleScene::UpdateDebug()
 {
 #ifdef _DEBUG
-	if (input_->TriggerKey(DIK_F12))
+	if (input_->TriggerKey(DIK_F9DIK_F9))
 	{
 		const bool next = !CameraManager::GetInstance()->IsUsingDebugCamera();
 

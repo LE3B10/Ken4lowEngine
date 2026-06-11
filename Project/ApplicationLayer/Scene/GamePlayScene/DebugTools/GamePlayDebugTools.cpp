@@ -106,7 +106,7 @@ void GamePlayDebugTools::UpdateDebugCamera(K4E::Input* input, GamePlayWorld* wor
 #ifdef _DEBUG
 	if (!input) { return; }
 
-	if (input->TriggerKey(DIK_F12))
+	if (input->TriggerKey(DIK_F9))
 	{
 		const bool nextDebug = !K4E::CameraManager::GetInstance()->IsUsingDebugCamera();
 

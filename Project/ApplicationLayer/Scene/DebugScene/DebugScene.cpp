@@ -1,388 +1,73 @@
 #define NOMINMAX
 #include "DebugScene.h"
-#include "DisintegrationDebugController.h"
-#include "ApplicationLayer/DebugTools/FrustumCulling/FrustumCullingDebugController.h"
 #include <DirectXCommon.h>
 #include <Input.h>
 #include <SpriteManager.h>
 #include "CameraManager.h"
 #include "Wireframe.h"
-#include "Object3D.h"
-#include "Camera.h"
-#include "SkyBox.h"
-#include "JsonAssetEntry.h"
-#include "JsonDataManager.h"
-#include "WinApp.h"
 #include <LightManager.h>
 #include <GameTimer.h>
-#ifdef _DEBUG
-#include <DebugCamera.h>
-#endif // _DEBUG
 
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
 #endif // USE_IMGUI
-#include <GpuParticleManager.h>
-
-#include "WeaponMasterDataDatabase.h"
-#include "WeaponMasterDataEditor.h"
-#include "WeaponMasterDataWriter.h"
-#include <algorithm>
-#include <filesystem>
-#include <cstdio>
-#include <array>
-#include <numbers>
-#include <unordered_map>
-#include <cmath>
 
 using namespace Ken4lowEngine;
 
-namespace
-{
-	/// -------------------------------------------------------------
-	/// Visual Studio の「出力」ウィンドウへ文字列を出す
-	/// 改行付きで送るための簡易ヘルパー
-	/// -------------------------------------------------------------
-	void DebugLog(const std::string& message)
-	{
-		std::string line = message + "\n";
-		OutputDebugStringA(line.c_str());
-	}
-
-
-	GpuParticleType ToDebugParticleType(int index)
-	{
-		switch (index)
-		{
-		case 0: return GpuParticleType::Default;
-		case 1: return GpuParticleType::Debris;
-		case 2: return GpuParticleType::Spark;
-		case 3: return GpuParticleType::Shockwave;
-		case 4: return GpuParticleType::Smoke;
-		case 5: return GpuParticleType::Heal;
-		default: return GpuParticleType::Debris;
-		}
-	}
-
-	GpuParticleEmitter* PrepareDebugMeshParticleEmitter(
-		GpuParticleManager* manager,
-		const std::string& emitterName,
-		uint32_t meshId,
-		GpuParticleType type,
-		const Vector3& position,
-		float radius)
-	{
-		if (!manager)
-		{
-			return nullptr;
-		}
-
-		if (GpuParticleEmitter* existing = manager->GetEmitter(emitterName))
-		{
-			auto& info = existing->GetInfoMutable();
-			info.kind = GpuParticleKind::Mesh;
-			info.spriteType = type;
-			info.drawType = static_cast<uint32_t>(type);
-			info.billboardFlags = BillboardMode::None;
-			info.textureFilePath = "Mesh:" + std::to_string(meshId);
-			info.radius = radius;
-			info.loopCount = 0;
-			info.loopFrequency = 0.0f;
-			existing->SetPosition(position);
-			return existing;
-		}
-
-		GpuParticleEmitter::EmitterInfo info{};
-		info.kind = GpuParticleKind::Mesh;
-		info.spriteType = type;
-		info.drawType = static_cast<uint32_t>(type);
-		info.billboardFlags = BillboardMode::None;
-		info.textureFilePath = "Mesh:" + std::to_string(meshId);
-		info.radius = radius;
-		info.loopCount = 0;
-		info.loopFrequency = 0.0f;
-
-		GpuParticleEmitter* created = manager->CreateEmitter(emitterName, info);
-		if (created)
-		{
-			created->SetPosition(position);
-		}
-		return created;
-	}
-}
-
-DebugScene::~DebugScene() = default;
-
+/// -------------------------------------------------------------
+///							初期化処理
+/// -------------------------------------------------------------
 void DebugScene::Initialize()
 {
-#ifdef _DEBUG
-	// デバッグカメラの初期化
-	DebugCamera::GetInstance()->Initialize();
-#endif // _DEBUG
-
 	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
-	InitializeSkyBox();
 
-	/*input_->SetLockCursor(true);
-	input_->SetCursorVisible(false);*/
-
+	// 衝突判定マネージャーの初期化
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
-
-	debugBoss_ = std::make_unique<GuardianBoss>();
-	debugBoss_->Initialize();
-	collisionManager_->AddCollider(debugBoss_.get());
-
-	// 見やすい位置に置く
-	debugBoss_->SetPosition({ 0.0f, 2.25f, 30.0f });
-	debugBoss_->SetYaw(3.141592f); // 必要ならプレイヤー側へ向ける
-
-	meleeDummyTarget_.SetCenterPosition({ 0.0f, 2.0f, 24.0f });
-	meleeDummyTarget_.SetOBBHalfSize({ 0.8f, 1.0f, 0.8f });
-	// 複数体同時検証のため、DebugScene起動時に近接敵を2〜3体まとめて生成する。
-	debugMeleeEnemy_ = std::make_unique<MeleeEnemy>();
-	debugMeleeEnemy_->Initialize();
-	debugMeleeEnemy_->SetCenterPosition({ -3.0f, 2.5f, 18.0f });
-	debugMeleeEnemy_->SetTarget(&meleeDummyTarget_);
-	collisionManager_->AddCollider(debugMeleeEnemy_.get());
-	// 中距離敵は近接敵と独立したunique_ptrで管理する。
-	debugMidRangeEnemy_ = std::make_unique<MidRangeEnemy>();
-	debugMidRangeEnemy_->Initialize();
-	debugMidRangeEnemy_->SetCenterPosition({ 3.0f, 2.5f, 18.0f });
-	debugMidRangeEnemy_->SetTarget(meleeDummyTarget_.GetCenterPosition());
-	disintegrationDebug_ = std::make_unique<DisintegrationDebugController>();
-	// Disintegration系の確認処理は専用コントローラへ委譲し、DebugScene本体の責務を絞る。
-	disintegrationDebug_->Initialize();
-
-	frustumCullingDebug_ = std::make_unique<FrustumCullingDebugController>();
-	frustumCullingDebug_->Initialize(true);
-
-	stage_ = std::make_unique<K4E::Stage>();
-	stage_->Initialize("Stages/hajimarinoheigen.json", "Stages/hajimarinoheigen.gltf");
-	stage_->RegisterColliders(collisionManager_.get());
-	stage_->Update();
-	// DebugSceneでもステージAABBを共有し、EnemyBase系の敵が床と障害物に衝突できるようにする。
-	EnemyBase::SetGlobalStageWorldAABBs(&stage_->GetWorldAABBs());
-	EnemyBase::SetGlobalStageNavigationObstacleAABBs(&stage_->GetNavigationObstacleAABBs());
-	if (debugMeleeEnemy_)
-	{
-		debugMeleeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
-		debugMeleeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
-	}
-	if (debugMidRangeEnemy_)
-	{
-		debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
-		debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
-	}
 }
 
-void DebugScene::InitializeSkyBox()
-{
-	LoadSkyBoxPresets();
-	K4E::SkyBoxPreset* preset = skyBoxPresets_.FindActivePreset();
-	if (!preset)
-	{
-		return;
-	}
-
-	skyBox_ = std::make_unique<K4E::SkyBox>();
-	skyBox_->Initialize(preset->texturePath);
-	ApplyActiveSkyBoxPreset();
-}
-
-void DebugScene::ApplyActiveSkyBoxPreset(bool reloadTexture)
-{
-	K4E::SkyBoxPreset* preset = skyBoxPresets_.FindActivePreset();
-	if (!skyBox_ || !preset)
-	{
-		return;
-	}
-
-	// 読み込んだプリセットを優先し、毎フレーム既定値で上書きしない。
-	K4E::ApplySkyBoxPreset(*skyBox_, *preset, reloadTexture);
-	std::snprintf(skyBoxTexturePathBuffer_.data(), skyBoxTexturePathBuffer_.size(), "%s", preset->texturePath.c_str());
-	std::snprintf(cloudTexturePathBuffer_.data(), cloudTexturePathBuffer_.size(), "%s", preset->cloud.texturePath.c_str());
-}
-
-bool DebugScene::LoadSkyBoxPresets()
-{
-	K4E::JsonAssetEntry entry;
-	if (!K4E::JsonDataManager::SafeLoad("Resources/DataAssets/SkyBoxPresets/debug_skybox.json", entry))
-	{
-		skyBoxPresetLog_ = "設定ファイルがないため、デフォルト設定で表示します。";
-		return false;
-	}
-
-	skyBoxPresets_.FromJson(entry.data);
-	skyBoxPresetLog_ = "SkyBox設定を読み込みました。";
-	return true;
-}
-
-bool DebugScene::SaveSkyBoxPresets()
-{
-	K4E::JsonAssetEntry entry;
-	entry.id = "debug_skybox";
-	entry.displayName = "Debug Scene SkyBox";
-	entry.type = "SkyBoxPresetCollection";
-	entry.path = "Resources/DataAssets/SkyBoxPresets/debug_skybox.json";
-	skyBoxPresets_.ToJson(entry.data);
-	const bool saved = K4E::JsonDataManager::SafeSave(entry);
-	skyBoxPresetLog_ = saved ? "SkyBox設定を保存しました。" : "SkyBox設定の保存に失敗しました。";
-	return saved;
-}
-
+/// -------------------------------------------------------------
+///							更新処理
+/// -------------------------------------------------------------
 void DebugScene::Update()
 {
 #ifdef _DEBUG
 	UpdateDebug();
 #endif // _DEBUG
 
-	float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
+	//float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
 
-	static float animTime = 0.0f;
-	animTime += deltaTime;
-
-	// ボス更新
-	if (debugBoss_)
-	{
-		// とりあえずプレイヤー位置をターゲットに渡す
-		debugBoss_->SetTargetPosition({});
-		debugBoss_->Update(deltaTime);
-	}
-
-	if (debugMeleeEnemy_)
-	{
-		debugMeleeEnemy_->Update(deltaTime);
-	}
-	if (debugMidRangeEnemy_)
-	{
-		debugMidRangeEnemy_->SetTarget(meleeDummyTarget_.GetCenterPosition());
-		// 中距離敵にも床/障害物AABBを近接敵と同じ参照元で渡す。
-		debugMidRangeEnemy_->SetFloorAABBs(&stage_->GetFloorAABBs());
-		debugMidRangeEnemy_->SetWallObstacleAABBs(&stage_->GetWallObstacleAABBs());
-		debugMidRangeEnemy_->Update(deltaTime);
-	}
-
-	enemyScalabilitySystem_.Update(deltaTime, meleeDummyTarget_.GetCenterPosition());
-
-	UpdateDebugBossHitTest();
-
-	UpdateDebugParticleTest();
-
-	if (disintegrationDebug_)
-	{
-		disintegrationDebug_->Update(deltaTime);
-	}
-
-	if (frustumCullingDebug_)
-	{
-		frustumCullingDebug_->Update(deltaTime);
-	}
-
-	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
-
-	if (stage_)
-	{
-		stage_->Update();
-	}
-	if (skyBox_)
-	{
-		skyBox_->Update();
-		skyBox_->AdvanceCloudLayer(deltaTime);
-		if (K4E::SkyBoxPreset* skyPreset = skyBoxPresets_.FindActivePreset()) skyPreset->cloud.uvOffset = skyBox_->GetCloudUvOffset();
-	}
-
+	collisionManager_->Update();
 }
 
-void DebugScene::ResolveMeleeEnemySeparation(float deltaTime)
-{
-	(void)deltaTime;
-	// 近接敵は単体管理のため分離処理は不要。
-}
-
+/// -------------------------------------------------------------
+///							3D描画処理
+/// -------------------------------------------------------------
 void DebugScene::Draw3DObjects()
 {
-	const K4E::SkyBoxPreset* skyBoxPreset = skyBoxPresets_.FindActivePreset();
-	if (skyBox_ && skyBoxPreset && skyBoxPreset->enabled)
-	{
-		// SkyBox は深度読み取り専用 PSO で先に描画し、ステージ描画を妨げない。
-		skyBox_->Draw();
-		skyBox_->DrawCloudLayer();
-	}
 
-	if (disintegrationDebug_)
-	{
-		disintegrationDebug_->Draw3DObjects();
-	}
-
-	// ボス描画
-	if (debugBoss_)
-	{
-		debugBoss_->Draw();
-	}
-	if (debugMeleeEnemy_)
-	{
-		debugMeleeEnemy_->Draw();
-	}
-	if (debugMidRangeEnemy_)
-	{
-		debugMidRangeEnemy_->Draw();
-	}
-
-	if (stage_)
-	{
-		stage_->Draw();
-		// Stage Debugの茶色ワイヤーはNavigation/Wall用AABBではなくCollider由来OBBで描画する。
-		if (stageBoundsDebugDraw_) for (const auto& obstacleObb : stage_->GetWallObstacleOBBs())
-		{
-			Wireframe::GetInstance()->DrawOBB(obstacleObb, { 0.60f, 0.35f, 0.12f, 0.90f });
-		}
-	}
 
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
-	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f,1.0f });
-	if (meleeDummyWireVisible_)
-	{
-		const Vector3 c = meleeDummyTarget_.GetCenterPosition();
-		Wireframe::GetInstance()->DrawSphere(c, meleeDummyWireRadius_, { 0.1f, 1.0f, 0.2f, 1.0f });
-		Wireframe::GetInstance()->DrawLine(c + Vector3{ -0.2f, 0.0f, 0.0f }, c + Vector3{ 0.2f, 0.0f, 0.0f }, { 0.8f, 1.0f, 0.2f, 1.0f });
-		Wireframe::GetInstance()->DrawLine(c + Vector3{ 0.0f, -0.2f, 0.0f }, c + Vector3{ 0.0f, 0.2f, 0.0f }, { 0.8f, 1.0f, 0.2f, 1.0f });
-		Wireframe::GetInstance()->DrawLine(c + Vector3{ 0.0f, 0.0f, -0.2f }, c + Vector3{ 0.0f, 0.0f, 0.2f }, { 0.8f, 1.0f, 0.2f, 1.0f });
-	}
-	if (frustumCullingDebug_ && frustumCullingDebugDraw_)
-	{
-		frustumCullingDebug_->DrawDebug();
-	}
-	enemyScalabilitySystem_.DrawDebugInstances();
+	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f, 1.0f });
 
 	collisionManager_->Draw();
 #endif // _DEBUG
 }
 
+/// -------------------------------------------------------------
+///					シャドウマップ描画処理
+/// -------------------------------------------------------------
 void DebugScene::DrawShadowObjects()
 {
-	if (disintegrationDebug_)
-	{
-		disintegrationDebug_->DrawShadowObjects();
-	}
 
-	if (debugBoss_)
-	{
-		debugBoss_->DrawShadow();
-	}
-	if (debugMeleeEnemy_ && enemyShadowEnabled_)
-	{
-		debugMeleeEnemy_->DrawShadow();
-	}
-	if (stage_)
-	{
-		stage_->DrawShadow();
-	}
 }
 
+/// -------------------------------------------------------------
+///							2D描画処理
+/// -------------------------------------------------------------
 void DebugScene::Draw2DSprites()
 {
 #pragma region スプライトの描画                    
@@ -402,790 +87,58 @@ void DebugScene::Draw2DSprites()
 #pragma endregion
 }
 
+/// -------------------------------------------------------------
+///							終了処理
+/// -------------------------------------------------------------
 void DebugScene::Finalize()
 {
 	// 入力状態を必ず戻す（ロック/非表示のまま終了しない）
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
 
-	frustumCullingDebug_.reset();
-	disintegrationDebug_.reset();
-	skyBox_.reset();
-	EnemyBase::SetGlobalStageWorldAABBs(nullptr);
-	debugBoss_.reset();
-	debugMidRangeEnemy_.reset();
-	debugMeleeEnemy_.reset();
 	collisionManager_.reset();
-	stage_.reset();
 
 	input_ = nullptr;
 	dxCommon_ = nullptr;
 }
 
-void DebugScene::DrawEnemyStressTestImGui()
-{
-#ifdef USE_IMGUI
-	K4E::EnemyUpdateLodSettings& settings = enemyScalabilitySystem_.GetUpdateLodSettings();
-	const K4E::EnemyScalabilityMetrics& metrics = enemyScalabilitySystem_.GetMetrics();
-	bool useSimpleCollision = enemyScalabilitySystem_.IsSimpleCollisionEnabled();
-	bool enemyDebugDraw = enemyScalabilitySystem_.IsEnemyDebugDrawEnabled();
-	const K4E::GameTimer* gameTimer = K4E::GameTimer::GetInstance();
-	const float frameTimeMs = gameTimer->GetDeltaTime() * 1000.0f;
-	const float instantFps = frameTimeMs > 0.0f ? 1000.0f / frameTimeMs : 0.0f;
-
-	ImGui::Begin("敵ストレステスト");
-	ImGui::TextWrapped("ストレステスト用の敵は軽量データのみで管理します。通常敵とボスは既存クラスで管理します。");
-	ImGui::TextWrapped("適用後は、近接雑魚敵を赤い球、中距離雑魚敵を青い箱としてグリッド表示します。黄色い線は10体ごとの目印です。");
-	ImGui::InputInt("近接雑魚敵数", &stressTestMeleeEnemyCount_);
-	ImGui::InputInt("中距離雑魚敵数", &stressTestMidRangeEnemyCount_);
-	stressTestMeleeEnemyCount_ = std::clamp(stressTestMeleeEnemyCount_, 0, 10000);
-	stressTestMidRangeEnemyCount_ = std::clamp(stressTestMidRangeEnemyCount_, 0, 10000);
-	if (ImGui::Button("適用"))
-	{
-		enemyScalabilitySystem_.SetEnemyDebugDrawEnabled(true);
-		enemyScalabilitySystem_.ApplyStressTestCounts(
-			static_cast<uint32_t>(stressTestMeleeEnemyCount_),
-			static_cast<uint32_t>(stressTestMidRangeEnemyCount_),
-			meleeDummyTarget_.GetCenterPosition());
-		// StressTest 中は敵の確認用描画だけを残し、無関係な重いデバッグ表示と敵シャドウを無効化する。
-		stageBoundsDebugDraw_ = false;
-		frustumCullingDebugDraw_ = false;
-		meleeDummyWireVisible_ = false;
-		enemyShadowEnabled_ = false;
-	}
-	ImGui::SameLine();
-	if (ImGui::Button("クリア"))
-	{
-		enemyScalabilitySystem_.Clear();
-	}
-
-	ImGui::SeparatorText("更新LOD");
-	ImGui::Checkbox("敵の更新LODを使用", &settings.useEnemyUpdateLod);
-	ImGui::DragFloat("近距離更新距離", &settings.nearUpdateDistance, 1.0f, 0.0f, 1000.0f);
-	ImGui::DragFloat("中距離更新距離", &settings.midUpdateDistance, 1.0f, settings.nearUpdateDistance, 2000.0f);
-	ImGui::DragFloat("遠距離更新距離", &settings.farUpdateDistance, 1.0f, settings.midUpdateDistance, 4000.0f);
-	int nearInterval = static_cast<int>(settings.nearUpdateInterval);
-	int midInterval = static_cast<int>(settings.midUpdateInterval);
-	int farInterval = static_cast<int>(settings.farUpdateInterval);
-	ImGui::DragInt("近距離更新間隔", &nearInterval, 1.0f, 1, 120);
-	ImGui::DragInt("中距離更新間隔", &midInterval, 1.0f, 1, 120);
-	ImGui::DragInt("遠距離更新間隔", &farInterval, 1.0f, 1, 120);
-	settings.nearUpdateInterval = static_cast<uint32_t>(std::max(nearInterval, 1));
-	settings.midUpdateInterval = static_cast<uint32_t>(std::max(midInterval, 1));
-	settings.farUpdateInterval = static_cast<uint32_t>(std::max(farInterval, 1));
-
-	ImGui::SeparatorText("衝突判定とデバッグ描画");
-	if (ImGui::Checkbox("簡易衝突判定", &useSimpleCollision)) enemyScalabilitySystem_.SetSimpleCollisionEnabled(useSimpleCollision);
-	if (ImGui::Checkbox("敵デバッグ描画", &enemyDebugDraw)) enemyScalabilitySystem_.SetEnemyDebugDrawEnabled(enemyDebugDraw);
-	ImGui::Checkbox("ステージ境界デバッグ描画", &stageBoundsDebugDraw_);
-	ImGui::Checkbox("視錐台カリングデバッグ描画", &frustumCullingDebugDraw_);
-	ImGui::Checkbox("ダミーターゲットワイヤー描画", &meleeDummyWireVisible_);
-	ImGui::Checkbox("敵の影描画", &enemyShadowEnabled_);
-
-	ImGui::SeparatorText("描画メトリクス");
-	ImGui::Text("合計敵数: %u", metrics.totalEnemyCount);
-	ImGui::Text("表示対象敵数: %u", metrics.visibleEnemyCount);
-	ImGui::Text("カリングされた敵数: %u", metrics.culledEnemyCount);
-	ImGui::Text("描画した敵数: %u", metrics.drawEnemyCount);
-	ImGui::Text("近距離敵数: %u", metrics.nearEnemyCount);
-	ImGui::Text("中距離敵数: %u", metrics.midEnemyCount);
-	ImGui::Text("遠距離敵数: %u", metrics.farEnemyCount);
-	ImGui::Text("距離範囲外敵数: %u", metrics.outOfRangeEnemyCount);
-	ImGui::TextWrapped("表示対象 = 合計 - カリング。現在の軽量敵では、カリングは遠距離更新距離より外側、または無効な敵です。描画数が0の場合は敵デバッグ描画を有効にしてください。");
-
-	ImGui::SeparatorText("更新LODメトリクス");
-	ImGui::Text("近距離合計数: %u", metrics.nearEnemyCount);
-	ImGui::Text("中距離合計数: %u", metrics.midEnemyCount);
-	ImGui::Text("遠距離合計数: %u", metrics.farEnemyCount);
-	ImGui::Text("近距離更新数: %u", metrics.nearUpdatedEnemyCount);
-	ImGui::Text("中距離更新数: %u", metrics.midUpdatedEnemyCount);
-	ImGui::Text("遠距離更新数: %u", metrics.farUpdatedEnemyCount);
-	ImGui::Text("今フレームで更新した敵数: %u", metrics.updatedEnemyCountThisFrame);
-	ImGui::Text("今フレームで更新をスキップした敵数: %u", metrics.skippedEnemyCountThisFrame);
-	ImGui::Text("更新間隔によりスキップした敵数: %u", metrics.intervalSkippedEnemyCount);
-	ImGui::Text("距離範囲外によりスキップした敵数: %u", metrics.outOfRangeSkippedEnemyCount);
-	ImGui::Text("無効状態によりスキップした敵数: %u", metrics.inactiveSkippedEnemyCount);
-	ImGui::TextWrapped("スキップ数 = 更新間隔による分散更新 + 距離範囲外 + 無効状態。更新LODが無効な場合、距離範囲内の有効な敵は毎フレーム更新されます。");
-	ImGui::Text("近接雑魚敵数: %u", metrics.meleeEnemyCount);
-	ImGui::Text("中距離雑魚敵数: %u", metrics.midRangeEnemyCount);
-	ImGui::Text("衝突判定回数: %u", metrics.collisionCheckCount);
-
-	ImGui::SeparatorText("フレームメトリクス");
-	ImGui::Text("瞬間FPS: %.1f", instantFps);
-	ImGui::Text("平均FPS: %.1f", gameTimer->GetFPS());
-	ImGui::Text("フレーム時間: %.3f ms", frameTimeMs);
-	ImGui::Text("VSync: ON");
-	ImGui::Text("敵更新時間: %.3f ms", metrics.enemyUpdateTimeMs);
-	ImGui::Text("敵描画登録時間: %.3f ms", metrics.enemyDrawSubmitTimeMs);
-	ImGui::Text("敵衝突判定時間: %.3f ms", metrics.enemyCollisionTimeMs);
-	ImGui::End();
-#endif // USE_IMGUI
-}
-
+/// -------------------------------------------------------------
+///							ImGui描画処理
+/// -------------------------------------------------------------
 void DebugScene::DrawImGui()
 {
 #ifdef USE_IMGUI
 
+	// ライトのImGui描画
 	LightManager::GetInstance()->DrawImGui();
-	DrawSkyBoxImGui();
-	DrawEnemyStressTestImGui();
 
-	if (debugBoss_)
-	{
-		debugBoss_->DrawImGui();
-	}
-	if (debugMeleeEnemy_)
-	{
-		debugMeleeEnemy_->DrawImGui();
-	}
-	if (debugMidRangeEnemy_)
-	{
-		debugMidRangeEnemy_->DrawImGui();
-	}
-
-	if (frustumCullingDebug_)
-	{
-		frustumCullingDebug_->DrawImGui();
-	}
-
-	ImGui::Begin("Debug Boss Hit Test");
-
-	ImGui::Checkbox("Enable Hit Test", &debugBossHitTestEnabled_);
-	ImGui::DragFloat("Hit Radius", &debugHitRadius_, 0.01f, 0.1f, 5.0f);
-	ImGui::DragFloat("Base Damage", &debugBaseDamage_, 0.1f, 1.0f, 999.0f);
-
-	ImGui::Separator();
-	ImGui::Text("Press H to test hit.");
-	ImGui::TextWrapped("%s", debugHitLog_.c_str());
-
-	ImGui::End();
-
-	ImGui::Begin("MeleeEnemy Debug Target");
-	Vector3 targetPos = meleeDummyTarget_.GetCenterPosition();
-	float targetPosArray[3] = { targetPos.x, targetPos.y, targetPos.z };
-	if (ImGui::DragFloat3("Dummy Target Position", targetPosArray, 0.05f))
-	{
-		meleeDummyTarget_.SetCenterPosition({ targetPosArray[0], targetPosArray[1], targetPosArray[2] });
-	}
-	ImGui::Checkbox("DummyTarget wire visible", &meleeDummyWireVisible_);
-	ImGui::SliderFloat("DummyTarget wire radius", &meleeDummyWireRadius_, 0.1f, 2.0f);
-	ImGui::Text("MeleeEnemy and dummy target are for BT behavior verification.");
-	ImGui::End();
-
-	if (stage_)
-	{
-		ImGui::Begin("Stage Debug");
-		const std::vector<AABB>& worldAABBs = stage_->GetWorldAABBs();
-		const std::vector<AABB>& floorAABBs = stage_->GetFloorAABBs();
-		const std::vector<AABB>& wallObstacles = stage_->GetWallObstacleAABBs();
-		const std::vector<AABB>& navObstacles = stage_->GetNavigationObstacleAABBs();
-		const std::vector<OBB>& wallObstacleOBBs = stage_->GetWallObstacleOBBs();
-		const std::vector<OBB>& navObstacleOBBs = stage_->GetNavigationObstacleOBBs();
-		const auto& worldColliders = stage_->GetWorldColliders();
-		const LevelData* levelData = stage_->GetLevelData();
-		size_t loadedColliders = 0;
-		size_t rotatedColliderCount = 0;
-		size_t colliderRotationReadCount = 0;
-		std::string sampleColliderName = "(none)";
-		Vector3 sampleRawCenter{};
-		Vector3 sampleConvertedCenter{};
-		Vector3 sampleSourceRotationDeg{};
-		Vector3 sampleConvertedRotationDeg{};
-		Vector3 sampleOBBCenter{};
-		Vector3 sampleAABBMin{};
-		Vector3 sampleAABBMax{};
-		float sampleFinalYawDeg = 0.0f;
-		bool sampleUsedByNavigationObstacle = false;
-		bool sampleUsedByWallObstacle = false;
-		bool sampleUsedByCollisionObstacle = false;
-		std::unordered_map<std::string, int> colliderTypeCounts{};
-		if (levelData)
-		{
-			for (const auto& object : levelData->objects)
-			{
-				if (!object.collider.enabled)
-				{
-					continue;
-				}
-				++loadedColliders;
-				const std::string typeName = object.collider.collisionType.empty() ? "Unspecified" : object.collider.collisionType;
-				++colliderTypeCounts[typeName];
-				if (object.collider.hasRotation)
-				{
-					++colliderRotationReadCount;
-				}
-				if ((object.collider.hasRotation && Vector3::Length(object.collider.rotation) > 0.0001f) ||
-					Vector3::Length(object.rotation) > 0.0001f)
-				{
-					++rotatedColliderCount;
-				}
-				if (sampleColliderName == "(none)" && object.collider.hasRotation)
-				{
-					sampleColliderName = object.name;
-					sampleRawCenter = object.collider.center;
-					sampleConvertedCenter = {
-						object.position.x + object.collider.center.x * object.scale.x,
-						object.position.y + object.collider.center.y * object.scale.y,
-						object.position.z + object.collider.center.z * object.scale.z,
-					};
-					sampleSourceRotationDeg = object.collider.sourceRotationDeg;
-					sampleConvertedRotationDeg = object.collider.convertedRotationDeg;
-					constexpr float kRadToDeg = 180.0f / 3.14159265358979323846f;
-					sampleFinalYawDeg = (object.rotation.y + object.collider.rotation.y) * kRadToDeg;
-					sampleOBBCenter = sampleConvertedCenter;
-					const Vector3 half = {
-						0.5f * object.collider.size.x * object.scale.x,
-						0.5f * object.collider.size.y * object.scale.y,
-						0.5f * object.collider.size.z * object.scale.z
-					};
-					sampleAABBMin = sampleConvertedCenter - half;
-					sampleAABBMax = sampleConvertedCenter + half;
-					sampleUsedByNavigationObstacle =
-						(object.collider.collisionType == "Obstacle" || object.collider.collisionType == "Pillar" ||
-							object.collider.collisionType == "Fence" || object.collider.collisionType == "Tree");
-					sampleUsedByWallObstacle = sampleUsedByNavigationObstacle;
-					sampleUsedByCollisionObstacle = sampleUsedByNavigationObstacle;
-				}
-			}
-		}
-		const size_t aabbFallbackCount = loadedColliders > worldColliders.size() ? loadedColliders - worldColliders.size() : 0;
-
-		ImGui::Text("WorldAABBs: %zu", worldAABBs.size());
-		ImGui::Text("FloorAABB count: %zu", floorAABBs.size());
-		ImGui::Text("WallObstacleAABB count: %zu", wallObstacles.size());
-		ImGui::Text("NavigationObstacleAABB count: %zu", navObstacles.size());
-		ImGui::Text("WallObstacleOBB count: %zu", wallObstacleOBBs.size());
-		ImGui::Text("NavigationObstacleOBB count: %zu", navObstacleOBBs.size());
-		ImGui::Text("Brown wire source: OBB");
-		ImGui::Text("Loaded Colliders: %zu", loadedColliders);
-		ImGui::Text("Rotated collider count: %zu", rotatedColliderCount);
-		ImGui::Text("AABB fallback count: %zu", aabbFallbackCount);
-		ImGui::Text("collider_rotation read count: %zu", colliderRotationReadCount);
-		ImGui::Text("sample collider name: %s", sampleColliderName.c_str());
-		ImGui::Text("raw center: (%.2f, %.2f, %.2f)", sampleRawCenter.x, sampleRawCenter.y, sampleRawCenter.z);
-		ImGui::Text("converted center: (%.2f, %.2f, %.2f)", sampleConvertedCenter.x, sampleConvertedCenter.y, sampleConvertedCenter.z);
-		ImGui::Text("source rotation degree: (%.2f, %.2f, %.2f)",
-			sampleSourceRotationDeg.x, sampleSourceRotationDeg.y, sampleSourceRotationDeg.z);
-		ImGui::Text("converted rotation degree: (%.2f, %.2f, %.2f)",
-			sampleConvertedRotationDeg.x, sampleConvertedRotationDeg.y, sampleConvertedRotationDeg.z);
-		ImGui::Text("converted yaw sample: %.2f deg", sampleConvertedRotationDeg.y);
-		ImGui::Text("final collider yaw degree: %.2f deg", sampleFinalYawDeg);
-		ImGui::Text("OBB center: (%.2f, %.2f, %.2f)", sampleOBBCenter.x, sampleOBBCenter.y, sampleOBBCenter.z);
-		ImGui::Text("AABB min: (%.2f, %.2f, %.2f)", sampleAABBMin.x, sampleAABBMin.y, sampleAABBMin.z);
-		ImGui::Text("AABB max: (%.2f, %.2f, %.2f)", sampleAABBMax.x, sampleAABBMax.y, sampleAABBMax.z);
-		ImGui::Text("used by NavigationObstacle: %s", sampleUsedByNavigationObstacle ? "true" : "false");
-		ImGui::Text("used by WallObstacle: %s", sampleUsedByWallObstacle ? "true" : "false");
-		ImGui::Text("used by CollisionObstacle: %s", sampleUsedByCollisionObstacle ? "true" : "false");
-		const int floorCount = colliderTypeCounts["Floor"];
-		const int wallObstacleCount = colliderTypeCounts["Obstacle"] + colliderTypeCounts["Pillar"] + colliderTypeCounts["Fence"] + colliderTypeCounts["Tree"];
-		ImGui::Text("Floor AABB count: %d", floorCount);
-		ImGui::Text("Wall/Obstacle AABB count: %d", wallObstacleCount);
-		ImGui::Text("Navigation obstacle count: %zu", navObstacles.size());
-		ImGui::Text("Collision obstacle count: %d", wallObstacleCount);
-		ImGui::Text("Floor: %d", colliderTypeCounts["Floor"]);
-		ImGui::Text("Obstacle: %d", colliderTypeCounts["Obstacle"]);
-		ImGui::Text("Pillar: %d", colliderTypeCounts["Pillar"]);
-		ImGui::Text("Fence: %d", colliderTypeCounts["Fence"]);
-		ImGui::Text("Tree: %d", colliderTypeCounts["Tree"]);
-
-		if (debugMeleeEnemy_)
-		{
-			const Vector3 enemyPos = debugMeleeEnemy_->GetCenterPosition();
-			ImGui::Text("MeleeEnemy Count: 1");
-			ImGui::Text("Selected Pos: (%.2f, %.2f, %.2f)", enemyPos.x, enemyPos.y, enemyPos.z);
-			ImGui::Text("Selected Action: %s", debugMeleeEnemy_->GetCurrentBehaviorName());
-			ImGui::Text("Grounded: %s", debugMeleeEnemy_->GetVelocity().y == 0.0f ? "Likely grounded" : "Falling/Moving");
-		}
-
-		ImGui::End();
-	}
-
-	/// ---------- GPUパーティクルデバッグ ---------- ///
-	GpuParticleManager::GetInstance()->DrawImGui();
-
-	/// ---------- Sprite / Mesh Particle 比較テスト ---------- ///
-	{
-		static char meshModelPath[256] = "Test/cube.gltf";
-		static int meshId = 1000;
-		static int particleTypeIndex = 1;
-		static int spriteCount = 48;
-		static int meshCount = 48;
-		static float radius = 1.0f;
-		static float position[3] = { 0.0f, 2.5f, 18.0f };
-		static bool meshLoaded = false;
-		static bool spawnSideBySide = true;
-
-		const char* particleTypeNames[] = {
-			"Default",
-			"Debris",
-			"Spark",
-			"Shockwave",
-			"Smoke",
-			"Heal"
-		};
-
-		GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
-		const GpuParticleType selectedType = ToDebugParticleType(particleTypeIndex);
-
-		ImGui::Begin("GPU Particle Sprite / Mesh Test");
-		ImGui::TextWrapped("Sprite and Mesh particles can be spawned from this DebugScene-only panel. Mesh uses textureFilePath = Mesh:<MeshId> internally.");
-		ImGui::Separator();
-
-		ImGui::InputText("Mesh Model Path", meshModelPath, IM_ARRAYSIZE(meshModelPath));
-		ImGui::InputInt("MeshId", &meshId);
-		if (meshId < 0) { meshId = 0; }
-
-		if (ImGui::Button("Load Mesh Asset"))
-		{
-			meshLoaded = gpuParticleManager->LoadMeshAssetsFromAssimp(static_cast<uint32_t>(meshId), meshModelPath, true);
-			debugParticleLog_ = meshLoaded
-				? "MeshParticle Debug: LoadMeshAssetsFromAssimp succeeded."
-				: "MeshParticle Debug: LoadMeshAssetsFromAssimp failed.";
-			DebugLog(debugParticleLog_);
-		}
-
-		ImGui::SameLine();
-		ImGui::Text("Loaded: %s", meshLoaded ? "true" : "false");
-		ImGui::Text("Registered MeshAssets: %zu", gpuParticleManager->GetMeshAssets().size());
-
-		if (const auto* meshAsset = gpuParticleManager->FindMeshAsset(static_cast<uint32_t>(meshId)))
-		{
-			ImGui::Text("MeshId %d found. IndexCount: %u", meshId, meshAsset->indexCount);
-			ImGui::Text("Mesh Texture: %s", meshAsset->textureFilePath.c_str());
-		}
-		else
-		{
-			ImGui::TextColored(ImVec4(1.0f, 0.45f, 0.35f, 1.0f), "MeshId %d is not registered yet.", meshId);
-		}
-
-		ImGui::Separator();
-		ImGui::Combo("Particle Type", &particleTypeIndex, particleTypeNames, IM_ARRAYSIZE(particleTypeNames));
-		ImGui::DragInt("Sprite Count", &spriteCount, 1.0f, 0, 1000);
-		ImGui::DragInt("Mesh Count", &meshCount, 1.0f, 0, 1000);
-		ImGui::DragFloat("Emitter Radius", &radius, 0.01f, 0.0f, 30.0f);
-		ImGui::DragFloat3("Center Position", position, 0.05f);
-		ImGui::Checkbox("Side By Side", &spawnSideBySide);
-
-		Vector3 center{ position[0], position[1], position[2] };
-		Vector3 spritePos = center;
-		Vector3 meshPos = center;
-		if (spawnSideBySide)
-		{
-			spritePos.x -= 2.0f;
-			meshPos.x += 2.0f;
-		}
-
-		if (ImGui::Button("Spawn Sprite"))
-		{
-			if (auto* spriteEmitter = gpuParticleManager->EmitBurst(
-				"DebugScene_SpriteParticle",
-				selectedType,
-				spritePos,
-				static_cast<uint32_t>(std::max(spriteCount, 0))))
-			{
-				spriteEmitter->GetInfoMutable().radius = radius;
-				spriteEmitter->SetPosition(spritePos);
-			}
-
-			debugParticleLog_ = "Spawn: DebugScene Sprite Particle";
-			DebugLog(debugParticleLog_);
-		}
-
-		ImGui::SameLine();
-		if (ImGui::Button("Spawn Mesh"))
-		{
-			if (!gpuParticleManager->FindMeshAsset(static_cast<uint32_t>(meshId)))
-			{
-				meshLoaded = gpuParticleManager->LoadMeshAssetsFromAssimp(static_cast<uint32_t>(meshId), meshModelPath, true);
-			}
-
-			if (auto* meshEmitter = PrepareDebugMeshParticleEmitter(
-				gpuParticleManager,
-				"DebugScene_MeshParticle",
-				static_cast<uint32_t>(meshId),
-				selectedType,
-				meshPos,
-				radius))
-			{
-				meshEmitter->RequestEmit(static_cast<uint32_t>(std::max(meshCount, 0)));
-				debugParticleLog_ = "Spawn: DebugScene Mesh Particle";
-			}
-			else
-			{
-				debugParticleLog_ = "Spawn failed: DebugScene Mesh Particle";
-			}
-			DebugLog(debugParticleLog_);
-		}
-
-		ImGui::SameLine();
-		if (ImGui::Button("Spawn Both"))
-		{
-			if (auto* spriteEmitter = gpuParticleManager->EmitBurst(
-				"DebugScene_SpriteParticle",
-				selectedType,
-				spritePos,
-				static_cast<uint32_t>(std::max(spriteCount, 0))))
-			{
-				spriteEmitter->GetInfoMutable().radius = radius;
-				spriteEmitter->SetPosition(spritePos);
-			}
-
-			if (!gpuParticleManager->FindMeshAsset(static_cast<uint32_t>(meshId)))
-			{
-				meshLoaded = gpuParticleManager->LoadMeshAssetsFromAssimp(static_cast<uint32_t>(meshId), meshModelPath, true);
-			}
-
-			if (auto* meshEmitter = PrepareDebugMeshParticleEmitter(
-				gpuParticleManager,
-				"DebugScene_MeshParticle",
-				static_cast<uint32_t>(meshId),
-				selectedType,
-				meshPos,
-				radius))
-			{
-				meshEmitter->RequestEmit(static_cast<uint32_t>(std::max(meshCount, 0)));
-			}
-
-			debugParticleLog_ = "Spawn: DebugScene Sprite + Mesh Particles";
-			DebugLog(debugParticleLog_);
-		}
-
-		ImGui::Separator();
-		ImGui::Text("Sprite position: %.2f, %.2f, %.2f", spritePos.x, spritePos.y, spritePos.z);
-		ImGui::Text("Mesh position:   %.2f, %.2f, %.2f", meshPos.x, meshPos.y, meshPos.z);
-		ImGui::TextWrapped("%s", debugParticleLog_.c_str());
-		ImGui::End();
-	}
-
-
-	if (disintegrationDebug_)
-	{
-		disintegrationDebug_->DrawImGui();
-	}
-
-	/// ---------- 武器マスターデータエディタ ---------- ///
-	static WeaponMasterDataDatabase weaponDB;
-	static WeaponMasterDataEditor weaponEditor;
-	static WeaponEditorHooks hooks;
-	static bool initialized = false;
-	static int32_t lastAppliedID = 0;
-
-	if (!initialized)
-	{
-		initialized = true;
-
-		// まだ保存/再読込はしないので一旦空実装でOK
-		hooks.SaveAll = [&]()
-			{
-				std::string err;
-				const std::filesystem::path outRoot = "Resources/JSON/weapons";
-				WeaponMasterDataWriter::SaveAllByCategory(weaponDB, outRoot, &err);
-			};
-		hooks.RequestReloadFocus = [](int32_t) {};
-		hooks.RebuildLoadout = []() {};
-
-		// Applyされたら「最後のID」を更新（動作確認）
-		hooks.ApplyToRuntimeIfCurrent =
-			[&](int32_t weaponID, const FWeaponMasterData&)
-			{
-				lastAppliedID = weaponID;
-			};
-
-		// 削除はDBから消すだけ（ファイル削除は後で）
-		hooks.RequestDelete =
-			[&](int32_t weaponID)
-			{
-				std::string err;
-				const std::filesystem::path outRoot = "Resources/JSON/weapons";
-
-				// まずはディスク上のjsonファイルを削除
-				WeaponMasterDataWriter::DeleteFilesByWeaponID(outRoot, weaponID, &err);
-
-				// DBから削除
-				weaponDB.RemoveByID(weaponID);
-			};
-
-		// DebugSceneでは武器追加フローを接続しないため、追加要求は空実装で受け流す。
-		hooks.RequestAdd = [](const std::string&, int32_t) {};
-
-		// 初期データを2つだけ作る（任意）
-		weaponDB.Clear();
-	}
-
-	ImGui::Begin("武器マスターデータエディタ");
-	if (ImGui::CollapsingHeader("Weapon Master Editor", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		ImGui::Text("Count: %zu", weaponDB.Size());
-		ImGui::Text("Last Applied ID: %d", lastAppliedID);
-		ImGui::Separator();
-
-		weaponEditor.DrawImGui(weaponDB, hooks);
-	}
-
-	ImGui::Separator();
-	ImGui::Text("Press H to test hit.");
-	ImGui::TextWrapped("%s", debugHitLog_.c_str());
-
-	ImGui::Separator();
-	ImGui::Text("Particle Test");
-	ImGui::Text("1 : HitSpark");
-	ImGui::Text("2 : Heal_Effect");
-	ImGui::Text("3 : Boss_Appear_Dust");
-	ImGui::TextWrapped("%s", debugParticleLog_.c_str());
-
-	ImGui::End();
-
-#endif // USE_IMGUI
-
-}
-
-void DebugScene::DrawSkyBoxImGui()
-{
-#ifdef USE_IMGUI
-	K4E::SkyBoxPreset* preset = skyBoxPresets_.FindActivePreset();
-	ImGui::Begin("SkyBox Settings");
-	ImGui::TextWrapped("DebugSceneの背景を、写真ではなくシンプルな空と独立した雲レイヤーとして調整します。");
-	ImGui::Separator();
-
-	if (ImGui::BeginCombo("Active Preset", skyBoxPresets_.activePresetName.c_str()))
-	{
-		for (const K4E::SkyBoxPreset& candidate : skyBoxPresets_.presets)
-		{
-			const bool selected = candidate.name == skyBoxPresets_.activePresetName;
-			if (ImGui::Selectable(candidate.name.c_str(), selected)) { skyBoxPresets_.activePresetName = candidate.name; ApplyActiveSkyBoxPreset(); preset = skyBoxPresets_.FindActivePreset(); }
-			if (selected) ImGui::SetItemDefaultFocus();
-		}
-		ImGui::EndCombo();
-	}
-	ImGui::TextWrapped("Active Preset: 現在使用する名前付きSkyBox設定を選択します。");
-
-	if (preset)
-	{
-		if (ImGui::Checkbox("Enabled", &preset->enabled)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Enabled: SkyBox背景の表示ON/OFFを切り替えます。");
-		const char* skyTypes[] = { "ColorOnly", "Gradient", "Texture" };
-		int skyTypeIndex = preset->skyType == "ColorOnly" ? 0 : preset->skyType == "Texture" ? 2 : 1;
-		if (ImGui::Combo("Sky Type", &skyTypeIndex, skyTypes, IM_ARRAYSIZE(skyTypes))) { preset->skyType = skyTypes[skyTypeIndex]; ApplyActiveSkyBoxPreset(); }
-		ImGui::TextWrapped("Sky Type: 空の描画方式を切り替えます。Gradientは上下の色と地平線色からシンプルな空を作ります。");
-		ImGui::InputText("Texture Path", skyBoxTexturePathBuffer_.data(), skyBoxTexturePathBuffer_.size());
-		if (ImGui::Button("Apply Texture Path")) { preset->texturePath = skyBoxTexturePathBuffer_.data(); ApplyActiveSkyBoxPreset(); }
-		ImGui::SameLine();
-		if (ImGui::Button("Reload Texture")) { preset->texturePath = skyBoxTexturePathBuffer_.data(); ApplyActiveSkyBoxPreset(true); }
-		ImGui::TextWrapped("Texture Path / Reload Texture: Texture方式で使う従来SkyBoxテクスチャを変更、再読み込みします。");
-		if (ImGui::ColorEdit4("Top Color", &preset->topColor.x)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Top Color: 空の上側の色を調整します。ColorOnlyではこの色を使います。");
-		if (ImGui::ColorEdit4("Bottom Color", &preset->bottomColor.x)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Bottom Color: 空の下側の色を調整します。");
-		if (ImGui::ColorEdit4("Horizon Color", &preset->horizonColor.x)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Horizon Color: 地平線付近の色を調整します。");
-		if (ImGui::DragFloat("Brightness", &preset->brightness, 0.01f, 0.0f, 10.0f)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Brightness: SkyBoxの明るさ倍率を調整します。");
-		if (ImGui::DragFloat3("Rotation", &preset->rotation.x, 0.01f)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Rotation: SkyBoxの向きをラジアン単位で調整します。");
-		if (ImGui::DragFloat3("Scale", &preset->scale.x, 10.0f, 1.0f, 50000.0f)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Scale: 背景キューブの大きさを調整します。");
-
-		ImGui::SeparatorText("Cloud Layer");
-		ImGui::TextWrapped("Cloud Layer: SkyBoxとは別に、上空の雲レイヤーを背景寄りに描画します。");
-		if (ImGui::Checkbox("Cloud Enabled", &preset->cloud.enabled)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Cloud Enabled: 雲レイヤーの表示ON/OFFを切り替えます。テクスチャがない場合は安全のため描画しません。");
-		ImGui::InputText("Cloud Texture Path", cloudTexturePathBuffer_.data(), cloudTexturePathBuffer_.size());
-		if (ImGui::Button("Apply Cloud Texture Path")) { preset->cloud.texturePath = cloudTexturePathBuffer_.data(); ApplyActiveSkyBoxPreset(); }
-		ImGui::SameLine();
-		if (ImGui::Button("Reload Cloud Texture")) { preset->cloud.texturePath = cloudTexturePathBuffer_.data(); ApplyActiveSkyBoxPreset(true); }
-		ImGui::TextWrapped("Cloud Texture Path / Reload: 透過を持つシンプルな雲用2Dテクスチャを変更、再読み込みします。");
-		ImGui::Text("Actual Cloud DDS: Resources/Textures/Compiled/%s", skyBox_->GetCloudTexturePath().c_str());
-		ImGui::Text("Cloud Load Result: enabled=%s available=%s srvIndex=%u", skyBox_->IsCloudEnabled() ? "true" : "false", skyBox_->IsCloudTextureAvailable() ? "true" : "false", skyBox_->GetCloudTextureIndex());
-		if (ImGui::DragFloat("Cloud Height", &preset->cloud.height, 1.0f, 0.0f, 10000.0f)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Cloud Height: 雲レイヤーの見かけ上の高さを調整します。");
-		if (ImGui::DragFloat("Cloud Scale", &preset->cloud.scale, 0.01f, 0.01f, 20.0f)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Cloud Scale: 雲模様の広がりを調整します。");
-		if (ImGui::DragFloat2("Cloud Scroll Speed", &preset->cloud.scrollSpeed.x, 0.0001f, -1.0f, 1.0f)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Cloud Scroll Speed: UVスクロールで雲が流れる速度を調整します。");
-		if (ImGui::DragFloat("Cloud Alpha", &preset->cloud.alpha, 0.01f, 0.0f, 1.0f)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Cloud Alpha: 雲の透明度を調整します。");
-		if (ImGui::ColorEdit4("Cloud Tint Color", &preset->cloud.tintColor.x)) ApplyActiveSkyBoxPreset();
-		ImGui::TextWrapped("Cloud Tint Color: 雲へ重ねる色味を調整します。");
-		if (ImGui::Button("Reset Cloud UV Offset")) { preset->cloud.uvOffset = {}; ApplyActiveSkyBoxPreset(); }
-		ImGui::TextWrapped("Reset Cloud UV Offset: 流れた雲のUV位置を初期位置へ戻します。");
-	}
-
-	ImGui::Separator();
-	if (ImGui::Button("Save Settings")) SaveSkyBoxPresets();
-	ImGui::SameLine();
-	if (ImGui::Button("Load Settings")) { LoadSkyBoxPresets(); ApplyActiveSkyBoxPreset(); }
-	ImGui::TextWrapped("Save / Load Settings: SkyBoxとCloudLayer設定をJsonへ保存、またはJsonから復元します。");
-	ImGui::TextWrapped("%s", skyBoxPresetLog_.c_str());
-	ImGui::End();
 #endif // USE_IMGUI
 }
 
+/// -------------------------------------------------------------
+///						Debug用の更新処理
+/// -------------------------------------------------------------
 void DebugScene::UpdateDebug()
 {
-	if (input_->TriggerKey(DIK_F12))
-	{
-		CameraManager::GetInstance()->SetUseDebugCamera(!CameraManager::GetInstance()->IsUsingDebugCamera());
-		Wireframe::GetInstance()->SetDebugCamera(!Wireframe::GetInstance()->GetDebugCamera());
-		GpuParticleManager::GetInstance()->SetDebugCameraEnabled(!isDebugCamera_);
-		isDebugCamera_ = !isDebugCamera_;
+	// Inputがない場合は何もしない（安全策）
+	if (!input_) return;
 
-		/*input_->SetLockCursor(!isDebugCamera_);
-		input_->SetCursorVisible(isDebugCamera_);*/
+	// F9はEditor操作中でも使いたいDebugショートカットなのでRaw入力で判定する
+	if (input_->TriggerRawKey(DIK_F9))
+	{
+		// デバッグカメラの使用状態をトグルで切り替える
+		const bool nextDebugCamera = !CameraManager::GetInstance()->IsUsingDebugCamera();
+
+		// 切り替えた状態をCameraManagerとWireframeに伝える
+		CameraManager::GetInstance()->SetUseDebugCamera(nextDebugCamera);
+		Wireframe::GetInstance()->SetDebugCamera(nextDebugCamera);
+
+		// DebugScene自身も状態を保持して、必要に応じて入力のロックやカーソルの表示を切り替える
+		isDebugCamera_ = nextDebugCamera;
+
+		// デバッグカメラ使用中はカーソルをロックして非表示にする。通常カメラ使用中はカーソルを表示してロック解除する。
+		input_->SetLockCursor(!isDebugCamera_);
+		input_->SetCursorVisible(isDebugCamera_);
 	}
 }
 
-/// -------------------------------------------------------------
-/// BossHitPart をログ用文字列へ変換
-/// -------------------------------------------------------------
-const char* DebugScene::ToString(BossHitPart part) const
-{
-	switch (part)
-	{
-	case BossHitPart::Head:     return "Head";
-	case BossHitPart::Body:     return "Body";
-	case BossHitPart::LeftArm:  return "LeftArm";
-	case BossHitPart::RightArm: return "RightArm";
-	case BossHitPart::LeftLeg:  return "LeftLeg";
-	case BossHitPart::RightLeg: return "RightLeg";
-	default:                    return "None";
-	}
-}
-
-/// -------------------------------------------------------------
-/// DebugScene での仮ヒット確認
-///
-/// Hキーを押した瞬間に簡易球判定を飛ばし、
-/// 結果を OutputDebugStringA で出力する
-/// -------------------------------------------------------------
-void DebugScene::UpdateDebugBossHitTest()
-{
-	if (!debugBossHitTestEnabled_)
-	{
-		return;
-	}
-
-	if (!debugBoss_)
-	{
-		debugHitLog_ = "Boss or Player is null.";
-		DebugLog(debugHitLog_);
-		return;
-	}
-
-	// Hキーを押した瞬間だけ判定
-	if (!input_->TriggerKey(DIK_H))
-	{
-		return;
-	}
-
-	// ---------------------------------------------------------
-	// 仮の攻撃位置
-	// 本来は弾のヒット位置や近接武器先端などを使うが、
-	// 今回はデバッグ用としてボス中心より少し上を狙う
-	// ---------------------------------------------------------
-	Vector3 attackCenter = debugBoss_->GetCenterPosition();
-	attackCenter.y += 1.0f; // 頭寄りを狙いやすくする
-
-	// BossBase 側の簡易球判定
-	const BossHitResult hitResult =
-		debugBoss_->CheckDebugHitSphere(attackCenter, debugHitRadius_);
-
-	if (hitResult.isHit)
-	{
-		// 倍率込みダメージを適用
-		debugBoss_->ApplyDebugHitResult(hitResult, debugBaseDamage_);
-
-		Vector3 effectPos = attackCenter;
-		effectPos.y += 0.15f;
-
-		GpuParticleManager::GetInstance()->EmitBurst(
-			"Debug_HitSpark_OnHit",
-			GpuParticleType::Spark,
-			effectPos,
-			18);
-
-		// 画面表示用にも保持
-		debugHitLog_ =
-			std::string("HIT  Part: ") + ToString(hitResult.part) +
-			"  Damage: " + std::to_string(debugBaseDamage_ * hitResult.damageMultiplier) +
-			"  HP: " + std::to_string(debugBoss_->GetHP()) +
-			" / " + std::to_string(debugBoss_->GetMaxHP());
-
-		// Visual Studio の出力ウィンドウへ送る
-		DebugLog(debugHitLog_);
-	}
-	else
-	{
-		debugHitLog_ = "MISS";
-		DebugLog(debugHitLog_);
-	}
-}
-
-void DebugScene::UpdateDebugParticleTest()
-{
-	if (!debugBoss_)
-	{
-		return;
-	}
-
-	GpuParticleManager* gpuParticleManager = GpuParticleManager::GetInstance();
-	if (!gpuParticleManager)
-	{
-		debugParticleLog_ = "GpuParticleManager is null.";
-		return;
-	}
-
-	const Vector3 bossCenter = debugBoss_->GetCenterPosition();
-
-	// ---------------------------------------------------------
-	// 1キー: ヒット火花
-	// ---------------------------------------------------------
-	if (input_->TriggerKey(DIK_1))
-	{
-		Vector3 pos = bossCenter;
-		pos.y += 1.0f;
-
-		gpuParticleManager->EmitBurst(
-			"Debug_HitSpark",
-			GpuParticleType::Spark,
-			pos,
-			20);
-
-		debugParticleLog_ = "Spawn: HitSpark";
-		DebugLog(debugParticleLog_);
-	}
-
-	// ---------------------------------------------------------
-	// 2キー: 回復エフェクト
-	// ---------------------------------------------------------
-	if (input_->TriggerKey(DIK_2))
-	{
-		Vector3 pos = bossCenter;
-		pos.y += 1.5f;
-
-		gpuParticleManager->EmitBurst(
-			"Debug_Heal",
-			GpuParticleType::Heal,
-			pos,
-			24);
-
-		debugParticleLog_ = "Spawn: Heal_Effect";
-		DebugLog(debugParticleLog_);
-	}
-
-	// ---------------------------------------------------------
-	// 3キー: ボス登場砂埃
-	// ---------------------------------------------------------
-	if (input_->TriggerKey(DIK_3))
-	{
-		Vector3 pos = bossCenter;
-
-		gpuParticleManager->EmitBurst(
-			"Debug_BossAppear",
-			GpuParticleType::Default,
-			pos,
-			48);
-
-		debugParticleLog_ = "Spawn: Boss_Appear_Dust";
-		DebugLog(debugParticleLog_);
-	}
-}
