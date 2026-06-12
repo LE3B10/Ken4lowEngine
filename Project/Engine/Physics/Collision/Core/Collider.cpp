@@ -72,7 +72,11 @@ namespace Ken4lowEngine
 		const Vector4 drawColor = IsCollisionEnabledForQuery()
 			? shapeInfo_.debugColor
 			: Vector4{ 0.35f, 0.35f, 0.35f, 0.65f };
+		DrawDebug(drawColor, false);
+	}
 
+	void Collider::DrawDebug(const Vector4& drawColor, bool drawBounds)
+	{
 		// 主形状のDebug描画。未移行Colliderは従来通りOBB/Segmentも下の互換描画で表示する。
 		switch (shapeInfo_.shapeType)
 		{
@@ -89,7 +93,7 @@ namespace Ken4lowEngine
 			}
 			break;
 		case ECollisionShapeType::Capsule:
-			if (shapeInfo_.HasDrawableCapsule())
+			if ((drawBounds && shapeInfo_.useCapsule && shapeInfo_.capsule.radius > CollisionShapeInfo::kDrawEpsilon) || shapeInfo_.HasDrawableCapsule())
 			{
 				Wireframe::GetInstance()->DrawCapsule(shapeInfo_.capsule, drawColor);
 			}
@@ -124,12 +128,25 @@ namespace Ken4lowEngine
 
 		// -------- Capsule 描画 -------- //
 		Vector3 axis = shapeInfo_.capsule.GetAxis();
-		if (shapeInfo_.shapeType != ECollisionShapeType::Capsule && shapeInfo_.HasDrawableCapsule())
+		if (shapeInfo_.shapeType != ECollisionShapeType::Capsule &&
+			((drawBounds && shapeInfo_.useCapsule && shapeInfo_.capsule.radius > CollisionShapeInfo::kDrawEpsilon) || shapeInfo_.HasDrawableCapsule()))
 		{
 			if (Vector3::Length(axis) < 1e-6f)
 				Wireframe::GetInstance()->DrawSphere(shapeInfo_.capsule.segment.origin, shapeInfo_.capsule.radius, drawColor);
 			else
 				Wireframe::GetInstance()->DrawCapsule(shapeInfo_.capsule.GetCenter(), shapeInfo_.capsule.radius, shapeInfo_.capsule.GetHeight(), axis, 8, drawColor);
+		}
+
+		if (drawBounds)
+		{
+			// 中心点と派生AABBを薄く重ね、位置/サイズの取り違えをDebug Viewerで確認しやすくする。
+			const Vector4 centerColor{ 0.85f, 1.0f, 1.0f, 1.0f };
+			const Vector4 boundsColor{ drawColor.x * 0.55f, drawColor.y * 0.55f, drawColor.z * 0.55f, 0.55f };
+			Wireframe::GetInstance()->DrawSphere(GetCenterPosition(), 0.12f, centerColor);
+			if (shapeInfo_.HasDrawableOBB())
+			{
+				Wireframe::GetInstance()->DrawAABB(shapeInfo_.BuildAABB(), boundsColor);
+			}
 		}
 	}
 

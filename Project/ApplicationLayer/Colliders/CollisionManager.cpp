@@ -188,16 +188,22 @@ void CollisionManager::Draw()
 #ifndef _DEBUG
 	return;
 #endif
+	if (!ShouldShowCollisionDebugViewer()) return;
 	if (!isCollider_) return;
 
 	for (K4E::Collider* collider : all_)
-		collider->Draw();
+	{
+		if (!collider) continue;
+		collider->DrawDebug(GetColliderDebugDrawColor(collider), true);
+	}
 }
 
 
 void CollisionManager::DrawImGui()
 {
 #ifdef USE_IMGUI
+	if (!ShouldShowCollisionDebugViewer()) return;
+
 	// Collision DebugではCollider表示フラグと登録状況を通常Dockウィンドウ内に表示する。
 	bool showCollider = isCollider_;
 	if (ImGui::Checkbox("Show Collider", &showCollider))
@@ -207,6 +213,16 @@ void CollisionManager::DrawImGui()
 	}
 	ImGui::Text("All Colliders: %d", static_cast<int>(all_.size()));
 	ImGui::Text("Ignored Pair Loops: %u", ignoredPairLoopCount_);
+	if (ImGui::TreeNode("Debug Draw Legend"))
+	{
+		ImGui::TextColored(ImVec4(0.20f, 0.95f, 0.35f, 1.0f), "Enabled Collider");
+		ImGui::TextColored(ImVec4(0.45f, 0.45f, 0.45f, 1.0f), "Disabled / not processable");
+		ImGui::TextColored(ImVec4(1.0f, 0.9f, 0.10f, 1.0f), "Trigger / Overlap");
+		ImGui::TextColored(ImVec4(1.0f, 0.18f, 0.12f, 1.0f), "Block contact");
+		ImGui::TextColored(ImVec4(0.18f, 0.18f, 0.18f, 1.0f), "Ignore / query off / missing dynamic owner");
+		ImGui::Text("Center marker and derived AABB are drawn as helper guides.");
+		ImGui::TreePop();
+	}
 
 #ifdef USE_IMGUI
 	if (K4E::EditorModeController::GetInstance()->ShouldDrawEditorUi() && ImGui::TreeNode("Collision Event Debug"))
@@ -386,11 +402,15 @@ void CollisionManager::DrawImGui()
 				const EObjectChannel colliderObjectChannel = ToObjectChannel(objectChannelId);
 				const K4E::Vector3 center = collider->GetCenterPosition();
 				const K4E::Vector3 halfSize = collider->GetOBBHalfSize();
-				ImGui::Text("Owner: %p (name unavailable)", collider->GetOwner<void>());
+				const std::string_view ownerName = collider->GetOwnerDebugName();
+				ImGui::Text("Owner: %s (%p)",
+					ownerName.empty() ? "(none/world/static)" : ownerName.data(),
+					collider->GetOwner<void>());
 				ImGui::Text("Registered: true");
 				ImGui::Text("Enabled/Processable: %s / %s",
 					collider->IsEnabled() ? "true" : "false",
 					IsColliderProcessable(collider) ? "true" : "false");
+				ImGui::Text("Skip Reason: %s", GetColliderSkipReason(collider));
 				ImGui::Text("ShapeType: %s", ToString(collider->GetShapeType()));
 				ImGui::Text("TypeID/ObjectChannel: %u / %s(%u)", typeId, ToString(colliderObjectChannel), objectChannelId);
 				if (presetName.empty())
@@ -412,9 +432,53 @@ void CollisionManager::DrawImGui()
 				ImGui::Text("DebugDraw: %s", isCollider_ ? "true" : "false");
 				ImGui::Text("Center: %.2f, %.2f, %.2f", center.x, center.y, center.z);
 				ImGui::Text("HalfSize: %.2f, %.2f, %.2f", halfSize.x, halfSize.y, halfSize.z);
+				ImGui::Text("AABB Min: %.2f, %.2f, %.2f", collider->GetAABB().min.x, collider->GetAABB().min.y, collider->GetAABB().min.z);
+				ImGui::Text("AABB Max: %.2f, %.2f, %.2f", collider->GetAABB().max.x, collider->GetAABB().max.y, collider->GetAABB().max.z);
+				if (collider->GetShapeType() == K4E::ECollisionShapeType::Sphere)
+				{
+					const K4E::Sphere sphere = collider->GetSphere();
+					ImGui::Text("Sphere: center %.2f, %.2f, %.2f / r %.2f", sphere.center.x, sphere.center.y, sphere.center.z, sphere.radius);
+				}
+				if (collider->GetShapeType() == K4E::ECollisionShapeType::Segment)
+				{
+					const K4E::Segment segment = collider->GetSegment();
+					ImGui::Text("Segment Origin: %.2f, %.2f, %.2f", segment.origin.x, segment.origin.y, segment.origin.z);
+					ImGui::Text("Segment Diff: %.2f, %.2f, %.2f", segment.diff.x, segment.diff.y, segment.diff.z);
+				}
+				if (collider->HasCapsule())
+				{
+					const K4E::Capsule capsule = collider->GetCapsule();
+					ImGui::Text("Capsule: center %.2f, %.2f, %.2f / r %.2f / h %.2f",
+						capsule.GetCenter().x, capsule.GetCenter().y, capsule.GetCenter().z,
+						capsule.radius, capsule.GetHeight());
+				}
 				ImGui::Text("Current/Prev Contacts: %d / %d",
 					static_cast<int>(collider->GetCurrentCollisions().size()),
 					static_cast<int>(collider->GetPrevCollisions().size()));
+
+				if (ImGui::TreeNode("Current Contact Partners"))
+				{
+					int contactCount = 0;
+					for (const auto& [_, contact] : currentContacts_)
+					{
+						K4E::Collider* other = nullptr;
+						if (contact.colliderA == collider) other = contact.colliderB;
+						if (contact.colliderB == collider) other = contact.colliderA;
+						if (!other) continue;
+
+						ImGui::Text("Other #%u  Type:%u  Channel:%s  Response:%s",
+							other->GetUniqueID(),
+							other->GetTypeID(),
+							ToString(ToObjectChannel(other->GetObjectChannelId())),
+							ToString(contact.response));
+						++contactCount;
+					}
+					if (contactCount == 0)
+					{
+						ImGui::TextDisabled("No current contacts.");
+					}
+					ImGui::TreePop();
+				}
 
 				if (ImGui::TreeNode("Response To ObjectChannels"))
 				{
@@ -423,7 +487,14 @@ void CollisionManager::DrawImGui()
 						const ECollisionResponse response = collider->HasCollisionResponseOverrides()
 							? static_cast<ECollisionResponse>(collider->GetCollisionResponseId(ToCollisionTypeId(otherChannel)))
 							: responseMatrix_.GetResponse(colliderObjectChannel, otherChannel);
-						ImGui::Text("%s: %s", ToString(otherChannel), ToString(response));
+						if (response == ECollisionResponse::Ignore)
+						{
+							ImGui::TextColored(ImVec4(0.45f, 0.45f, 0.45f, 1.0f), "%s: %s (will not create collision events)", ToString(otherChannel), ToString(response));
+						}
+						else
+						{
+							ImGui::Text("%s: %s", ToString(otherChannel), ToString(response));
+						}
 					}
 					ImGui::TreePop();
 				}
@@ -860,6 +931,79 @@ bool CollisionManager::IsColliderProcessable(K4E::Collider* collider) const
 	const bool isWorldStatic = collider->GetObjectChannelId() == static_cast<uint32_t>(CollisionTypeIdDef::kWorld);
 	if (!isWorldStatic && !collider->GetOwner<void>()) return false;
 	return true;
+}
+
+bool CollisionManager::ShouldShowCollisionDebugViewer() const
+{
+#ifndef _DEBUG
+	return false;
+#else
+	return K4E::EditorModeController::GetInstance()->ShouldDrawDebugVisuals();
+#endif
+}
+
+K4E::Vector4 CollisionManager::GetColliderDebugDrawColor(K4E::Collider* collider) const
+{
+	if (!collider) return { 0.18f, 0.18f, 0.18f, 1.0f };
+
+	if (!IsColliderProcessable(collider))
+	{
+		return collider->IsEnabled()
+			? K4E::Vector4{ 0.18f, 0.18f, 0.18f, 0.75f }
+			: K4E::Vector4{ 0.45f, 0.45f, 0.45f, 0.75f };
+	}
+
+	ECollisionResponse currentResponse = ECollisionResponse::Ignore;
+	if (TryGetCurrentContactResponse(collider, currentResponse))
+	{
+		if (currentResponse == ECollisionResponse::Block)
+		{
+			return { 1.0f, 0.18f, 0.12f, 1.0f };
+		}
+		if (currentResponse == ECollisionResponse::Overlap)
+		{
+			return { 1.0f, 0.9f, 0.10f, 1.0f };
+		}
+		return { 0.18f, 0.18f, 0.18f, 0.75f };
+	}
+
+	if (collider->IsTrigger())
+	{
+		return { 1.0f, 0.9f, 0.10f, 0.9f };
+	}
+
+	return { 0.20f, 0.95f, 0.35f, 0.9f };
+}
+
+bool CollisionManager::TryGetCurrentContactResponse(K4E::Collider* collider, ECollisionResponse& outResponse) const
+{
+	if (!collider) return false;
+
+	for (const auto& [_, contact] : currentContacts_)
+	{
+		if (contact.colliderA == collider || contact.colliderB == collider)
+		{
+			outResponse = contact.response;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+const char* CollisionManager::GetColliderSkipReason(K4E::Collider* collider) const
+{
+	if (!collider) return "Null collider";
+	if (!collider->IsEnabled()) return "Collider disabled";
+	if (!collider->IsQueryEnabled()) return "Query disabled";
+	if (collider->RequiresOwner() && !collider->GetOwner<void>()) return "Required owner is null";
+	if (!collider->IsOwnerActive()) return "Owner inactive flag";
+	if (!collider->IsOwnerAlive()) return "Owner dead flag";
+	if (!collider->IsOwnerVisible()) return "Owner invisible flag";
+
+	const bool isWorldStatic = collider->GetObjectChannelId() == static_cast<uint32_t>(CollisionTypeIdDef::kWorld);
+	if (!isWorldStatic && !collider->GetOwner<void>()) return "Dynamic collider has no owner";
+	return "Active";
 }
 
 bool CollisionManager::TestCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB) const

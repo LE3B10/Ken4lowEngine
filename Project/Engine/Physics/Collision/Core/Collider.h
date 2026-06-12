@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <typeinfo>
 #include <unordered_set>
 
 #include "Vector3.h"
@@ -297,6 +298,9 @@ namespace Ken4lowEngine
 		// 描画処理（OBBの可視化）
 		void Draw();
 
+		// Collision Debug Viewer用に、Managerが決めた色で形状と補助情報を描画する。
+		void DrawDebug(const Vector4& color, bool drawBounds = true);
+
 		// ImGui描画処理
 		void DrawImGui();
 
@@ -392,8 +396,13 @@ namespace Ken4lowEngine
 		uint32_t GetUniqueID() const { return serialNumber_; }
 
 		// オーナーを設定・取得
-		template<class T> void SetOwner(T* ptr) { owner_ = ptr; }
+		template<class T> void SetOwner(T* ptr)
+		{
+			owner_ = ptr;
+			ownerDebugName_ = ptr ? typeid(T).name() : "";
+		}
 		template<class T> T* GetOwner() const { return static_cast<T*>(owner_); }
+		std::string_view GetOwnerDebugName() const { return ownerDebugName_; }
 
 	private: /// ---------- メンバ変数 ---------- ///
 
@@ -402,6 +411,9 @@ namespace Ken4lowEngine
 
 		// オーナー（任意のオブジェクトを指せるようにvoidポインタで持つ）
 		void* owner_ = nullptr;
+
+		// Debug表示用のOwner型名。所有権は持たず、SetOwner<T>時だけ更新する。
+		std::string ownerDebugName_{};
 
 	private: /// ---------- 衝突履歴（Enter/Stay/Exit 用） ---------- ///
 

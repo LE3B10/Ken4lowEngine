@@ -191,6 +191,18 @@ private: /// ---------- メンバ関数 ---------- ///
 	// Colliderの有効状態とOwner状態を見て、判定/Trace候補に入れてよいかを判断する。
 	bool IsColliderProcessable(K4E::Collider* collider) const;
 
+	// Debug Viewerが描画/表示してよいEditor Mode中かを判定する。
+	bool ShouldShowCollisionDebugViewer() const;
+
+	// Debug描画色をCollider状態と現在接触Responseから決める。
+	K4E::Vector4 GetColliderDebugDrawColor(K4E::Collider* collider) const;
+
+	// 現在フレームで接触中なら、その最終Responseを返す。
+	bool TryGetCurrentContactResponse(K4E::Collider* collider, ECollisionResponse& outResponse) const;
+
+	// 判定対象から外れている理由をDebug表示用に返す。
+	const char* GetColliderSkipReason(K4E::Collider* collider) const;
+
 	// 登録済みの形状判定関数で、このColliderペアが実際に交差しているかだけを調べる。
 	bool TestCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB) const;
 
