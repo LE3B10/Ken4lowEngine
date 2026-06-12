@@ -955,7 +955,9 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Projectile</Filter>
     </ClCompile>
-    <ClCompile Include="ResolutionManager.cpp" />
+    <ClCompile Include="Engine\Platform\Windows\ResolutionManager.cpp">
+      <Filter>Engine\Platform\Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1570,9 +1572,6 @@
     <ClInclude Include="Engine\Misc\Audio\MFAudioDecoder.h">
       <Filter>Engine\Misc\Audio</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Graphics\GameViewportConstants.h">
-      <Filter>Engine\Graphics</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Graphics\Camera\Core\Camera.h">
       <Filter>Engine\Graphics\Camera\Core</Filter>
     </ClInclude>
@@ -2041,7 +2040,12 @@
     <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BehaviorStatus.h">
       <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
     </ClInclude>
-    <ClInclude Include="ResolutionManager.h" />
+    <ClInclude Include="Engine\Platform\Windows\GameViewportConstants.h">
+      <Filter>Engine\Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Platform\Windows\ResolutionManager.h">
+      <Filter>Engine\Platform\Windows</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

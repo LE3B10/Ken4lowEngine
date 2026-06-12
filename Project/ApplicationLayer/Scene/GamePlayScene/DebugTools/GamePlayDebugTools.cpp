@@ -136,7 +136,7 @@ void GamePlayDebugTools::DrawImGui(GamePlayWorld* world)
 
 	auto& characters = world->GetCharacters();
 
-		const auto* gameTimer = K4E::GameTimer::GetInstance();
+	const auto* gameTimer = K4E::GameTimer::GetInstance();
 	const float fps = gameTimer->GetFPS();
 	const float deltaSeconds = gameTimer->GetDeltaTime();
 	// FPS表示はImGuiの内部値ではなく、エンジン側の計測値に統一する。

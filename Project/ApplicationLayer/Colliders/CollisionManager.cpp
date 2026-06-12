@@ -960,10 +960,10 @@ void CollisionManager::RegisterCollisionFuncsions()
 
 	// OBB vs OBB（左右対称）
 	for (auto [a, b] : std::initializer_list<std::pair<CollisionType, CollisionType>>{
-		{kPlayer, kEnemy},
-		{kPlayer, kBoss},
-		{kPlayer, kItem},
-		{kPlayer, kWorld},
+		{ kPlayer, kEnemy },
+		{ kPlayer, kBoss },
+		{ kPlayer, kItem },
+		{ kPlayer, kWorld },
 		})
 	{
 		AddSymmetricCollisionFunc(a, b, OBB_OBB);
@@ -972,14 +972,14 @@ void CollisionManager::RegisterCollisionFuncsions()
 	// Segment vs OBB（左右対称）
 	//  - 弾は Segment、キャラ/ワールドは OBB として扱う
 	for (auto [seg, obb] : std::initializer_list<std::pair<CollisionType, CollisionType>>{
-		{kBullet, kEnemy},
-		{kBullet, kCrystal},
-		{kBullet, kBoss},
-		{kBullet, kWorld},
-		{kEnemyBullet, kPlayer},
-		{kEnemyBullet, kWorld},
-		{kBossBullet, kPlayer},
-		{kBossBullet, kWorld},
+		{ kBullet, kEnemy },
+		{ kBullet, kCrystal },
+		{ kBullet, kBoss },
+		{ kBullet, kWorld },
+		{ kEnemyBullet, kPlayer },
+		{ kEnemyBullet, kWorld },
+		{ kBossBullet, kPlayer },
+		{ kBossBullet, kWorld },
 		})
 	{
 		AddCollisionFunc(seg, obb, SEG_OBB);
