@@ -8,6 +8,7 @@
 #include <type_traits>
 #include <optional>
 #include <vector>
+#include <utility>
 
 #include "Vector3.h"
 #include "Vector4.h"
@@ -21,6 +22,22 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///			　パラメータや調整項目を管理するクラス
 	/// -------------------------------------------------------------
+	/// ParameterManager は ImGui で調整する値を groupName/key 単位で保持し、
+	/// Resources/ParameterManager/<groupName>.json へ保存・読み込みするための共有入口です。
+	///
+	/// 命名規則:
+	/// - groupName は "機能名" または "カテゴリ/機能名" を使う。例: "LightManager", "GPUParticle/Hit"。
+	/// - groupName の "/" は保存先サブディレクトリとして扱うため、チーム内で所有カテゴリを明確にする。
+	/// - key は JSON 内の安定キーとして扱うため、表示名ではなく英数字中心の lowerCamelCase を推奨する。
+	/// - 日本語表示や説明文は SetDisplayName へ分離し、既存 JSON 互換のため key 名変更を避ける。
+	/// - groupName/key に空文字、制御文字、Windows ファイル名で危険な文字を使わない。
+	///
+	/// 反映タイミング:
+	/// - 起動時の LoadFiles は JSON 値を ParameterManager に取り込むだけに留める。
+	/// - 各機能は LightParameterController のような小さな Controller/Bridge で項目登録と Apply を担当する。
+	/// - RegisterParameterApplier 登録後、必要な初期反映を Controller 側で一度だけ呼ぶ。
+	/// - ImGui の Save/Load/Apply ボタンは ApplyParameters / ApplyAllParameters を明示的に呼ぶ。
+	/// - ゲーム本体クラスが毎フレーム ParameterManager を直接読む実装は、段階的に Controller 経由へ寄せる。
 	class ParameterManager
 	{
 	private: /// ---------- 構造体 ---------- ///
@@ -53,6 +70,14 @@ namespace Ken4lowEngine
 			std::map<const void*, std::function<void()>> appliers; // 保存後に明示的に再取得して反映する最小構成の適用先。
 		};
 
+	public:
+		/// Save/Load/Apply の結果を ImGui とログの両方で扱うための軽量ステータス。
+		struct OperationStatus
+		{
+			bool succeeded = true;
+			std::string message;
+		};
+
 	public: /// ---------- メンバ関数 ---------- ///
 
 		// シングルトンインスタンス
@@ -79,13 +104,13 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// ディレクトリの全ファイル読み込み
 		/// </summary>
-		void LoadFiles();
+		bool LoadFiles();
 
 		/// <summary>
 		/// ファイルから読み込む
 		/// </summary>
 		/// <param name="groupName">グループ名</param>
-		void LoadFile(const std::string& groupName);
+		bool LoadFile(const std::string& groupName);
 
 		// カスタム描画関数登録
 		void RegisterCustomDraw(const std::string& groupName, std::function<void()> fn);
@@ -95,6 +120,12 @@ namespace Ken4lowEngine
 
 		/// <summary>登録済みの反映関数を解除します。</summary>
 		void UnregisterParameterApplier(const std::string& groupName, const void* owner);
+
+		/// <summary>指定ownerで登録された全グループの反映関数を解除します。</summary>
+		void UnregisterAllParameterAppliers(const void* owner);
+
+		/// <summary>指定ownerの反映関数が登録済みか確認します。</summary>
+		bool HasParameterApplier(const std::string& groupName, const void* owner) const;
 
 		/// <summary>指定グループの保存済み値をゲーム側へ明示的に反映します。</summary>
 		bool ApplyParameters(const std::string& groupName);
@@ -117,6 +148,8 @@ namespace Ken4lowEngine
 			static_assert(std::is_same_v<T, int32_t> || std::is_same_v<T, uint32_t> || std::is_same_v<T, float> ||
 				std::is_same_v<T, Vector3> || std::is_same_v<T, Vector4> || std::is_same_v<T, bool> || std::is_same_v<T, std::string>,
 				"Unsupported type for SetValue"); // サポートされていない型の場合はコンパイルエラー
+
+			WarnIfNameLooksUnsafe(groupName, key); // 保存パスやJSONキーとして危険な名前を早めにログへ出す。
 
 			// 既存項目の調整範囲を残したまま値だけ更新する。
 			Group& group = datas_[groupName];
@@ -245,7 +278,13 @@ namespace Ken4lowEngine
 		std::string BuildImGuiLabel(const std::string& itemName, const ParameterManager::Item& item) const;
 
 		/// <summary>ImGui上に数秒だけステータスメッセージを表示します。</summary>
-		void SetStatusMessage(const std::string& message, float seconds = 3.0f);
+		void SetStatusMessage(const std::string& message, bool succeeded = true, float seconds = 3.0f);
+
+		/// <summary>Save/Load/Applyの結果をログとImGuiステータスへまとめて反映します。</summary>
+		void SetOperationStatus(bool succeeded, const std::string& message);
+
+		/// <summary>groupName/keyの命名が保存・共有に不向きな場合だけ警告ログを出します。</summary>
+		static void WarnIfNameLooksUnsafe(const std::string& groupName, const std::string& key = {});
 
 	private: /// ---------- メンバ変数 ---------- ///
 
@@ -258,6 +297,8 @@ namespace Ken4lowEngine
 		// Save/Load/Applyの結果をMessageBoxではなくImGui内に一時表示する。
 		std::string statusMessage_;
 		float statusMessageExpireTime_ = 0.0f;
+		bool statusSucceeded_ = true;
+		OperationStatus lastOperationStatus_{ true, "ParameterManager ready." };
 
 	private: /// ---------- コピー禁止 ---------- ///
 

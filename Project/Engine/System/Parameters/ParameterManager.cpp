@@ -8,14 +8,15 @@
 #include <cstdint>
 #include <cstring>
 #include <cstdio>
+#include <cmath>
 
 
 namespace
 {
 
-	bool HasInvalidFileNameChars(const std::string& fileName)
+	bool HasInvalidGroupPathChars(const std::string& groupName)
 	{
-		for (unsigned char c : fileName)
+		for (unsigned char c : groupName)
 		{
 			if (c < 0x20)
 			{
@@ -28,7 +29,6 @@ namespace
 			case '>':
 			case ':':
 			case '"':
-			case '/':
 			case '\\':
 			case '|':
 			case '?':
@@ -39,7 +39,40 @@ namespace
 			}
 		}
 
+		return groupName.find("//") != std::string::npos;
+	}
+
+	bool HasControlChars(const std::string& text)
+	{
+		for (unsigned char c : text)
+		{
+			if (c < 0x20)
+			{
+				return true;
+			}
+		}
 		return false;
+	}
+
+	bool IsFiniteJsonNumber(const nlohmann::json& value)
+	{
+		return value.is_number() && std::isfinite(value.get<double>());
+	}
+
+	bool TryReadVector3Json(const nlohmann::json& value, Ken4lowEngine::Vector3& outValue)
+	{
+		if (!value.is_array() || value.size() != 3) return false;
+		if (!IsFiniteJsonNumber(value.at(0)) || !IsFiniteJsonNumber(value.at(1)) || !IsFiniteJsonNumber(value.at(2))) return false;
+		outValue = { value.at(0).get<float>(), value.at(1).get<float>(), value.at(2).get<float>() };
+		return true;
+	}
+
+	bool TryReadVector4Json(const nlohmann::json& value, Ken4lowEngine::Vector4& outValue)
+	{
+		if (!value.is_array() || value.size() != 4) return false;
+		if (!IsFiniteJsonNumber(value.at(0)) || !IsFiniteJsonNumber(value.at(1)) || !IsFiniteJsonNumber(value.at(2)) || !IsFiniteJsonNumber(value.at(3))) return false;
+		outValue = { value.at(0).get<float>(), value.at(1).get<float>(), value.at(2).get<float>(), value.at(3).get<float>() };
+		return true;
 	}
 
 } // namespace
@@ -63,6 +96,7 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void ParameterManager::CreateGroup(const std::string& groupName)
 	{
+		WarnIfNameLooksUnsafe(groupName);
 		// 指定名のオブジェクトがなければ追加する
 		datas_[groupName];
 	}
@@ -97,12 +131,12 @@ namespace Ken4lowEngine
 					for (auto& [name, _] : datas_) { allSaved = SaveFile(name) && allSaved; }
 					if (allSaved)
 					{
-						ApplyAllParameters(); // 全保存後に登録済みオブジェクトへ明示反映する。
-						SetStatusMessage("保存しました / ゲームに反映しました");
+						const bool applied = ApplyAllParameters(); // 全保存後に登録済みオブジェクトへ明示反映する。
+						SetOperationStatus(applied, applied ? "すべて保存しました / ゲームに反映しました" : "保存後の反映で一部失敗しました。ログを確認してください");
 					}
 					else
 					{
-						SetStatusMessage("保存に失敗しました。ログを確認してください");
+						SetOperationStatus(false, "保存に失敗しました。ログを確認してください");
 					}
 				}
 				ImGui::EndMenu();
@@ -116,8 +150,12 @@ namespace Ken4lowEngine
 		if (!statusMessage_.empty() && ImGui::GetTime() < statusMessageExpireTime_)
 		{
 			// 操作結果はMessageBoxではなくParametersウィンドウ内に数秒表示する。
-			ImGui::TextColored(ImVec4(0.3f, 1.0f, 0.3f, 1.0f), "%s", statusMessage_.c_str());
+			const ImVec4 color = statusSucceeded_
+				? ImVec4(0.3f, 1.0f, 0.3f, 1.0f)
+				: ImVec4(1.0f, 0.45f, 0.25f, 1.0f);
+			ImGui::TextColored(color, "%s", statusMessage_.c_str());
 		}
+		ImGui::TextDisabled("Last: %s", lastOperationStatus_.message.c_str());
 		ImGui::Separator();
 
 		// --- 選択グループ ---
@@ -164,26 +202,33 @@ namespace Ken4lowEngine
 				const bool saved = SaveFile(selectedGroup);
 				if (saved)
 				{
-					ApplyParameters(selectedGroup); // 保存直後にゲーム側がParameterManagerから再取得して反映できるようにする。
-					SetStatusMessage("保存しました / ゲームに反映しました");
+					const bool applied = ApplyParameters(selectedGroup); // 保存直後にゲーム側がParameterManagerから再取得して反映できるようにする。
+					SetOperationStatus(applied, applied ? "保存しました / ゲームに反映しました" : "保存しました / 反映で失敗しました。ログを確認してください");
 				}
 				else
 				{
-					SetStatusMessage("保存に失敗しました。ログを確認してください");
+					SetOperationStatus(false, "保存に失敗しました。ログを確認してください");
 				}
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("読み込み"))
 			{
-				LoadFile(selectedGroup);
-				ApplyParameters(selectedGroup); // 読み込み後も既存成功挙動を保ちつつゲーム側へ明示反映する。
-				SetStatusMessage("読み込みました / ゲームに反映しました");
+				const bool loaded = LoadFile(selectedGroup);
+				if (loaded)
+				{
+					const bool applied = ApplyParameters(selectedGroup); // 読み込み後も既存成功挙動を保ちつつゲーム側へ明示反映する。
+					SetOperationStatus(applied, applied ? "読み込みました / ゲームに反映しました" : "読み込みました / 反映で失敗しました。ログを確認してください");
+				}
+				else
+				{
+					SetOperationStatus(false, "読み込みに失敗しました。既定値を維持します");
+				}
 			}
 			ImGui::SameLine();
 			if (ImGui::Button("反映"))
 			{
-				ApplyParameters(selectedGroup); // 保存せず現在のParameterManager値だけをゲーム側へ反映する。
-				SetStatusMessage("ゲームに反映しました");
+				const bool applied = ApplyParameters(selectedGroup); // 保存せず現在のParameterManager値だけをゲーム側へ反映する。
+				SetOperationStatus(applied, applied ? "ゲームに反映しました" : "反映に失敗しました。ログを確認してください");
 			}
 			ImGui::Separator();
 
@@ -211,16 +256,42 @@ namespace Ken4lowEngine
 	}
 
 
-	void ParameterManager::SetStatusMessage(const std::string& message, float seconds)
+	void ParameterManager::SetStatusMessage(const std::string& message, bool succeeded, float seconds)
 	{
 #ifdef USE_IMGUI
 		// ImGui内で一時通知するため、現在時刻から表示期限を計算する。
 		statusMessage_ = message;
+		statusSucceeded_ = succeeded;
 		statusMessageExpireTime_ = static_cast<float>(ImGui::GetTime()) + seconds;
 #else
 		(void)message;
+		(void)succeeded;
 		(void)seconds;
 #endif
+	}
+
+	void ParameterManager::SetOperationStatus(bool succeeded, const std::string& message)
+	{
+		lastOperationStatus_ = { succeeded, message };
+		SetStatusMessage(message, succeeded);
+		Log(std::string("[ParameterManager] ") + (succeeded ? "Info: " : "Warning: ") + message + "\n");
+	}
+
+	void ParameterManager::WarnIfNameLooksUnsafe(const std::string& groupName, const std::string& key)
+	{
+		// groupNameは保存パスの一部、keyはJSONキーとして共有されるため、危険な文字だけ警告する。
+		if (groupName.empty())
+		{
+			Log("[ParameterManager] Warning: empty groupName is not recommended.\n");
+		}
+		if (HasControlChars(groupName) || HasControlChars(key))
+		{
+			Log("[ParameterManager] Warning: groupName/key contains control characters. group=" + groupName + " key=" + key + "\n");
+		}
+		if (!key.empty() && (key.find('/') != std::string::npos || key.find('\\') != std::string::npos))
+		{
+			Log("[ParameterManager] Warning: key should not contain path separators. group=" + groupName + " key=" + key + "\n");
+		}
 	}
 
 	std::string ParameterManager::BuildImGuiLabel(const std::string& itemName, const ParameterManager::Item& item) const
@@ -261,7 +332,7 @@ namespace Ken4lowEngine
 		if (itGroup == datas_.end())
 		{
 			const std::string filePath = kDirectoryPath + groupName + ".json";
-			Log("[ParameterManager] Failed to save unregistered group: " + groupName + " (path: " + filePath + ")\n");
+			SetOperationStatus(false, "未登録グループの保存に失敗しました: " + groupName + " (path: " + filePath + ")");
 			return false;
 		}
 
@@ -329,17 +400,17 @@ namespace Ken4lowEngine
 
 		if (errorCode)
 		{
-			Log("[ParameterManager] Failed to create save directory for save path: " + dir.string() + ": " + errorCode.message() + "\n");
+			SetOperationStatus(false, "保存先ディレクトリ作成に失敗しました: " + dir.string() + ": " + errorCode.message());
 			return false;
 		}
 
 		if (!std::filesystem::is_directory(dir, errorCode))
 		{
-			Log("[ParameterManager] Save path is not a directory: " + dir.string() + "\n");
+			SetOperationStatus(false, "保存先がディレクトリではありません: " + dir.string());
 			return false;
 		}
 
-		if (HasInvalidFileNameChars(groupName))
+		if (HasInvalidGroupPathChars(groupName))
 		{
 			Log("[ParameterManager] Warning: groupName contains characters that may be invalid for a file name: " + groupName + " (path: " + filePath + ")\n");
 		}
@@ -348,7 +419,7 @@ namespace Ken4lowEngine
 		std::ofstream ofs(filePath);
 		if (ofs.fail())
 		{
-			Log("[ParameterManager] Failed to open data file for write: " + filePath + "\n");
+			SetOperationStatus(false, "保存ファイルを開けません: " + filePath);
 			return false;
 		}
 
@@ -356,17 +427,18 @@ namespace Ken4lowEngine
 		ofs << std::setw(4) << root << std::endl;
 		if (ofs.fail())
 		{
-			Log("[ParameterManager] Failed to write data file: " + filePath + "\n");
+			SetOperationStatus(false, "保存ファイルへの書き込みに失敗しました: " + filePath);
 			return false;
 		}
 
 		ofs.close();
 		if (ofs.fail())
 		{
-			Log("[ParameterManager] Failed to close data file after write: " + filePath + "\n");
+			SetOperationStatus(false, "保存ファイルのクローズに失敗しました: " + filePath);
 			return false;
 		}
 
+		SetOperationStatus(true, "保存しました: " + groupName);
 		return true;
 	}
 
@@ -374,14 +446,31 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	///			　		　全グループの読み込み処理
 	/// -------------------------------------------------------------
-	void ParameterManager::LoadFiles()
+	bool ParameterManager::LoadFiles()
 	{
 		// ディレクトリがなければスキップ
 		std::filesystem::path dir(kDirectoryPath);
-		if (!std::filesystem::exists(kDirectoryPath)) return;
+		std::error_code errorCode;
+		if (!std::filesystem::exists(kDirectoryPath, errorCode))
+		{
+			SetOperationStatus(false, "ParameterManager保存先が見つかりません。既定値で起動します: " + kDirectoryPath);
+			return false;
+		}
+		if (errorCode)
+		{
+			SetOperationStatus(false, "ParameterManager保存先の確認に失敗しました。既定値で起動します: " + errorCode.message());
+			return false;
+		}
 
 		// 各ファイルの処理。階層付きグループ名（例: GPUParticle/Hit）も拾うため再帰的に見る。
-		std::filesystem::recursive_directory_iterator dir_it(kDirectoryPath);
+		bool allLoaded = true;
+		std::filesystem::recursive_directory_iterator dir_it(kDirectoryPath, std::filesystem::directory_options::skip_permission_denied, errorCode);
+		if (errorCode)
+		{
+			SetOperationStatus(false, "ParameterManager保存先を走査できません。既定値で起動します: " + errorCode.message());
+			return false;
+		}
+
 		for (const std::filesystem::directory_entry& entry : dir_it)
 		{
 			// ファイルパスを取得
@@ -396,15 +485,18 @@ namespace Ken4lowEngine
 			// ファイル読み込み。保存先ディレクトリからの相対パスをグループ名へ戻す。
 			std::filesystem::path relativePath = std::filesystem::relative(filePath, kDirectoryPath);
 			relativePath.replace_extension();
-			LoadFile(relativePath.generic_string());
+			allLoaded = LoadFile(relativePath.generic_string()) && allLoaded;
 		}
+
+		SetOperationStatus(allLoaded, allLoaded ? "ParameterManager JSONを読み込みました" : "一部ParameterManager JSONの読み込みに失敗しました。既定値を維持します");
+		return allLoaded;
 	}
 
 
 	/// -------------------------------------------------------------
 	///			　		　各グループの読み込み処理
 	/// -------------------------------------------------------------
-	void ParameterManager::LoadFile(const std::string& groupName)
+	bool ParameterManager::LoadFile(const std::string& groupName)
 	{
 		// 読み込むJSONファイルのフルパスを合成する
 		std::string filePath = kDirectoryPath + groupName + ".json";
@@ -419,8 +511,8 @@ namespace Ken4lowEngine
 		if (ifs.fail())
 		{
 			// 読み込み失敗時も既定値で続行できるようにログだけ残す。
-			Log("[ParameterManager] Failed to open data file: " + filePath + "\n");
-			return;
+			SetOperationStatus(false, "読み込み失敗。既定値を維持します: " + filePath);
+			return false;
 		}
 
 		// JSON文字列の読み込み
@@ -430,11 +522,12 @@ namespace Ken4lowEngine
 		try
 		{
 			ifs >> root;
-		} catch (const std::exception& e)
+		}
+		catch (const std::exception& e)
 		{
-			Log("[ParameterManager] Failed to parse data file: " + filePath + ": " + e.what() + "\n");
+			SetOperationStatus(false, "JSON解析失敗。既定値を維持します: " + filePath + ": " + e.what());
 			ifs.close();
-			return;
+			return false;
 		}
 
 		// ファイルを閉じる
@@ -446,11 +539,18 @@ namespace Ken4lowEngine
 		// グループが無い場合も既定値で続行できるようにログだけ残す。
 		if (itGroup == root.end())
 		{
-			Log("[ParameterManager] Group not found in file: " + groupName + " (" + filePath + ")\n");
-			return;
+			SetOperationStatus(false, "JSON内にグループが見つかりません。既定値を維持します: " + groupName);
+			return false;
+		}
+
+		if (!itGroup->is_object())
+		{
+			SetOperationStatus(false, "JSONグループがobjectではありません。既定値を維持します: " + groupName);
+			return false;
 		}
 
 		// 各アイテムについて
+		bool allItemsLoaded = true;
 		for (json::iterator itItem = itGroup->begin(); itItem != itGroup->end(); ++itItem)
 		{
 			// アイテム名を取得
@@ -467,30 +567,44 @@ namespace Ken4lowEngine
 					// Jsonの整数は符号付き/符号なしの判定だけでは既存型を復元できないため、ここで型崩れを防ぐ。
 					if (std::holds_alternative<uint32_t>(currentValue) && itItem->is_number_integer())
 					{
-						SetValue(groupName, itemName, itItem->get<uint32_t>());
-						continue;
+						const int64_t raw = itItem->get<int64_t>();
+						if (raw >= 0 && raw <= static_cast<int64_t>((std::numeric_limits<uint32_t>::max)()))
+						{
+							SetValue(groupName, itemName, static_cast<uint32_t>(raw));
+							continue;
+						}
 					}
 					if (std::holds_alternative<int32_t>(currentValue) && itItem->is_number_integer())
 					{
-						SetValue(groupName, itemName, itItem->get<int32_t>());
-						continue;
+						const int64_t raw = itItem->get<int64_t>();
+						if (raw >= static_cast<int64_t>((std::numeric_limits<int32_t>::min)()) && raw <= static_cast<int64_t>((std::numeric_limits<int32_t>::max)()))
+						{
+							SetValue(groupName, itemName, static_cast<int32_t>(raw));
+							continue;
+						}
 					}
-					if (std::holds_alternative<float>(currentValue) && itItem->is_number())
+					if (std::holds_alternative<float>(currentValue) && IsFiniteJsonNumber(*itItem))
 					{
 						SetValue(groupName, itemName, itItem->get<float>());
 						continue;
 					}
-					if (std::holds_alternative<Vector3>(currentValue) && itItem->is_array() && itItem->size() == 3)
+					if (std::holds_alternative<Vector3>(currentValue))
 					{
-						Vector3 value = { itItem->at(0), itItem->at(1), itItem->at(2) };
-						SetValue(groupName, itemName, value);
-						continue;
+						Vector3 value{};
+						if (TryReadVector3Json(*itItem, value))
+						{
+							SetValue(groupName, itemName, value);
+							continue;
+						}
 					}
-					if (std::holds_alternative<Vector4>(currentValue) && itItem->is_array() && itItem->size() == 4)
+					if (std::holds_alternative<Vector4>(currentValue))
 					{
-						Vector4 value = { itItem->at(0), itItem->at(1), itItem->at(2), itItem->at(3) };
-						SetValue(groupName, itemName, value);
-						continue;
+						Vector4 value{};
+						if (TryReadVector4Json(*itItem, value))
+						{
+							SetValue(groupName, itemName, value);
+							continue;
+						}
 					}
 					if (std::holds_alternative<bool>(currentValue) && itItem->is_boolean())
 					{
@@ -505,15 +619,28 @@ namespace Ken4lowEngine
 				} catch (const std::exception& e)
 				{
 					Log("[ParameterManager] Failed to read typed item: " + itemName + " from " + filePath + ": " + e.what() + "\n");
+					allItemsLoaded = false;
 					continue;
 				}
+
+				Log("[ParameterManager] Type mismatch. Keep default value: group=" + groupName + " key=" + itemName + " file=" + filePath + "\n");
+				allItemsLoaded = false;
+				continue;
 			}
 
 			/// ---------- int32_t型を保持している場合 ---------- ///
 			if (itItem->is_number_integer())
 			{
-				int32_t value = itItem->get<int32_t>();
-				SetValue(groupName, itemName, value);
+				const int64_t raw = itItem->get<int64_t>();
+				if (raw >= static_cast<int64_t>((std::numeric_limits<int32_t>::min)()) && raw <= static_cast<int64_t>((std::numeric_limits<int32_t>::max)()))
+				{
+					SetValue(groupName, itemName, static_cast<int32_t>(raw));
+				}
+				else
+				{
+					Log("[ParameterManager] Integer out of int32 range. Skip item: " + itemName + " in " + filePath + "\n");
+					allItemsLoaded = false;
+				}
 			}
 
 			/// ---------- uint32_t型を保持している場合 ---------- ///
@@ -526,22 +653,46 @@ namespace Ken4lowEngine
 			/// ---------- float型を保持している場合 ---------- ///
 			else if (itItem->is_number_float())
 			{
-				float value = itItem->get<float>();
-				SetValue(groupName, itemName, value);
+				if (IsFiniteJsonNumber(*itItem))
+				{
+					float value = itItem->get<float>();
+					SetValue(groupName, itemName, value);
+				}
+				else
+				{
+					Log("[ParameterManager] Non-finite float. Skip item: " + itemName + " in " + filePath + "\n");
+					allItemsLoaded = false;
+				}
 			}
 
 			/// ---------- 要素数3の配列である場合 ---------- ///
 			else if (itItem->is_array() && itItem->size() == 3)
 			{
-				Vector3 value = { itItem->at(0), itItem->at(1), itItem->at(2) };
-				SetValue(groupName, itemName, value);
+				Vector3 value{};
+				if (TryReadVector3Json(*itItem, value))
+				{
+					SetValue(groupName, itemName, value);
+				}
+				else
+				{
+					Log("[ParameterManager] Invalid Vector3 array. Skip item: " + itemName + " in " + filePath + "\n");
+					allItemsLoaded = false;
+				}
 			}
 
 			/// ---------- 要素数4の配列である場合 ---------- ///
 			else if (itItem->is_array() && itItem->size() == 4)
 			{
-				Vector4 value = { itItem->at(0), itItem->at(1), itItem->at(2), itItem->at(3) };
-				SetValue(groupName, itemName, value);
+				Vector4 value{};
+				if (TryReadVector4Json(*itItem, value))
+				{
+					SetValue(groupName, itemName, value);
+				}
+				else
+				{
+					Log("[ParameterManager] Invalid Vector4 array. Skip item: " + itemName + " in " + filePath + "\n");
+					allItemsLoaded = false;
+				}
 			}
 
 			/// ---------- bool型を保持している場合 ---------- ///
@@ -561,8 +712,12 @@ namespace Ken4lowEngine
 			{
 				// 不明な型は既定値を残して原因をログに出す。
 				Log("[ParameterManager] Unknown data type in file: " + filePath + " for item: " + itemName + "\n");
+				allItemsLoaded = false;
 			}
 		}
+
+		SetOperationStatus(allItemsLoaded, allItemsLoaded ? "読み込みました: " + groupName : "一部項目をスキップして読み込みました: " + groupName);
+		return allItemsLoaded;
 	}
 
 	void ParameterManager::RegisterCustomDraw(const std::string& groupName, std::function<void()> fn)
@@ -575,6 +730,7 @@ namespace Ken4lowEngine
 	{
 		if (owner == nullptr || !fn)
 		{
+			Log("[ParameterManager] Warning: ignored invalid applier registration. group=" + groupName + "\n");
 			return;
 		}
 		CreateGroup(groupName);
@@ -591,27 +747,72 @@ namespace Ken4lowEngine
 		groupIt->second.appliers.erase(owner); // 破棄済みオブジェクトへ反映しないよう登録を解除する。
 	}
 
+	void ParameterManager::UnregisterAllParameterAppliers(const void* owner)
+	{
+		if (!owner)
+		{
+			return;
+		}
+
+		// 複数グループに同じownerで登録した機能が、Finalize/デストラクタでまとめて解除できる保険。
+		for (auto& [_, group] : datas_)
+		{
+			group.appliers.erase(owner);
+		}
+	}
+
+	bool ParameterManager::HasParameterApplier(const std::string& groupName, const void* owner) const
+	{
+		auto groupIt = datas_.find(groupName);
+		if (groupIt == datas_.end())
+		{
+			return false;
+		}
+		return groupIt->second.appliers.find(owner) != groupIt->second.appliers.end();
+	}
+
 	bool ParameterManager::ApplyParameters(const std::string& groupName)
 	{
 		auto groupIt = datas_.find(groupName);
 		if (groupIt == datas_.end())
 		{
-			Log("[ParameterManager] Failed to apply unregistered group: " + groupName + "\n");
+			SetOperationStatus(false, "未登録グループの反映に失敗しました: " + groupName);
 			return false;
 		}
 
-		bool succeeded = true;
-		for (auto& [owner, applier] : groupIt->second.appliers)
+		std::vector<std::pair<const void*, std::function<void()>>> applierSnapshot;
+		applierSnapshot.reserve(groupIt->second.appliers.size());
+		for (const auto& [owner, applier] : groupIt->second.appliers)
 		{
-			(void)owner;
+			applierSnapshot.emplace_back(owner, applier);
+		}
+
+		bool succeeded = true;
+		for (auto& [owner, applier] : applierSnapshot)
+		{
+			// Apply中に対象がUnregisterされた場合は、スナップショットに残っていても呼ばない。
+			if (!HasParameterApplier(groupName, owner))
+			{
+				continue;
+			}
 			try
 			{
 				applier(); // 利用側がGetValueで再取得し、ゲーム内の実体へ反映する。
-			} catch (const std::exception& e)
+			}
+			catch (const std::exception& e)
 			{
 				Log("[ParameterManager] Failed to apply group: " + groupName + ": " + e.what() + "\n");
 				succeeded = false;
 			}
+			catch (...)
+			{
+				Log("[ParameterManager] Failed to apply group with unknown exception: " + groupName + "\n");
+				succeeded = false;
+			}
+		}
+		if (!succeeded)
+		{
+			SetOperationStatus(false, "反映で一部失敗しました: " + groupName);
 		}
 		return succeeded;
 	}

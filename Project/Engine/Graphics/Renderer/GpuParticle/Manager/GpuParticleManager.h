@@ -366,6 +366,8 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// GPUパーティクルの調整値をParameterManagerへ登録します。<br/>
 		/// グループ名は "GPUParticle/エミッター名" にして、エミッター単位でJson保存できるようにします。
+		/// 現状はManager内にController責務を同居させていますが、将来はLightParameterControllerと同じ
+		/// "登録 / 読み込み / 反映 / 解除" 専用クラスへ切り出せる境界としてこの3関数に集約します。
 		/// </summary>
 		void RegisterEmitterParameters(GpuParticleEmitter& emitter);
 
