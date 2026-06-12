@@ -4,6 +4,7 @@
 #include <Editor/EditorModeController.h>
 #include <CollisionUtility.h>
 #include <CollisionTypeIdDef.h>
+#include <Wireframe.h>
 
 #include <algorithm>
 #include <array>
@@ -196,6 +197,14 @@ void CollisionManager::Draw()
 		if (!collider) continue;
 		collider->DrawDebug(GetColliderDebugDrawColor(collider), true);
 	}
+
+	for (const RaycastDebugLine& line : raycastDebugLines_)
+	{
+		K4E::Segment segment{};
+		segment.origin = line.start;
+		segment.diff = line.end - line.start;
+		K4E::Wireframe::GetInstance()->DrawSegment(segment, line.color);
+	}
 }
 
 
@@ -213,6 +222,28 @@ void CollisionManager::DrawImGui()
 	}
 	ImGui::Text("All Colliders: %d", static_cast<int>(all_.size()));
 	ImGui::Text("Ignored Pair Loops: %u", ignoredPairLoopCount_);
+	if (ImGui::TreeNode("Raycast / Trace Debug"))
+	{
+		ImGui::Text("Last Query: %s", hasLastRaycastQuery_ ? "Raycast" : "None");
+		if (hasLastRaycastQuery_)
+		{
+			ImGui::Text("Origin: %.2f, %.2f, %.2f", lastRaycastQuery_.origin.x, lastRaycastQuery_.origin.y, lastRaycastQuery_.origin.z);
+			ImGui::Text("Direction: %.2f, %.2f, %.2f", lastRaycastQuery_.direction.x, lastRaycastQuery_.direction.y, lastRaycastQuery_.direction.z);
+			ImGui::Text("Max Distance: %.2f", lastRaycastQuery_.maxDistance);
+			ImGui::Text("Trace Channel: %s", ToString(lastRaycastQuery_.traceChannel));
+			ImGui::Text("Hit Count: %d", static_cast<int>(lastRaycastHits_.size()));
+			for (const RaycastHit& hit : lastRaycastHits_)
+			{
+				ImGui::Text("#%u %s %s dist %.2f point %.2f, %.2f, %.2f",
+					hit.collider ? hit.collider->GetUniqueID() : 0,
+					ToString(hit.objectChannel),
+					ToString(hit.response),
+					hit.distance,
+					hit.point.x, hit.point.y, hit.point.z);
+			}
+		}
+		ImGui::TreePop();
+	}
 	if (ImGui::TreeNode("Debug Draw Legend"))
 	{
 		ImGui::TextColored(ImVec4(0.20f, 0.95f, 0.35f, 1.0f), "Enabled Collider");
@@ -749,7 +780,7 @@ bool CollisionManager::SegmentCastHit(uint32_t targetType, const K4E::Segment& s
 		return false;
 	}
 
-	float best = std::numeric_limits<float>::max();
+	float best = (std::numeric_limits<float>::max)();
 	K4E::Collider* bestCol = nullptr;
 	K4E::Vector3 bestCenter{};
 
@@ -804,7 +835,7 @@ bool CollisionManager::SegmentCastByTraceChannel(ETraceChannel traceChannel, con
 	hasLastTraceHitResult_ = true;
 #endif
 
-	float best = std::numeric_limits<float>::max();
+	float best = (std::numeric_limits<float>::max)();
 	K4E::Collider* bestCol = nullptr;
 	K4E::Vector3 bestCenter{};
 	ECollisionResponse bestResponse = ECollisionResponse::Ignore;
@@ -853,6 +884,249 @@ bool CollisionManager::SegmentCastByTraceChannel(ETraceChannel traceChannel, con
 	lastTraceHitResult_ = outHit;
 #endif
 	return true;
+}
+
+bool CollisionManager::RaycastSingle(const RaycastQuery& query, RaycastHit& outHit) const
+{
+	const std::vector<RaycastHit> hits = RaycastAll(query);
+	if (hits.empty())
+	{
+		outHit = {};
+		return false;
+	}
+
+	outHit = hits.front();
+	return true;
+}
+
+std::vector<RaycastHit> CollisionManager::RaycastAll(const RaycastQuery& query) const
+{
+	// Raycastは問い合わせ専用で、Collision Eventや接触履歴を一切更新しない。
+	const RaycastQuery normalizedQuery = NormalizeRaycastQuery(query);
+	std::vector<RaycastHit> hits;
+
+	for (K4E::Collider* collider : all_)
+	{
+		RaycastHit hit{};
+		if (RaycastCollider(normalizedQuery, collider, hit))
+		{
+			hits.push_back(hit);
+		}
+	}
+
+	std::sort(hits.begin(), hits.end(), [](const RaycastHit& lhs, const RaycastHit& rhs)
+		{
+			return lhs.distance < rhs.distance;
+		});
+
+	RecordRaycastDebugLine(normalizedQuery, hits);
+	return hits;
+}
+
+RaycastQuery CollisionManager::NormalizeRaycastQuery(const RaycastQuery& query) const
+{
+	RaycastQuery normalized = query;
+	normalized.direction = K4E::Vector3::NormalizeSafe(query.direction, { 0.0f, 0.0f, 1.0f });
+	normalized.maxDistance = (std::max)(0.0f, query.maxDistance);
+	return normalized;
+}
+
+bool CollisionManager::RaycastCollider(const RaycastQuery& query, K4E::Collider* collider, RaycastHit& outHit) const
+{
+	if (!IsColliderProcessable(collider)) return false;
+
+	const uint32_t objectChannelId = collider->GetObjectChannelId();
+	const ECollisionResponse response = traceResponseMatrix_.GetResponse(query.traceChannel, objectChannelId);
+	if (response == ECollisionResponse::Ignore) return false;
+
+	float distance = 0.0f;
+	K4E::Vector3 normal{};
+	if (!RaycastShape(query, collider, distance, normal)) return false;
+	if (distance < 0.0f || distance > query.maxDistance) return false;
+
+	outHit.hit = true;
+	outHit.collider = collider;
+	outHit.typeId = collider->GetTypeID();
+	outHit.objectChannel = ToObjectChannel(objectChannelId);
+	outHit.response = response;
+	outHit.distance = distance;
+	outHit.point = query.origin + query.direction * distance;
+	outHit.normal = normal;
+	return true;
+}
+
+bool CollisionManager::RaycastShape(const RaycastQuery& query, K4E::Collider* collider, float& outDistance, K4E::Vector3& outNormal) const
+{
+	if (!collider) return false;
+
+	switch (collider->GetShapeType())
+	{
+	case K4E::ECollisionShapeType::Sphere:
+		return RaycastSphere(query, collider->GetSphere(), outDistance, outNormal);
+	case K4E::ECollisionShapeType::AABB:
+		return RaycastAABB(query, collider->GetAABB(), outDistance, outNormal);
+	case K4E::ECollisionShapeType::OBB:
+		return RaycastOBB(query, collider->GetOBB(), outDistance, outNormal);
+	case K4E::ECollisionShapeType::Capsule:
+	case K4E::ECollisionShapeType::Segment:
+	case K4E::ECollisionShapeType::None:
+	default:
+		// Capsule/Segment/Mesh系は今回の主目的外なので、まず派生AABBで拾えるようにする。
+		return RaycastAABB(query, collider->GetAABB(), outDistance, outNormal);
+	}
+}
+
+bool CollisionManager::RaycastAABB(const RaycastQuery& query, const K4E::AABB& aabb, float& outDistance, K4E::Vector3& outNormal) const
+{
+	constexpr float kEpsilon = 1.0e-6f;
+	float tMin = 0.0f;
+	float tMax = query.maxDistance;
+	K4E::Vector3 hitNormal = query.direction * -1.0f;
+
+	const float origin[3] = { query.origin.x, query.origin.y, query.origin.z };
+	const float direction[3] = { query.direction.x, query.direction.y, query.direction.z };
+	const float minValue[3] = { aabb.min.x, aabb.min.y, aabb.min.z };
+	const float maxValue[3] = { aabb.max.x, aabb.max.y, aabb.max.z };
+	const K4E::Vector3 axisNormals[3] = {
+		{ 1.0f, 0.0f, 0.0f },
+		{ 0.0f, 1.0f, 0.0f },
+		{ 0.0f, 0.0f, 1.0f },
+	};
+
+	for (int axis = 0; axis < 3; ++axis)
+	{
+		if (std::abs(direction[axis]) < kEpsilon)
+		{
+			if (origin[axis] < minValue[axis] || origin[axis] > maxValue[axis])
+			{
+				return false;
+			}
+			continue;
+		}
+
+		const float invDirection = 1.0f / direction[axis];
+		float nearT = (minValue[axis] - origin[axis]) * invDirection;
+		float farT = (maxValue[axis] - origin[axis]) * invDirection;
+		K4E::Vector3 nearNormal = axisNormals[axis] * -1.0f;
+		if (nearT > farT)
+		{
+			std::swap(nearT, farT);
+			nearNormal = axisNormals[axis];
+		}
+
+		if (nearT > tMin)
+		{
+			tMin = nearT;
+			hitNormal = nearNormal;
+		}
+		tMax = (std::min)(tMax, farT);
+		if (tMin > tMax)
+		{
+			return false;
+		}
+	}
+
+	outDistance = tMin;
+	outNormal = K4E::Vector3::NormalizeSafe(hitNormal, query.direction * -1.0f);
+	return outDistance <= query.maxDistance;
+}
+
+bool CollisionManager::RaycastSphere(const RaycastQuery& query, const K4E::Sphere& sphere, float& outDistance, K4E::Vector3& outNormal) const
+{
+	const K4E::Vector3 m = query.origin - sphere.center;
+	const float b = K4E::Vector3::Dot(m, query.direction);
+	const float c = K4E::Vector3::Dot(m, m) - sphere.radius * sphere.radius;
+
+	if (c > 0.0f && b > 0.0f) return false;
+
+	const float discriminant = b * b - c;
+	if (discriminant < 0.0f) return false;
+
+	float distance = -b - std::sqrt(discriminant);
+	if (distance < 0.0f) distance = 0.0f;
+	if (distance > query.maxDistance) return false;
+
+	const K4E::Vector3 point = query.origin + query.direction * distance;
+	outDistance = distance;
+	outNormal = K4E::Vector3::NormalizeSafe(point - sphere.center, query.direction * -1.0f);
+	return true;
+}
+
+bool CollisionManager::RaycastOBB(const RaycastQuery& query, const K4E::OBB& obb, float& outDistance, K4E::Vector3& outNormal) const
+{
+	const K4E::Vector3 relOrigin = query.origin - obb.center;
+	const K4E::Vector3 localOrigin{
+		K4E::Vector3::Dot(relOrigin, obb.orientations[0]),
+		K4E::Vector3::Dot(relOrigin, obb.orientations[1]),
+		K4E::Vector3::Dot(relOrigin, obb.orientations[2]),
+	};
+	const K4E::Vector3 localDirection{
+		K4E::Vector3::Dot(query.direction, obb.orientations[0]),
+		K4E::Vector3::Dot(query.direction, obb.orientations[1]),
+		K4E::Vector3::Dot(query.direction, obb.orientations[2]),
+	};
+
+	RaycastQuery localQuery = query;
+	localQuery.origin = localOrigin;
+	localQuery.direction = K4E::Vector3::NormalizeSafe(localDirection, { 0.0f, 0.0f, 1.0f });
+
+	const K4E::AABB localAabb{ obb.size * -1.0f, obb.size };
+	K4E::Vector3 localNormal{};
+	if (!RaycastAABB(localQuery, localAabb, outDistance, localNormal)) return false;
+
+	outNormal = K4E::Vector3::NormalizeSafe(
+		obb.orientations[0] * localNormal.x +
+		obb.orientations[1] * localNormal.y +
+		obb.orientations[2] * localNormal.z,
+		query.direction * -1.0f);
+	return true;
+}
+
+void CollisionManager::RecordRaycastDebugLine(const RaycastQuery& query, const std::vector<RaycastHit>& hits) const
+{
+#ifndef _DEBUG
+	(void)query;
+	(void)hits;
+	return;
+#else
+	hasLastRaycastQuery_ = true;
+	lastRaycastQuery_ = query;
+	lastRaycastHits_ = hits;
+	raycastDebugLines_.clear();
+
+	if (!K4E::EditorModeController::GetInstance()->ShouldDrawDebugVisuals()) return;
+
+	const K4E::Vector3 end = query.origin + query.direction * query.maxDistance;
+	raycastDebugLines_.push_back({
+		query.origin,
+		end,
+		hits.empty() ? K4E::Vector4{ 0.35f, 0.65f, 1.0f, 1.0f } : K4E::Vector4{ 1.0f, 0.25f, 0.15f, 1.0f },
+		!hits.empty(),
+		});
+
+	for (const RaycastHit& hit : hits)
+	{
+		constexpr float kMarkerSize = 0.25f;
+		raycastDebugLines_.push_back({
+			hit.point - K4E::Vector3{ kMarkerSize, 0.0f, 0.0f },
+			hit.point + K4E::Vector3{ kMarkerSize, 0.0f, 0.0f },
+			{ 1.0f, 1.0f, 0.15f, 1.0f },
+			true,
+			});
+		raycastDebugLines_.push_back({
+			hit.point - K4E::Vector3{ 0.0f, kMarkerSize, 0.0f },
+			hit.point + K4E::Vector3{ 0.0f, kMarkerSize, 0.0f },
+			{ 1.0f, 1.0f, 0.15f, 1.0f },
+			true,
+			});
+		raycastDebugLines_.push_back({
+			hit.point - K4E::Vector3{ 0.0f, 0.0f, kMarkerSize },
+			hit.point + K4E::Vector3{ 0.0f, 0.0f, kMarkerSize },
+			{ 1.0f, 1.0f, 0.15f, 1.0f },
+			true,
+			});
+	}
+#endif
 }
 
 ECollisionResponse CollisionManager::GetCollisionResponseForPair(uint32_t selfTypeId, uint32_t otherTypeId) const

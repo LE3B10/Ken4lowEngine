@@ -112,6 +112,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	// TraceChannel指定のSegmentCast入口。用途別に対象ObjectChannelを選ぶ準備として使う。
 	bool SegmentCastByTraceChannel(ETraceChannel traceChannel, const K4E::Segment& seg, CollisionHitResult& outHit) const;
 
+	// RaycastSingleはTraceChannelに従って最も近い1件だけを返す。イベント通知は発生させない。
+	bool RaycastSingle(const RaycastQuery& query, RaycastHit& outHit) const;
+
+	// RaycastAllはTraceChannelに反応する全Hitを距離順で返す。クロスヘア/ロックオン候補列挙に使える。
+	std::vector<RaycastHit> RaycastAll(const RaycastQuery& query) const;
+
 	// 指定タイプのCollider一覧を返す。
 	// 爆風ダメージなど、通常の接触ペア以外で近傍検索したい時に使う。
 	const std::vector<K4E::Collider*>& GetCollidersByType(uint32_t typeId) const
@@ -202,6 +208,21 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// 判定対象から外れている理由をDebug表示用に返す。
 	const char* GetColliderSkipReason(K4E::Collider* collider) const;
+
+	// RaycastQueryを正規化し、方向長や距離の不正値を安全な問い合わせへ丸める。
+	RaycastQuery NormalizeRaycastQuery(const RaycastQuery& query) const;
+
+	// TraceChannel/Collider状態/形状を見てRaycast候補1件を作る。
+	bool RaycastCollider(const RaycastQuery& query, K4E::Collider* collider, RaycastHit& outHit) const;
+
+	// 形状別Raycast。対応外形状は派生AABBへフォールバックする。
+	bool RaycastShape(const RaycastQuery& query, K4E::Collider* collider, float& outDistance, K4E::Vector3& outNormal) const;
+	bool RaycastAABB(const RaycastQuery& query, const K4E::AABB& aabb, float& outDistance, K4E::Vector3& outNormal) const;
+	bool RaycastSphere(const RaycastQuery& query, const K4E::Sphere& sphere, float& outDistance, K4E::Vector3& outNormal) const;
+	bool RaycastOBB(const RaycastQuery& query, const K4E::OBB& obb, float& outDistance, K4E::Vector3& outNormal) const;
+
+	// Editor Mode中だけRaycast Debug Lineを保持する。
+	void RecordRaycastDebugLine(const RaycastQuery& query, const std::vector<RaycastHit>& hits) const;
 
 	// 登録済みの形状判定関数で、このColliderペアが実際に交差しているかだけを調べる。
 	bool TestCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB) const;
@@ -315,6 +336,20 @@ private: /// ---------- メンバ変数 ---------- ///
 	uint32_t lastOverlapBeginEventCount_ = 0;
 	uint32_t lastOverlapStayEventCount_ = 0;
 	uint32_t lastOverlapEndEventCount_ = 0;
+
+	struct RaycastDebugLine
+	{
+		K4E::Vector3 start{};
+		K4E::Vector3 end{};
+		K4E::Vector4 color{};
+		bool hit = false;
+	};
+
+	// Debug表示用に直近Raycastの線分を保存する。Release/Game Previewでは描画しない。
+	mutable std::vector<RaycastDebugLine> raycastDebugLines_{};
+	mutable RaycastQuery lastRaycastQuery_{};
+	mutable std::vector<RaycastHit> lastRaycastHits_{};
+	mutable bool hasLastRaycastQuery_ = false;
 
 	// コライダーの可視化フラグ
 	bool isCollider_ = true;
