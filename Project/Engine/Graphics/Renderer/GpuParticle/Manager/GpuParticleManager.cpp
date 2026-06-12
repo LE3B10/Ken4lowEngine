@@ -12,6 +12,7 @@
 #include "GpuParticleEmitterSerializer.h"
 
 #include "AssimpLoader.h"
+#include "LogString.h"
 #include "ParameterManager.h"
 #include "ResourceManager.h"
 #include <TextureManager.h>
@@ -24,6 +25,7 @@
 #include <string>
 #include <unordered_set>
 #include <algorithm>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -112,12 +114,13 @@ namespace Ken4lowEngine
 		for (const auto& [name, emitter] : emitters_)
 		{
 			(void)name;
-			if (emitter)
+			if (emitter && !IsRuntimeEmitter(name))
 			{
 				UnregisterEmitterParameters(*emitter);
 			}
 		}
 		emitters_.clear();
+		runtimeEmitterNames_.clear();
 
 		ClearMeshAssets();
 
@@ -247,6 +250,8 @@ namespace Ken4lowEngine
 		static std::string selected;
 
 		ImGui::Begin("GPU Particle");
+
+		EffectSystem::GetInstance()->DrawImGui();
 
 		ImGui::SeparatorText("ParameterManager");
 		ImGui::TextDisabled("Emitter settings are edited/saved in the Parameters window.");
@@ -450,6 +455,11 @@ namespace Ken4lowEngine
 			{
 				ImGui::SeparatorText("Selected Emitter");
 				ImGui::Text("Name: %s", selected.c_str());
+				const bool isRuntimeEmitter = IsRuntimeEmitter(selected);
+				if (isRuntimeEmitter)
+				{
+					ImGui::TextDisabled("Runtime emitter: not saved to JSON and not registered to ParameterManager.");
+				}
 
 				ImGui::SameLine();
 				if (ImGui::Button("Delete"))
@@ -462,17 +472,20 @@ namespace Ken4lowEngine
 
 				const std::string parameterGroupName = BuildEmitterParameterGroupName(selected);
 
-				ImGui::SameLine();
-				if (ImGui::Button("Save Parameters"))
+				if (!isRuntimeEmitter)
 				{
-					ParameterManager::GetInstance()->SaveFile(parameterGroupName);
-				}
+					ImGui::SameLine();
+					if (ImGui::Button("Save Parameters"))
+					{
+						ParameterManager::GetInstance()->SaveFile(parameterGroupName);
+					}
 
-				ImGui::SameLine();
-				if (ImGui::Button("Load Parameters"))
-				{
-					ParameterManager::GetInstance()->LoadFile(parameterGroupName);
-					ApplyEmitterParameters(*e);
+					ImGui::SameLine();
+					if (ImGui::Button("Load Parameters"))
+					{
+						ParameterManager::GetInstance()->LoadFile(parameterGroupName);
+						ApplyEmitterParameters(*e);
+					}
 				}
 
 				ImGui::SameLine();
@@ -594,6 +607,11 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	GpuParticleEmitter* GpuParticleManager::CreateEmitter(const std::string& name, const GpuParticleEmitter::EmitterInfo& info)
 	{
+		return CreateEmitterInternal(name, info, true);
+	}
+
+	GpuParticleEmitter* GpuParticleManager::CreateEmitterInternal(const std::string& name, const GpuParticleEmitter::EmitterInfo& info, bool registerParameters)
+	{
 		auto it = emitters_.find(name); // すでに同じ名前のエミッターが存在するか確認
 		if (it != emitters_.end())
 		{
@@ -605,7 +623,15 @@ namespace Ken4lowEngine
 		auto emitter = std::make_unique<GpuParticleEmitter>(name, info);
 		auto* emitterPtr = emitter.get();
 		emitters_[name] = std::move(emitter);
-		RegisterEmitterParameters(*emitterPtr);
+		if (registerParameters)
+		{
+			runtimeEmitterNames_.erase(name);
+			RegisterEmitterParameters(*emitterPtr);
+		}
+		else
+		{
+			runtimeEmitterNames_.insert(name);
+		}
 
 		// 作成したエミッターのポインタを返す
 		return emitterPtr;
@@ -707,6 +733,28 @@ namespace Ken4lowEngine
 
 		emitter->RequestEmit(count);
 		return emitter;
+	}
+
+	GpuParticleEmitter* GpuParticleManager::CreateRuntimeEmitter(const std::string& name, const GpuParticleEmitter::EmitterInfo& info)
+	{
+		if (name.empty())
+		{
+			Log("[EffectSystem] Warning: runtime emitter name is empty.\n");
+			return nullptr;
+		}
+
+		if (auto* existing = GetEmitter(name))
+		{
+			runtimeEmitterNames_.insert(name);
+			return existing;
+		}
+
+		return CreateEmitterInternal(name, info, false);
+	}
+
+	bool GpuParticleManager::IsRuntimeEmitter(const std::string& name) const
+	{
+		return runtimeEmitterNames_.contains(name);
 	}
 
 	/// -------------------------------------------------------------
@@ -970,7 +1018,11 @@ namespace Ken4lowEngine
 			return false;
 		}
 
-		UnregisterEmitterParameters(*it->second);
+		if (!IsRuntimeEmitter(name))
+		{
+			UnregisterEmitterParameters(*it->second);
+		}
+		runtimeEmitterNames_.erase(name);
 		emitters_.erase(it);
 		return true;
 	}
@@ -1121,7 +1173,11 @@ namespace Ken4lowEngine
 				return nullptr;
 			}
 
-			UnregisterEmitterParameters(*it->second);
+			if (!IsRuntimeEmitter(asset.name))
+			{
+				UnregisterEmitterParameters(*it->second);
+			}
+			runtimeEmitterNames_.erase(asset.name);
 			emitters_.erase(it);
 		}
 
@@ -1184,6 +1240,10 @@ namespace Ken4lowEngine
 		for (const auto& [name, emitter] : emitters_)
 		{
 			(void)emitter;
+			if (IsRuntimeEmitter(name))
+			{
+				continue;
+			}
 
 			const std::string filePath = BuildEmitterJsonPath(directoryPath, name);
 			if (!SaveEmitterToFile(name, filePath))
@@ -1193,6 +1253,308 @@ namespace Ken4lowEngine
 		}
 
 		return allOk;
+	}
+
+	EffectSystem* EffectSystem::GetInstance()
+	{
+		static EffectSystem instance;
+		return &instance;
+	}
+
+	EffectSystem::EffectSystem()
+	{
+		RegisterDefaultSpriteEffects();
+	}
+
+	void EffectSystem::RegisterDefaultSpriteEffects()
+	{
+		if (defaultsRegistered_)
+		{
+			return;
+		}
+
+		// Runtime effectName はゲーム側の意味名、spriteType は現在のGPU Sprite実装名として分離する。
+		RegisterSpriteEffect("PlayerHit", GpuParticleType::PlayerDamageBlood, 40);
+		RegisterSpriteEffect("PlayerDamageBlood", GpuParticleType::PlayerDamageBlood, 40);
+		RegisterSpriteEffect("CrystalBreak", GpuParticleType::DeathBurstCore, 72);
+		RegisterSpriteEffect("BossAura", GpuParticleType::Ambient, 6, 6, 0.10f);
+		RegisterSpriteEffect("MuzzleFlash", GpuParticleType::MuzzleFlash, 8);
+		RegisterSpriteEffect("BulletTracer", GpuParticleType::BulletTracer, 1);
+		RegisterSpriteEffect("HeavySplashImpact", GpuParticleType::DeathBurstCore, 52);
+		RegisterSpriteEffect("RocketSplashRadiusRing", GpuParticleType::Shockwave, 96);
+		RegisterSpriteEffect("HeavySplashSmoke", GpuParticleType::Smoke, 18);
+		RegisterSpriteEffect("EnemyHitSpark", GpuParticleType::Spark, 18);
+		RegisterSpriteEffect("EnemyBlood", GpuParticleType::Blood, 10);
+		RegisterSpriteEffect("EnemyDeathSmoke", GpuParticleType::DeathBurstCore, 36);
+		RegisterSpriteEffect("EnemyDeathBlood", GpuParticleType::Blood, 20);
+		RegisterSpriteEffect("EnemyDeathShock", GpuParticleType::Shockwave, 1);
+
+		defaultsRegistered_ = true;
+	}
+
+	void EffectSystem::RegisterSpriteEffect(const std::string& effectName, GpuParticleType spriteType, uint32_t defaultEmitCount, uint32_t loopEmitCount, float loopFrequency)
+	{
+		if (effectName.empty())
+		{
+			SetStatus(false, "RegisterSpriteEffect failed: effectName is empty.");
+			return;
+		}
+
+		RuntimeEffectDefinition definition{};
+		definition.spriteType = spriteType;
+		definition.defaultEmitCount = std::max(defaultEmitCount, 1u);
+		definition.loopEmitCount = loopEmitCount;
+		definition.loopFrequency = std::max(loopFrequency, 0.0f);
+		definitions_[effectName] = definition;
+	}
+
+	EffectSystem::PlayHandle EffectSystem::Play(const std::string& effectName, const Vector3& position)
+	{
+		const RuntimeEffectDefinition* definition = FindDefinition(effectName);
+		if (!definition)
+		{
+			return {};
+		}
+		return PlayInternal(effectName, position, definition->defaultEmitCount, false);
+	}
+
+	EffectSystem::PlayHandle EffectSystem::Play(const std::string& effectName, const Vector3& position, uint32_t emitCount)
+	{
+		return PlayInternal(effectName, position, std::max(emitCount, 1u), false);
+	}
+
+	EffectSystem::PlayHandle EffectSystem::PlayLoop(const std::string& effectName, const Vector3& position)
+	{
+		const RuntimeEffectDefinition* definition = FindDefinition(effectName);
+		if (!definition)
+		{
+			return {};
+		}
+
+		const uint32_t loopEmitCount = (definition->loopEmitCount > 0) ? definition->loopEmitCount : definition->defaultEmitCount;
+		return PlayInternal(effectName, position, loopEmitCount, true);
+	}
+
+	EffectSystem::PlayHandle EffectSystem::PlayInternal(const std::string& effectName, const Vector3& position, uint32_t emitCount, bool loop)
+	{
+		const RuntimeEffectDefinition* definition = FindDefinition(effectName);
+		if (!definition)
+		{
+			return {};
+		}
+
+		auto* manager = GpuParticleManager::GetInstance();
+		if (!manager)
+		{
+			SetStatus(false, "Play failed: GpuParticleManager is unavailable. effect=" + effectName);
+			return {};
+		}
+
+		const std::string emitterName = BuildRuntimeEmitterName(effectName);
+
+		if (loop)
+		{
+			auto activeIt = activeLoopsByEffectName_.find(effectName);
+			if (activeIt != activeLoopsByEffectName_.end())
+			{
+				if (auto* emitter = manager->GetEmitter(activeIt->second.emitterName))
+				{
+					emitter->SetPosition(position);
+					SetStatus(true, "Loop position updated: " + effectName);
+					return activeIt->second.handle;
+				}
+
+				handleToEffectName_.erase(activeIt->second.handle.id);
+				activeLoopsByEffectName_.erase(activeIt);
+			}
+		}
+
+		GpuParticleEmitter::EmitterInfo info = GpuParticleEmitterPresetTable::MakeEmitterInfo(definition->spriteType);
+		info.kind = GpuParticleKind::Sprite;
+		info.spriteType = definition->spriteType;
+		info.loopCount = loop ? emitCount : 0;
+		info.loopFrequency = loop
+			? ((definition->loopFrequency > 0.0f) ? definition->loopFrequency : 0.10f)
+			: 0.0f;
+
+		GpuParticleEmitter* emitter = manager->CreateRuntimeEmitter(emitterName, info);
+		if (!emitter)
+		{
+			SetStatus(false, "Play failed: runtime emitter could not be created. effect=" + effectName);
+			return {};
+		}
+
+		emitter->SetPosition(position);
+		emitter->RequestEmit(emitCount);
+
+		PlayHandle handle = AllocateHandle();
+		if (loop)
+		{
+			RuntimeInstance instance{};
+			instance.handle = handle;
+			instance.effectName = effectName;
+			instance.emitterName = emitterName;
+			instance.loop = true;
+			activeLoopsByEffectName_[effectName] = instance;
+			handleToEffectName_[handle.id] = effectName;
+			SetStatus(true, "Loop started: " + effectName);
+		}
+		else
+		{
+			SetStatus(true, "Played: " + effectName);
+		}
+
+		return handle;
+	}
+
+	bool EffectSystem::Stop(const std::string& effectName)
+	{
+		auto activeIt = activeLoopsByEffectName_.find(effectName);
+		if (activeIt == activeLoopsByEffectName_.end())
+		{
+			SetStatus(false, "Stop skipped: active loop was not found. effect=" + effectName);
+			return false;
+		}
+
+		auto* manager = GpuParticleManager::GetInstance();
+		if (!manager)
+		{
+			SetStatus(false, "Stop failed: GpuParticleManager is unavailable. effect=" + effectName);
+			return false;
+		}
+
+		const RuntimeInstance instance = activeIt->second;
+		handleToEffectName_.erase(instance.handle.id);
+		activeLoopsByEffectName_.erase(activeIt);
+
+		const bool removed = manager->RemoveEmitter(instance.emitterName);
+		SetStatus(removed, removed ? "Stopped: " + effectName : "Stop failed: emitter missing. effect=" + effectName);
+		return removed;
+	}
+
+	bool EffectSystem::Stop(PlayHandle handle)
+	{
+		if (!handle.IsValid())
+		{
+			SetStatus(false, "Stop skipped: invalid handle.");
+			return false;
+		}
+
+		auto handleIt = handleToEffectName_.find(handle.id);
+		if (handleIt == handleToEffectName_.end())
+		{
+			SetStatus(false, "Stop skipped: handle is not active.");
+			return false;
+		}
+
+		return Stop(handleIt->second);
+	}
+
+	const EffectSystem::RuntimeEffectDefinition* EffectSystem::FindDefinition(const std::string& effectName)
+	{
+		RegisterDefaultSpriteEffects();
+
+		auto it = definitions_.find(effectName);
+		if (it == definitions_.end())
+		{
+			SetStatus(false, "Play failed: effect is not registered. effect=" + effectName);
+			return nullptr;
+		}
+
+		return &it->second;
+	}
+
+	std::string EffectSystem::BuildRuntimeEmitterName(const std::string& effectName)
+	{
+		std::string safeName = "Runtime_";
+		safeName.reserve(safeName.size() + effectName.size());
+
+		for (unsigned char c : effectName)
+		{
+			const bool isAlpha = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+			const bool isDigit = (c >= '0' && c <= '9');
+			if (isAlpha || isDigit || c == '_' || c == '-' || c == '.')
+			{
+				safeName.push_back(static_cast<char>(c));
+			}
+			else
+			{
+				safeName.push_back('_');
+			}
+		}
+
+		return safeName;
+	}
+
+	void EffectSystem::SetStatus(bool succeeded, const std::string& message)
+	{
+		lastOperationSucceeded_ = succeeded;
+		lastStatus_ = message;
+
+		Log(std::string("[EffectSystem] ") + (succeeded ? "Info: " : "Warning: ") + message + "\n");
+	}
+
+	EffectSystem::PlayHandle EffectSystem::AllocateHandle()
+	{
+		if (nextHandleId_ == 0)
+		{
+			nextHandleId_ = 1;
+		}
+
+		return PlayHandle{ nextHandleId_++ };
+	}
+
+	void EffectSystem::DrawImGui()
+	{
+#ifdef USE_IMGUI
+		RegisterDefaultSpriteEffects();
+
+		ImGui::SeparatorText("Runtime API");
+		ImGui::Text("Status: %s", lastStatus_.c_str());
+		if (!lastOperationSucceeded_)
+		{
+			ImGui::SameLine();
+			ImGui::TextDisabled("(warning)");
+		}
+		ImGui::Text("Registered Sprite Effects: %d", static_cast<int>(definitions_.size()));
+		ImGui::Text("Active Loops: %d", static_cast<int>(activeLoopsByEffectName_.size()));
+		ImGui::TextDisabled("Sprite: runtime Play / PlayLoop supported.");
+		ImGui::TextDisabled("Mesh / Ribbon / Beam: editor-side boundary only for now; runtime API intentionally returns no support yet.");
+
+		if (ImGui::TreeNode("Runtime Effects"))
+		{
+			std::vector<std::string> names;
+			names.reserve(definitions_.size());
+			for (const auto& [name, definition] : definitions_)
+			{
+				(void)definition;
+				names.push_back(name);
+			}
+			std::sort(names.begin(), names.end());
+
+			for (const std::string& name : names)
+			{
+				const auto& definition = definitions_.at(name);
+				ImGui::BulletText(
+					"%s -> SpriteType=%u burst=%u loop=%u/%.2fs",
+					name.c_str(),
+					static_cast<uint32_t>(definition.spriteType),
+					definition.defaultEmitCount,
+					definition.loopEmitCount,
+					definition.loopFrequency);
+			}
+			ImGui::TreePop();
+		}
+
+		if (ImGui::TreeNode("Active Runtime Loops"))
+		{
+			for (const auto& [name, instance] : activeLoopsByEffectName_)
+			{
+				ImGui::BulletText("%s handle=%u emitter=%s", name.c_str(), instance.handle.id, instance.emitterName.c_str());
+			}
+			ImGui::TreePop();
+		}
+#endif // USE_IMGUI
 	}
 
 } // namespace Ken4lowEngine

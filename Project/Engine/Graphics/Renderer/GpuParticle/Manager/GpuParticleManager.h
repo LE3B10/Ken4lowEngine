@@ -12,6 +12,7 @@
 #include "GpuParticleEmitterAsset.h"
 
 #include <unordered_map>
+#include <unordered_set>
 #include <cstddef>
 #include <memory>
 #include <ModelData.h>
@@ -341,6 +342,18 @@ namespace Ken4lowEngine
 		GpuParticleEmitter* EmitBurst(const std::string& name, GpuParticleType type, const Vector3& position, uint32_t count);
 
 		/// <summary>
+		/// Runtime API 用の一時エミッターを作成します。<br/>
+		/// 編集用エミッターと異なり ParameterManager へ登録せず、SaveAllEmittersToDirectory() の保存対象にも含めません。<br/>
+		/// GameObject / Scene から直接呼ぶ用途ではなく、EffectSystem 経由で使用するための境界です。
+		/// </summary>
+		GpuParticleEmitter* CreateRuntimeEmitter(const std::string& name, const GpuParticleEmitter::EmitterInfo& info);
+
+		/// <summary>
+		/// 指定名のエミッターが Runtime API により作られた一時エミッターかどうかを返します。
+		/// </summary>
+		bool IsRuntimeEmitter(const std::string& name) const;
+
+		/// <summary>
 		/// デバッグカメラの有効/無効を切り替えます。<br/>
 		/// GPU パーティクルバッファ側へも状態を反映します。
 		/// </summary>
@@ -423,6 +436,7 @@ namespace Ken4lowEngine
 		static std::string BuildEmitterJsonPath(const std::string& directoryPath, const std::string& emitterName);
 		static std::string BuildEmitterParameterGroupName(const std::string& emitterName);
 		std::string MakeUniqueEmitterName(const std::string& baseName) const;
+		GpuParticleEmitter* CreateEmitterInternal(const std::string& name, const GpuParticleEmitter::EmitterInfo& info, bool registerParameters);
 
 	private: /// ---------- メンバ変数 ---------- ///
 
@@ -463,6 +477,12 @@ namespace Ken4lowEngine
 		/// </summary>
 		std::unordered_map<std::string, std::unique_ptr<GpuParticleEmitter>> emitters_;
 
+		/// <summary>
+		/// Runtime API が作成した一時エミッター名です。<br/>
+		/// 編集用 Save / ParameterManager 登録の対象から外すため、通常エミッターと区別します。
+		/// </summary>
+		std::unordered_set<std::string> runtimeEmitterNames_;
+
 		uint32_t lastDrawCallCount_ = 0;
 
 	private: /// ---------- メッシュデータ ---------- ///
@@ -476,6 +496,99 @@ namespace Ken4lowEngine
 		/// meshId をキーにした MeshParticleAsset 管理テーブルです。
 		/// </summary>
 		std::unordered_map<uint32_t, MeshParticleAsset> meshAssets_;
+	};
+
+	/// <summary>
+	/// ゲーム側から GPU パーティクルを安全に呼び出すための Runtime API 入口です。<br/>
+	/// GameObject / Scene は GpuParticleManager の emitter map や編集用 ParameterManager には触れず、<br/>
+	/// 登録済みの runtime effectName と座標だけで単発再生・ループ再生・停止を行います。<br/>
+	/// 現段階では Sprite 系エフェクトを安定対象とし、Mesh / Ribbon / Beam は既存実装を壊さないため未対応境界として扱います。
+	/// </summary>
+	class EffectSystem
+	{
+	public:
+		/// Runtime 再生を個別停止するための軽量ハンドルです。
+		struct PlayHandle
+		{
+			uint32_t id = 0;
+			bool IsValid() const { return id != 0; }
+		};
+
+		/// <summary>
+		/// EffectSystem のシングルトンインスタンスを取得します。
+		/// </summary>
+		static EffectSystem* GetInstance();
+
+		/// <summary>
+		/// effectName に対応する Sprite エフェクトを position で一度だけ再生します。
+		/// </summary>
+		PlayHandle Play(const std::string& effectName, const Vector3& position);
+
+		/// <summary>
+		/// effectName に対応する Sprite エフェクトを position で一度だけ再生し、発生数だけ呼び出し側で上書きします。
+		/// </summary>
+		PlayHandle Play(const std::string& effectName, const Vector3& position, uint32_t emitCount);
+
+		/// <summary>
+		/// effectName に対応する Sprite エフェクトを position でループ再生します。<br/>
+		/// 同じ effectName がすでにループ中なら位置を更新して既存ハンドルを返します。
+		/// </summary>
+		PlayHandle PlayLoop(const std::string& effectName, const Vector3& position);
+
+		/// <summary>
+		/// effectName で開始したループ再生を停止します。
+		/// </summary>
+		bool Stop(const std::string& effectName);
+
+		/// <summary>
+		/// Play / PlayLoop が返したハンドルに対応する runtime エフェクトを停止します。
+		/// </summary>
+		bool Stop(PlayHandle handle);
+
+		/// <summary>
+		/// Runtime 再生名と Sprite 種別の対応を登録します。<br/>
+		/// 既存の編集用 emitter 名とは分け、"PlayerHit" などゲーム側の意味名を固定するために使います。
+		/// </summary>
+		void RegisterSpriteEffect(const std::string& effectName, GpuParticleType spriteType, uint32_t defaultEmitCount, uint32_t loopEmitCount = 0, float loopFrequency = 0.0f);
+
+		/// <summary>
+		/// Runtime API の状態と未対応モードの境界を ImGui へ表示します。
+		/// </summary>
+		void DrawImGui();
+
+	private:
+		struct RuntimeEffectDefinition
+		{
+			GpuParticleType spriteType = GpuParticleType::Default;
+			uint32_t defaultEmitCount = 1;
+			uint32_t loopEmitCount = 0;
+			float loopFrequency = 0.0f;
+		};
+
+		struct RuntimeInstance
+		{
+			PlayHandle handle{};
+			std::string effectName;
+			std::string emitterName;
+			bool loop = false;
+		};
+
+		EffectSystem();
+
+		void RegisterDefaultSpriteEffects();
+		PlayHandle PlayInternal(const std::string& effectName, const Vector3& position, uint32_t emitCount, bool loop);
+		const RuntimeEffectDefinition* FindDefinition(const std::string& effectName);
+		static std::string BuildRuntimeEmitterName(const std::string& effectName);
+		void SetStatus(bool succeeded, const std::string& message);
+		PlayHandle AllocateHandle();
+
+		std::unordered_map<std::string, RuntimeEffectDefinition> definitions_;
+		std::unordered_map<std::string, RuntimeInstance> activeLoopsByEffectName_;
+		std::unordered_map<uint32_t, std::string> handleToEffectName_;
+		uint32_t nextHandleId_ = 1;
+		bool defaultsRegistered_ = false;
+		bool lastOperationSucceeded_ = true;
+		std::string lastStatus_ = "Ready";
 	};
 
 } // namespace Ken4lowEngine

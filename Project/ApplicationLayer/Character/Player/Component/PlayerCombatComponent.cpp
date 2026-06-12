@@ -223,12 +223,8 @@ void PlayerCombatComponent::FireOnce(
 		auto* particle = K4E::GpuParticleManager::GetInstance();
 		if (particle)
 		{
-			// Spriteの発光表現はそのまま残す。
-			particle->EmitBurst(
-				"MuzzleFlash",
-				K4E::GpuParticleType::MuzzleFlash,
-				muzzlePos,
-				8);
+			// Spriteの発光表現はRuntime APIへ寄せ、Emitter管理の詳細を射撃処理から隠す。
+			K4E::EffectSystem::GetInstance()->Play("MuzzleFlash", muzzlePos);
 
 			// 火花はMesh Particleとして別に発生させる。
 			EmitMuzzleSparkMesh(particle, muzzlePos);

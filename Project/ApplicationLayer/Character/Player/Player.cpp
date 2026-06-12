@@ -869,11 +869,8 @@ void Player::ApplyDamageFeedback(const PlayerDamageComponent::DamageFeedback& fb
 			K4E::Vector3 emitPos = tr->translate_;
 			emitPos.y += 1.0f;
 
-			K4E::GpuParticleManager::GetInstance()->EmitBurst(
-				"PlayerDamageBlood",
-				K4E::GpuParticleType::PlayerDamageBlood,
-				emitPos,
-				40);
+			// ゲーム側は runtime effectName だけを指定し、Emitter の実体管理は EffectSystem に任せる。
+			K4E::EffectSystem::GetInstance()->Play("PlayerHit", emitPos);
 		}
 	}
 

@@ -455,18 +455,4 @@ void HUDManager::DrawBossHpBar()
 	if (bossHpBackSprite_) bossHpBackSprite_->Draw();
 	if (bossHpDelaySprite_) bossHpDelaySprite_->Draw();
 	if (bossHpFillSprite_) bossHpFillSprite_->Draw();
-
-#ifdef USE_IMGUI
-	ImDrawList* drawList = ImGui::GetForegroundDrawList();
-	if (drawList)
-	{
-		const K4E::Vector2 center{ bossHpBarSettings_.position.x, bossHpBarSettings_.position.y };
-		const ImVec2 namePos{
-			center.x + bossHpBarSettings_.nameOffset.x,
-			center.y + bossHpBarSettings_.nameOffset.y
-		};
-		const ImVec2 textSize = ImGui::CalcTextSize(bossHpBarSettings_.displayName.c_str());
-		drawList->AddText({ namePos.x - textSize.x * 0.5f, namePos.y }, IM_COL32(255, 230, 230, 255), bossHpBarSettings_.displayName.c_str());
-	}
-#endif
 }
