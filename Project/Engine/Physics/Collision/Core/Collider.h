@@ -17,6 +17,7 @@
 #include "Sphere.h"
 
 enum class EObjectChannel : uint32_t;
+enum class ECollisionResponse : uint8_t;
 
 namespace Ken4lowEngine
 {
@@ -30,6 +31,7 @@ namespace Ken4lowEngine
 		Vector3 point{};
 		Vector3 normal{};
 		float distance = 0.0f;
+		ECollisionResponse response{};
 	};
 
 	/// Primitive Colliderが扱う単純形状の種別。見た目のMeshとは分離した衝突用形状として扱う。
@@ -203,10 +205,10 @@ namespace Ken4lowEngine
 		virtual void OnCollisionStay([[maybe_unused]] const CollisionHit& hit) { OnCollisionStay(hit.other); }
 		virtual void OnCollisionExit([[maybe_unused]] const CollisionHit& hit) { OnCollisionExit(hit.other); }
 
-		// Trigger/Overlap専用イベントの予定地。CollisionManager側の配送切り分けは次段階で実装する。
-		virtual void OnOverlapBegin([[maybe_unused]] const CollisionHit& hit) {}
-		virtual void OnOverlapStay([[maybe_unused]] const CollisionHit& hit) {}
-		virtual void OnOverlapEnd([[maybe_unused]] const CollisionHit& hit) {}
+		// Trigger/Overlap専用イベント。既存処理との互換のため、未override時は旧Collisionイベントへ委譲する。
+		virtual void OnOverlapBegin([[maybe_unused]] const CollisionHit& hit) { OnCollisionEnter(hit.other); }
+		virtual void OnOverlapStay([[maybe_unused]] const CollisionHit& hit) { OnCollisionStay(hit.other); }
+		virtual void OnOverlapEnd([[maybe_unused]] const CollisionHit& hit) { OnCollisionExit(hit.other); }
 
 	public: /// ---------- 衝突状態管理（マネージャ側が使用） ---------- ///
 

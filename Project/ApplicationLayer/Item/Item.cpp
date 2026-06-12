@@ -29,6 +29,7 @@ namespace
 void Item::Initialize(ItemType type, const K4E::Vector3& pos, int healAmount, int ammoAmount, float pickupRadius)
 {
 	ApplyCollisionPreset(*this, ECollisionPresetId::Item); // Preset適用テストとして、従来のkItem TypeIDと同じ設定を反映する。
+	SetOwner<Item>(this);
 #ifdef _DEBUG
 	const uint32_t legacyItemTypeId = static_cast<uint32_t>(CollisionTypeIdDef::kItem);
 	assert(K4E::Collider::GetTypeID() == legacyItemTypeId && "Item preset must keep legacy kItem TypeID.");

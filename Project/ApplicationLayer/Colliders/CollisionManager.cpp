@@ -1,6 +1,7 @@
 #include "CollisionManager.h"
 #include "ParameterManager.h" // Collision判定ではなく、Colliderワイヤー表示フラグの外側管理にだけ使う。
 #include "Collider.h"
+#include <Editor/EditorModeController.h>
 #include <CollisionUtility.h>
 #include <CollisionTypeIdDef.h>
 
@@ -207,7 +208,47 @@ void CollisionManager::DrawImGui()
 	ImGui::Text("All Colliders: %d", static_cast<int>(all_.size()));
 	ImGui::Text("Ignored Pair Loops: %u", ignoredPairLoopCount_);
 
-#ifdef _DEBUG
+#ifdef USE_IMGUI
+	if (K4E::EditorModeController::GetInstance()->ShouldDrawEditorUi() && ImGui::TreeNode("Collision Event Debug"))
+	{
+		// Game Preview Modeでは表示せず、Editor Mode中だけイベント配送の概況を確認する。
+		ImGui::Text("Current/Previous Contact Pairs: %d / %d",
+			static_cast<int>(currentContacts_.size()),
+			static_cast<int>(previousContacts_.size()));
+		ImGui::Text("Collision Enter/Stay/Exit: %u / %u / %u",
+			lastCollisionEnterEventCount_,
+			lastCollisionStayEventCount_,
+			lastCollisionExitEventCount_);
+		ImGui::Text("Overlap Begin/Stay/End: %u / %u / %u",
+			lastOverlapBeginEventCount_,
+			lastOverlapStayEventCount_,
+			lastOverlapEndEventCount_);
+
+		static int eventDebugDisplayLimit = 32;
+		ImGui::DragInt("Pair Display Limit", &eventDebugDisplayLimit, 1.0f, 1, 256);
+		int displayedPairCount = 0;
+		if (ImGui::TreeNode("Current Contact Pairs"))
+		{
+			for (const auto& [key, contact] : currentContacts_)
+			{
+				if (displayedPairCount >= eventDebugDisplayLimit)
+				{
+					ImGui::TextDisabled("Hidden Pairs: %d", static_cast<int>(currentContacts_.size()) - displayedPairCount);
+					break;
+				}
+				ImGui::Text("#%u <-> #%u  %s  A:%u B:%u",
+					key.lowId,
+					key.highId,
+					ToString(contact.response),
+					contact.colliderA ? contact.colliderA->GetTypeID() : 0,
+					contact.colliderB ? contact.colliderB->GetTypeID() : 0);
+				++displayedPairCount;
+			}
+			ImGui::TreePop();
+		}
+		ImGui::TreePop();
+	}
+
 	if (ImGui::TreeNode("BroadPhase Debug"))
 	{
 		// BroadPhase切り替えはDebug候補収集にだけ使い、本番CheckAllCollisionsにはまだ反映しない。
@@ -302,7 +343,7 @@ void CollisionManager::DrawImGui()
 		}
 		ImGui::TreePop();
 	}
-#endif // _DEBUG
+#endif // USE_IMGUI
 
 	if (ImGui::TreeNode("Collider Buckets"))
 	{
@@ -316,7 +357,7 @@ void CollisionManager::DrawImGui()
 		ImGui::TreePop();
 	}
 
-#ifdef _DEBUG
+#ifdef USE_IMGUI
 	if (ImGui::TreeNode("Collider Details"))
 	{
 		// Collider詳細は数が増えると重くなるため、Debug表示件数を明示的に制限する。
@@ -430,7 +471,7 @@ void CollisionManager::DrawImGui()
 		}
 		ImGui::TreePop();
 	}
-#endif // _DEBUG
+#endif // USE_IMGUI
 #endif
 }
 
@@ -441,6 +482,8 @@ void CollisionManager::Reset()
 {
 	all_.clear();
 	for (auto& v : buckets_) v.clear();
+	previousContacts_.clear();
+	currentContacts_.clear();
 }
 
 /// -------------------------------------------------------------
@@ -463,22 +506,22 @@ void CollisionManager::CheckAllCollisions()
 	// --- スナップショット（イベント中の追加/削除に備える） ---
 	std::vector<K4E::Collider*> snapshot = all_;
 
-	// --- 1) フレーム開始：衝突状態をローテーション ---
+	// --- 1) フレーム開始：接触ペア履歴とCollider別Debug履歴をローテーション ---
+	previousContacts_ = std::move(currentContacts_);
+	currentContacts_.clear();
+	lastCollisionEnterEventCount_ = 0;
+	lastCollisionStayEventCount_ = 0;
+	lastCollisionExitEventCount_ = 0;
+	lastOverlapBeginEventCount_ = 0;
+	lastOverlapStayEventCount_ = 0;
+	lastOverlapEndEventCount_ = 0;
+
 	for (K4E::Collider* c : snapshot)
 	{
 		if (c) c->BeginCollisionFrame();
 	}
 
-	// --- 2) ID -> Collider のマップ（Enter/Exit 解決用） ---
-	std::unordered_map<uint32_t, K4E::Collider*> idMap;
-	idMap.reserve(snapshot.size());
-	for (K4E::Collider* c : snapshot)
-	{
-		if (!c) continue;
-		idMap.emplace(c->GetUniqueID(), c);
-	}
-
-	// --- 3) 判定：当たったペアは両者に「このフレーム接触中」を登録 ---
+	// --- 2) 判定：当たったペアはResponse付きで現在フレームの接触として登録 ---
 	// Phase 13設計メモ: 将来のBroad Phaseでは、この固定TypeIDペア列挙とbucket二重ループを候補ペア収集へ置き換える。
 	auto pairLoop = [&](CId aId, CId bId)
 		{
@@ -530,8 +573,8 @@ void CollisionManager::CheckAllCollisions()
 	pairLoop(kEnemyBullet, kWorld);
 	pairLoop(kBossBullet, kWorld);
 
-	// --- 4) Enter/Stay/Exit を解決して通知 ---
-	DispatchCollisionEvents(snapshot, idMap);
+	// --- 3) Enter/Stay/Exit を解決して通知 ---
+	DispatchCollisionEvents();
 }
 
 /// -------------------------------------------------------------
@@ -553,6 +596,7 @@ void CollisionManager::AddCollider(K4E::Collider* other)
 /// -------------------------------------------------------------
 void CollisionManager::RemoveCollider(K4E::Collider* other)
 {
+	if (!other) return;
 	all_.erase(std::remove(all_.begin(), all_.end(), other), all_.end());
 
 	const uint32_t id = other->GetTypeID();
@@ -561,6 +605,25 @@ void CollisionManager::RemoveCollider(K4E::Collider* other)
 		auto& v = buckets_[id];
 		v.erase(std::remove(v.begin(), v.end(), other), v.end());
 	}
+
+	const uint32_t uniqueId = other->GetUniqueID();
+	auto removeContact = [uniqueId](CollisionEventContactMap& contacts)
+		{
+			for (auto it = contacts.begin(); it != contacts.end(); )
+			{
+				if (it->first.lowId == uniqueId || it->first.highId == uniqueId)
+				{
+					it = contacts.erase(it);
+				}
+				else
+				{
+					++it;
+				}
+			}
+		};
+
+	removeContact(previousContacts_);
+	removeContact(currentContacts_);
 }
 
 bool CollisionManager::ApplyCollisionPresetToRegisteredCollider(K4E::Collider* collider, const CollisionPreset& preset)
@@ -791,7 +854,12 @@ bool CollisionManager::IsCollisionIgnored(K4E::Collider* colliderA, K4E::Collide
 bool CollisionManager::IsColliderProcessable(K4E::Collider* collider) const
 {
 	// Ownerの生存/表示/有効状態も含めた、Manager側の共通フィルタ。
-	return collider && collider->IsCollisionEnabledForQuery();
+	if (!collider || !collider->IsCollisionEnabledForQuery()) return false;
+
+	// WorldStaticはステージ由来の所有者なしColliderがあるため、静的Worldとして例外的に許可する。
+	const bool isWorldStatic = collider->GetObjectChannelId() == static_cast<uint32_t>(CollisionTypeIdDef::kWorld);
+	if (!isWorldStatic && !collider->GetOwner<void>()) return false;
+	return true;
 }
 
 bool CollisionManager::TestCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB) const
@@ -804,53 +872,127 @@ bool CollisionManager::TestCollisionPair(K4E::Collider* colliderA, K4E::Collider
 	return it->second(colliderA, colliderB);
 }
 
-void CollisionManager::UpdateContactState(K4E::Collider* colliderA, K4E::Collider* colliderB)
+void CollisionManager::UpdateContactState(K4E::Collider* colliderA, K4E::Collider* colliderB, ECollisionResponse response)
 {
-	// 既存イベント互換のため、衝突成立時は両者へ同じタイミングで接触を登録する。
+	// Collider別の接触IDはDebug表示と段階移行用に残し、イベント配送はManagerのペア履歴で行う。
 	colliderA->AddCollisionThisFrame(colliderB->GetUniqueID());
 	colliderB->AddCollisionThisFrame(colliderA->GetUniqueID());
+
+	const CollisionEventPairKey key = MakeCollisionEventPairKey(colliderA, colliderB);
+	currentContacts_[key] = CollisionEventContact{ key, colliderA, colliderB, response };
 }
 
-void CollisionManager::DispatchCollisionEvents(const std::vector<K4E::Collider*>& snapshot, const std::unordered_map<uint32_t, K4E::Collider*>& idMap)
+CollisionEventPairKey CollisionManager::MakeCollisionEventPairKey(K4E::Collider* colliderA, K4E::Collider* colliderB) const
 {
-	// 現在はBlock/Overlap兼用の互換イベントとして、既存のOnCollisionEnter/Stay/Exitだけを配送する。
-	for (K4E::Collider* self : snapshot)
+	const uint32_t idA = colliderA ? colliderA->GetUniqueID() : 0;
+	const uint32_t idB = colliderB ? colliderB->GetUniqueID() : 0;
+	return {
+		idA < idB ? idA : idB,
+		idA < idB ? idB : idA,
+	};
+}
+
+K4E::CollisionHit CollisionManager::BuildCollisionHit(K4E::Collider* self, K4E::Collider* other, ECollisionResponse response) const
+{
+	K4E::CollisionHit hit{};
+	hit.self = self;
+	hit.other = other;
+	hit.response = response;
+	if (self && other)
 	{
-		if (!self) continue;
-
-		const auto& cur = self->GetCurrentCollisions();
-		const auto& prev = self->GetPrevCollisions();
-
-		// Enter / Stay
-		for (uint32_t otherId : cur)
+		hit.point = (self->GetCenterPosition() + other->GetCenterPosition()) * 0.5f;
+		const K4E::Vector3 toOther = other->GetCenterPosition() - self->GetCenterPosition();
+		const float length = K4E::Vector3::Length(toOther);
+		hit.distance = length;
+		if (length > 0.0001f)
 		{
-			auto it = idMap.find(otherId);
-			if (it == idMap.end()) continue;
-			K4E::Collider* other = it->second;
-			if (!other || other == self) continue;
-
-			if (prev.find(otherId) == prev.end())
-			{
-				self->OnCollisionEnter(other);
-			}
-			else
-			{
-				self->OnCollisionStay(other);
-			}
+			hit.normal = toOther * (1.0f / length);
 		}
+	}
+	return hit;
+}
 
-		// Exit
-		for (uint32_t otherId : prev)
+void CollisionManager::DispatchCollisionEvents()
+{
+	// 現在/前回のペア集合を比較し、Enter/Stay/Exitを1ペアにつき1回だけ確定する。
+	for (const auto& [key, contact] : currentContacts_)
+	{
+		const bool wasTouching = previousContacts_.find(key) != previousContacts_.end();
+		DispatchActiveCollisionEvent(contact, wasTouching);
+	}
+
+	for (const auto& [key, contact] : previousContacts_)
+	{
+		if (currentContacts_.find(key) != currentContacts_.end()) continue;
+		DispatchExitCollisionEvent(contact);
+	}
+}
+
+void CollisionManager::DispatchActiveCollisionEvent(const CollisionEventContact& contact, bool wasTouching)
+{
+	K4E::Collider* colliderA = contact.colliderA;
+	K4E::Collider* colliderB = contact.colliderB;
+	if (!IsColliderProcessable(colliderA) || !IsColliderProcessable(colliderB)) return;
+
+	const K4E::CollisionHit hitA = BuildCollisionHit(colliderA, colliderB, contact.response);
+	const K4E::CollisionHit hitB = BuildCollisionHit(colliderB, colliderA, contact.response);
+
+	if (contact.response == ECollisionResponse::Block)
+	{
+		if (wasTouching)
 		{
-			if (cur.find(otherId) != cur.end()) continue;
-
-			auto it = idMap.find(otherId);
-			if (it == idMap.end()) continue;
-			K4E::Collider* other = it->second;
-			if (!other || other == self) continue;
-
-			self->OnCollisionExit(other);
+			++lastCollisionStayEventCount_;
+			colliderA->OnCollisionStay(hitA);
+			colliderB->OnCollisionStay(hitB);
 		}
+		else
+		{
+			++lastCollisionEnterEventCount_;
+			colliderA->OnCollisionEnter(hitA);
+			colliderB->OnCollisionEnter(hitB);
+		}
+		return;
+	}
+
+	if (contact.response == ECollisionResponse::Overlap)
+	{
+		if (wasTouching)
+		{
+			++lastOverlapStayEventCount_;
+			colliderA->OnOverlapStay(hitA);
+			colliderB->OnOverlapStay(hitB);
+		}
+		else
+		{
+			++lastOverlapBeginEventCount_;
+			colliderA->OnOverlapBegin(hitA);
+			colliderB->OnOverlapBegin(hitB);
+		}
+	}
+}
+
+void CollisionManager::DispatchExitCollisionEvent(const CollisionEventContact& contact)
+{
+	K4E::Collider* colliderA = contact.colliderA;
+	K4E::Collider* colliderB = contact.colliderB;
+	if (!IsColliderProcessable(colliderA) || !IsColliderProcessable(colliderB)) return;
+
+	const K4E::CollisionHit hitA = BuildCollisionHit(colliderA, colliderB, contact.response);
+	const K4E::CollisionHit hitB = BuildCollisionHit(colliderB, colliderA, contact.response);
+
+	if (contact.response == ECollisionResponse::Block)
+	{
+		++lastCollisionExitEventCount_;
+		colliderA->OnCollisionExit(hitA);
+		colliderB->OnCollisionExit(hitB);
+		return;
+	}
+
+	if (contact.response == ECollisionResponse::Overlap)
+	{
+		++lastOverlapEndEventCount_;
+		colliderA->OnOverlapEnd(hitA);
+		colliderB->OnOverlapEnd(hitB);
 	}
 }
 
@@ -971,20 +1113,20 @@ CollisionBroadPhaseDebugComparison CollisionManager::CompareBroadPhasesForDebug(
 
 void CollisionManager::ProcessBlockCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB)
 {
-	// 将来はBlock接触としてOnCollisionEnter/Stay/Exitへ寄せるが、押し戻し連携はまだ行わない。
-	CheckCollisionPair(colliderA, colliderB);
+	// Block接触はOnCollisionEnter/Stay/Exitへ配送する。押し戻し連携はまだ行わない。
+	CheckCollisionPair(colliderA, colliderB, ECollisionResponse::Block);
 }
 
 void CollisionManager::ProcessOverlapCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB)
 {
-	// 将来はOnOverlapEnter/Stay/Exitを呼ぶ予定地だが、現段階では既存接触イベントを維持する。
-	CheckCollisionPair(colliderA, colliderB);
+	// Overlap/Trigger接触はOnOverlapBegin/Stay/Endへ配送する。
+	CheckCollisionPair(colliderA, colliderB, ECollisionResponse::Overlap);
 }
 
 /// -------------------------------------------------------------
 ///                 コライダー２つの衝突判定と接触登録
 /// -------------------------------------------------------------
-void CollisionManager::CheckCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB)
+void CollisionManager::CheckCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB, ECollisionResponse response)
 {
 	// Broad Phase導入後も、この関数以降は既存イベント順を守るNarrow Phase互換入口として残す。
 	if (!IsColliderProcessable(colliderA) || !IsColliderProcessable(colliderB)) return;
@@ -993,13 +1135,13 @@ void CollisionManager::CheckCollisionPair(K4E::Collider* colliderA, K4E::Collide
 	if (colliderA == colliderB) return;
 
 	// Preset/Matrixの最終ResponseがIgnoreなら、形状判定もイベント登録も行わない。
-	if (IsCollisionIgnored(colliderA, colliderB)) return;
+	if (ShouldSkipCollisionPair(response)) return;
 
 	// 登録済み形状判定で交差したペアだけを、このフレームの接触として扱う。
 	if (!TestCollisionPair(colliderA, colliderB)) return;
 
 	// 衝突していたので「このフレーム接触中」を両者へ登録
-	UpdateContactState(colliderA, colliderB);
+	UpdateContactState(colliderA, colliderB, response);
 }
 
 /// -------------------------------------------------------------

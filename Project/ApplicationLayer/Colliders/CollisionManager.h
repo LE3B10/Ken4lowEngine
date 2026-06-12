@@ -11,6 +11,7 @@
 #include <functional>
 #include <map>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -37,6 +38,35 @@ struct CollisionBroadPhaseDebugComparison
 	size_t uniformGridMissingPairCount = 0;
 	size_t uniformGridDuplicatePairCount = 0;
 	bool uniformGridHasMissingPairs = false;
+};
+
+// Colliderペアを順序に依存せず識別するキー。A-B/B-Aを同じ接触として扱う。
+struct CollisionEventPairKey
+{
+	uint32_t lowId = 0;
+	uint32_t highId = 0;
+
+	bool operator==(const CollisionEventPairKey& other) const
+	{
+		return lowId == other.lowId && highId == other.highId;
+	}
+};
+
+struct CollisionEventPairKeyHash
+{
+	size_t operator()(const CollisionEventPairKey& key) const
+	{
+		return (static_cast<size_t>(key.lowId) << 32) ^ static_cast<size_t>(key.highId);
+	}
+};
+
+// 1フレーム内で成立した接触ペアと、その最終Responseを保持するイベント配送用データ。
+struct CollisionEventContact
+{
+	CollisionEventPairKey key{};
+	K4E::Collider* colliderA = nullptr;
+	K4E::Collider* colliderB = nullptr;
+	ECollisionResponse response = ECollisionResponse::Ignore;
 };
 
 /// -------------------------------------------------------------
@@ -165,10 +195,22 @@ private: /// ---------- メンバ関数 ---------- ///
 	bool TestCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB) const;
 
 	// 衝突が成立したペアを、このフレームの接触状態として両Colliderへ登録する。
-	void UpdateContactState(K4E::Collider* colliderA, K4E::Collider* colliderB);
+	void UpdateContactState(K4E::Collider* colliderA, K4E::Collider* colliderB, ECollisionResponse response);
 
-	// 現在/前回の接触状態から、既存互換のOnCollisionEnter/Stay/Exitを同じ順序で配送する。
-	void DispatchCollisionEvents(const std::vector<K4E::Collider*>& snapshot, const std::unordered_map<uint32_t, K4E::Collider*>& idMap);
+	// Colliderペアを順序に依存しないキーへ正規化する。
+	CollisionEventPairKey MakeCollisionEventPairKey(K4E::Collider* colliderA, K4E::Collider* colliderB) const;
+
+	// CollisionHitを自己視点で組み立て、Owner側が相手とResponseを読めるようにする。
+	K4E::CollisionHit BuildCollisionHit(K4E::Collider* self, K4E::Collider* other, ECollisionResponse response) const;
+
+	// 現在/前回の接触ペアから、Enter/Stay/ExitとBlock/Overlapを切り分けて配送する。
+	void DispatchCollisionEvents();
+
+	// 1ペアぶんのEnter/Stayを両Colliderへ通知する。
+	void DispatchActiveCollisionEvent(const CollisionEventContact& contact, bool wasTouching);
+
+	// 1ペアぶんのExitを両Colliderへ通知する。
+	void DispatchExitCollisionEvent(const CollisionEventContact& contact);
 
 	// Response種別ごとの入口を分け、将来Block/Overlapの処理差分をここから広げる。
 	void ProcessCollisionPairByResponse(K4E::Collider* colliderA, K4E::Collider* colliderB, ECollisionResponse response);
@@ -189,7 +231,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	void ProcessOverlapCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB);
 
 	// コライダー2つの衝突判定（衝突したら両者へ接触を登録）
-	void CheckCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB);
+	void CheckCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB, ECollisionResponse response);
 
 	// 衝突判定関数の登録
 	void RegisterCollisionFuncsions();
@@ -247,6 +289,20 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	// Debug表示用に、ResponseMatrixでIgnoreスキップされたペアループ数を保持する。
 	uint32_t ignoredPairLoopCount_ = 0;
+
+	using CollisionEventContactMap = std::unordered_map<CollisionEventPairKey, CollisionEventContact, CollisionEventPairKeyHash>;
+
+	// 接触イベント用の前フレーム/現在フレームペア集合。差分比較でEnter/Stay/Exitを確定する。
+	CollisionEventContactMap previousContacts_{};
+	CollisionEventContactMap currentContacts_{};
+
+	// Debug表示用に最後のイベント配送数を保持する。Editor Mode以外では表示しない。
+	uint32_t lastCollisionEnterEventCount_ = 0;
+	uint32_t lastCollisionStayEventCount_ = 0;
+	uint32_t lastCollisionExitEventCount_ = 0;
+	uint32_t lastOverlapBeginEventCount_ = 0;
+	uint32_t lastOverlapStayEventCount_ = 0;
+	uint32_t lastOverlapEndEventCount_ = 0;
 
 	// コライダーの可視化フラグ
 	bool isCollider_ = true;
