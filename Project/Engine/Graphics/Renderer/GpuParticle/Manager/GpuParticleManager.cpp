@@ -1283,16 +1283,16 @@ namespace Ken4lowEngine
 		RegisterSpriteEffect("HeavySplashImpact", GpuParticleType::DeathBurstCore, 52);
 		RegisterSpriteEffect("RocketSplashRadiusRing", GpuParticleType::Shockwave, 96);
 		RegisterSpriteEffect("HeavySplashSmoke", GpuParticleType::Smoke, 18);
-		RegisterSpriteEffect("EnemyHitSpark", GpuParticleType::Spark, 18);
-		RegisterSpriteEffect("EnemyBlood", GpuParticleType::Blood, 10);
-		RegisterSpriteEffect("EnemyDeathSmoke", GpuParticleType::DeathBurstCore, 36);
-		RegisterSpriteEffect("EnemyDeathBlood", GpuParticleType::Blood, 20);
-		RegisterSpriteEffect("EnemyDeathShock", GpuParticleType::Shockwave, 1);
+		RegisterSpriteEffect("EnemyHitSpark", GpuParticleType::Spark, 18, 0, 0.0f, 0.08f);
+		RegisterSpriteEffect("EnemyBlood", GpuParticleType::Blood, 10, 0, 0.0f, 0.10f);
+		RegisterSpriteEffect("EnemyDeathSmoke", GpuParticleType::DeathBurstCore, 36, 0, 0.0f, 0.28f);
+		RegisterSpriteEffect("EnemyDeathBlood", GpuParticleType::Blood, 20, 0, 0.0f, 0.18f);
+		RegisterSpriteEffect("EnemyDeathShock", GpuParticleType::Shockwave, 1, 0, 0.0f, 0.20f);
 
 		defaultsRegistered_ = true;
 	}
 
-	void EffectSystem::RegisterSpriteEffect(const std::string& effectName, GpuParticleType spriteType, uint32_t defaultEmitCount, uint32_t loopEmitCount, float loopFrequency)
+	void EffectSystem::RegisterSpriteEffect(const std::string& effectName, GpuParticleType spriteType, uint32_t defaultEmitCount, uint32_t loopEmitCount, float loopFrequency, float radiusOverride)
 	{
 		if (effectName.empty())
 		{
@@ -1305,6 +1305,7 @@ namespace Ken4lowEngine
 		definition.defaultEmitCount = std::max(defaultEmitCount, 1u);
 		definition.loopEmitCount = loopEmitCount;
 		definition.loopFrequency = std::max(loopFrequency, 0.0f);
+		definition.radiusOverride = radiusOverride;
 		definitions_[effectName] = definition;
 	}
 
@@ -1372,6 +1373,10 @@ namespace Ken4lowEngine
 		GpuParticleEmitter::EmitterInfo info = GpuParticleEmitterPresetTable::MakeEmitterInfo(definition->spriteType);
 		info.kind = GpuParticleKind::Sprite;
 		info.spriteType = definition->spriteType;
+		if (definition->radiusOverride >= 0.0f)
+		{
+			info.radius = definition->radiusOverride;
+		}
 		info.loopCount = loop ? emitCount : 0;
 		info.loopFrequency = loop
 			? ((definition->loopFrequency > 0.0f) ? definition->loopFrequency : 0.10f)
@@ -1536,12 +1541,14 @@ namespace Ken4lowEngine
 			{
 				const auto& definition = definitions_.at(name);
 				ImGui::BulletText(
-					"%s -> SpriteType=%u burst=%u loop=%u/%.2fs",
+					"%s -> SpriteType=%u burst=%u loop=%u/%.2fs radius=%s%.2f",
 					name.c_str(),
 					static_cast<uint32_t>(definition.spriteType),
 					definition.defaultEmitCount,
 					definition.loopEmitCount,
-					definition.loopFrequency);
+					definition.loopFrequency,
+					(definition.radiusOverride >= 0.0f) ? "" : "preset ",
+					(definition.radiusOverride >= 0.0f) ? definition.radiusOverride : 0.0f);
 			}
 			ImGui::TreePop();
 		}

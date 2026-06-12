@@ -549,7 +549,7 @@ namespace Ken4lowEngine
 		/// Runtime 再生名と Sprite 種別の対応を登録します。<br/>
 		/// 既存の編集用 emitter 名とは分け、"PlayerHit" などゲーム側の意味名を固定するために使います。
 		/// </summary>
-		void RegisterSpriteEffect(const std::string& effectName, GpuParticleType spriteType, uint32_t defaultEmitCount, uint32_t loopEmitCount = 0, float loopFrequency = 0.0f);
+		void RegisterSpriteEffect(const std::string& effectName, GpuParticleType spriteType, uint32_t defaultEmitCount, uint32_t loopEmitCount = 0, float loopFrequency = 0.0f, float radiusOverride = -1.0f);
 
 		/// <summary>
 		/// Runtime API の状態と未対応モードの境界を ImGui へ表示します。
@@ -563,6 +563,7 @@ namespace Ken4lowEngine
 			uint32_t defaultEmitCount = 1;
 			uint32_t loopEmitCount = 0;
 			float loopFrequency = 0.0f;
+			float radiusOverride = -1.0f;
 		};
 
 		struct RuntimeInstance
