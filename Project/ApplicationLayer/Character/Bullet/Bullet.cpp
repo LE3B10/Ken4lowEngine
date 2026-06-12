@@ -259,6 +259,7 @@ void Bullet::KillAndMoveFar()
 	// Exit 解決用に 1フレーム残す
 	isDead_ = true;
 	deadFrames_ = 0;
+	SetEnabled(false);
 
 	const K4E::Vector3 far_ = { 1e9f, 1e9f, 1e9f };
 	Collider::SetCenterPosition(far_);

@@ -177,10 +177,12 @@ inline void ApplyCollisionPreset(K4E::Collider& collider, const CollisionPreset&
 {
 	// TypeIDは既存CollisionTypeIdDef互換のまま、ObjectChannelとしても同じ値を保持する。
 	collider.SetTypeID(ToCollisionTypeId(preset.objectChannel));
-	collider.SetObjectChannelId(ToCollisionTypeId(preset.objectChannel));
-	collider.SetCollisionPresetName(preset.name);
+	collider.SetObjectChannel(preset.objectChannel);
+	collider.SetCollisionPreset(preset.name);
+	collider.SetEnabled(true);
 	collider.SetQueryEnabled(preset.queryEnabled);
 	collider.SetPhysicsEnabled(preset.physicsEnabled);
+	collider.SetTrigger(preset.queryEnabled && !preset.physicsEnabled);
 
 	// Presetが持つObjectChannelごとのResponseをColliderへ写し、個別判定へ反映できる状態にする。
 	collider.ResetCollisionResponses(static_cast<uint8_t>(ECollisionResponse::Ignore));

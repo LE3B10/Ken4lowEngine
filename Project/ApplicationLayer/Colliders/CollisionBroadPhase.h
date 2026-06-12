@@ -71,11 +71,11 @@ public:
 				for (size_t i = 0; i < bucketA.size(); ++i)
 				{
 					K4E::Collider* a = bucketA[i];
-					if (!a) continue;
+					if (!a || !a->IsCollisionEnabledForQuery()) continue;
 					for (size_t j = i + 1; j < bucketA.size(); ++j)
 					{
 						K4E::Collider* b = bucketA[j];
-						if (!b) continue;
+						if (!b || !b->IsCollisionEnabledForQuery()) continue;
 						outPairs.push_back({ a, b });
 					}
 				}
@@ -85,10 +85,10 @@ public:
 			// 既存pairLoopと同じ片方向ペアだけを集め、イベント順の変更を避ける。
 			for (K4E::Collider* a : bucketA)
 			{
-				if (!a) continue;
+				if (!a || !a->IsCollisionEnabledForQuery()) continue;
 				for (K4E::Collider* b : bucketB)
 				{
-					if (!b) continue;
+					if (!b || !b->IsCollisionEnabledForQuery()) continue;
 					outPairs.push_back({ a, b });
 				}
 			}
@@ -190,7 +190,7 @@ private:
 
 	void InsertEntry(GridCellMap& grid, K4E::Collider* collider) const
 	{
-		if (!collider) return;
+		if (!collider || !collider->IsCollisionEnabledForQuery()) return;
 
 		// 現在のColliderはGetAABBを常に返せるため、取れない形状が出たらBruteForceフォールバック対象にする。
 		const K4E::AABB bounds = collider->GetAABB();
@@ -215,7 +215,7 @@ private:
 		outGrid.clear();
 		for (K4E::Collider* collider : colliders)
 		{
-			if (collider) ++registeredColliderCount;
+			if (collider && collider->IsCollisionEnabledForQuery()) ++registeredColliderCount;
 			InsertEntry(outGrid, collider);
 		}
 		usedCellCount += outGrid.size();
@@ -233,6 +233,7 @@ private:
 	void TryAddPair(K4E::Collider* a, K4E::Collider* b, std::vector<CollisionPair>& outPairs, std::unordered_set<uint64_t>& addedPairKeys) const
 	{
 		if (!a || !b || a == b) return;
+		if (!a->IsCollisionEnabledForQuery() || !b->IsCollisionEnabledForQuery()) return;
 
 		const uint64_t key = MakePairKey(a, b);
 		if (!addedPairKeys.insert(key).second) return;
@@ -276,7 +277,7 @@ private:
 
 		for (K4E::Collider* b : bucketB)
 		{
-			if (!b) continue;
+			if (!b || !b->IsCollisionEnabledForQuery()) continue;
 
 			// B側のBounding AABBがまたぐセルだけを調べ、遠いColliderとの候補化を避ける。
 			const K4E::AABB bounds = b->GetAABB();

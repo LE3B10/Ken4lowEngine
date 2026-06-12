@@ -375,6 +375,7 @@ void EnemySpawnCrystal::UpdateReactionTimers(float deltaTime, const CrystalReact
 	{
 		state_ = State::Broken;
 		isAlive = false;
+		SetEnabled(false);
 		justBroken_ = true;
 		SetCenterPosition({ 1.0e9f, 1.0e9f, 1.0e9f });
 	}

@@ -16,8 +16,22 @@
 #include "Capsule.h"
 #include "Sphere.h"
 
+enum class EObjectChannel : uint32_t;
+
 namespace Ken4lowEngine
 {
+	class Collider;
+
+	/// CollisionHit は将来のBlock/Overlapイベントへ渡す詳細情報の最小単位。
+	struct CollisionHit
+	{
+		Collider* self = nullptr;
+		Collider* other = nullptr;
+		Vector3 point{};
+		Vector3 normal{};
+		float distance = 0.0f;
+	};
+
 	/// Primitive Colliderが扱う単純形状の種別。見た目のMeshとは分離した衝突用形状として扱う。
 	enum class ECollisionShapeType : uint8_t
 	{
@@ -103,8 +117,14 @@ namespace Ken4lowEngine
 
 		uint32_t typeID = 0u;
 		uint32_t objectChannelId = 0u;
+		bool enabled = true;
 		bool queryEnabled = true;
 		bool physicsEnabled = true;
+		bool trigger = false;
+		bool requireOwner = false;
+		bool ownerActive = true;
+		bool ownerAlive = true;
+		bool ownerVisible = true;
 		bool hasResponseOverrides = false;
 		std::string presetName{};
 		std::array<uint8_t, kMaxCollisionChannels> responseIds{};
@@ -177,6 +197,16 @@ namespace Ken4lowEngine
 		virtual void OnCollisionEnter(Collider* other) { OnCollision(other); }
 		virtual void OnCollisionStay(Collider* other) { OnCollision(other); }
 		virtual void OnCollisionExit([[maybe_unused]] Collider* other) {}
+
+		// 詳細Hit情報を受け取る将来用入口。現段階では既存Collider*イベントへ委譲して互換性を保つ。
+		virtual void OnCollisionEnter([[maybe_unused]] const CollisionHit& hit) { OnCollisionEnter(hit.other); }
+		virtual void OnCollisionStay([[maybe_unused]] const CollisionHit& hit) { OnCollisionStay(hit.other); }
+		virtual void OnCollisionExit([[maybe_unused]] const CollisionHit& hit) { OnCollisionExit(hit.other); }
+
+		// Trigger/Overlap専用イベントの予定地。CollisionManager側の配送切り分けは次段階で実装する。
+		virtual void OnOverlapBegin([[maybe_unused]] const CollisionHit& hit) {}
+		virtual void OnOverlapStay([[maybe_unused]] const CollisionHit& hit) {}
+		virtual void OnOverlapEnd([[maybe_unused]] const CollisionHit& hit) {}
 
 	public: /// ---------- 衝突状態管理（マネージャ側が使用） ---------- ///
 
@@ -282,9 +312,18 @@ namespace Ken4lowEngine
 		// ObjectChannel相当のIDを設定。TypeID互換を維持したい通常経路ではSetTypeIDを使う。
 		void SetObjectChannelId(uint32_t objectChannelId) { filterData_.objectChannelId = objectChannelId; }
 
-		// Preset適用名を記録（既存判定には使わず移行確認用）
+		// UE風ObjectChannel API。TypeIDは変えず、Preset/Response判定用のChannelだけを更新する。
+		void SetObjectChannel(::EObjectChannel objectChannel) { SetObjectChannelId(static_cast<uint32_t>(objectChannel)); }
+		::EObjectChannel GetObjectChannel() const { return static_cast<::EObjectChannel>(filterData_.objectChannelId); }
+
+		// Preset適用名を記録（Response適用はCollisionPreset/CollisionPresetLibrary側で行う）
+		void SetCollisionPreset(std::string_view presetName) { SetCollisionPresetName(presetName); }
 		void SetCollisionPresetName(std::string_view presetName) { filterData_.presetName = std::string(presetName); }
 		std::string_view GetCollisionPresetName() const { return filterData_.presetName; }
+
+		// Collider全体の有効状態。falseならManagerの更新・判定・Trace対象から外れる。
+		void SetEnabled(bool enabled) { filterData_.enabled = enabled; }
+		bool IsEnabled() const { return filterData_.enabled; }
 
 		// Query有効状態をPresetから適用し、Debug表示と問い合わせ判定の段階移行に使う。
 		void SetQueryEnabled(bool enabled) { filterData_.queryEnabled = enabled; }
@@ -293,6 +332,34 @@ namespace Ken4lowEngine
 		// Physics有効状態をPresetから適用し、将来のBlock押し戻し対象判定に使う。
 		void SetPhysicsEnabled(bool enabled) { filterData_.physicsEnabled = enabled; }
 		bool IsPhysicsEnabled() const { return filterData_.physicsEnabled; }
+
+		// Triggerは押し戻し対象ではなく、Overlap通知だけを行うColliderとして扱う予定地。
+		void SetTrigger(bool trigger) { filterData_.trigger = trigger; }
+		bool IsTrigger() const { return filterData_.trigger; }
+
+		// Owner状態による除外条件。既存World Collider互換のため、Owner必須は明示設定時だけ有効にする。
+		void SetRequireOwner(bool required) { filterData_.requireOwner = required; }
+		bool RequiresOwner() const { return filterData_.requireOwner; }
+		void SetOwnerActive(bool active) { filterData_.ownerActive = active; }
+		void SetOwnerAlive(bool alive) { filterData_.ownerAlive = alive; }
+		void SetOwnerVisible(bool visible) { filterData_.ownerVisible = visible; }
+		bool IsOwnerActive() const { return filterData_.ownerActive; }
+		bool IsOwnerAlive() const { return filterData_.ownerAlive; }
+		bool IsOwnerVisible() const { return filterData_.ownerVisible; }
+
+		// CollisionManagerが判定対象にしてよいかを一箇所で判断する。
+		bool IsCollisionEnabledForQuery() const
+		{
+			if (!filterData_.enabled || !filterData_.queryEnabled) return false;
+			if (filterData_.requireOwner && !owner_) return false;
+			return filterData_.ownerActive && filterData_.ownerAlive && filterData_.ownerVisible;
+		}
+
+		// 将来の押し戻し/物理応答用。TriggerはQueryのみのOverlapとして扱う。
+		bool IsCollisionEnabledForPhysics() const
+		{
+			return IsCollisionEnabledForQuery() && filterData_.physicsEnabled && !filterData_.trigger;
+		}
 
 		// Collider個別のResponseを初期化する。Preset未適用状態へ戻す場合にも使える。
 		void ResetCollisionResponses(uint8_t defaultResponseId = CollisionFilterData::kDefaultResponseId)

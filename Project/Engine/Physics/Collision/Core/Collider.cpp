@@ -2,6 +2,8 @@
 #include "Collider.h"
 #include <Wireframe.h>
 
+#include <algorithm>
+
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
@@ -67,27 +69,67 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void Collider::Draw()
 	{
-		// 半サイズが 0 に非常に近いなら OBB を描画しない（≒ 無効とみなす）
-		if (shapeInfo_.HasDrawableOBB())
+		const Vector4 drawColor = IsCollisionEnabledForQuery()
+			? shapeInfo_.debugColor
+			: Vector4{ 0.35f, 0.35f, 0.35f, 0.65f };
+
+		// 主形状のDebug描画。未移行Colliderは従来通りOBB/Segmentも下の互換描画で表示する。
+		switch (shapeInfo_.shapeType)
+		{
+		case ECollisionShapeType::Sphere:
+			if (shapeInfo_.useSphere && shapeInfo_.sphere.radius > CollisionShapeInfo::kDrawEpsilon)
+			{
+				Wireframe::GetInstance()->DrawSphere(shapeInfo_.sphere.center, shapeInfo_.sphere.radius, drawColor);
+			}
+			break;
+		case ECollisionShapeType::AABB:
+			if (shapeInfo_.HasDrawableOBB())
+			{
+				Wireframe::GetInstance()->DrawAABB(shapeInfo_.BuildAABB(), drawColor);
+			}
+			break;
+		case ECollisionShapeType::Capsule:
+			if (shapeInfo_.HasDrawableCapsule())
+			{
+				Wireframe::GetInstance()->DrawCapsule(shapeInfo_.capsule, drawColor);
+			}
+			break;
+		case ECollisionShapeType::Segment:
+			if (shapeInfo_.HasDrawableSegment())
+			{
+				Wireframe::GetInstance()->DrawSegment(shapeInfo_.segment, drawColor);
+			}
+			break;
+		case ECollisionShapeType::OBB:
+		default:
+			if (shapeInfo_.HasDrawableOBB())
+			{
+				Wireframe::GetInstance()->DrawOBB(GetOBB(), drawColor);
+			}
+			break;
+		}
+
+		// 半サイズが 0 に非常に近いなら OBB を描画しない（≒ 未設定とみなす）
+		if (shapeInfo_.shapeType != ECollisionShapeType::AABB && shapeInfo_.shapeType != ECollisionShapeType::OBB && shapeInfo_.HasDrawableOBB())
 		{
 			const OBB obb = GetOBB();
-			Wireframe::GetInstance()->DrawOBB(obb, shapeInfo_.debugColor);
+			Wireframe::GetInstance()->DrawOBB(obb, drawColor);
 		}
 
 		// 線分の長さが十分なら描画（セグメントが有効なら）
-		if (shapeInfo_.HasDrawableSegment())
+		if (shapeInfo_.shapeType != ECollisionShapeType::Segment && shapeInfo_.HasDrawableSegment())
 		{
-			Wireframe::GetInstance()->DrawSegment(shapeInfo_.segment, shapeInfo_.debugColor);
+			Wireframe::GetInstance()->DrawSegment(shapeInfo_.segment, drawColor);
 		}
 
 		// -------- Capsule 描画 -------- //
 		Vector3 axis = shapeInfo_.capsule.GetAxis();
-		if (shapeInfo_.HasDrawableCapsule())
+		if (shapeInfo_.shapeType != ECollisionShapeType::Capsule && shapeInfo_.HasDrawableCapsule())
 		{
 			if (Vector3::Length(axis) < 1e-6f)
-				Wireframe::GetInstance()->DrawSphere(shapeInfo_.capsule.segment.origin, shapeInfo_.capsule.radius, shapeInfo_.debugColor);
+				Wireframe::GetInstance()->DrawSphere(shapeInfo_.capsule.segment.origin, shapeInfo_.capsule.radius, drawColor);
 			else
-				Wireframe::GetInstance()->DrawCapsule(shapeInfo_.capsule.GetCenter(), shapeInfo_.capsule.radius, shapeInfo_.capsule.GetHeight(), axis, 8, shapeInfo_.debugColor);
+				Wireframe::GetInstance()->DrawCapsule(shapeInfo_.capsule.GetCenter(), shapeInfo_.capsule.radius, shapeInfo_.capsule.GetHeight(), axis, 8, drawColor);
 		}
 	}
 
@@ -98,6 +140,32 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		if (ImGui::TreeNode("Collider")) {
+			bool enabled = IsEnabled();
+			if (ImGui::Checkbox("Enabled", &enabled)) {
+				SetEnabled(enabled);
+			}
+			bool trigger = IsTrigger();
+			if (ImGui::Checkbox("Trigger", &trigger)) {
+				SetTrigger(trigger);
+			}
+			const std::string_view presetName = GetCollisionPresetName();
+			if (presetName.empty())
+			{
+				ImGui::Text("Preset: (manual/unset)");
+			}
+			else
+			{
+				ImGui::Text("Preset: %.*s", static_cast<int>(presetName.size()), presetName.data());
+			}
+			ImGui::Text("TypeID/ObjectChannel: %u / %u", GetTypeID(), GetObjectChannelId());
+			ImGui::Text("Query/Physics: %s / %s", IsQueryEnabled() ? "true" : "false", IsPhysicsEnabled() ? "true" : "false");
+			ImGui::Text("Owner: %p Required:%s Active:%s Alive:%s Visible:%s",
+				GetOwner<void>(),
+				RequiresOwner() ? "true" : "false",
+				IsOwnerActive() ? "true" : "false",
+				IsOwnerAlive() ? "true" : "false",
+				IsOwnerVisible() ? "true" : "false");
+
 			Vector3 pos = shapeInfo_.colliderPosition;
 			if (ImGui::DragFloat3("Center", &pos.x, 0.1f)) {
 				SetCenterPosition(pos);

@@ -110,6 +110,7 @@ bool BossClearItem::CheckPickup(const Player& player) const
 void BossClearItem::MarkCollected()
 {
 	collected_ = true;
+	SetEnabled(false);
 	SetCenterPosition({ 1.0e9f, 1.0e9f, 1.0e9f });
 }
 

@@ -678,6 +678,7 @@ void EnemyBase::OnKilled()
 /// -------------------------------------------------------------
 void EnemyBase::DisableColliderOnly()
 {
+	SetEnabled(false);
 	SetOBBHalfSize({ 0.0f, 0.0f, 0.0f });
 
 	Segment s{};

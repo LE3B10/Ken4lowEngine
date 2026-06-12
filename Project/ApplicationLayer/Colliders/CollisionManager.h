@@ -158,6 +158,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// Collider個別Responseも含めたIgnore判定入口。
 	bool IsCollisionIgnored(K4E::Collider* colliderA, K4E::Collider* colliderB) const;
 
+	// Colliderの有効状態とOwner状態を見て、判定/Trace候補に入れてよいかを判断する。
+	bool IsColliderProcessable(K4E::Collider* collider) const;
+
 	// 登録済みの形状判定関数で、このColliderペアが実際に交差しているかだけを調べる。
 	bool TestCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB) const;
 

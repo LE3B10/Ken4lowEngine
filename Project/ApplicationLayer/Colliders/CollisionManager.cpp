@@ -173,7 +173,10 @@ void CollisionManager::Update()
 #endif
 
 	// Collider 本体の Update はデバッグ用（Wireframeなど）
-	for (K4E::Collider* collider : all_) collider->Update();
+	for (K4E::Collider* collider : all_)
+	{
+		if (IsColliderProcessable(collider)) collider->Update();
+	}
 }
 
 /// -------------------------------------------------------------
@@ -344,7 +347,9 @@ void CollisionManager::DrawImGui()
 				const K4E::Vector3 halfSize = collider->GetOBBHalfSize();
 				ImGui::Text("Owner: %p (name unavailable)", collider->GetOwner<void>());
 				ImGui::Text("Registered: true");
-				ImGui::Text("Enabled: not separated yet");
+				ImGui::Text("Enabled/Processable: %s / %s",
+					collider->IsEnabled() ? "true" : "false",
+					IsColliderProcessable(collider) ? "true" : "false");
 				ImGui::Text("ShapeType: %s", ToString(collider->GetShapeType()));
 				ImGui::Text("TypeID/ObjectChannel: %u / %s(%u)", typeId, ToString(colliderObjectChannel), objectChannelId);
 				if (presetName.empty())
@@ -357,7 +362,12 @@ void CollisionManager::DrawImGui()
 				}
 				ImGui::Text("Query/Physics: %s / %s", collider->IsQueryEnabled() ? "true" : "false", collider->IsPhysicsEnabled() ? "true" : "false");
 				ImGui::Text("Response Source: %s", collider->HasCollisionResponseOverrides() ? "Collider Preset" : "Legacy Matrix fallback");
-				ImGui::Text("Trigger: not separated yet");
+				ImGui::Text("Trigger: %s", collider->IsTrigger() ? "true" : "false");
+				ImGui::Text("Owner Required/Active/Alive/Visible: %s / %s / %s / %s",
+					collider->RequiresOwner() ? "true" : "false",
+					collider->IsOwnerActive() ? "true" : "false",
+					collider->IsOwnerAlive() ? "true" : "false",
+					collider->IsOwnerVisible() ? "true" : "false");
 				ImGui::Text("DebugDraw: %s", isCollider_ ? "true" : "false");
 				ImGui::Text("Center: %.2f, %.2f, %.2f", center.x, center.y, center.z);
 				ImGui::Text("HalfSize: %.2f, %.2f, %.2f", halfSize.x, halfSize.y, halfSize.z);
@@ -488,10 +498,10 @@ void CollisionManager::CheckAllCollisions()
 			// 現在はTypeIDバケット内の総当たりで候補ペアを作るため、Collider数増加時はここがO(n*m)の主な負荷になる。
 			for (K4E::Collider* a : A)
 			{
-				if (!a) continue;
+				if (!IsColliderProcessable(a)) continue;
 				for (K4E::Collider* b : B)
 				{
-					if (!b) continue;
+					if (!IsColliderProcessable(b)) continue;
 					const ECollisionResponse pairResponse = ResolveCollisionResponseForPair(a, b);
 					if (ShouldSkipCollisionPair(pairResponse))
 					{
@@ -611,7 +621,7 @@ bool CollisionManager::SegmentCastHit(uint32_t targetType, const K4E::Segment& s
 
 	for (K4E::Collider* c : buckets_[targetType])
 	{
-		if (!c) continue;
+		if (!IsColliderProcessable(c)) continue;
 
 		// Segment vs OBB 判定（既存式をPrimitive名付き入口から利用）
 		if (!K4E::CollisionPrimitiveTests::TestOBBSegment(c->GetOBB(), seg)) continue;
@@ -672,7 +682,7 @@ bool CollisionManager::SegmentCastByTraceChannel(ETraceChannel traceChannel, con
 
 		for (K4E::Collider* c : buckets_[typeId])
 		{
-			if (!c) continue;
+			if (!IsColliderProcessable(c)) continue;
 
 			// Segment vs OBB 判定のみを使い、既存SegmentCastと同じ形状問い合わせに揃える。
 			if (!K4E::CollisionPrimitiveTests::TestOBBSegment(c->GetOBB(), seg)) continue;
@@ -750,6 +760,12 @@ ECollisionResponse CollisionManager::ResolveCollisionResponseForPair(K4E::Collid
 		return ECollisionResponse::Overlap;
 	}
 
+	// Trigger Colliderは形状交差をOverlap通知として扱い、将来の押し戻し候補から外す。
+	if ((colliderA && colliderA->IsTrigger()) || (colliderB && colliderB->IsTrigger()))
+	{
+		return ECollisionResponse::Overlap;
+	}
+
 	// 両者がBlockを望む場合だけ、将来の押し戻し候補として扱う。
 	return ECollisionResponse::Block;
 }
@@ -772,9 +788,16 @@ bool CollisionManager::IsCollisionIgnored(K4E::Collider* colliderA, K4E::Collide
 	return ShouldSkipCollisionPair(ResolveCollisionResponseForPair(colliderA, colliderB));
 }
 
+bool CollisionManager::IsColliderProcessable(K4E::Collider* collider) const
+{
+	// Ownerの生存/表示/有効状態も含めた、Manager側の共通フィルタ。
+	return collider && collider->IsCollisionEnabledForQuery();
+}
+
 bool CollisionManager::TestCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB) const
 {
 	// Narrow Phase入口として形状判定だけを担当し、接触状態やイベント通知はここでは更新しない。
+	if (!IsColliderProcessable(colliderA) || !IsColliderProcessable(colliderB)) return false;
 	const auto key = std::make_pair(colliderA->GetTypeID(), colliderB->GetTypeID());
 	const auto it = collisionTable_.find(key);
 	if (it == collisionTable_.end()) return false;
@@ -964,6 +987,8 @@ void CollisionManager::ProcessOverlapCollisionPair(K4E::Collider* colliderA, K4E
 void CollisionManager::CheckCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB)
 {
 	// Broad Phase導入後も、この関数以降は既存イベント順を守るNarrow Phase互換入口として残す。
+	if (!IsColliderProcessable(colliderA) || !IsColliderProcessable(colliderB)) return;
+
 	// 自分同士は無視
 	if (colliderA == colliderB) return;
 

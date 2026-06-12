@@ -39,6 +39,7 @@ void Item::Initialize(ItemType type, const K4E::Vector3& pos, int healAmount, in
 	position_ = pos;
 	basePosition_ = pos;
 	active_ = (type_ != ItemType::None);
+	SetEnabled(active_);
 	pickupRadius_ = pickupRadius;
 	healAmount_ = healAmount;
 	ammoAmount_ = ammoAmount;
@@ -137,7 +138,7 @@ bool Item::OnPickup(Player& player)
 		break;
 	}
 
-	active_ = false;
+	MarkCollected();
 	return true;
 }
 
