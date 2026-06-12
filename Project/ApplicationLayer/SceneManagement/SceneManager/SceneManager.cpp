@@ -5,6 +5,7 @@
 #include <GameTimer.h>
 
 #ifdef USE_IMGUI
+#include <Editor/EditorModeController.h>
 #include <Editor/EditorPlayController.h>
 #endif // USE_IMGUI
 
@@ -149,7 +150,8 @@ void SceneManager::Update()
 			bool shouldUpdateGame = true;
 #ifdef USE_IMGUI
 			// Debug/EditorではPlay中だけ通常Updateし、Edit/Pause中はEditor更新に分離する。
-			shouldUpdateGame = K4E::EditorPlayController::GetInstance()->IsPlaying();
+			// Game Preview Mode中はEditor UIのPlay状態に依存せず、実ゲーム確認として通常Updateを進める。
+			shouldUpdateGame = K4E::EditorModeController::GetInstance()->IsGamePreviewMode() || K4E::EditorPlayController::GetInstance()->IsPlaying();
 #else
 			// Release/GameではEditorPlayStateを参照せず、常に通常UpdateでTitleSceneを進行させる。
 			shouldUpdateGame = true;

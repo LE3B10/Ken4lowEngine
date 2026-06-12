@@ -329,6 +329,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\DebugTools\ImGui\ImGuiManager.cpp" />
     <ClCompile Include="Engine\Editor\EditorAssetBrowser.cpp" />
     <ClCompile Include="Engine\Editor\EditorAssetBuildService.cpp" />
+    <ClCompile Include="Engine\Editor\EditorModeController.cpp" />
     <ClCompile Include="Engine\Editor\EditorOutputLog.cpp" />
     <ClCompile Include="Engine\Editor\EditorPlayController.cpp" />
     <ClCompile Include="Engine\Editor\EditorProcessRunner.cpp" />
@@ -1007,6 +1008,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\DebugTools\ImGui\ImGuiManager.h" />
     <ClInclude Include="Engine\Editor\EditorAssetBrowser.h" />
     <ClInclude Include="Engine\Editor\EditorAssetBuildService.h" />
+    <ClInclude Include="Engine\Editor\EditorModeController.h" />
     <ClInclude Include="Engine\Editor\EditorObjectInfo.h" />
     <ClInclude Include="Engine\Editor\EditorOutputLog.h" />
     <ClInclude Include="Engine\Editor\EditorProcessRunner.h" />

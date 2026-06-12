@@ -1359,6 +1359,18 @@ void EditorWindowManager::InitializeEditorServices()
 #endif // USE_IMGUI
 	}
 
+	void EditorWindowManager::AddOutputLog(EditorLogLevel level, const std::string& message)
+	{
+#ifdef USE_IMGUI
+		// モード切替などEditorWindowManager外からの通知もOutput Logへ集約する。
+		InitializeEditorServices();
+		outputLog_.Add(level, message);
+#else
+		(void)level;
+		(void)message;
+#endif // USE_IMGUI
+	}
+
 	void EditorWindowManager::FinalizeEditorServices()
 	{
 #ifdef USE_IMGUI

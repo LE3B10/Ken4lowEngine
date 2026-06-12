@@ -24,6 +24,7 @@
 #include <vector>
 
 #ifdef USE_IMGUI
+#include <Editor/EditorModeController.h>
 #include <imgui.h>
 #include <GameTimer.h>
 #endif
@@ -578,6 +579,15 @@ void GamePlayWorld::UpdateEquipIntro(float deltaTime)
 
 void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 {
+#ifdef _DEBUG
+	const bool debugVisualsEnabled =
+#ifdef USE_IMGUI
+		K4E::EditorModeController::GetInstance()->ShouldDrawDebugVisuals();
+#else
+		true;
+#endif // USE_IMGUI
+#endif // _DEBUG
+
 	K4E::SkyBoxManager::GetInstance()->SetRenderSetting();
 	if (skyBox_)
 	{
@@ -600,7 +610,10 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 	{
 		stage_->Draw();
 #ifdef _DEBUG
-		stage_->DrawChunkDebug();
+		if (debugVisualsEnabled)
+		{
+			stage_->DrawChunkDebug();
+		}
 #endif
 	}
 
@@ -618,16 +631,19 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 	}
 
 #ifdef _DEBUG
-	if (collisionManager_)
+	if (debugVisualsEnabled && collisionManager_)
 	{
 		collisionManager_->Draw();
 	}
 
-	K4E::Wireframe::GetInstance()->DrawGrid(
-		200.0f,
-		50.0f,
-		{ 0.25f, 0.25f, 0.25f, 1.0f });
-#endif
+	if (debugVisualsEnabled)
+	{
+		K4E::Wireframe::GetInstance()->DrawGrid(
+			200.0f,
+			50.0f,
+			{ 0.25f, 0.25f, 0.25f, 1.0f });
+	}
+#endif // _DEBUG
 }
 
 void GamePlayWorld::DrawBossIntro3D()

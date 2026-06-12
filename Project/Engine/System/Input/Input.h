@@ -158,6 +158,11 @@ namespace Ken4lowEngine
 		void SetEditorViewportMousePosition(const Vector2& position, bool valid);
 
 		/// <summary>
+		/// Game Preview Modeなど、OSウィンドウ座標をそのままゲーム入力へ使う状態に戻します。
+		/// </summary>
+		void ClearEditorViewportMouseOverride();
+
+		/// <summary>
 		/// Editor側からゲーム入力を許可するか設定します。
 		/// </summary>
 		void SetGameInputEnabled(bool enabled);

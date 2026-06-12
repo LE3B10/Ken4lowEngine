@@ -11,6 +11,7 @@
 #include "StageRepository.h"
 
 #ifdef USE_IMGUI
+#include <Editor/EditorModeController.h>
 #include <imgui.h>
 #endif
 
@@ -405,6 +406,14 @@ bool GamePlayScene::UpdatePause(float deltaTime)
 /// -------------------------------------------------------------
 void GamePlayScene::UpdateDebug()
 {
+#ifdef USE_IMGUI
+	if (!K4E::EditorModeController::GetInstance()->ShouldDrawDebugVisuals())
+	{
+		// Game Preview ModeではDebugカメラ操作を止め、実ゲーム確認を優先する。
+		return;
+	}
+#endif // USE_IMGUI
+
 	if (debugTools_)
 	{
 		debugTools_->UpdateDebugCamera(input_, world_.get());
@@ -485,7 +494,11 @@ void GamePlayScene::Draw3DObjects()
 		world_->Draw3D(ShouldHideCharactersDuringIntro());
 	}
 
-	if (frustumCullingDebug_)
+	if (frustumCullingDebug_
+#ifdef USE_IMGUI
+		&& K4E::EditorModeController::GetInstance()->ShouldDrawDebugVisuals()
+#endif // USE_IMGUI
+		)
 	{
 		frustumCullingDebug_->DrawDebug();
 	}

@@ -381,6 +381,16 @@ namespace Ken4lowEngine
 #endif // USE_IMGUI
 	}
 
+	void Input::ClearEditorViewportMouseOverride()
+	{
+#ifdef USE_IMGUI
+		// Game Preview ModeではMain Viewportを経由しないため、通常のクライアント座標入力へ戻す。
+		editorViewportMouseOverrideEnabled_ = false;
+		editorViewportMousePositionValid_ = false;
+		editorViewportMousePosition_ = { 0.0f, 0.0f };
+#endif // USE_IMGUI
+	}
+
 	void Input::SetGameInputEnabled(bool enabled)
 	{
 #ifdef USE_IMGUI

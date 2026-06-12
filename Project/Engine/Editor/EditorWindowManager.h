@@ -97,6 +97,11 @@ namespace Ken4lowEngine
 		void FinalizeEditorServices();
 
 		/// <summary>
+		/// Editor外の機能からOutput Logへ通知を追加します。
+		/// </summary>
+		void AddOutputLog(EditorLogLevel level, const std::string& message);
+
+		/// <summary>
 		/// スクリーン座標をMain Viewport左上基準へ変換する入口です。
 		/// </summary>
 		Vector2 ConvertScreenToMainViewportPosition(const Vector2& screenPosition) const;
