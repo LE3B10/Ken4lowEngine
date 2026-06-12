@@ -39,6 +39,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 衝突状態（Enter/Stay/Exit）
 	void OnCollisionEnter(K4E::Collider* other) override;
+	void OnCollisionEnter(const K4E::CollisionHit& hit) override;
+	void OnOverlapBegin(const K4E::CollisionHit& hit) override;
 
 	bool IsDead() const { return isDead_; }
 	bool IsRemovable() const { return removable_; }

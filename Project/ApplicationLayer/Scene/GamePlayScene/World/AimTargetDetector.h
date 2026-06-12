@@ -75,8 +75,7 @@ private:
 	void UnregisterParameters();
 	void ApplyParameters();
 	void ResetResultForRay(const K4E::Vector3& origin, const K4E::Vector3& direction);
-	void TestType(const CollisionManager& collisionManager, uint32_t typeId, ObjectType objectType, const K4E::Vector3& origin, const K4E::Vector3& direction);
-	bool IntersectAABB(const K4E::Vector3& origin, const K4E::Vector3& direction, const K4E::Collider& collider, float& outDistance) const;
+	void SelectTargetFromTrace(const CollisionManager& collisionManager, const K4E::Vector3& origin, const K4E::Vector3& direction);
 	bool IsDamageable(ObjectType type) const;
 
 private:

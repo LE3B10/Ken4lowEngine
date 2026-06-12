@@ -44,6 +44,7 @@ public: /// ---------- メンバ関数 --------- ///
 public: /// ---------- オーバーライド ---------- ///
 
 	void OnCollision(K4E::Collider* other) override;
+	void OnOverlapBegin(const K4E::CollisionHit& hit) override;
 	K4E::Vector3 GetCenterPosition() const override { return position_; }
 	void SetCenterPosition(const K4E::Vector3& pos) override { position_ = pos; }
 	K4E::Vector3 GetOBBHalfSize() const override { return scale_; }

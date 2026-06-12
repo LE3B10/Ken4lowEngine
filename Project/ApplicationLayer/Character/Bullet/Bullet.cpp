@@ -475,3 +475,15 @@ void Bullet::OnCollisionEnter(K4E::Collider* other)
 
 	KillAndMoveFar();
 }
+
+void Bullet::OnCollisionEnter(const K4E::CollisionHit& hit)
+{
+	// Collision Event Systemの詳細Hit入口も、既存の弾命中処理へ集約して二重実装を避ける。
+	OnCollisionEnter(hit.other);
+}
+
+void Bullet::OnOverlapBegin(const K4E::CollisionHit& hit)
+{
+	// ProjectileはPreset上ほぼBlockだが、将来Trigger対象に当たった場合もEnter一回処理へ寄せる。
+	OnCollisionEnter(hit.other);
+}

@@ -159,3 +159,9 @@ void Item::OnCollision(K4E::Collider* other)
 		return;
 	}
 }
+
+void Item::OnOverlapBegin(const K4E::CollisionHit& hit)
+{
+	// ItemはPreset上Overlap扱い。取得効果はItemManager::ApplyItemEffectへ集約し、ここでは通知確認だけに留める。
+	OnCollision(hit.other);
+}

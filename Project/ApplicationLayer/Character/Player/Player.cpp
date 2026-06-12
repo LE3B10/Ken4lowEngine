@@ -550,6 +550,18 @@ void Player::OnCollision(K4E::Collider* other)
 	OnHitByEnemyBullet(other, PlayerHitPart::Body, 1.0f);
 }
 
+void Player::OnCollisionEnter(const K4E::CollisionHit& hit)
+{
+	// Player本体ColliderへのBlock通知は、既存の被弾処理へ集約する。
+	OnCollision(hit.other);
+}
+
+void Player::OnOverlapBegin(const K4E::CollisionHit& hit)
+{
+	// Enemy/ItemなどOverlap系も互換入口へ通す。Item効果はItemManager側の既存処理が担当する。
+	OnCollision(hit.other);
+}
+
 void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float mul)
 {
 	const auto fb = damage_.OnHitByEnemyBullet(

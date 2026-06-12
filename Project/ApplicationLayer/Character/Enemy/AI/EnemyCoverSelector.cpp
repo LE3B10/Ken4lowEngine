@@ -2,8 +2,6 @@
 #include "EnemyCoverSelector.h"
 
 #include <CollisionManager.h>
-#include <CollisionTypeIdDef.h>
-#include <Segment.h> // ローカルで生成するAI遮蔽判定用Segmentの定義を明示する。
 
 #include <algorithm>
 #include <cmath>
@@ -40,12 +38,18 @@ namespace
 	{
 		if (!collisionManager || !useLOS) return true;
 
-		Segment segment{};
-		segment.origin = fromPos;
-		segment.diff = toPos - fromPos;
+		const Vector3 diff = toPos - fromPos;
+		const float distance = Vector3::Length(diff);
+		if (distance <= 0.0001f) return true;
 
-		Collider* hitWorld = nullptr;
-		const bool blocked = collisionManager->SegmentCast(static_cast<uint32_t>(CollisionTypeIdDef::kWorld), segment, &hitWorld);
+		RaycastQuery query{};
+		query.origin = fromPos;
+		query.direction = Vector3::NormalizeSafe(diff, { 0.0f, 0.0f, 1.0f });
+		query.maxDistance = distance;
+		query.traceChannel = ETraceChannel::Visibility;
+
+		RaycastHit hit{};
+		const bool blocked = collisionManager->RaycastSingle(query, hit);
 		return !blocked;
 	}
 

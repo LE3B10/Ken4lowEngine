@@ -15,14 +15,12 @@
 #endif
 
 #include <algorithm>
-#include <array>
 #include <cmath>
-#include <limits>
+#include <vector>
 
 namespace
 {
 	constexpr const char* kAimTargetGroup = "AimTarget";
-	constexpr float kRayEpsilon = 0.0001f;
 
 	AimTargetDetector::ObjectType ToObjectTypeFromTypeId(uint32_t typeId)
 	{
@@ -71,21 +69,7 @@ void AimTargetDetector::Update(const K4E::Camera& camera, const CollisionManager
 	const K4E::Vector3 direction = K4E::Vector3::NormalizeSafe(camera.GetForward(), { 0.0f, 0.0f, 1.0f });
 	ResetResultForRay(origin, direction);
 
-	TestType(collisionManager, static_cast<uint32_t>(CollisionTypeIdDef::kEnemy), ObjectType::Enemy, origin, direction);
-	TestType(collisionManager, static_cast<uint32_t>(CollisionTypeIdDef::kCrystal), ObjectType::Crystal, origin, direction);
-	TestType(collisionManager, static_cast<uint32_t>(CollisionTypeIdDef::kBoss), ObjectType::Boss, origin, direction);
-	if (enableObstacleLineOfSightCheck_)
-	{
-		TestType(collisionManager, static_cast<uint32_t>(CollisionTypeIdDef::kWorld), ObjectType::Obstacle, origin, direction);
-	}
-
-	result_.isDamageableTarget = IsDamageable(result_.hitObjectType);
-	// 障害物が手前にある場合に対象扱いしない処理。最前Hitが障害物ならUI対象から外す。
-	result_.isBlockedByObstacle = result_.hit && result_.hitObjectType == ObjectType::Obstacle;
-	if (result_.isBlockedByObstacle)
-	{
-		result_.isDamageableTarget = false;
-	}
+	SelectTargetFromTrace(collisionManager, origin, direction);
 }
 
 void AimTargetDetector::DrawImGui()
@@ -105,6 +89,7 @@ void AimTargetDetector::DrawImGui()
 		ImGui::Text("Ray Direction: %.2f, %.2f, %.2f", debugRayDirection_.x, debugRayDirection_.y, debugRayDirection_.z);
 		ImGui::Text("Ray Length: %.2f", debugRayLength_);
 		ImGui::Text("Debug Draw Requested: %s", aimRayDebugDraw_ ? "true" : "false");
+		ImGui::Text("Target Detection Radius: %.2f (reserved for future SphereTrace)", targetDetectionRadius_);
 		ImGui::Text("Show HPBar Only When Aimed: %s", showHpBarOnlyWhenAimed_ ? "true" : "false");
 		ImGui::Text("Hold Time: %.2f", hpBarVisibleHoldTime_);
 	}
@@ -209,82 +194,36 @@ void AimTargetDetector::ResetResultForRay(const K4E::Vector3& origin, const K4E:
 	debugRayLength_ = aimRayLength_;
 }
 
-void AimTargetDetector::TestType(const CollisionManager& collisionManager, uint32_t typeId, ObjectType objectType, const K4E::Vector3& origin, const K4E::Vector3& direction)
+void AimTargetDetector::SelectTargetFromTrace(const CollisionManager& collisionManager, const K4E::Vector3& origin, const K4E::Vector3& direction)
 {
-	const auto& colliders = collisionManager.GetCollidersByType(typeId);
-	for (K4E::Collider* collider : colliders)
+	RaycastQuery query{};
+	query.origin = origin;
+	query.direction = direction;
+	query.maxDistance = aimRayLength_;
+	query.traceChannel = ETraceChannel::Weapon;
+
+	// Weapon Traceは敵/ボス/クリスタル/WorldStaticを距離順で返す。
+	// 最前HitがWorldStaticなら、壁越しのCrosshair/HPバー対象を作らない。
+	const std::vector<RaycastHit> hits = collisionManager.RaycastAll(query);
+	for (const RaycastHit& hit : hits)
 	{
-		if (!collider || !collider->IsQueryEnabled())
+		if (!hit.collider) continue;
+
+		const ObjectType objectType = ToObjectTypeFromTypeId(hit.typeId);
+		if (objectType == ObjectType::Obstacle && !enableObstacleLineOfSightCheck_)
 		{
 			continue;
 		}
 
-		float distance = 0.0f;
-		if (!IntersectAABB(origin, direction, *collider, distance))
-		{
-			continue;
-		}
-
-		if (distance < 0.0f || distance > aimRayLength_)
-		{
-			continue;
-		}
-
-		// RayHitを距離順に比較して最も近い対象を選ぶ処理。
-		if (!result_.hit || distance < result_.hitDistance)
-		{
-			result_.hit = true;
-			result_.hitDistance = distance;
-			result_.hitPosition = origin + direction * distance;
-			result_.hitObjectType = objectType;
-			result_.hitObjectPointer = collider;
-		}
+		result_.hit = true;
+		result_.hitDistance = hit.distance;
+		result_.hitPosition = hit.point;
+		result_.hitObjectType = objectType;
+		result_.hitObjectPointer = hit.collider;
+		result_.isBlockedByObstacle = objectType == ObjectType::Obstacle;
+		result_.isDamageableTarget = IsDamageable(objectType) && !result_.isBlockedByObstacle;
+		return;
 	}
-}
-
-bool AimTargetDetector::IntersectAABB(const K4E::Vector3& origin, const K4E::Vector3& direction, const K4E::Collider& collider, float& outDistance) const
-{
-	K4E::AABB aabb = collider.GetAABB();
-	if (targetDetectionRadius_ > 0.0f && IsDamageable(ToObjectTypeFromTypeId(collider.GetTypeID())))
-	{
-		aabb.min -= K4E::Vector3{ targetDetectionRadius_, targetDetectionRadius_, targetDetectionRadius_ };
-		aabb.max += K4E::Vector3{ targetDetectionRadius_, targetDetectionRadius_, targetDetectionRadius_ };
-	}
-
-	float tMin = 0.0f;
-	float tMax = aimRayLength_;
-	const std::array<float, 3> o{ origin.x, origin.y, origin.z };
-	const std::array<float, 3> d{ direction.x, direction.y, direction.z };
-	const std::array<float, 3> mn{ aabb.min.x, aabb.min.y, aabb.min.z };
-	const std::array<float, 3> mx{ aabb.max.x, aabb.max.y, aabb.max.z };
-
-	for (int axis = 0; axis < 3; ++axis)
-	{
-		if (std::abs(d[axis]) < kRayEpsilon)
-		{
-			if (o[axis] < mn[axis] || o[axis] > mx[axis])
-			{
-				return false;
-			}
-			continue;
-		}
-
-		float t1 = (mn[axis] - o[axis]) / d[axis];
-		float t2 = (mx[axis] - o[axis]) / d[axis];
-		if (t1 > t2)
-		{
-			std::swap(t1, t2);
-		}
-		tMin = std::max(tMin, t1);
-		tMax = std::min(tMax, t2);
-		if (tMin > tMax)
-		{
-			return false;
-		}
-	}
-
-	outDistance = tMin;
-	return true;
 }
 
 bool AimTargetDetector::IsDamageable(ObjectType type) const

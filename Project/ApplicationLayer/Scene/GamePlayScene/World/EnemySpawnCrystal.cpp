@@ -4,6 +4,7 @@
 #include "CharacterWorld.h"
 #include "EnemyBase.h"
 #include "Bullet.h"
+#include "CollisionTypes.h"
 #include "CollisionTypeIdDef.h"
 #include "AudioManager.h"
 
@@ -105,7 +106,16 @@ void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint, const st
 	ApplyInitialHpSettings(spawnPoint);
 	ApplySpawnerSettings(spawnPoint, floorAABBs, obstacleAABBs);
 
+	// Crystal専用Presetはまだ無いため、TypeID/ObjectChannel互換を保ったまま必要なResponseだけ明示する。
 	SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kCrystal));
+	SetCollisionPreset("Crystal");
+	SetObjectChannel(EObjectChannel::Crystal);
+	SetEnabled(true);
+	SetQueryEnabled(true);
+	SetPhysicsEnabled(true);
+	SetTrigger(false);
+	ResetCollisionResponses(static_cast<uint8_t>(ECollisionResponse::Ignore));
+	SetCollisionResponseId(static_cast<uint32_t>(EObjectChannel::PlayerProjectile), static_cast<uint8_t>(ECollisionResponse::Block));
 	SetOwner(this);
 
 	debugCube_ = std::make_unique<Object3D>();

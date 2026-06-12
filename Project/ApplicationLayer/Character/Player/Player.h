@@ -110,6 +110,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 敵弾、敵本体、アイテムなどCollider経由の接触通知を受け取る。
 	void OnCollision(K4E::Collider* other) override;
+	void OnCollisionEnter(const K4E::CollisionHit& hit) override;
+	void OnOverlapBegin(const K4E::CollisionHit& hit) override;
 
 	K4E::WorldTransformEx* GetWorldTransform() { return &body_.transform; }
 

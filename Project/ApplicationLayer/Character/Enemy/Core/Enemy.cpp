@@ -783,12 +783,18 @@ bool Enemy::HasLineOfSight(const K4E::Vector3& fromPos, const K4E::Vector3& toPo
 {
 	if (!collisionManager_ || !perception_.useLOS) return true;
 
-	Segment segment{};
-	segment.origin = fromPos;
-	segment.diff = toPos - fromPos;
+	const Vector3 diff = toPos - fromPos;
+	const float distance = Length(diff);
+	if (distance <= kEpsilon) return true;
 
-	Collider* hitWorld = nullptr;
-	const bool blocked = collisionManager_->SegmentCast(static_cast<uint32_t>(CollisionTypeIdDef::kWorld), segment, &hitWorld);
+	RaycastQuery query{};
+	query.origin = fromPos;
+	query.direction = NormalizeSafe(diff);
+	query.maxDistance = distance;
+	query.traceChannel = ETraceChannel::Visibility;
+
+	RaycastHit hit{};
+	const bool blocked = collisionManager_->RaycastSingle(query, hit);
 	return !blocked;
 }
 
