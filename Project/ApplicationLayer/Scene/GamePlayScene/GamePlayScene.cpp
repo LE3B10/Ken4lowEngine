@@ -1,14 +1,11 @@
 #define NOMINMAX
 #include "GamePlayScene.h"
 #include <Input.h>
-#include <SpriteManager.h>
 #include <SceneManager.h>
 #include <GameTimer.h>
-#include <PostEffectManager.h>
 #include <Player.h>
 #include <string_view>
 #include <utility>
-#include <Editor/EditorWindowManager.h>
 #include <Editor/EditorTransformAccess.h>
 #include <CameraManager.h>
 #include "StageRepository.h"
@@ -50,10 +47,12 @@ void GamePlayScene::Initialize()
 	introDirector_.reset();
 	debugTools_.reset();
 	frustumCullingDebug_.reset();
-	if (hpPostEffectController_)
+	uiController_.reset();
+	debugWindow_.reset();
+	if (effectController_)
 	{
-		hpPostEffectController_->Finalize();
-		hpPostEffectController_.reset();
+		effectController_->Finalize(world_.get());
+		effectController_.reset();
 	}
 
 	if (!fadeManager_)
@@ -61,6 +60,9 @@ void GamePlayScene::Initialize()
 		fadeManager_ = std::make_unique<FadeManager>();
 		fadeManager_->Initialize();
 	}
+
+	uiController_ = std::make_unique<GamePlayUIController>();
+	debugWindow_ = std::make_unique<GamePlayDebugWindow>();
 }
 
 /// -------------------------------------------------------------
@@ -107,7 +109,9 @@ void GamePlayScene::InitializeGameplayObjects()
 	frustumCullingDebug_ = std::make_unique<FrustumCullingDebugController>();
 	frustumCullingDebug_->Initialize();
 
-	InitializeHealthPostEffectController();
+	uiController_ = std::make_unique<GamePlayUIController>();
+	debugWindow_ = std::make_unique<GamePlayDebugWindow>();
+	InitializeEffectController();
 
 	if (!fadeManager_)
 	{
@@ -117,21 +121,10 @@ void GamePlayScene::InitializeGameplayObjects()
 }
 
 
-void GamePlayScene::InitializeHealthPostEffectController()
+void GamePlayScene::InitializeEffectController()
 {
-	hpPostEffectController_ = std::make_unique<PlayerHealthPostEffectController>();
-	hpPostEffectController_->Initialize(K4E::PostEffectManager::GetInstance());
-
-	if (auto* player = world_ ? world_->GetCharacters().GetPlayer() : nullptr)
-	{
-		player->SetOnDamageTakenCallback([this]()
-			{
-				if (hpPostEffectController_)
-				{
-					hpPostEffectController_->NotifyDamageTaken();
-				}
-			});
-	}
+	effectController_ = std::make_unique<GamePlayEffectController>();
+	effectController_->Initialize(world_.get());
 }
 
 /// -------------------------------------------------------------
@@ -433,9 +426,9 @@ void GamePlayScene::UpdateWorld(float deltaTime)
 		frustumCullingDebug_->Update(deltaTime);
 	}
 
-	if (hpPostEffectController_)
+	if (effectController_)
 	{
-		hpPostEffectController_->Update(deltaTime, world_ ? world_->GetCharacters().GetPlayer() : nullptr);
+		effectController_->Update(deltaTime, world_.get());
 	}
 }
 
@@ -520,25 +513,9 @@ void GamePlayScene::DrawShadowObjects()
 /// -------------------------------------------------------------
 void GamePlayScene::Draw2DSprites()
 {
-	K4E::SpriteManager::GetInstance()->SetRenderSetting_Background();
-	K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
-
-	const bool hideGameplayUI = ShouldHideGameplayUI();
-	if (world_)
+	if (uiController_)
 	{
-		// ReleaseのBackBuffer直接描画でもHUDManager/Reticle/Ammo/HPをここで描画する。
-		// ボス登場演出中にUI描画をOFFにする処理。
-		world_->DrawHUD(hideGameplayUI);
-	}
-
-	if (flow_ && !hideGameplayUI)
-	{
-		flow_->DrawUI();
-	}
-
-	if (fadeManager_)
-	{
-		fadeManager_->Draw2DSprites();
+		uiController_->Draw2DSprites(world_.get(), flow_.get(), fadeManager_.get(), ShouldHideGameplayUI());
 	}
 }
 
@@ -613,10 +590,13 @@ void GamePlayScene::ReleaseGameplayObjects()
 	}
 	frustumCullingDebug_.reset();
 
-	if (hpPostEffectController_)
+	debugWindow_.reset();
+	uiController_.reset();
+
+	if (effectController_)
 	{
-		hpPostEffectController_->Finalize();
-		hpPostEffectController_.reset();
+		effectController_->Finalize(world_.get());
+		effectController_.reset();
 	}
 
 	introDirector_.reset();
@@ -641,42 +621,10 @@ void GamePlayScene::ReleaseGameplayObjects()
 /// -------------------------------------------------------------
 void GamePlayScene::DrawImGui()
 {
-#ifdef USE_IMGUI
-	if (debugTools_)
+	if (debugWindow_)
 	{
-		debugTools_->DrawImGui(world_.get());
+		debugWindow_->DrawImGui(world_.get(), debugTools_.get(), frustumCullingDebug_.get(), effectController_.get());
 	}
-
-	auto& editorWindowState = K4E::EditorWindowManager::GetInstance()->GetWindowState();
-	if (editorWindowState.showCullingDebug)
-	{
-		ImGui::SetNextWindowSize(ImVec2(520.0f, 520.0f), ImGuiCond_FirstUseEver);
-		// Culling DebugはStageChunk/Occlusion/Frustumを1つのDocking対象ウィンドウへ集約する。
-		if (ImGui::Begin("Culling Debug", &editorWindowState.showCullingDebug))
-		{
-			if (debugTools_)
-			{
-				debugTools_->DrawCullingDebugContent(world_.get());
-			}
-			if (frustumCullingDebug_ && ImGui::CollapsingHeader("Frustum Culling Debug", ImGuiTreeNodeFlags_DefaultOpen))
-			{
-				frustumCullingDebug_->DrawImGuiContent();
-			}
-		}
-		ImGui::End();
-	}
-
-	if (hpPostEffectController_ && editorWindowState.showPlayerDebug)
-	{
-		// Player DebugへHP/Damage系ポストエフェクト調整を追加し、単独浮遊ウィンドウを出さない。
-		if (ImGui::Begin("Player Debug", &editorWindowState.showPlayerDebug))
-		{
-			ImGui::SeparatorText("HP / Damage");
-			hpPostEffectController_->DrawImGuiContent();
-		}
-		ImGui::End();
-	}
-#endif // USE_IMGUI
 }
 
 void GamePlayScene::StartLoad()
@@ -722,7 +670,9 @@ void GamePlayScene::UpdateLoad()
 		frustumCullingDebug_ = std::make_unique<FrustumCullingDebugController>();
 		frustumCullingDebug_->Initialize();
 
-		InitializeHealthPostEffectController();
+		uiController_ = std::make_unique<GamePlayUIController>();
+		debugWindow_ = std::make_unique<GamePlayDebugWindow>();
+		InitializeEffectController();
 		++loadStep_;
 		break;
 
@@ -762,10 +712,12 @@ void GamePlayScene::UpdateUnload()
 			debugTools_.reset();
 		}
 		frustumCullingDebug_.reset();
-		if (hpPostEffectController_)
+		debugWindow_.reset();
+		uiController_.reset();
+		if (effectController_)
 		{
-			hpPostEffectController_->Finalize();
-			hpPostEffectController_.reset();
+			effectController_->Finalize(world_.get());
+			effectController_.reset();
 		}
 		++unloadStep_;
 		break;
@@ -876,207 +828,207 @@ bool GamePlayScene::IsRetryFadeInFinished() const
 void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects)
 {
 	const auto setCommonInspectorHint = [](Ken4lowEngine::EditorObjectInfo& object, const char* hint)
-	{
-		object.inspectorHint = hint;
-		object.transformUnavailableReason = "Transform editing is not available for this GamePlayScene item.";
-	};
+		{
+			object.inspectorHint = hint;
+			object.transformUnavailableReason = "Transform editing is not available for this GamePlayScene item.";
+		};
 	const auto addManagerObject = [&outObjects, this, &setCommonInspectorHint](uint64_t id, const char* displayName, const char* typeName, Ken4lowEngine::EditorInspectorType inspectorType)
-	{
-		// Manager系はTransformを触らず、Detailsへ落ちない簡易情報だけを安定IDで公開する。
-		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "GamePlayScene" };
-		object.inspectorType = inspectorType;
-		setCommonInspectorHint(object, "GamePlayScene Manager Info");
-		object.drawInspector = [this, displayName]()
 		{
+			// Manager系はTransformを触らず、Detailsへ落ちない簡易情報だけを安定IDで公開する。
+			Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "GamePlayScene" };
+			object.inspectorType = inspectorType;
+			setCommonInspectorHint(object, "GamePlayScene Manager Info");
+			object.drawInspector = [this, displayName]()
+				{
 #ifdef USE_IMGUI
-			ImGui::TextUnformatted("GamePlayScene runtime summary");
-			ImGui::Separator();
-			if (std::string_view(displayName) == "Enemy Manager")
-			{
-				const int enemyCount = world_ ? world_->GetCharacters().GetEnemyCount() : -1;
-				if (enemyCount >= 0)
-				{
-					ImGui::Text("Active Enemy Count: %d", enemyCount);
-				}
-				else
-				{
-					ImGui::TextUnformatted("Active Enemy Count: N/A");
-				}
-				ImGui::TextUnformatted("Total Enemy Count: N/A");
-				ImGui::TextUnformatted("Use Enemy Debug window for detailed tuning.");
-			}
-			else if (std::string_view(displayName) == "Bullet Manager")
-			{
-				auto* bulletManager = world_ ? world_->GetBulletManager() : nullptr;
-				if (bulletManager)
-				{
-					ImGui::Text("Active Bullet Count: %zu", bulletManager->GetCount());
-				}
-				else
-				{
-					ImGui::TextUnformatted("Active Bullet Count: N/A");
-				}
-				ImGui::TextUnformatted("Player Bullet Count: N/A");
-				ImGui::TextUnformatted("Enemy Bullet Count: N/A");
-				ImGui::TextUnformatted("Use Weapon Debug / Bullet Debug for detailed tuning.");
-			}
-			else if (std::string_view(displayName) == "Wave Manager")
-			{
-				auto* waveManager = world_ ? world_->GetWaveManager() : nullptr;
-				if (waveManager)
-				{
-					ImGui::Text("Current Wave: %d / %d", waveManager->GetCurrentWaveNumber(), waveManager->GetTotalWaveCount());
-					const char* waveState = waveManager->IsAllWavesCleared() ? "All Cleared" : (waveManager->IsWaveInProgress() ? "In Progress" : (waveManager->IsWaitingNextWave() ? "Waiting Next Wave" : (waveManager->HasStarted() ? "Started" : "Not Started")));
-					ImGui::Text("Wave State: %s", waveState);
-					ImGui::Text("Remaining Enemies: %d", world_->GetCharacters().GetEnemyCount());
-					ImGui::Text("Is Wave Active: %s", waveManager->IsWaveInProgress() ? "true" : "false");
-				}
-				else
-				{
-					ImGui::TextUnformatted("Current Wave: N/A");
-					ImGui::TextUnformatted("Wave State: N/A");
-					ImGui::TextUnformatted("Remaining Enemies: N/A");
-					ImGui::TextUnformatted("Is Wave Active: N/A");
-				}
-			}
-			else if (std::string_view(displayName) == "HUD")
-			{
-				auto* hud = world_ ? world_->GetHUDManager() : nullptr;
-				ImGui::Text("Visible: %s", hud ? "Available" : "N/A");
-				ImGui::Text("HP UI: %s", (hud && hud->GetHPWidget()) ? (hud->GetHPWidget()->IsVisible() ? "Visible" : "Hidden") : "N/A");
-				ImGui::Text("Ammo UI: %s", (hud && hud->GetWeaponSlot()) ? "Available" : "N/A");
-				ImGui::Text("Reticle: %s", (hud && hud->GetCrosshair()) ? (hud->GetCrosshair()->IsVisible() ? "Visible" : "Hidden") : "N/A");
-				ImGui::Text("Damage Indicator: %s", hud ? "Managed by HUD" : "N/A");
-				ImGui::TextUnformatted("Use HUD Debug window for detailed tuning.");
-			}
-			else if (std::string_view(displayName) == "Collision Manager")
-			{
-				auto* collisionManager = world_ ? world_->GetCollisionManager() : nullptr;
-				if (collisionManager)
-				{
-					ImGui::Text("Collider Count: %zu", collisionManager->GetColliderCount());
-				}
-				else
-				{
-					ImGui::TextUnformatted("Collider Count: N/A");
-				}
-				ImGui::TextUnformatted("Collision Pair Count: N/A");
-				ImGui::TextUnformatted("Debug Draw Enabled: N/A");
-				ImGui::TextUnformatted("Use Collision Debug window for detailed tuning.");
-			}
-			else
-			{
-				ImGui::TextUnformatted("No editable Transform is available for this item.");
-				ImGui::TextUnformatted("Use a dedicated Debug window for detailed editing when available.");
-			}
+					ImGui::TextUnformatted("GamePlayScene runtime summary");
+					ImGui::Separator();
+					if (std::string_view(displayName) == "Enemy Manager")
+					{
+						const int enemyCount = world_ ? world_->GetCharacters().GetEnemyCount() : -1;
+						if (enemyCount >= 0)
+						{
+							ImGui::Text("Active Enemy Count: %d", enemyCount);
+						}
+						else
+						{
+							ImGui::TextUnformatted("Active Enemy Count: N/A");
+						}
+						ImGui::TextUnformatted("Total Enemy Count: N/A");
+						ImGui::TextUnformatted("Use Enemy Debug window for detailed tuning.");
+					}
+					else if (std::string_view(displayName) == "Bullet Manager")
+					{
+						auto* bulletManager = world_ ? world_->GetBulletManager() : nullptr;
+						if (bulletManager)
+						{
+							ImGui::Text("Active Bullet Count: %zu", bulletManager->GetCount());
+						}
+						else
+						{
+							ImGui::TextUnformatted("Active Bullet Count: N/A");
+						}
+						ImGui::TextUnformatted("Player Bullet Count: N/A");
+						ImGui::TextUnformatted("Enemy Bullet Count: N/A");
+						ImGui::TextUnformatted("Use Weapon Debug / Bullet Debug for detailed tuning.");
+					}
+					else if (std::string_view(displayName) == "Wave Manager")
+					{
+						auto* waveManager = world_ ? world_->GetWaveManager() : nullptr;
+						if (waveManager)
+						{
+							ImGui::Text("Current Wave: %d / %d", waveManager->GetCurrentWaveNumber(), waveManager->GetTotalWaveCount());
+							const char* waveState = waveManager->IsAllWavesCleared() ? "All Cleared" : (waveManager->IsWaveInProgress() ? "In Progress" : (waveManager->IsWaitingNextWave() ? "Waiting Next Wave" : (waveManager->HasStarted() ? "Started" : "Not Started")));
+							ImGui::Text("Wave State: %s", waveState);
+							ImGui::Text("Remaining Enemies: %d", world_->GetCharacters().GetEnemyCount());
+							ImGui::Text("Is Wave Active: %s", waveManager->IsWaveInProgress() ? "true" : "false");
+						}
+						else
+						{
+							ImGui::TextUnformatted("Current Wave: N/A");
+							ImGui::TextUnformatted("Wave State: N/A");
+							ImGui::TextUnformatted("Remaining Enemies: N/A");
+							ImGui::TextUnformatted("Is Wave Active: N/A");
+						}
+					}
+					else if (std::string_view(displayName) == "HUD")
+					{
+						auto* hud = world_ ? world_->GetHUDManager() : nullptr;
+						ImGui::Text("Visible: %s", hud ? "Available" : "N/A");
+						ImGui::Text("HP UI: %s", (hud && hud->GetHPWidget()) ? (hud->GetHPWidget()->IsVisible() ? "Visible" : "Hidden") : "N/A");
+						ImGui::Text("Ammo UI: %s", (hud && hud->GetWeaponSlot()) ? "Available" : "N/A");
+						ImGui::Text("Reticle: %s", (hud && hud->GetCrosshair()) ? (hud->GetCrosshair()->IsVisible() ? "Visible" : "Hidden") : "N/A");
+						ImGui::Text("Damage Indicator: %s", hud ? "Managed by HUD" : "N/A");
+						ImGui::TextUnformatted("Use HUD Debug window for detailed tuning.");
+					}
+					else if (std::string_view(displayName) == "Collision Manager")
+					{
+						auto* collisionManager = world_ ? world_->GetCollisionManager() : nullptr;
+						if (collisionManager)
+						{
+							ImGui::Text("Collider Count: %zu", collisionManager->GetColliderCount());
+						}
+						else
+						{
+							ImGui::TextUnformatted("Collider Count: N/A");
+						}
+						ImGui::TextUnformatted("Collision Pair Count: N/A");
+						ImGui::TextUnformatted("Debug Draw Enabled: N/A");
+						ImGui::TextUnformatted("Use Collision Debug window for detailed tuning.");
+					}
+					else
+					{
+						ImGui::TextUnformatted("No editable Transform is available for this item.");
+						ImGui::TextUnformatted("Use a dedicated Debug window for detailed editing when available.");
+					}
 #endif
+				};
+			outObjects.push_back(std::move(object));
 		};
-		outObjects.push_back(std::move(object));
-	};
 	const auto addCameraObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
-	{
-		// GamePlaySceneのMain CameraはCameraManagerから毎フレーム取り直して安全に編集する。
-		outObjects.push_back(Ken4lowEngine::MakeCameraEditorObject(id, displayName, typeName, "GamePlayScene", K4E::CameraManager::GetInstance()->GetMainCamera()));
-	};
+		{
+			// GamePlaySceneのMain CameraはCameraManagerから毎フレーム取り直して安全に編集する。
+			outObjects.push_back(Ken4lowEngine::MakeCameraEditorObject(id, displayName, typeName, "GamePlayScene", K4E::CameraManager::GetInstance()->GetMainCamera()));
+		};
 	const auto addLightObject = [&outObjects](uint64_t id, const char* displayName, const char* typeName)
-	{
-		// LightManagerの先頭ライトを安全なindex指定でDetails編集へ公開する。
-		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "GamePlayScene" };
-		object.inspectorType = Ken4lowEngine::EditorInspectorType::PunctualLights;
-		outObjects.push_back(std::move(object));
-	};
+		{
+			// LightManagerの先頭ライトを安全なindex指定でDetails編集へ公開する。
+			Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "GamePlayScene" };
+			object.inspectorType = Ken4lowEngine::EditorInspectorType::PunctualLights;
+			outObjects.push_back(std::move(object));
+		};
 	const auto addPlayerObject = [&outObjects, this, &setCommonInspectorHint](uint64_t id, const char* displayName, const char* typeName)
-	{
-		// Playerは編集より状態確認を優先し、古い選択で落ちない読み取り専用Inspectorにする。
-		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "GamePlayScene" };
-		object.inspectorType = Ken4lowEngine::EditorInspectorType::PlayerInfo;
-		setCommonInspectorHint(object, "GamePlayScene Player Inspector");
-		object.drawInspector = [this]()
 		{
+			// Playerは編集より状態確認を優先し、古い選択で落ちない読み取り専用Inspectorにする。
+			Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "GamePlayScene" };
+			object.inspectorType = Ken4lowEngine::EditorInspectorType::PlayerInfo;
+			setCommonInspectorHint(object, "GamePlayScene Player Inspector");
+			object.drawInspector = [this]()
+				{
 #ifdef USE_IMGUI
-			Player* player = world_ ? world_->GetCharacters().GetPlayer() : nullptr;
-			ImGui::TextUnformatted("Player Inspector");
-			ImGui::Separator();
-			if (!player)
-			{
-				ImGui::TextUnformatted("HP: N/A");
-				ImGui::TextUnformatted("Position: N/A");
-				ImGui::TextUnformatted("Rotation: N/A");
-				ImGui::TextUnformatted("Scale: N/A");
-				ImGui::TextUnformatted("Alive/Dead: N/A");
-				ImGui::Text("Input Enabled: %s", input_ ? (input_->IsGameInputEnabled() ? "Enabled" : "Disabled") : "N/A");
-				ImGui::TextUnformatted("Player transform editing is not implemented yet.");
-				return;
-			}
-			ImGui::Text("HP: %.1f / %.1f", player->GetHP(), player->GetMaxHP());
-			auto* bodyTransform = player->GetWorldTransform();
-			if (bodyTransform)
-			{
-				ImGui::Text("Position: %.2f, %.2f, %.2f", bodyTransform->translate_.x, bodyTransform->translate_.y, bodyTransform->translate_.z);
-				ImGui::Text("Rotation: %.2f, %.2f, %.2f", bodyTransform->rotate_.x, bodyTransform->rotate_.y, bodyTransform->rotate_.z);
-				ImGui::Text("Scale: %.2f, %.2f, %.2f", bodyTransform->scale_.x, bodyTransform->scale_.y, bodyTransform->scale_.z);
-			}
-			else
-			{
-				ImGui::TextUnformatted("Position: N/A");
-				ImGui::TextUnformatted("Rotation: N/A");
-				ImGui::TextUnformatted("Scale: N/A");
-			}
-			ImGui::Text("Alive/Dead: %s", (player->GetHP() <= 0.0f || player->IsDeathActive()) ? "Dead" : "Alive");
-			ImGui::Text("Input Enabled: %s", input_ ? (input_->IsGameInputEnabled() ? "Enabled" : "Disabled") : "N/A");
-			ImGui::TextUnformatted("Player transform editing is not implemented yet.");
+					Player* player = world_ ? world_->GetCharacters().GetPlayer() : nullptr;
+					ImGui::TextUnformatted("Player Inspector");
+					ImGui::Separator();
+					if (!player)
+					{
+						ImGui::TextUnformatted("HP: N/A");
+						ImGui::TextUnformatted("Position: N/A");
+						ImGui::TextUnformatted("Rotation: N/A");
+						ImGui::TextUnformatted("Scale: N/A");
+						ImGui::TextUnformatted("Alive/Dead: N/A");
+						ImGui::Text("Input Enabled: %s", input_ ? (input_->IsGameInputEnabled() ? "Enabled" : "Disabled") : "N/A");
+						ImGui::TextUnformatted("Player transform editing is not implemented yet.");
+						return;
+					}
+					ImGui::Text("HP: %.1f / %.1f", player->GetHP(), player->GetMaxHP());
+					auto* bodyTransform = player->GetWorldTransform();
+					if (bodyTransform)
+					{
+						ImGui::Text("Position: %.2f, %.2f, %.2f", bodyTransform->translate_.x, bodyTransform->translate_.y, bodyTransform->translate_.z);
+						ImGui::Text("Rotation: %.2f, %.2f, %.2f", bodyTransform->rotate_.x, bodyTransform->rotate_.y, bodyTransform->rotate_.z);
+						ImGui::Text("Scale: %.2f, %.2f, %.2f", bodyTransform->scale_.x, bodyTransform->scale_.y, bodyTransform->scale_.z);
+					}
+					else
+					{
+						ImGui::TextUnformatted("Position: N/A");
+						ImGui::TextUnformatted("Rotation: N/A");
+						ImGui::TextUnformatted("Scale: N/A");
+					}
+					ImGui::Text("Alive/Dead: %s", (player->GetHP() <= 0.0f || player->IsDeathActive()) ? "Dead" : "Alive");
+					ImGui::Text("Input Enabled: %s", input_ ? (input_->IsGameInputEnabled() ? "Enabled" : "Disabled") : "N/A");
+					ImGui::TextUnformatted("Player transform editing is not implemented yet.");
 #endif
+				};
+			outObjects.push_back(std::move(object));
 		};
-		outObjects.push_back(std::move(object));
-	};
 	const auto addStageObject = [&outObjects, this, &setCommonInspectorHint](uint64_t id, const char* displayName, const char* typeName)
-	{
-		// StageはリポジトリとLevelDataから安全に取れる概要だけをDetailsへ表示する。
-		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "GamePlayScene" };
-		object.inspectorType = Ken4lowEngine::EditorInspectorType::StageInfo;
-		setCommonInspectorHint(object, "GamePlayScene Stage Inspector");
-		object.drawInspector = [this]()
 		{
+			// StageはリポジトリとLevelDataから安全に取れる概要だけをDetailsへ表示する。
+			Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "GamePlayScene" };
+			object.inspectorType = Ken4lowEngine::EditorInspectorType::StageInfo;
+			setCommonInspectorHint(object, "GamePlayScene Stage Inspector");
+			object.drawInspector = [this]()
+				{
 #ifdef USE_IMGUI
-			auto* stage = world_ ? world_->GetStage() : nullptr;
-			const int stageIndex = stageContext_ ? stageContext_->GetCurrentStageIndex() : -1;
-			const auto& stages = StageRepository::GetInstance().GetStages();
-			const StageInfo* stageInfo = (stageIndex >= 0 && static_cast<size_t>(stageIndex) < stages.size()) ? &stages[stageIndex] : nullptr;
-			ImGui::TextUnformatted("Stage Inspector");
-			ImGui::Separator();
-			if (stageInfo)
-			{
-				ImGui::Text("Stage ID: %u", stageInfo->id);
-				ImGui::Text("Stage Name: %s", stageInfo->name.c_str());
-				ImGui::Text("Stage Type: %s", stageInfo->category.c_str());
-			}
-			else
-			{
-				ImGui::TextUnformatted("Stage ID: N/A");
-				ImGui::TextUnformatted("Stage Name: N/A");
-				ImGui::TextUnformatted("Stage Type: N/A");
-			}
-			const auto* levelData = stage ? stage->GetLevelData() : nullptr;
-			if (levelData)
-			{
-				ImGui::Text("Object Count: %zu", levelData->objects.size());
-			}
-			else
-			{
-				ImGui::TextUnformatted("Object Count: N/A");
-			}
-			if (stage)
-			{
-				ImGui::Text("Collision Count: %zu", stage->GetWorldColliders().size());
-			}
-			else
-			{
-				ImGui::TextUnformatted("Collision Count: N/A");
-			}
+					auto* stage = world_ ? world_->GetStage() : nullptr;
+					const int stageIndex = stageContext_ ? stageContext_->GetCurrentStageIndex() : -1;
+					const auto& stages = StageRepository::GetInstance().GetStages();
+					const StageInfo* stageInfo = (stageIndex >= 0 && static_cast<size_t>(stageIndex) < stages.size()) ? &stages[stageIndex] : nullptr;
+					ImGui::TextUnformatted("Stage Inspector");
+					ImGui::Separator();
+					if (stageInfo)
+					{
+						ImGui::Text("Stage ID: %u", stageInfo->id);
+						ImGui::Text("Stage Name: %s", stageInfo->name.c_str());
+						ImGui::Text("Stage Type: %s", stageInfo->category.c_str());
+					}
+					else
+					{
+						ImGui::TextUnformatted("Stage ID: N/A");
+						ImGui::TextUnformatted("Stage Name: N/A");
+						ImGui::TextUnformatted("Stage Type: N/A");
+					}
+					const auto* levelData = stage ? stage->GetLevelData() : nullptr;
+					if (levelData)
+					{
+						ImGui::Text("Object Count: %zu", levelData->objects.size());
+					}
+					else
+					{
+						ImGui::TextUnformatted("Object Count: N/A");
+					}
+					if (stage)
+					{
+						ImGui::Text("Collision Count: %zu", stage->GetWorldColliders().size());
+					}
+					else
+					{
+						ImGui::TextUnformatted("Collision Count: N/A");
+					}
 #endif
+				};
+			outObjects.push_back(std::move(object));
 		};
-		outObjects.push_back(std::move(object));
-	};
 
 	// OutlinerはPlay/Edit中の生成状態に依存しすぎないよう、主要サブシステムを安定IDで列挙する。
 	addManagerObject(Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.Root"), "GamePlay Root", "Scene Root", Ken4lowEngine::EditorInspectorType::ManagerInfo);
@@ -1093,12 +1045,12 @@ void GamePlayScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObject
 		Ken4lowEngine::EditorObjectInfo fadeObject{ Ken4lowEngine::MakeStableEditorObjectId("GamePlayScene.FadeManager"), "FadeManager", "Fade Manager", "GamePlayScene" };
 		fadeObject.inspectorType = Ken4lowEngine::EditorInspectorType::FadeManager;
 		fadeObject.drawInspector = [this]()
-		{
-			if (fadeManager_)
 			{
-				fadeManager_->DrawInspectorContent();
-			}
-		};
+				if (fadeManager_)
+				{
+					fadeManager_->DrawInspectorContent();
+				}
+			};
 		outObjects.push_back(std::move(fadeObject));
 	}
 }

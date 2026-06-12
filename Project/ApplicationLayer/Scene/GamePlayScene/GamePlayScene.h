@@ -6,9 +6,11 @@
 #include "GamePlayWorld.h"
 #include "GamePlayIntroDirector.h"
 #include "GamePlayDebugTools.h"
+#include "UI/GamePlayUIController.h"
+#include "Effects/GamePlayEffectController.h"
+#include "DebugTools/GamePlayDebugWindow.h"
 #include "FadeManager.h"
-#include "ApplicationLayer/DebugTools/FrustumCulling/FrustumCullingDebugController.h"
-#include "PostEffect/PlayerHealthPostEffectController.h"
+#include "FrustumCullingDebugController.h"
 
 #include <memory>
 
@@ -71,7 +73,7 @@ public: /// ---------- BaseScene override ---------- ///
 
 	// SceneManagerの遷移中に、重い解放処理を複数フレームへ分ける準備。
 	void StartUnload() override;
-	
+
 	// 入力復帰、Debug解放、World解放、Fade解放を順番に行い、解放完了フラグを立てる。
 	void UpdateUnload() override;
 
@@ -95,8 +97,8 @@ private: /// ---------- 初期化 / 終了系 ---------- ///
 	// カーソル状態を通常に戻す
 	void RestoreCursorState();
 
-	// HP連動ポストエフェクトを初期化して被弾通知を接続する
-	void InitializeHealthPostEffectController();
+	// 演出Controllerを初期化してPlayer被弾通知などを接続する
+	void InitializeEffectController();
 
 	// 生成済みオブジェクトの破棄
 	void ReleaseGameplayObjects();
@@ -168,7 +170,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<GamePlayDebugTools> debugTools_;
 	std::unique_ptr<FrustumCullingDebugController> frustumCullingDebug_;
 	std::unique_ptr<FadeManager> fadeManager_;
-	std::unique_ptr<PlayerHealthPostEffectController> hpPostEffectController_;
+	std::unique_ptr<GamePlayUIController> uiController_;
+	std::unique_ptr<GamePlayEffectController> effectController_;
+	std::unique_ptr<GamePlayDebugWindow> debugWindow_;
 
 	// リトライ遷移制御
 	bool isRetryTransitionActive_ = false; // リトライ演出中か
