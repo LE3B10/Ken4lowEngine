@@ -34,8 +34,12 @@ enum class ECollisionPresetId : uint8_t
 	WorldDynamic,
 	Player,
 	Enemy,
+	Boss,
 	Item,
-	Projectile,
+	PlayerProjectile,
+	EnemyProjectile,
+	BossProjectile,
+	Projectile, // 互換用: PlayerProjectileと同じ内容を返す。
 	Trigger,
 };
 
@@ -96,19 +100,46 @@ inline CollisionPreset GetCollisionPreset(ECollisionPresetId presetId)
 		SetPresetResponse(preset, EObjectChannel::WorldStatic, ECollisionResponse::Block);
 		return preset;
 	}
+	case ECollisionPresetId::Boss:
+	{
+		CollisionPreset preset = MakeCollisionPreset("Boss", EObjectChannel::Boss, true, true);
+		SetPresetResponse(preset, EObjectChannel::Player, ECollisionResponse::Overlap);
+		SetPresetResponse(preset, EObjectChannel::PlayerProjectile, ECollisionResponse::Block);
+		SetPresetResponse(preset, EObjectChannel::WorldStatic, ECollisionResponse::Block);
+		return preset;
+	}
 	case ECollisionPresetId::Item:
 	{
 		CollisionPreset preset = MakeCollisionPreset("Item", EObjectChannel::Item, true, false);
 		SetPresetResponse(preset, EObjectChannel::Player, ECollisionResponse::Overlap);
 		return preset;
 	}
+	case ECollisionPresetId::PlayerProjectile:
 	case ECollisionPresetId::Projectile:
 	{
-		// Projectileは現行のPlayerProjectile寄りに定義し、敵弾/ボス弾は後続Phaseで個別化する。
-		CollisionPreset preset = MakeCollisionPreset("Projectile", EObjectChannel::PlayerProjectile, true, false);
+		// Projectileは互換名として残し、実体はPlayerProjectileとして扱う。
+		CollisionPreset preset = MakeCollisionPreset(
+			presetId == ECollisionPresetId::Projectile ? "Projectile" : "PlayerProjectile",
+			EObjectChannel::PlayerProjectile,
+			true,
+			false);
 		SetPresetResponse(preset, EObjectChannel::Enemy, ECollisionResponse::Block);
 		SetPresetResponse(preset, EObjectChannel::Boss, ECollisionResponse::Block);
 		SetPresetResponse(preset, EObjectChannel::Crystal, ECollisionResponse::Block);
+		SetPresetResponse(preset, EObjectChannel::WorldStatic, ECollisionResponse::Block);
+		return preset;
+	}
+	case ECollisionPresetId::EnemyProjectile:
+	{
+		CollisionPreset preset = MakeCollisionPreset("EnemyProjectile", EObjectChannel::EnemyProjectile, true, false);
+		SetPresetResponse(preset, EObjectChannel::Player, ECollisionResponse::Block);
+		SetPresetResponse(preset, EObjectChannel::WorldStatic, ECollisionResponse::Block);
+		return preset;
+	}
+	case ECollisionPresetId::BossProjectile:
+	{
+		CollisionPreset preset = MakeCollisionPreset("BossProjectile", EObjectChannel::BossProjectile, true, false);
+		SetPresetResponse(preset, EObjectChannel::Player, ECollisionResponse::Block);
 		SetPresetResponse(preset, EObjectChannel::WorldStatic, ECollisionResponse::Block);
 		return preset;
 	}
@@ -132,7 +163,11 @@ inline std::vector<CollisionPreset> GetDefaultCollisionPresets()
 		GetCollisionPreset(ECollisionPresetId::WorldDynamic),
 		GetCollisionPreset(ECollisionPresetId::Player),
 		GetCollisionPreset(ECollisionPresetId::Enemy),
+		GetCollisionPreset(ECollisionPresetId::Boss),
 		GetCollisionPreset(ECollisionPresetId::Item),
+		GetCollisionPreset(ECollisionPresetId::PlayerProjectile),
+		GetCollisionPreset(ECollisionPresetId::EnemyProjectile),
+		GetCollisionPreset(ECollisionPresetId::BossProjectile),
 		GetCollisionPreset(ECollisionPresetId::Projectile),
 		GetCollisionPreset(ECollisionPresetId::Trigger),
 	};
@@ -140,13 +175,23 @@ inline std::vector<CollisionPreset> GetDefaultCollisionPresets()
 
 inline void ApplyCollisionPreset(K4E::Collider& collider, const CollisionPreset& preset)
 {
-	// 現段階ではTypeIDとPreset名だけを反映し、Query/Physics/Responseは既存挙動維持のため自動変更しない。
+	// TypeIDは既存CollisionTypeIdDef互換のまま、ObjectChannelとしても同じ値を保持する。
 	collider.SetTypeID(ToCollisionTypeId(preset.objectChannel));
-	collider.SetCollisionPresetName(preset.name); // Preset名は挙動に使わず、段階移行時の確認情報として保持する。
+	collider.SetObjectChannelId(ToCollisionTypeId(preset.objectChannel));
+	collider.SetCollisionPresetName(preset.name);
+	collider.SetQueryEnabled(preset.queryEnabled);
+	collider.SetPhysicsEnabled(preset.physicsEnabled);
+
+	// Presetが持つObjectChannelごとのResponseをColliderへ写し、個別判定へ反映できる状態にする。
+	collider.ResetCollisionResponses(static_cast<uint8_t>(ECollisionResponse::Ignore));
+	for (uint32_t channelIndex = 0; channelIndex < CollisionPreset::kMaxObjectChannels; ++channelIndex)
+	{
+		collider.SetCollisionResponseId(channelIndex, static_cast<uint8_t>(preset.responses[channelIndex]));
+	}
 }
 
 inline void ApplyCollisionPreset(K4E::Collider& collider, ECollisionPresetId presetId)
 {
-	// JsonやImGuiからPreset名を選ぶ段階では、この入口に名前解決を足す。
+	// コード既定Presetを直接適用する軽量入口。Json名解決はCollisionPresetLibrary側で行う。
 	ApplyCollisionPreset(collider, GetCollisionPreset(presetId));
 }

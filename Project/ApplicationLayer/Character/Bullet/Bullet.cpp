@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "Bullet.h"
+#include "CollisionPreset.h"
 #include "CollisionTypeIdDef.h"
 #include "CollisionManager.h"
 #include "EnemyBase.h"
@@ -33,6 +34,20 @@ namespace
 		const float len = Length(v);
 		if (len <= 1.0e-5f) return fallback;
 		return v * (1.0f / len);
+	}
+
+	ECollisionPresetId GetProjectilePresetId(uint32_t typeId)
+	{
+		// 既存のCollisionTypeIdDefを入口にして、弾の所属ObjectChannelを安全に選ぶ。
+		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet))
+		{
+			return ECollisionPresetId::EnemyProjectile;
+		}
+		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kBossBullet))
+		{
+			return ECollisionPresetId::BossProjectile;
+		}
+		return ECollisionPresetId::PlayerProjectile;
 	}
 
 	float Dot(const K4E::Vector3& a, const K4E::Vector3& b)
@@ -179,7 +194,7 @@ void Bullet::Initialize(const K4E::Vector3& startPos,
 	shooterPosition_ = shooterPosition;
 	shooterColliderId_ = shooterColliderId;
 
-	Collider::SetTypeID(typeId);
+	ApplyCollisionPreset(*this, GetProjectilePresetId(typeId));
 	Collider::SetOwner(this);
 
 	// デバッグ表示したいなら

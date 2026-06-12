@@ -143,11 +143,20 @@ private: /// ---------- メンバ関数 ---------- ///
 	// ResponseMatrixから、このTypeIDペアの現在の衝突反応を取得する。
 	ECollisionResponse GetCollisionResponseForPair(uint32_t selfTypeId, uint32_t otherTypeId) const;
 
+	// Collider個別Responseがあればそれを使い、未設定なら既存ResponseMatrixへフォールバックする。
+	ECollisionResponse GetCollisionResponseForCollider(K4E::Collider* self, K4E::Collider* other) const;
+
+	// 双方向Responseを合成し、Ignore/Overlap/Blockの最終挙動を決める。
+	ECollisionResponse ResolveCollisionResponseForPair(K4E::Collider* colliderA, K4E::Collider* colliderB) const;
+
 	// Ignoreだけを既存の「判定しない」ペアとして扱う入口にする。
 	bool ShouldSkipCollisionPair(ECollisionResponse response) const;
 
 	// ResponseMatrixのIgnore判定入口。現段階では既存ペア列挙の安全なスキップ確認にだけ使う。
 	bool IsCollisionIgnored(uint32_t selfTypeId, uint32_t otherTypeId) const;
+
+	// Collider個別Responseも含めたIgnore判定入口。
+	bool IsCollisionIgnored(K4E::Collider* colliderA, K4E::Collider* colliderB) const;
 
 	// 登録済みの形状判定関数で、このColliderペアが実際に交差しているかだけを調べる。
 	bool TestCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB) const;

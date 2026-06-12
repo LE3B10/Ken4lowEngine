@@ -6,6 +6,7 @@
 #include "Camera.h"
 #include "InputSnapshot.h"
 #include "CollisionManager.h"
+#include "CollisionPreset.h"
 #include "HUDManager.h"
 #include "GpuParticleManager.h"
 #include <ParameterManager.h>
@@ -105,7 +106,7 @@ void Player::Initialize()
 
 	BaseCharacter::ApplySkinToAllParts(skinTexturePath_);
 
-	K4E::Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
+	ApplyCollisionPreset(*this, ECollisionPresetId::Player);
 	K4E::Collider::SetOwner<Player>(this);
 
 	hurtbox_.Initialize(*this, refs_.collisionManager);

@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -97,17 +98,37 @@ namespace Ken4lowEngine
 	/// CollisionFilterData はTypeIDやPreset適用情報を将来CollisionComponentへ移すための中間置き場。
 	struct CollisionFilterData
 	{
+		static constexpr uint32_t kMaxCollisionChannels = 32u;
+		static constexpr uint8_t kDefaultResponseId = 0u; // Application側のECollisionResponse::Ignoreと同じ値。
+
 		uint32_t typeID = 0u;
 		uint32_t objectChannelId = 0u;
 		bool queryEnabled = true;
 		bool physicsEnabled = true;
+		bool hasResponseOverrides = false;
 		std::string presetName{};
+		std::array<uint8_t, kMaxCollisionChannels> responseIds{};
 
 		// 既存TypeIDとObjectChannel相当IDを同期し、段階移行中の判定互換性を保つ。
 		void SetTypeId(uint32_t newTypeId)
 		{
 			typeID = newTypeId;
 			objectChannelId = newTypeId;
+		}
+
+		// Preset未適用ColliderはResponseMatrixへフォールバックするため、個別Responseを無効として初期化する。
+		void ResetResponses(uint8_t responseId = kDefaultResponseId)
+		{
+			responseIds.fill(responseId);
+			hasResponseOverrides = false;
+		}
+
+		// Preset適用時だけ個別Responseを有効にし、Collider単位のObjectChannel判定に使えるようにする。
+		void SetResponse(uint32_t otherObjectChannelId, uint8_t responseId)
+		{
+			if (otherObjectChannelId >= kMaxCollisionChannels) return;
+			responseIds[otherObjectChannelId] = responseId;
+			hasResponseOverrides = true;
 		}
 	};
 
@@ -258,15 +279,45 @@ namespace Ken4lowEngine
 		// ObjectChannel相当のIDを取得（現段階では既存TypeIDと同値）
 		uint32_t GetObjectChannelId() const { return filterData_.objectChannelId; }
 
+		// ObjectChannel相当のIDを設定。TypeID互換を維持したい通常経路ではSetTypeIDを使う。
+		void SetObjectChannelId(uint32_t objectChannelId) { filterData_.objectChannelId = objectChannelId; }
+
 		// Preset適用名を記録（既存判定には使わず移行確認用）
 		void SetCollisionPresetName(std::string_view presetName) { filterData_.presetName = std::string(presetName); }
 		std::string_view GetCollisionPresetName() const { return filterData_.presetName; }
 
-		// Query有効状態をDebug表示から確認するための読み取り入口。
+		// Query有効状態をPresetから適用し、Debug表示と問い合わせ判定の段階移行に使う。
+		void SetQueryEnabled(bool enabled) { filterData_.queryEnabled = enabled; }
 		bool IsQueryEnabled() const { return filterData_.queryEnabled; }
 
-		// Physics有効状態をDebug表示から確認するための読み取り入口。
+		// Physics有効状態をPresetから適用し、将来のBlock押し戻し対象判定に使う。
+		void SetPhysicsEnabled(bool enabled) { filterData_.physicsEnabled = enabled; }
 		bool IsPhysicsEnabled() const { return filterData_.physicsEnabled; }
+
+		// Collider個別のResponseを初期化する。Preset未適用状態へ戻す場合にも使える。
+		void ResetCollisionResponses(uint8_t defaultResponseId = CollisionFilterData::kDefaultResponseId)
+		{
+			filterData_.ResetResponses(defaultResponseId);
+		}
+
+		// ObjectChannel相当IDに対するResponseを保持する。値はApplication側ECollisionResponseの数値と合わせる。
+		void SetCollisionResponseId(uint32_t otherObjectChannelId, uint8_t responseId)
+		{
+			filterData_.SetResponse(otherObjectChannelId, responseId);
+		}
+
+		// Collider個別Responseを持つかを返す。falseならCollisionManagerの既存Matrixへフォールバックする。
+		bool HasCollisionResponseOverrides() const { return filterData_.hasResponseOverrides; }
+
+		// ObjectChannel相当IDに対するResponse値を返す。範囲外はIgnore相当として扱う。
+		uint8_t GetCollisionResponseId(uint32_t otherObjectChannelId) const
+		{
+			if (otherObjectChannelId >= CollisionFilterData::kMaxCollisionChannels)
+			{
+				return CollisionFilterData::kDefaultResponseId;
+			}
+			return filterData_.responseIds[otherObjectChannelId];
+		}
 
 		// シリアルナンバーを取得
 		uint32_t GetUniqueID() const { return serialNumber_; }

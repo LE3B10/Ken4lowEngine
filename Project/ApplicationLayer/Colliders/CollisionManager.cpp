@@ -338,13 +338,15 @@ void CollisionManager::DrawImGui()
 			{
 				// Colliderの基本状態を読み取り専用で表示し、判定設定の調査に使う。
 				const std::string_view presetName = collider->GetCollisionPresetName();
+				const uint32_t objectChannelId = collider->GetObjectChannelId();
+				const EObjectChannel colliderObjectChannel = ToObjectChannel(objectChannelId);
 				const K4E::Vector3 center = collider->GetCenterPosition();
 				const K4E::Vector3 halfSize = collider->GetOBBHalfSize();
 				ImGui::Text("Owner: %p (name unavailable)", collider->GetOwner<void>());
 				ImGui::Text("Registered: true");
 				ImGui::Text("Enabled: not separated yet");
 				ImGui::Text("ShapeType: %s", ToString(collider->GetShapeType()));
-				ImGui::Text("TypeID/ObjectChannel: %u / %s", typeId, ToString(objectChannel));
+				ImGui::Text("TypeID/ObjectChannel: %u / %s(%u)", typeId, ToString(colliderObjectChannel), objectChannelId);
 				if (presetName.empty())
 				{
 					ImGui::Text("CollisionPreset: (manual/unset)");
@@ -354,6 +356,7 @@ void CollisionManager::DrawImGui()
 					ImGui::Text("CollisionPreset: %.*s", static_cast<int>(presetName.size()), presetName.data());
 				}
 				ImGui::Text("Query/Physics: %s / %s", collider->IsQueryEnabled() ? "true" : "false", collider->IsPhysicsEnabled() ? "true" : "false");
+				ImGui::Text("Response Source: %s", collider->HasCollisionResponseOverrides() ? "Collider Preset" : "Legacy Matrix fallback");
 				ImGui::Text("Trigger: not separated yet");
 				ImGui::Text("DebugDraw: %s", isCollider_ ? "true" : "false");
 				ImGui::Text("Center: %.2f, %.2f, %.2f", center.x, center.y, center.z);
@@ -366,7 +369,9 @@ void CollisionManager::DrawImGui()
 				{
 					for (EObjectChannel otherChannel : DebugObjectChannels())
 					{
-						const ECollisionResponse response = responseMatrix_.GetResponse(objectChannel, otherChannel);
+						const ECollisionResponse response = collider->HasCollisionResponseOverrides()
+							? static_cast<ECollisionResponse>(collider->GetCollisionResponseId(ToCollisionTypeId(otherChannel)))
+							: responseMatrix_.GetResponse(colliderObjectChannel, otherChannel);
 						ImGui::Text("%s: %s", ToString(otherChannel), ToString(response));
 					}
 					ImGui::TreePop();
@@ -487,7 +492,13 @@ void CollisionManager::CheckAllCollisions()
 				for (K4E::Collider* b : B)
 				{
 					if (!b) continue;
-					ProcessCollisionPairByResponse(a, b, response);
+					const ECollisionResponse pairResponse = ResolveCollisionResponseForPair(a, b);
+					if (ShouldSkipCollisionPair(pairResponse))
+					{
+						++ignoredPairLoopCount_;
+						continue;
+					}
+					ProcessCollisionPairByResponse(a, b, pairResponse);
 				}
 			}
 		};
@@ -706,16 +717,59 @@ ECollisionResponse CollisionManager::GetCollisionResponseForPair(uint32_t selfTy
 	return responseMatrix_.GetResponse(selfTypeId, otherTypeId);
 }
 
+ECollisionResponse CollisionManager::GetCollisionResponseForCollider(K4E::Collider* self, K4E::Collider* other) const
+{
+	if (!self || !other) return ECollisionResponse::Ignore;
+
+	const uint32_t selfObjectChannelId = self->GetObjectChannelId();
+	const uint32_t otherObjectChannelId = other->GetObjectChannelId();
+	if (self->HasCollisionResponseOverrides())
+	{
+		// Preset適用済みColliderは、自身が相手ObjectChannelをどう扱うかを優先する。
+		return static_cast<ECollisionResponse>(self->GetCollisionResponseId(otherObjectChannelId));
+	}
+
+	// Preset未適用Colliderは既存ResponseMatrixを使い、従来のCollisionTypeIdDef挙動へフォールバックする。
+	return responseMatrix_.GetResponse(selfObjectChannelId, otherObjectChannelId);
+}
+
+ECollisionResponse CollisionManager::ResolveCollisionResponseForPair(K4E::Collider* colliderA, K4E::Collider* colliderB) const
+{
+	const ECollisionResponse responseA = GetCollisionResponseForCollider(colliderA, colliderB);
+	const ECollisionResponse responseB = GetCollisionResponseForCollider(colliderB, colliderA);
+
+	// UE風に、片側でもIgnoreならペア全体を判定対象から外す。
+	if (responseA == ECollisionResponse::Ignore || responseB == ECollisionResponse::Ignore)
+	{
+		return ECollisionResponse::Ignore;
+	}
+
+	// 片側でもOverlapなら「接触イベントのみ」の扱いにし、将来の押し戻し対象から外せるようにする。
+	if (responseA == ECollisionResponse::Overlap || responseB == ECollisionResponse::Overlap)
+	{
+		return ECollisionResponse::Overlap;
+	}
+
+	// 両者がBlockを望む場合だけ、将来の押し戻し候補として扱う。
+	return ECollisionResponse::Block;
+}
+
 bool CollisionManager::ShouldSkipCollisionPair(ECollisionResponse response) const
 {
-	// 現段階で挙動に反映するのはIgnoreだけに限定する。
+	// Ignoreは形状判定も接触イベントも不要なため、Narrow Phaseへ入る前に除外する。
 	return response == ECollisionResponse::Ignore;
 }
 
 bool CollisionManager::IsCollisionIgnored(uint32_t selfTypeId, uint32_t otherTypeId) const
 {
-	// Block/Overlapの意味はまだ使わず、Ignoreだけを安全なスキップ条件にする。
+	// TypeID固定ペア列挙の早期スキップ用。Collider個別設定はIsCollisionIgnored(Collider*, Collider*)で扱う。
 	return ShouldSkipCollisionPair(GetCollisionResponseForPair(selfTypeId, otherTypeId));
+}
+
+bool CollisionManager::IsCollisionIgnored(K4E::Collider* colliderA, K4E::Collider* colliderB) const
+{
+	// Collider単位のPreset Responseを含めたIgnore判定入口。
+	return ShouldSkipCollisionPair(ResolveCollisionResponseForPair(colliderA, colliderB));
 }
 
 bool CollisionManager::TestCollisionPair(K4E::Collider* colliderA, K4E::Collider* colliderB) const
@@ -913,8 +967,8 @@ void CollisionManager::CheckCollisionPair(K4E::Collider* colliderA, K4E::Collide
 	// 自分同士は無視
 	if (colliderA == colliderB) return;
 
-	// ResponseMatrixでIgnoreの組み合わせは、既存の未登録ペアと同じく判定しない。
-	if (IsCollisionIgnored(colliderA->GetTypeID(), colliderB->GetTypeID())) return;
+	// Preset/Matrixの最終ResponseがIgnoreなら、形状判定もイベント登録も行わない。
+	if (IsCollisionIgnored(colliderA, colliderB)) return;
 
 	// 登録済み形状判定で交差したペアだけを、このフレームの接触として扱う。
 	if (!TestCollisionPair(colliderA, colliderB)) return;

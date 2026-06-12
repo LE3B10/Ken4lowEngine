@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "BossBase.h"
+#include "CollisionPreset.h"
 #include "CollisionTypeIdDef.h"
 #include "Player.h"
 #include "BossAttackEffects.h"
@@ -303,8 +304,8 @@ void BossBase::Initialize()
 	EnsureBossCommonParameters();
 	g_bossDeathRuntimes.erase(this);
 
-	// コライダータイプの設定
-	Collider::SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kBoss));
+	// コライダータイプとObjectChannel/Responseの設定
+	ApplyCollisionPreset(*this, ECollisionPresetId::Boss);
 	Collider::SetOwner<BossBase>(this);
 	// プレイヤー近接攻撃が胴体を拾えるように、ボス本体を覆う大きめのOBBを登録する。
 	Collider::SetOBBHalfSize({ 1.25f, 1.75f, 1.25f });

@@ -1,4 +1,5 @@
 #include "StageCollisionBuilder.h"
+#include "CollisionPreset.h"
 #include "CollisionTypeIdDef.h"
 #include "Matrix4x4.h"
 #include <limits>
@@ -77,7 +78,7 @@ namespace Ken4lowEngine
 			};
 
 			auto collider = std::make_unique<Collider>();
-			collider->SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kWorld));
+			ApplyCollisionPreset(*collider, ECollisionPresetId::WorldStatic);
 			collider->SetCenterPosition(centerW);
 			collider->SetOBBHalfSize(halfW);
 			const Vector3 colliderRotation = {

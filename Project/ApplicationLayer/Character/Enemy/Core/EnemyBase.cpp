@@ -8,6 +8,7 @@
 #include <Bullet.h>
 
 #include "CollisionTypeIdDef.h"
+#include "CollisionPreset.h"
 
 #ifdef USE_IMGUI
 #include "imgui.h"
@@ -181,7 +182,7 @@ void EnemyBase::MoveVisualFar(const Vector3& pos)
 /// -------------------------------------------------------------
 void EnemyBase::Initialize()
 {
-	SetTypeID(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy));
+	ApplyCollisionPreset(*this, ECollisionPresetId::Enemy);
 	SetOwner(this);
 
 	SetOBBHalfSize(obbHalf_);
