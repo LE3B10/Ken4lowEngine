@@ -68,8 +68,38 @@ namespace Ken4lowEngine
 		ErasePointer(rigidbodies_, rigidbody);
 	}
 
+	void PhysicsWorld::Update(float deltaTime)
+	{
+		// 物理更新を固定時間で進め、フレームレート差による挙動のブレを抑える。
+		const float clampedDeltaTime = std::clamp(deltaTime, 0.0f, maxDeltaTime_);
+		lastSubStepCount_ = 0;
+
+		if (!useFixedStep_)
+		{
+			accumulator_ = 0.0f;
+			Step(clampedDeltaTime);
+			lastSubStepCount_ = 1;
+			return;
+		}
+
+		accumulator_ += clampedDeltaTime;
+		while (accumulator_ >= fixedTimeStep_ && lastSubStepCount_ < maxSubSteps_)
+		{
+			Step(fixedTimeStep_);
+			accumulator_ -= fixedTimeStep_;
+			++lastSubStepCount_;
+		}
+
+		if (lastSubStepCount_ >= maxSubSteps_ && accumulator_ >= fixedTimeStep_)
+		{
+			// サブステップ上限へ到達した場合は蓄積時間を捨て、重いフレーム後の暴走を防ぐ。
+			accumulator_ = 0.0f;
+		}
+	}
+
 	void PhysicsWorld::Step(float deltaTime)
 	{
+		// 1回分の物理更新を実行する。固定更新時はUpdate()からfixedTimeStepで呼び出される。
 		// Contactは毎フレーム作り直し、前フレームの接触情報を残さない。
 		contacts_.clear();
 
@@ -81,6 +111,33 @@ namespace Ken4lowEngine
 		DetectCollisions();
 		ResolveContacts();
 		UpdateRigidbodySleepState(deltaTime);
+	}
+
+	void PhysicsWorld::SetUseFixedStep(bool useFixedStep)
+	{
+		// 固定更新の切り替え時は未消化時間を捨て、切り替え直後の余分なStepを避ける。
+		useFixedStep_ = useFixedStep;
+		accumulator_ = 0.0f;
+		lastSubStepCount_ = 0;
+	}
+
+	void PhysicsWorld::SetFixedTimeStep(float fixedTimeStep)
+	{
+		// 固定ステップは極端な値を避け、15〜240Hz相当の範囲に収める。
+		fixedTimeStep_ = std::clamp(fixedTimeStep, 1.0f / 240.0f, 1.0f / 15.0f);
+		accumulator_ = std::min(accumulator_, fixedTimeStep_);
+	}
+
+	void PhysicsWorld::SetMaxDeltaTime(float maxDeltaTime)
+	{
+		// 入力deltaTimeの上限は、重いフレームで過剰な物理更新が走らない範囲に収める。
+		maxDeltaTime_ = std::clamp(maxDeltaTime, 0.016f, 0.5f);
+	}
+
+	void PhysicsWorld::SetMaxSubSteps(int maxSubSteps)
+	{
+		// サブステップ回数は暴走防止のため上限を持たせる。
+		maxSubSteps_ = std::clamp(maxSubSteps, 1, 16);
 	}
 
 	void PhysicsWorld::IntegrateBodies(float deltaTime)

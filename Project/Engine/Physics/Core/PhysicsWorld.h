@@ -30,6 +30,9 @@ namespace Ken4lowEngine
 		// 1ステップ分の物理更新を実行する。
 		void Step(float deltaTime);
 
+		// 固定更新用の入口として物理更新を進める。
+		void Update(float deltaTime);
+
 		// 登録済みRigidbodyの速度積分を行う。
 		void IntegrateBodies(float deltaTime);
 
@@ -49,6 +52,25 @@ namespace Ken4lowEngine
 		// 摩擦ソルバーの有効状態を設定する。
 		void SetFrictionSolveEnabled(bool enabled) { frictionSolveEnabled_ = enabled; }
 		bool IsFrictionSolveEnabled() const { return frictionSolveEnabled_; }
+
+		// 固定更新の有効状態を設定する。
+		void SetUseFixedStep(bool useFixedStep);
+		bool IsUseFixedStep() const { return useFixedStep_; }
+
+		// 固定更新の1ステップ時間を設定する。
+		void SetFixedTimeStep(float fixedTimeStep);
+		float GetFixedTimeStep() const { return fixedTimeStep_; }
+
+		// 1フレームで受け付ける最大deltaTimeを設定する。
+		void SetMaxDeltaTime(float maxDeltaTime);
+		float GetMaxDeltaTime() const { return maxDeltaTime_; }
+
+		// 1フレームで実行する最大サブステップ数を設定する。
+		void SetMaxSubSteps(int maxSubSteps);
+		int GetMaxSubSteps() const { return maxSubSteps_; }
+
+		float GetAccumulator() const { return accumulator_; }
+		int GetLastSubStepCount() const { return lastSubStepCount_; }
 
 	private: /// ---------- メンバ関数 ---------- ///
 
@@ -83,6 +105,14 @@ namespace Ken4lowEngine
 
 		// Contact解決で摩擦補正を行うか。DebugSceneからON/OFFを切り替える。
 		bool frictionSolveEnabled_ = true;
+
+		// 固定更新とサブステップ制御用の状態。
+		bool useFixedStep_ = true;
+		float fixedTimeStep_ = 1.0f / 60.0f;
+		float maxDeltaTime_ = 0.1f;
+		float accumulator_ = 0.0f;
+		int maxSubSteps_ = 4;
+		int lastSubStepCount_ = 0;
 	};
 
 } // namespace Ken4lowEngine

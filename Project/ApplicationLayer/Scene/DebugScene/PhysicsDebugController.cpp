@@ -45,10 +45,10 @@ void PhysicsDebugController::Update(float deltaTime)
 		return;
 	}
 
-	// Rigidbodyの速度でテスト位置を進め、Collider同期後にPhysicsWorldで接触解決する。
+	// Rigidbodyの速度でDebug用テスト位置を進め、物理処理自体はPhysicsWorld::Update()の固定更新経由で確認する。
 	dynamicPosition_ += dynamicRigidbody_.GetVelocity() * deltaTime;
 	UpdateTestColliders();
-	physicsWorld_.Step(deltaTime);
+	physicsWorld_.Update(deltaTime);
 	dynamicPosition_ = dynamicCollider_.GetCenterPosition();
 }
 
@@ -99,6 +99,31 @@ void PhysicsDebugController::DrawImGui()
 			{
 				dynamicRigidbody_.SetSleepEnabled(enableSleep_);
 			}
+
+			// PhysicsWorldの固定更新設定をDebugScene上で切り替え、サブステップの動きを確認できるようにする。
+			bool useFixedStep = physicsWorld_.IsUseFixedStep();
+			if (ImGui::Checkbox("Use Fixed Step", &useFixedStep))
+			{
+				physicsWorld_.SetUseFixedStep(useFixedStep);
+			}
+			float fixedTimeStep = physicsWorld_.GetFixedTimeStep();
+			if (ImGui::DragFloat("Fixed Time Step", &fixedTimeStep, 0.001f, 1.0f / 240.0f, 1.0f / 15.0f, "%.4f"))
+			{
+				physicsWorld_.SetFixedTimeStep(fixedTimeStep);
+			}
+			float maxDeltaTime = physicsWorld_.GetMaxDeltaTime();
+			if (ImGui::DragFloat("Max Delta Time", &maxDeltaTime, 0.001f, 0.016f, 0.5f, "%.4f"))
+			{
+				physicsWorld_.SetMaxDeltaTime(maxDeltaTime);
+			}
+			int maxSubSteps = physicsWorld_.GetMaxSubSteps();
+			if (ImGui::DragInt("Max Sub Steps", &maxSubSteps, 1.0f, 1, 16))
+			{
+				physicsWorld_.SetMaxSubSteps(maxSubSteps);
+			}
+			ImGui::Text("Accumulator: %.4f", physicsWorld_.GetAccumulator());
+			ImGui::Text("Last Sub Step Count: %d", physicsWorld_.GetLastSubStepCount());
+
 			ImGui::Text("Dynamic Position: %.3f, %.3f, %.3f", dynamicPosition_.x, dynamicPosition_.y, dynamicPosition_.z);
 			ImGui::Text("Dynamic Velocity: %.3f, %.3f, %.3f", velocity.x, velocity.y, velocity.z);
 			ImGui::Text("IsGrounded: %s", dynamicRigidbody_.IsGrounded() ? "true" : "false");
