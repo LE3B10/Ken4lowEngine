@@ -565,6 +565,12 @@
     <ClCompile Include="Engine\Physics\Collision\Core\ContactRecord.cpp">
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Physics\Core\PhysicsWorld.cpp">
+      <Filter>Engine\Physics\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Physics\Core\Rigidbody.cpp">
+      <Filter>Engine\Physics\Core</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Level\LevelLoader.cpp">
       <Filter>Engine\Scene\Level</Filter>
     </ClCompile>
@@ -1530,6 +1536,18 @@
     <ClInclude Include="Engine\Physics\Collision\Core\IDGenerator.h">
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Physics\Core\Contact.h">
+      <Filter>Engine\Physics\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Core\PhysicsTypes.h">
+      <Filter>Engine\Physics\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Core\PhysicsWorld.h">
+      <Filter>Engine\Physics\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Core\Rigidbody.h">
+      <Filter>Engine\Physics\Core</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Scene\Level\LevelData.h">
       <Filter>Engine\Scene\Level</Filter>
     </ClInclude>
@@ -2362,6 +2380,9 @@
     </Filter>
     <Filter Include="Engine\Physics\Collision\Core">
       <UniqueIdentifier>{602816af-8a63-411d-be4a-3c6a956cabc0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Physics\Core">
+      <UniqueIdentifier>{6d3bd8c4-4f3f-43d2-b583-1f34a399e267}</UniqueIdentifier>
     </Filter>
     <Filter Include="Engine\Scene\Level">
       <UniqueIdentifier>{d8135d35-c676-47d1-ac56-ea8a28dabcaf}</UniqueIdentifier>
