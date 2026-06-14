@@ -131,7 +131,7 @@ namespace Ken4lowEngine
 		Vector2 size = { 128.0f, 128.0f };
 		float rotation = 0.0f;
 		Vector2 anchor = { 0.5f, 0.5f };
-		Vector4 color = { 1,1,1,1 };
+		Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		bool visible = true;
 		int layer = 0;
 		Vector2 pivot = { 0.5f, 0.5f };
@@ -152,7 +152,7 @@ namespace Ken4lowEngine
 		float spawnRate = 10.0f;
 		float lifetime = 1.0f;
 		float speed = 1.0f;
-		Vector4 color = { 1,1,1,1 };
+		Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
 		float size = 1.0f;
 		bool loop = true;
 		void ToJson(nlohmann::json& outJson) const override;

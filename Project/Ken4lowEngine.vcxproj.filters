@@ -127,6 +127,15 @@
     <Filter Include="ApplicationLayer\Character\Enemy\Projectile">
       <UniqueIdentifier>{690331fb-552d-4d8a-b6c3-ca74d0902f48}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Sprite\Core">
+      <UniqueIdentifier>{b6c2e46d-dce7-462a-ba11-2cd58beb479f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Sprite\Utility">
+      <UniqueIdentifier>{7207882a-61cc-4152-b56e-f95c98e31411}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Sprite\Effects">
+      <UniqueIdentifier>{fc634361-92dc-4aad-98d8-99d5e0a0713f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -820,21 +829,6 @@
     <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3DCommon.cpp">
       <Filter>Engine\Graphics\Renderer\Object3D</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Graphics\Renderer\Sprite\Sprite.cpp">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Graphics\Renderer\Sprite\SpriteDebrisEmitter.cpp">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Graphics\Renderer\Sprite\SpriteFractureEffect.cpp">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Graphics\Renderer\Sprite\SpriteManager.cpp">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Graphics\Renderer\Sprite\SpritePipelineSet.cpp">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\SkyBox\CloudLayer.cpp">
       <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
     </ClCompile>
@@ -846,9 +840,6 @@
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Wireframe.cpp">
       <Filter>Engine\Graphics\Renderer\Wireframe</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Graphics\Renderer\Sprite\NumberSpriteDrawer.cpp">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\Particle\Manager\ParticleManager.cpp">
       <Filter>Engine\Graphics\Renderer\Particle\Manager</Filter>
@@ -870,12 +861,6 @@
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3DPipelineSet.cpp">
       <Filter>Engine\Graphics\Renderer\Object3D</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Graphics\Renderer\Sprite\TextSpriteDrawer.cpp">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Graphics\Renderer\Sprite\FontAtlasLoader.cpp">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.cpp">
       <Filter>ApplicationLayer\UISystem\ControlGuideUI</Filter>
@@ -960,6 +945,33 @@
     </ClCompile>
     <ClCompile Include="Engine\Platform\Windows\ResolutionManager.cpp">
       <Filter>Engine\Platform\Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\Core\Sprite.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\Core\SpriteManager.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\Core\SpritePipelineSet.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\Utility\SpriteFactory.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\Utility\NumberSpriteDrawer.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\Utility\TextSpriteDrawer.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\Utility\FontAtlasLoader.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\Effects\SpriteDebrisEmitter.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Sprite\Effects\SpriteFractureEffect.cpp">
+      <Filter>Engine\Graphics\Renderer\Sprite\Effects</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1869,21 +1881,6 @@
     <ClInclude Include="Engine\Graphics\Renderer\Object3D\Object3DCommon.h">
       <Filter>Engine\Graphics\Renderer\Object3D</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Graphics\Renderer\Sprite\Sprite.h">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Graphics\Renderer\Sprite\SpriteDebrisEmitter.h">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Graphics\Renderer\Sprite\SpriteFractureEffect.h">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Graphics\Renderer\Sprite\SpriteManager.h">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Graphics\Renderer\Sprite\SpritePipelineSet.h">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\SkyBox\CloudLayer.h">
       <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
     </ClInclude>
@@ -1895,9 +1892,6 @@
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\Wireframe\Wireframe.h">
       <Filter>Engine\Graphics\Renderer\Wireframe</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Graphics\Renderer\Sprite\NumberSpriteDrawer.h">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\Particle\Manager\ParticleManager.h">
       <Filter>Engine\Graphics\Renderer\Particle\Manager</Filter>
@@ -1931,12 +1925,6 @@
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\Object3D\Object3DPipelineSet.h">
       <Filter>Engine\Graphics\Renderer\Object3D</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Graphics\Renderer\Sprite\TextSpriteDrawer.h">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Graphics\Renderer\Sprite\FontAtlasLoader.h">
-      <Filter>Engine\Graphics\Renderer\Sprite</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.h">
       <Filter>ApplicationLayer\UISystem\ControlGuideUI</Filter>
@@ -2051,6 +2039,33 @@
     </ClInclude>
     <ClInclude Include="Engine\Platform\Windows\ResolutionManager.h">
       <Filter>Engine\Platform\Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\Core\Sprite.h">
+      <Filter>Engine\Graphics\Renderer\Sprite\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\Core\SpriteManager.h">
+      <Filter>Engine\Graphics\Renderer\Sprite\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\Core\SpritePipelineSet.h">
+      <Filter>Engine\Graphics\Renderer\Sprite\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\Utility\SpriteFactory.h">
+      <Filter>Engine\Graphics\Renderer\Sprite\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\Utility\NumberSpriteDrawer.h">
+      <Filter>Engine\Graphics\Renderer\Sprite\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\Utility\TextSpriteDrawer.h">
+      <Filter>Engine\Graphics\Renderer\Sprite\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\Utility\FontAtlasLoader.h">
+      <Filter>Engine\Graphics\Renderer\Sprite\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\Effects\SpriteDebrisEmitter.h">
+      <Filter>Engine\Graphics\Renderer\Sprite\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Sprite\Effects\SpriteFractureEffect.h">
+      <Filter>Engine\Graphics\Renderer\Sprite\Effects</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
