@@ -3,6 +3,7 @@
 #include "Engine/Physics/Collision/Core/CollisionResponseMatrix.h"
 #include "Engine/Physics/Event/PhysicsEventDispatcher.h"
 
+#include <cstddef>
 #include <vector>
 
 namespace Ken4lowEngine
@@ -22,6 +23,9 @@ namespace Ken4lowEngine
 
 		// Colliderを物理ワールドから登録解除する。
 		void UnregisterCollider(Collider* collider);
+
+		// 登録済みColliderをまとめて解除する。
+		void ClearColliders();
 
 		// Rigidbodyを物理ワールドへ登録する。
 		void RegisterRigidbody(Rigidbody* rigidbody);
@@ -46,6 +50,9 @@ namespace Ken4lowEngine
 
 		// 直近ステップのContact一覧を取得する。
 		const std::vector<Contact>& GetContacts() const { return contacts_; }
+
+		// 登録済みCollider数を取得する。
+		size_t GetColliderCount() const { return colliders_.size(); }
 
 		// 直近ステップで生成された物理イベント一覧を取得する。
 		const std::vector<PhysicsEvent>& GetEvents() const { return eventDispatcher_.GetEvents(); }

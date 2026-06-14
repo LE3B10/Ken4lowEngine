@@ -37,5 +37,8 @@ namespace Ken4lowEngine
 		/// LevelData からワールド衝突情報を構築する
 		/// </summary>
 		static StageCollisionBuildResult Build(const LevelData& levelData, const Vector3& offset);
+
+		// Build結果が所有するColliderを、PhysicsWorld登録用の参照ポインタ一覧として取得する。
+		static std::vector<Collider*> GetColliders(const StageCollisionBuildResult& result);
 	};
 } // namespace Ken4lowEngine

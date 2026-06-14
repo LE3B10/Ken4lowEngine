@@ -52,6 +52,14 @@ namespace Ken4lowEngine
 		eventDispatcher_.Clear();
 	}
 
+	void PhysicsWorld::ClearColliders()
+	{
+		// Scene終了時などに、PhysicsWorldが保持する外部所有Collider参照をまとめて破棄する。
+		colliders_.clear();
+		contacts_.clear();
+		eventDispatcher_.Clear();
+	}
+
 	void PhysicsWorld::RegisterRigidbody(Rigidbody* rigidbody)
 	{
 		// nullptrと重複登録を避け、外部所有のRigidbody参照だけを保持する。

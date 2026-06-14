@@ -1,6 +1,7 @@
 #pragma once
 #include "Collider.h"
 #include "Engine/Physics/Event/IPhysicsEventListener.h"
+#include "Engine/Physics/Bridge/StagePhysicsBinder.h"
 #include "PhysicsWorld.h"
 #include "Rigidbody.h"
 #include "Vector3.h"
@@ -46,6 +47,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// DebugScene上で確認するCollisionLayer応答をPhysicsWorldへ適用する。
 	void ApplyResponseSetting();
 
+	// DebugScene上で登録確認に使う仮Stage Collider群を初期化する。
+	void InitializeDebugStageColliders();
+
 	// イベント反応確認用の状態とログを初期化する。
 	void ClearEventReactionState();
 
@@ -60,6 +64,8 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::Collider dynamicCollider_; // Dynamic側のテストCollider
 	K4E::Collider staticCollider_; // Static側のテストCollider
+	std::vector<K4E::Collider> debugStageColliders_{}; // Binder確認用の仮Stage Collider群
+	std::vector<K4E::Collider*> debugStageColliderPointers_{}; // 仮Stage Colliderの参照ポインタ一覧
 
 	K4E::Vector3 dynamicPosition_{}; // Dynamic側の現在位置
 	K4E::Vector3 staticPosition_{}; // Static側の現在位置
@@ -84,6 +90,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	int dynamicLayer_ = 1; // Dynamic側ColliderのCollisionLayer
 	int staticLayer_ = 0; // Static側ColliderのCollisionLayer
 	int responseTypeIndex_ = 2; // Debug確認用Response選択。0:Ignore, 1:Trigger, 2:Block
+	bool showStagePhysicsColliders_ = true; // Binder確認用Stage Colliderをワイヤー表示するか
+	K4E::StagePhysicsBinder stagePhysicsBinder_{}; // Stage Collider群をPhysicsWorldへ登録する橋渡し確認用
 
 	bool isTriggerTouching_ = false; // Trigger接触中か
 	bool isCollisionTouching_ = false; // Block接触中か

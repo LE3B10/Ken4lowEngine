@@ -185,4 +185,19 @@ namespace Ken4lowEngine
 			collisionManager->AddCollider(collider.get());
 		}
 	}
+
+	std::vector<Collider*> Stage::GetWorldColliderPointers() const
+	{
+		// Stageが所有するWorld Colliderを、PhysicsWorldへ渡せる参照ポインタ一覧に変換する。
+		std::vector<Collider*> colliders{};
+		colliders.reserve(worldColliders_.size());
+		for (const std::unique_ptr<Collider>& collider : worldColliders_)
+		{
+			if (collider)
+			{
+				colliders.push_back(collider.get());
+			}
+		}
+		return colliders;
+	}
 } // namespace Ken4lowEngine

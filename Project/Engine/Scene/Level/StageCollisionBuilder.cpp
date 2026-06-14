@@ -112,4 +112,19 @@ namespace Ken4lowEngine
 
 		return result;
 	}
+
+	std::vector<Collider*> StageCollisionBuilder::GetColliders(const StageCollisionBuildResult& result)
+	{
+		// StageCollisionBuilderが生成したColliderの所有権は移さず、PhysicsWorld登録用の生ポインタだけを集める。
+		std::vector<Collider*> colliders{};
+		colliders.reserve(result.worldColliders.size());
+		for (const std::unique_ptr<Collider>& collider : result.worldColliders)
+		{
+			if (collider)
+			{
+				colliders.push_back(collider.get());
+			}
+		}
+		return colliders;
+	}
 } // namespace Ken4lowEngine

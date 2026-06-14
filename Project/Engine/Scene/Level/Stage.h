@@ -93,6 +93,7 @@ namespace Ken4lowEngine
 		const std::vector<AABB>& GetWallObstacleAABBs() const { return wallObstacleAABBs_; }
 		const std::vector<AABB>& GetNavigationObstacleAABBs() const { return navigationObstacleAABBs_; }
 		const std::vector<std::unique_ptr<Collider>>& GetWorldColliders() const { return worldColliders_; }
+		std::vector<Collider*> GetWorldColliderPointers() const;
 		const std::vector<OBB>& GetWallObstacleOBBs() const { return wallObstacleOBBs_; }
 		const std::vector<OBB>& GetNavigationObstacleOBBs() const { return navigationObstacleOBBs_; }
 

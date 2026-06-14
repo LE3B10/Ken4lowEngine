@@ -70,6 +70,7 @@ namespace
 PhysicsDebugController::~PhysicsDebugController()
 {
 	// 破棄済みポインタ参照を防ぐため、PhysicsWorldからDebug用リスナー登録を解除する。
+	stagePhysicsBinder_.Unbind();
 	physicsWorld_.RemovePhysicsEventListener(this);
 }
 
@@ -87,6 +88,7 @@ void PhysicsDebugController::Initialize()
 	dynamicCollider_.SetRigidbody(&dynamicRigidbody_);
 	physicsWorld_.RegisterCollider(&staticCollider_);
 	physicsWorld_.RegisterCollider(&dynamicCollider_);
+	InitializeDebugStageColliders();
 	ApplyResponseSetting();
 	ResetTestObjects();
 }
@@ -142,6 +144,15 @@ void PhysicsDebugController::Draw()
 	wireframe->DrawSphere(dynamicPosition_, 0.35f, dynamicColor);
 	wireframe->DrawAABB(staticCollider_.GetAABB(), { 1.0f, 0.8f, 0.15f, 1.0f });
 	wireframe->DrawAABB(dynamicCollider_.GetAABB(), dynamicColor);
+
+	if (showStagePhysicsColliders_ && stagePhysicsBinder_.IsBound())
+	{
+		// PhysicsWorldへ登録済みの仮Stage Colliderを表示し、Binder経由の登録状態を視覚確認する。
+		for (const K4E::Collider& collider : debugStageColliders_)
+		{
+			wireframe->DrawAABB(collider.GetAABB(), { 0.45f, 1.0f, 0.35f, 1.0f });
+		}
+	}
 
 	const std::vector<K4E::Contact>& contacts = physicsWorld_.GetContacts();
 	if (!contacts.empty())
@@ -342,6 +353,24 @@ void PhysicsDebugController::DrawImGui()
 				ImGui::BulletText("%s", log.c_str());
 			}
 		}
+
+		if (ImGui::CollapsingHeader("Stage Physics Binder", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			// DebugScene上でStage Collider群のPhysicsWorld登録・解除を確認する。
+			if (ImGui::Button("Bind Stage Colliders"))
+			{
+				stagePhysicsBinder_.Bind(physicsWorld_, debugStageColliderPointers_);
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Unbind Stage Colliders"))
+			{
+				stagePhysicsBinder_.Unbind();
+			}
+			ImGui::Checkbox("Show Stage Physics Colliders", &showStagePhysicsColliders_);
+			ImGui::Text("Is Bound: %s", stagePhysicsBinder_.IsBound() ? "true" : "false");
+			ImGui::Text("Bound Collider Count: %zu", stagePhysicsBinder_.GetBoundColliderCount());
+			ImGui::Text("PhysicsWorld Collider Count: %zu", physicsWorld_.GetColliderCount());
+		}
 	}
 	ImGui::End();
 #endif // USE_IMGUI
@@ -408,6 +437,40 @@ void PhysicsDebugController::ApplyResponseSetting()
 }
 
 /// -------------------------------------------------------------
+///						仮Stage Collider初期化
+/// -------------------------------------------------------------
+void PhysicsDebugController::InitializeDebugStageColliders()
+{
+	// StagePhysicsBinderの登録確認用に、Rigidbodyを持たないStatic扱いの仮Stage Colliderを用意する。
+	debugStageColliders_.clear();
+	debugStageColliderPointers_.clear();
+	debugStageColliders_.resize(3);
+
+	const K4E::Vector3 centers[] = {
+		{ 8.0f, -0.25f, 0.0f },
+		{ 11.0f, 0.75f, 0.0f },
+		{ 14.0f, 0.25f, 0.0f },
+	};
+	const K4E::Vector3 halfSizes[] = {
+		{ 1.0f, 0.25f, 1.0f },
+		{ 0.5f, 1.25f, 0.5f },
+		{ 1.25f, 0.5f, 1.25f },
+	};
+
+	for (size_t i = 0; i < debugStageColliders_.size(); ++i)
+	{
+		K4E::Collider& collider = debugStageColliders_[i];
+		collider.SetRigidbody(nullptr);
+		collider.SetCollisionLayer(0u);
+		collider.SetAABB({
+			centers[i] - halfSizes[i],
+			centers[i] + halfSizes[i],
+			});
+		debugStageColliderPointers_.push_back(&collider);
+	}
+}
+
+/// -------------------------------------------------------------
 ///						物理イベント通知処理
 /// -------------------------------------------------------------
 void PhysicsDebugController::OnPhysicsEvent(const K4E::PhysicsEvent& event)
@@ -470,9 +533,9 @@ void PhysicsDebugController::AddEventLog(const K4E::PhysicsEvent& event)
 	std::string log = ToPhysicsEventName(event.type);
 	log += event.isTrigger ? " | Trigger" : " | Collision";
 	log += " | A:";
-	log += event.colliderA == &dynamicCollider_ ? "Dynamic" : event.colliderA == &staticCollider_ ? "Static" : "Unknown";
+	log += event.colliderA == &dynamicCollider_ ? "Dynamic" : event.colliderA == &staticCollider_ ? "Static" : "Stage/Unknown";
 	log += " B:";
-	log += event.colliderB == &dynamicCollider_ ? "Dynamic" : event.colliderB == &staticCollider_ ? "Static" : "Unknown";
+	log += event.colliderB == &dynamicCollider_ ? "Dynamic" : event.colliderB == &staticCollider_ ? "Static" : "Stage/Unknown";
 
 	eventLogs_.insert(eventLogs_.begin(), log);
 	if (eventLogs_.size() > kMaxEventLogCount)
