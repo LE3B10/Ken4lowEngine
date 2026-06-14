@@ -145,6 +145,9 @@
     <Filter Include="Engine\Graphics\Renderer\Wireframe\Effects">
       <UniqueIdentifier>{0b6ce119-e106-4286-b12b-c6cc04dd53f1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Physics\DebugDraw">
+      <UniqueIdentifier>{c8b8472a-f2d0-4896-b930-54495aebdb87}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -593,7 +596,7 @@
       <Filter>Engine\Physics\Core</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Physics\DebugDraw\PhysicsDebugDraw.cpp">
-      <Filter>Engine\Physics\Debug</Filter>
+      <Filter>Engine\Physics\DebugDraw</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Physics\Event\PhysicsEventDispatcher.cpp">
       <Filter>Engine\Physics\Event</Filter>
@@ -1609,7 +1612,7 @@
       <Filter>Engine\Physics\Core</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Physics\DebugDraw\PhysicsDebugDraw.h">
-      <Filter>Engine\Physics\Debug</Filter>
+      <Filter>Engine\Physics\DebugDraw</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Physics\Event\IPhysicsEventListener.h">
       <Filter>Engine\Physics\Event</Filter>
@@ -2467,9 +2470,6 @@
     </Filter>
     <Filter Include="Engine\Physics\Core">
       <UniqueIdentifier>{6d3bd8c4-4f3f-43d2-b583-1f34a399e267}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Engine\Physics\Debug">
-      <UniqueIdentifier>{c8b8472a-f2d0-4896-b930-54495aebdb87}</UniqueIdentifier>
     </Filter>
     <Filter Include="Engine\Physics\Event">
       <UniqueIdentifier>{7df87bf0-8766-4c8b-a99b-6d846fb28e26}</UniqueIdentifier>
