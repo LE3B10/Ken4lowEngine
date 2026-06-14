@@ -136,6 +136,15 @@
     <Filter Include="Engine\Graphics\Renderer\Sprite\Effects">
       <UniqueIdentifier>{fc634361-92dc-4aad-98d8-99d5e0a0713f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Wireframe\Core">
+      <UniqueIdentifier>{460a8b68-947b-4116-926d-6d5ab7e21607}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Wireframe\Shapes">
+      <UniqueIdentifier>{380590a4-a717-4cac-b13c-6e13aab37764}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Graphics\Renderer\Wireframe\Effects">
+      <UniqueIdentifier>{0b6ce119-e106-4286-b12b-c6cc04dd53f1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -838,9 +847,6 @@
     <ClCompile Include="Engine\Graphics\Renderer\SkyBox\SkyBoxManager.cpp">
       <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Wireframe.cpp">
-      <Filter>Engine\Graphics\Renderer\Wireframe</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\Particle\Manager\ParticleManager.cpp">
       <Filter>Engine\Graphics\Renderer\Particle\Manager</Filter>
     </ClCompile>
@@ -972,6 +978,9 @@
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\Sprite\Effects\SpriteFractureEffect.cpp">
       <Filter>Engine\Graphics\Renderer\Sprite\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Core\Wireframe.cpp">
+      <Filter>Engine\Graphics\Renderer\Wireframe\Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -1890,9 +1899,6 @@
     <ClInclude Include="Engine\Graphics\Renderer\SkyBox\SkyBoxManager.h">
       <Filter>Engine\Graphics\Renderer\SkyBox</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Graphics\Renderer\Wireframe\Wireframe.h">
-      <Filter>Engine\Graphics\Renderer\Wireframe</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\Particle\Manager\ParticleManager.h">
       <Filter>Engine\Graphics\Renderer\Particle\Manager</Filter>
     </ClInclude>
@@ -2066,6 +2072,9 @@
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\Sprite\Effects\SpriteFractureEffect.h">
       <Filter>Engine\Graphics\Renderer\Sprite\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Wireframe\Core\Wireframe.h">
+      <Filter>Engine\Graphics\Renderer\Wireframe\Core</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

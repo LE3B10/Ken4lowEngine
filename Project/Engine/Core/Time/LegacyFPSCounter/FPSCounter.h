@@ -15,6 +15,16 @@ namespace Ken4lowEngine
 		using Clock = std::chrono::steady_clock;
 		using TimePoint = Clock::time_point;
 
+		/// <summary>
+		/// chronoのdurationをミリ秒のfloat値に変換します。
+		/// </summary>
+		/// <param name="d">変換する時間幅。</param>
+		/// <returns>ミリ秒単位の時間。</returns>
+		float ToMs(const Clock::duration& d) const
+		{
+			return std::chrono::duration<float, std::milli>(d).count();
+		}
+
 	public: /// ---------- メンバ関数 ---------- ///
 
 		/// <summary>
