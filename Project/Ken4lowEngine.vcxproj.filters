@@ -574,6 +574,9 @@
     <ClCompile Include="Engine\Physics\Solver\PositionSolver.cpp">
       <Filter>Engine\Physics\Solver</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Physics\Solver\VelocitySolver.cpp">
+      <Filter>Engine\Physics\Solver</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Level\LevelLoader.cpp">
       <Filter>Engine\Scene\Level</Filter>
     </ClCompile>
@@ -1552,6 +1555,9 @@
       <Filter>Engine\Physics\Core</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Physics\Solver\PositionSolver.h">
+      <Filter>Engine\Physics\Solver</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Solver\VelocitySolver.h">
       <Filter>Engine\Physics\Solver</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Level\LevelData.h">

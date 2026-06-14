@@ -444,6 +444,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Physics\Core\PhysicsWorld.cpp" />
     <ClCompile Include="Engine\Physics\Core\Rigidbody.cpp" />
     <ClCompile Include="Engine\Physics\Solver\PositionSolver.cpp" />
+    <ClCompile Include="Engine\Physics\Solver\VelocitySolver.cpp" />
     <ClCompile Include="Engine\Platform\Windows\WinApp.cpp" />
     <ClCompile Include="Engine\Scene\Level\LevelLoader.cpp" />
     <ClCompile Include="Engine\Scene\Level\LevelObjectManager.cpp" />
@@ -1170,6 +1171,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Physics\Core\PhysicsWorld.h" />
     <ClInclude Include="Engine\Physics\Core\Rigidbody.h" />
     <ClInclude Include="Engine\Physics\Solver\PositionSolver.h" />
+    <ClInclude Include="Engine\Physics\Solver\VelocitySolver.h" />
     <ClInclude Include="Engine\Platform\Windows\DisplaySettings.h" />
     <ClInclude Include="Engine\Platform\Windows\WinApp.h" />
     <ClInclude Include="Engine\Scene\Level\LevelData.h" />

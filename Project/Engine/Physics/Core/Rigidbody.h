@@ -24,6 +24,17 @@ namespace Ken4lowEngine
 		void SetUseGravity(bool useGravity) { useGravity_ = useGravity; }
 		bool IsUseGravity() const { return useGravity_; }
 
+		// 反発係数を設定する。0.0で跳ねず、1.0に近いほど反発を強くする。
+		void SetRestitution(float restitution);
+		float GetRestitution() const { return restitution_; }
+
+		// 接地状態を設定する。PhysicsWorldのContact解決時に毎フレーム再計算される。
+		void SetGrounded(bool isGrounded) { isGrounded_ = isGrounded; }
+		bool IsGrounded() const { return isGrounded_; }
+
+		// Contactから再計算されるフレーム状態をクリアする。
+		void ClearFrameState();
+
 		// 力を蓄積し、次のIntegrateで速度へ反映する。
 		void AddForce(const Vector3& force);
 
@@ -54,8 +65,14 @@ namespace Ken4lowEngine
 		float mass_ = 1.0f;
 		float invMass_ = 1.0f;
 
+		// 接触時の反発係数。
+		float restitution_ = 0.0f;
+
 		// 重力を速度へ反映するか。
 		bool useGravity_ = false;
+
+		// このフレームで床に接触しているか。
+		bool isGrounded_ = false;
 	};
 
 } // namespace Ken4lowEngine

@@ -3,6 +3,7 @@
 #include "Collider.h"
 #include "CollisionUtility.h"
 #include "Engine/Physics/Solver/PositionSolver.h"
+#include "Engine/Physics/Solver/VelocitySolver.h"
 #include "Rigidbody.h"
 
 #include <algorithm>
@@ -71,6 +72,9 @@ namespace Ken4lowEngine
 		// Contactは毎フレーム作り直し、前フレームの接触情報を残さない。
 		contacts_.clear();
 
+		// 接地などのフレーム状態はContactから再計算するため、Step開始時に消しておく。
+		ClearRigidbodyFrameState();
+
 		// 将来の本格接続に備え、積分、検出、解決の順序だけを固定する。
 		IntegrateBodies(deltaTime);
 		DetectCollisions();
@@ -118,17 +122,52 @@ namespace Ken4lowEngine
 
 	void PhysicsWorld::ResolveContacts()
 	{
-		if (!positionSolveEnabled_)
+		PositionSolver positionSolver{};
+		VelocitySolver velocitySolver{};
+
+		// Contactごとに位置補正、速度補正、接地状態更新を行い、応答分離の入口を保つ。
+		for (Contact& contact : contacts_)
+		{
+			if (positionSolveEnabled_)
+			{
+				positionSolver.Resolve(contact);
+				velocitySolver.Resolve(contact);
+			}
+			UpdateGroundedState(contact);
+		}
+	}
+
+	void PhysicsWorld::ClearRigidbodyFrameState()
+	{
+		// Rigidbody側の接触状態は毎フレームContactから作り直す。
+		for (Rigidbody* rigidbody : rigidbodies_)
+		{
+			if (rigidbody)
+			{
+				rigidbody->ClearFrameState();
+			}
+		}
+	}
+
+	void PhysicsWorld::UpdateGroundedState(const Contact& contact) const
+	{
+		// Triggerは床判定に使わず、Contact normalが上向き床面を示す場合だけ接地扱いにする。
+		if (contact.isTrigger || !contact.colliderA || !contact.colliderB)
 		{
 			return;
 		}
 
-		PositionSolver positionSolver{};
+		Rigidbody* rigidbodyA = contact.colliderA->GetRigidbody();
+		Rigidbody* rigidbodyB = contact.colliderB->GetRigidbody();
+		constexpr float kGroundNormalThreshold = 0.5f;
 
-		// Trigger以外のContactだけを位置補正し、速度反射やイベント通知はまだ行わない。
-		for (Contact& contact : contacts_)
+		if (rigidbodyA && rigidbodyA->GetBodyType() == BodyType::Dynamic && contact.normal.y < -kGroundNormalThreshold)
 		{
-			positionSolver.Resolve(contact);
+			rigidbodyA->SetGrounded(true);
+		}
+		if (rigidbodyB && rigidbodyB->GetBodyType() == BodyType::Dynamic && contact.normal.y > kGroundNormalThreshold)
+		{
+			rigidbodyB->SetGrounded(true);
 		}
 	}
 

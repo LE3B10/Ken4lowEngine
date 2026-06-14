@@ -150,8 +150,10 @@ void DebugScene::ResetPhysicsDebugTest()
 	physicsTestRigidbody_.SetBodyType(K4E::BodyType::Dynamic);
 	physicsTestRigidbody_.SetMass(physicsTestMass_);
 	physicsTestRigidbody_.SetUseGravity(physicsTestUseGravity_);
+	physicsTestRigidbody_.SetRestitution(physicsTestRestitution_);
 	physicsTestRigidbody_.SetVelocity(physicsTestInitialVelocity_);
 	physicsTestRigidbody_.ClearForces();
+	physicsTestRigidbody_.ClearFrameState();
 	physicsWorld_.SetPositionSolveEnabled(physicsPositionSolveEnabled_);
 	UpdatePhysicsDebugColliders();
 }
@@ -164,6 +166,7 @@ void DebugScene::UpdatePhysicsDebugTest(float deltaTime)
 	// DebugScene側の位置をRigidbody速度で動かし、Colliderへ同期してからPhysicsWorldで接触を検出する。
 	physicsTestRigidbody_.SetUseGravity(physicsTestUseGravity_);
 	physicsTestRigidbody_.SetMass(physicsTestMass_);
+	physicsTestRigidbody_.SetRestitution(physicsTestRestitution_);
 	physicsTestPosition_ += physicsTestRigidbody_.GetVelocity() * deltaTime;
 	UpdatePhysicsDebugColliders();
 	physicsWorld_.SetPositionSolveEnabled(physicsPositionSolveEnabled_);
@@ -186,6 +189,7 @@ void DebugScene::DrawPhysicsDebugImGui()
 		// 物理テストの現在値を表示し、重力と質量はその場で調整できるようにする。
 		ImGui::Text("Position: %.3f, %.3f, %.3f", physicsTestPosition_.x, physicsTestPosition_.y, physicsTestPosition_.z);
 		ImGui::Text("Velocity: %.3f, %.3f, %.3f", velocity.x, velocity.y, velocity.z);
+		ImGui::Text("IsGrounded: %s", physicsTestRigidbody_.IsGrounded() ? "true" : "false");
 		if (ImGui::Checkbox("UseGravity", &physicsTestUseGravity_))
 		{
 			physicsTestRigidbody_.SetUseGravity(physicsTestUseGravity_);
@@ -193,6 +197,11 @@ void DebugScene::DrawPhysicsDebugImGui()
 		if (ImGui::DragFloat("Mass", &physicsTestMass_, 0.05f, 0.1f, 100.0f))
 		{
 			physicsTestRigidbody_.SetMass(physicsTestMass_);
+		}
+		if (ImGui::DragFloat("Restitution", &physicsTestRestitution_, 0.01f, 0.0f, 1.0f))
+		{
+			physicsTestRigidbody_.SetRestitution(physicsTestRestitution_);
+			physicsTestRestitution_ = physicsTestRigidbody_.GetRestitution();
 		}
 		if (ImGui::DragFloat3("Dynamic Collider Position", &physicsTestPosition_.x, 0.05f))
 		{

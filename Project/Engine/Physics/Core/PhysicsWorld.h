@@ -48,6 +48,12 @@ namespace Ken4lowEngine
 
 	private: /// ---------- メンバ関数 ---------- ///
 
+		// Rigidbodyの接地などのフレーム状態をリセットする。
+		void ClearRigidbodyFrameState();
+
+		// Contact normalから床接触状態を更新する。
+		void UpdateGroundedState(const Contact& contact) const;
+
 		// Colliderペアが接触しているかを既存Primitive判定で調べる。
 		bool TestCollisionPair(Collider* colliderA, Collider* colliderB) const;
 

@@ -14,8 +14,8 @@ namespace Ken4lowEngine
 	{
 		bodyType_ = bodyType;
 
-		// Staticは物理積分で動かさないため、逆質量を0として扱う。
-		if (bodyType_ == BodyType::Static)
+		// Static/Kinematicは物理積分で動かさないため、逆質量を0として扱う。
+		if (bodyType_ == BodyType::Static || bodyType_ == BodyType::Kinematic)
 		{
 			invMass_ = 0.0f;
 		}
@@ -29,8 +29,20 @@ namespace Ken4lowEngine
 	{
 		mass_ = std::max(mass, kMinimumMass);
 
-		// Staticは質量値を保持しつつ、応答計算では無限質量として扱う。
-		invMass_ = (bodyType_ == BodyType::Static) ? 0.0f : (1.0f / mass_);
+		// Static/Kinematicは質量値を保持しつつ、応答計算では無限質量として扱う。
+		invMass_ = (bodyType_ == BodyType::Static || bodyType_ == BodyType::Kinematic) ? 0.0f : (1.0f / mass_);
+	}
+
+	void Rigidbody::SetRestitution(float restitution)
+	{
+		// 反発係数は速度補正が暴れないよう、一般的な0.0〜1.0に丸める。
+		restitution_ = std::clamp(restitution, 0.0f, 1.0f);
+	}
+
+	void Rigidbody::ClearFrameState()
+	{
+		// 接地などの接触由来の状態は、PhysicsWorldのContactから毎フレーム作り直す。
+		isGrounded_ = false;
 	}
 
 	void Rigidbody::AddForce(const Vector3& force)
@@ -52,8 +64,8 @@ namespace Ken4lowEngine
 
 	void Rigidbody::SetVelocity(const Vector3& velocity)
 	{
-		// Staticは速度を持たせず、将来の押し戻し対象からも外しやすくする。
-		velocity_ = (bodyType_ == BodyType::Static) ? Vector3{} : velocity;
+		// Static/Kinematicは速度を持たせず、将来の応答対象からも外しやすくする。
+		velocity_ = (bodyType_ == BodyType::Static || bodyType_ == BodyType::Kinematic) ? Vector3{} : velocity;
 	}
 
 	Vector3 Rigidbody::GetVelocity() const
