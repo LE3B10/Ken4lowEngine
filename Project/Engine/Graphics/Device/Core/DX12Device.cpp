@@ -1,6 +1,7 @@
 #include "DX12Device.h"
 
 #include <cassert>
+#include <format>
 
 #include "LogString.h"
 

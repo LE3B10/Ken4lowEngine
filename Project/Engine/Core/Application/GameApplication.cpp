@@ -31,7 +31,7 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void GameApplication::Initialize()
 	{
-		// 基底クラスの初期化処理
+		// Framework 側でウィンドウ、DirectX、共通描画マネージャを先に初期化する。
 		Framework::Initialize();
 
 #ifdef USE_IMGUI
@@ -40,16 +40,19 @@ namespace Ken4lowEngine
 #endif // USE_IMGUI
 
 		/// ---------- 入力の初期化 ---------- ///
+		// WinApp のウィンドウハンドルを使って、キーボード・マウス・ゲームパッド入力を受け取れる状態にする。
 		Input::GetInstance()->Initialize(winApp_);
 
-		// グローバル変数の読み込み
+		// JSON で保存されたグローバルパラメータを読み込み、起動直後から調整値を反映できるようにする。
 		ParameterManager::GetInstance()->LoadFiles();
+
+		// JSON アセット確認用のエディタウィンドウを初期化する。
 		JsonEditorWindow::GetInstance()->Initialize();
 
 		// シーンマネージャーの初期化
 		SceneManager::GetInstance()->Initialize();
 
-		// シーンファクトリーの生成と設定
+		// 文字列のシーン名から実際の Scene インスタンスを作れるよう、Factory を SceneManager へ登録する。
 		auto sceneFactory = std::make_unique<SceneFactory>();
 		SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory));
 
@@ -60,23 +63,22 @@ namespace Ken4lowEngine
 		// Releaseビルドでは最初のシーンをTitleSceneにする。
 		const std::string startSceneName = "TitleScene";
 #endif
-		// 最初のシーンを設定
+		// 起動直後に表示するシーンを SceneManager へ依頼する。
 		SceneManager::GetInstance()->ChangeScene(startSceneName);
 	}
-
 
 	/// -------------------------------------------------------------
 	///				　			更新処理
 	/// -------------------------------------------------------------
 	void GameApplication::Update()
 	{
-		// 時間の更新処理
+		// フレーム開始時刻を記録し、DeltaTime や各フェーズ計測の基準を作る。
 		GameTimer::GetInstance()->BeginFrame();
 
-		// Update計測開始
+		// Update フェーズの処理時間を計測する。
 		GameTimer::GetInstance()->BeginUpdate();
 
-		// 入力の更新
+		// 前フレームとの差分を取れるよう、ゲーム処理より前に入力状態を更新する。
 		Input::GetInstance()->Update();
 
 #ifdef USE_IMGUI
@@ -84,45 +86,45 @@ namespace Ken4lowEngine
 		EditorModeController::GetInstance()->Update(Input::GetInstance());
 #endif // USE_IMGUI
 
-		// 通常カメラの更新
-		// FPSカメラを使っていない場面では main camera を普通に更新
+		// FPSカメラを使っていない場面でも、メインカメラの行列を最新状態にしておく。
 		if (defaultCamera_)
 		{
 			defaultCamera_->Update();
 		}
 
-		// 共通更新
+		// CameraManager や Particle など、ゲーム全体で共通する更新を実行する。
 		Framework::Update();
 
-		// シーンマネージャーの更新
+		// 現在シーン固有の Update を呼び出す。
 		SceneManager::GetInstance()->Update();
 
-		// ポストエフェクトの更新
+		// ポストエフェクトや JSON エディタなど、シーン外の補助機能を更新する。
 		PostEffectManager::GetInstance()->Update();
 		JsonEditorWindow::GetInstance()->Update(GameTimer::GetInstance()->GetDeltaTime());
 
-		// 時間の更新処理終了
+		// Update フェーズ終了後にフレーム時間を確定させる。
 		GameTimer::GetInstance()->EndFrame();
 	}
-
 
 	/// -------------------------------------------------------------
 	///				　			描画処理
 	/// -------------------------------------------------------------
 	void GameApplication::Draw()
 	{
-		// Deaw計測開始
+		// Draw フェーズの処理時間を計測する。
 		GameTimer::GetInstance()->BeginDraw();
 
 		// 描画開始（DebugはGameViewportRenderTarget経由、Releaseは後段でBackBufferへ直接描画する）
 		dxCommon_->BeginDraw();
 
-		dxCommon_->BeginShadowMapPass(); // シャドウマップパス開始
+		// ライティング用の深度情報を先に作るため、シャドウマップ専用パスを開始する。
+		dxCommon_->BeginShadowMapPass();
 
-		// シャドウマップ生成用の描画処理
-		SceneManager::GetInstance()->DrawShadowObjects(); // シャドウマップ生成用の描画処理
+		// 影を落とす3Dオブジェクトだけを描画し、シャドウマップへ深度を書き込む。
+		SceneManager::GetInstance()->DrawShadowObjects();
 
-		dxCommon_->EndShadowMapPass(); // シャドウマップパス終了
+		// 通常描画へ戻れるよう、シャドウマップパスを終了する。
+		dxCommon_->EndShadowMapPass();
 
 #ifdef USE_IMGUI
 		const bool editorModeEnabled = EditorModeController::GetInstance()->ShouldDrawEditorUi();
@@ -229,14 +231,29 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
+	///				　			終了処理
+	/// -------------------------------------------------------------
+	void GameApplication::Finalize()
+	{
+		// シーンマネージャーの終了処理
+		SceneManager::GetInstance()->Finalize();
+
+		// 基底クラスの終了処理
+		Framework::Finalize();
+	}
+
+	/// -------------------------------------------------------------
 	///						ゲーム本編3D描画の共通処理
 	/// -------------------------------------------------------------
 	void GameApplication::DrawCurrentScene3DPass()
 	{
-		// Scene 3D -> Debug Wireframe -> GPU Particle -> Particleの順をDebug/Releaseで固定する。
+		// Scene 3D -> Debug Wireframe -> GPU Particle -> CPU Particle の順を Debug / Release で固定する。
 		Object3DCommon::GetInstance()->BeginObject3DPass();
+
+		// 現在シーンが持つ通常の3Dモデルを最初に描画する。
 		SceneManager::GetInstance()->Draw3DObjects();
 
+		// デバッグ表示、GPUパーティクル、CPUパーティクルをモデル描画後に重ねる。
 		Wireframe::GetInstance()->Draw();
 		GpuParticleManager::GetInstance()->Draw();
 		ParticleManager::GetInstance()->Draw();
@@ -247,42 +264,37 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void GameApplication::DrawCurrentScene2DOverlay()
 	{
-		// GamePlayScene::Draw2DSprites() 内で HUDManager/Reticle/Ammo/HP/Fade まで描画する。
+		// GamePlayScene::Draw2DSprites() 内で HUDManager / Reticle / Ammo / HP / Fade まで描画する。
 		SceneManager::GetInstance()->Draw2DSprites();
 	}
 
+	/// -------------------------------------------------------------
+	///						SceneRenderTargetへのゲーム本編描画処理
+	/// -------------------------------------------------------------
 	void GameApplication::DrawGameWorldToSceneTarget()
 	{
-		// Debug/ReleaseともSceneRenderTargetへ3D World + Particleを描画し、PostEffect入力を必ず作る。
+		// Debug / Release とも SceneRenderTarget へ 3D World + Particle を描画し、PostEffect 入力を必ず作る。
 		PostEffectManager::GetInstance()->BeginDraw();
 		DrawCurrentScene3DPass();
 		PostEffectManager::GetInstance()->EndDraw();
 	}
 
+	/// -------------------------------------------------------------
+	///						BackBufferへのポストエフェクト反映処理
+	/// -------------------------------------------------------------
 	void GameApplication::ApplyPostEffectToBackBuffer()
 	{
-		// SceneRenderTargetを入力にしたPostEffect結果をBackBufferへ出力する。
+		// SceneRenderTarget を入力にした PostEffect 結果を BackBuffer へ出力する。
 		PostEffectManager::GetInstance()->RenderPostEffectToBackBuffer();
 	}
 
+	/// -------------------------------------------------------------
+	///						BackBufferへのUI描画処理
+	/// -------------------------------------------------------------
 	void GameApplication::DrawGameUIToBackBuffer()
 	{
-		// HUD/UI/Sprite/FontはPostEffect後のBackBufferへ直接描画する。
+		// HUD / UI / Sprite / Font は PostEffect 後の BackBuffer へ直接描画する。
 		DrawCurrentScene2DOverlay();
-	}
-
-
-
-	/// -------------------------------------------------------------
-	///				　			終了処理
-	/// -------------------------------------------------------------
-	void GameApplication::Finalize()
-	{
-		// シーンマネージャーの終了処理
-		SceneManager::GetInstance()->Finalize();
-
-		// 基底クラスの終了処理
-		Framework::Finalize();
 	}
 
 } // namespace Ken4lowEngine

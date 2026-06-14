@@ -1,43 +1,42 @@
 #include "ParticleTransform.h"
-#include <DirectXCommon.h>
 
 namespace Ken4lowEngine
 {
 
-/// -------------------------------------------------------------
-///				パーティクル用の座標変換データクラス
-/// -------------------------------------------------------------
-void ParticleTransform::UpdateMatrix(const Matrix4x4& viewProjection, bool useBillboard, const Matrix4x4& billboardMatrix)
-{
-	// 行列構築
-	if (useBillboard) // ビルボード変換を使用する場合
+	/// -------------------------------------------------------------
+	///				パーティクル用の行列更新処理
+	/// -------------------------------------------------------------
+	void ParticleTransform::UpdateMatrix(const Matrix4x4& viewProjection, bool useBillboard, const Matrix4x4& billboardMatrix)
 	{
-		// Z軸回転のみ行列を作成
-		Matrix4x4 rotZMat = Matrix4x4::MakeRotateZMatrix(rotate_.z);
+		// 描画方式に応じて、通常のアフィン変換かビルボード変換のどちらかで World 行列を構築する。
+		if (useBillboard) // ビルボード変換を使用する場合
+		{
+			// ビルボードはカメラ方向を向くため、個別回転は見た目調整用の Z 軸回転だけを残す。
+			Matrix4x4 rotZMat = Matrix4x4::MakeRotateZMatrix(rotate_.z);
 
-		// スケール
-		Matrix4x4 scaleMat = Matrix4x4::MakeScaleMatrix(scale_);
+			// パーティクルごとの大きさを反映する。
+			Matrix4x4 scaleMat = Matrix4x4::MakeScaleMatrix(scale_);
 
-		// 平面に向けたビルボードの基底を作成
-		Matrix4x4 facingMat = billboardMatrix;
+			// カメラ正面を向くための基底行列を受け取って使用する。
+			Matrix4x4 facingMat = billboardMatrix;
 
-		// Z 回転は facingMat の上に乗せる（ローカル回転として合成）
-		Matrix4x4 combinedRot = Matrix4x4::Multiply(rotZMat, facingMat); // ←ここが重要
+			// カメラ向きの回転にローカル Z 回転を合成し、板ポリの傾きだけを個別に変えられるようにする。
+			Matrix4x4 combinedRot = Matrix4x4::Multiply(rotZMat, facingMat);
 
-		// 平行移動
-		Matrix4x4 transMat = Matrix4x4::MakeTranslateMatrix(translate_);
+			// パーティクルをワールド上の発生位置へ移動する。
+			Matrix4x4 transMat = Matrix4x4::MakeTranslateMatrix(translate_);
 
-		// 合成：scale → rotation → translation
-		worldMatrix_ = Matrix4x4::Multiply(Matrix4x4::Multiply(scaleMat, combinedRot), transMat);
+			// 合成順は scale → rotation → translation。順番を変えると拡大や回転の基準がずれる。
+			worldMatrix_ = Matrix4x4::Multiply(Matrix4x4::Multiply(scaleMat, combinedRot), transMat);
+		}
+		else // 通常の変換
+		{
+			// メッシュ風に XYZ 回転をそのまま使う通常のアフィン変換行列を作成する。
+			worldMatrix_ = Matrix4x4::MakeAffineMatrix(scale_, rotate_, translate_);
+		}
+
+		// シェーダーへ渡すため、World と ViewProjection を合成した WVP 行列を更新する。
+		wvpMatrix_ = Matrix4x4::Multiply(worldMatrix_, viewProjection);
 	}
-	else // 通常の変換
-	{
-		// 通常のアフィン変換行列を作成
-		worldMatrix_ = Matrix4x4::MakeAffineMatrix(scale_, rotate_, translate_);
-	}
-
-	// WVP更新
-	wvpMatrix_ = Matrix4x4::Multiply(worldMatrix_, viewProjection);
-}
 
 } // namespace Ken4lowEngine

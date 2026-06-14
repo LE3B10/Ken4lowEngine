@@ -45,7 +45,7 @@ namespace Ken4lowEngine
 		// ゲームループ
 		while (!winApp_->ProcessMessage())// 終了リクエストが来たら抜ける
 		{
-			// Alt+Enter トグル（要求が来たらDisplaySettingsを作って予約）
+			// Alt+Enter の入力要求を検知し、現在の表示モードに応じて次の表示設定を組み立てる。
 			if (winApp_->ConsumeToggleFullscreen())
 			{
 				DisplaySettings cur = winApp_->GetCurrentDisplaySettings();
@@ -53,13 +53,13 @@ namespace Ken4lowEngine
 
 				if (cur.mode == WindowMode::Windowed)
 				{
-					// Windowed→Borderless（戻すためにWindowed設定を保存）
+					// Windowed→Borderless に切り替える前に、戻し先となるウィンドウ設定を保存しておく。
 					winApp_->RememberWindowedSettings(cur);
 					next.mode = WindowMode::BorderlessFullscreen;
 				}
 				else
 				{
-					// Borderless→Windowed（最後のWindowedへ戻す）
+					// Borderless→Windowed では、最後に使っていたウィンドウサイズと位置へ戻す。
 					next = winApp_->GetLastWindowedSettingsOrDefault();
 					next.mode = WindowMode::Windowed;
 				}
@@ -67,16 +67,16 @@ namespace Ken4lowEngine
 				winApp_->RequestDisplaySettings(next);
 			}
 
-			// 画面設定の変更処理用構造体
+			// WinApp 側で予約された表示設定を受け取るための一時データ。
 			DisplaySettings ds;
 
-			// 画面設定の変更要求があれば処理
+			// 表示設定の変更要求がある場合のみ、実際にウィンドウへ適用する。
 			if (winApp_->ConsumeDisplaySettings(ds))
 			{
 				winApp_->ApplyDisplaySettings(ds);
 			}
 
-			// リサイズ要求があれば処理
+			// OS ウィンドウのリサイズ要求を検知し、描画バッファとUI基準解像度を同期する。
 			uint32_t newWidth = 0;
 			uint32_t newHeight = 0;
 
@@ -92,10 +92,10 @@ namespace Ken4lowEngine
 				}
 			}
 
-			// 毎フレーム更新
+			// 入力・シーン・各種マネージャなどのゲーム状態を1フレーム進める。
 			Update();
 
-			// 描画
+			// 更新済みの状態をもとに、3D / 2D / UI を描画する。
 			Draw();
 		}
 
@@ -163,8 +163,8 @@ namespace Ken4lowEngine
 
 		// デフォルトカメラの生成と初期化
 		defaultCamera_ = std::make_unique<Camera>();
-		defaultCamera_->SetRotate({ 0.3f,0.0f,0.0f });
-		defaultCamera_->SetTranslate({ 0.0f,10.0f,-20.0f });
+		defaultCamera_->SetRotate({ 0.3f, 0.0f, 0.0f });
+		defaultCamera_->SetTranslate({ 0.0f, 10.0f, -20.0f });
 		// CameraのProjectionも現在解像度のAspectへ合わせ、レイ判定と見た目のズレを防ぐ。
 		defaultCamera_->SetAspectRatio(ResolutionManager::GetInstance()->GetAspectRatio());
 		defaultCamera_->Update();
