@@ -11,6 +11,8 @@
 
 namespace
 {
+	constexpr size_t kMaxEventLogCount = 20u;
+
 	const char* ToResponseName(K4E::CollisionResponseType response)
 	{
 		switch (response)
@@ -63,12 +65,23 @@ namespace
 }
 
 /// -------------------------------------------------------------
+///							破棄処理
+/// -------------------------------------------------------------
+PhysicsDebugController::~PhysicsDebugController()
+{
+	// 破棄済みポインタ参照を防ぐため、PhysicsWorldからDebug用リスナー登録を解除する。
+	physicsWorld_.RemovePhysicsEventListener(this);
+}
+
+/// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
 void PhysicsDebugController::Initialize()
 {
 	// DebugScene内だけで使うRigidbodyとColliderをPhysicsWorldへ登録する。
 	physicsWorld_.RegisterRigidbody(&dynamicRigidbody_);
+	// DebugScene専用の物理イベント確認のため、PhysicsDebugController自身をリスナー登録する。
+	physicsWorld_.AddPhysicsEventListener(this);
 	staticRigidbody_.SetBodyType(K4E::BodyType::Static);
 	staticCollider_.SetRigidbody(&staticRigidbody_);
 	dynamicCollider_.SetRigidbody(&dynamicRigidbody_);
@@ -115,9 +128,20 @@ void PhysicsDebugController::Draw()
 {
 	// Dynamic/Staticの確認形状をワイヤー表示し、Contact normalも視覚化する。
 	K4E::Wireframe* wireframe = K4E::Wireframe::GetInstance();
-	wireframe->DrawSphere(dynamicPosition_, 0.35f, { 0.2f, 0.9f, 1.0f, 1.0f });
+
+	K4E::Vector4 dynamicColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+	if (isCollisionTouching_)
+	{
+		dynamicColor = { 1.0f, 0.15f, 0.1f, 1.0f };
+	}
+	else if (isTriggerTouching_)
+	{
+		dynamicColor = { 1.0f, 0.9f, 0.1f, 1.0f };
+	}
+
+	wireframe->DrawSphere(dynamicPosition_, 0.35f, dynamicColor);
 	wireframe->DrawAABB(staticCollider_.GetAABB(), { 1.0f, 0.8f, 0.15f, 1.0f });
-	wireframe->DrawAABB(dynamicCollider_.GetAABB(), { 0.2f, 0.9f, 1.0f, 1.0f });
+	wireframe->DrawAABB(dynamicCollider_.GetAABB(), dynamicColor);
 
 	const std::vector<K4E::Contact>& contacts = physicsWorld_.GetContacts();
 	if (!contacts.empty())
@@ -299,6 +323,25 @@ void PhysicsDebugController::DrawImGui()
 				ImGui::Text("isTrigger: %s", event.isTrigger ? "true" : "false");
 			}
 		}
+
+		if (ImGui::CollapsingHeader("Physics Event Reaction", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			// PhysicsWorldのリスナー通知に反応したDebugScene専用状態を表示する。
+			ImGui::Text("Trigger Touching: %s", isTriggerTouching_ ? "true" : "false");
+			ImGui::Text("Collision Touching: %s", isCollisionTouching_ ? "true" : "false");
+			ImGui::Text("Trigger Enter / Stay / Exit Count: %d / %d / %d", triggerEnterCount_, triggerStayCount_, triggerExitCount_);
+			ImGui::Text("Collision Enter / Stay / Exit Count: %d / %d / %d", collisionEnterCount_, collisionStayCount_, collisionExitCount_);
+			if (ImGui::Button("Clear Event Logs"))
+			{
+				ClearEventReactionState();
+			}
+
+			ImGui::Text("Latest Event Logs");
+			for (const std::string& log : eventLogs_)
+			{
+				ImGui::BulletText("%s", log.c_str());
+			}
+		}
 	}
 	ImGui::End();
 #endif // USE_IMGUI
@@ -362,4 +405,78 @@ void PhysicsDebugController::ApplyResponseSetting()
 		static_cast<uint32_t>(dynamicLayer_),
 		static_cast<uint32_t>(staticLayer_),
 		ToResponseType(responseTypeIndex_));
+}
+
+/// -------------------------------------------------------------
+///						物理イベント通知処理
+/// -------------------------------------------------------------
+void PhysicsDebugController::OnPhysicsEvent(const K4E::PhysicsEvent& event)
+{
+	// PhysicsWorldから届いたイベントをDebugScene上の確認用状態へ反映する。
+	switch (event.type)
+	{
+	case K4E::PhysicsEventType::TriggerEnter:
+		isTriggerTouching_ = true;
+		++triggerEnterCount_;
+		break;
+	case K4E::PhysicsEventType::TriggerStay:
+		++triggerStayCount_;
+		break;
+	case K4E::PhysicsEventType::TriggerExit:
+		isTriggerTouching_ = false;
+		++triggerExitCount_;
+		break;
+	case K4E::PhysicsEventType::CollisionEnter:
+		isCollisionTouching_ = true;
+		++collisionEnterCount_;
+		break;
+	case K4E::PhysicsEventType::CollisionStay:
+		++collisionStayCount_;
+		break;
+	case K4E::PhysicsEventType::CollisionExit:
+		isCollisionTouching_ = false;
+		++collisionExitCount_;
+		break;
+	default:
+		break;
+	}
+
+	AddEventLog(event);
+}
+
+/// -------------------------------------------------------------
+///						イベント反応状態クリア
+/// -------------------------------------------------------------
+void PhysicsDebugController::ClearEventReactionState()
+{
+	// Debug確認をやり直せるよう、イベント由来の表示状態とカウントをまとめて初期化する。
+	isTriggerTouching_ = false;
+	isCollisionTouching_ = false;
+	triggerEnterCount_ = 0;
+	triggerStayCount_ = 0;
+	triggerExitCount_ = 0;
+	collisionEnterCount_ = 0;
+	collisionStayCount_ = 0;
+	collisionExitCount_ = 0;
+	eventLogs_.clear();
+}
+
+/// -------------------------------------------------------------
+///						イベントログ追加
+/// -------------------------------------------------------------
+void PhysicsDebugController::AddEventLog(const K4E::PhysicsEvent& event)
+{
+	// 最新イベントを先頭へ積み、Debug表示用ログが増え続けないよう最大件数で切る。
+	std::string log = ToPhysicsEventName(event.type);
+	log += event.isTrigger ? " | Trigger" : " | Collision";
+	log += " | A:";
+	log += event.colliderA == &dynamicCollider_ ? "Dynamic" : event.colliderA == &staticCollider_ ? "Static" : "Unknown";
+	log += " B:";
+	log += event.colliderB == &dynamicCollider_ ? "Dynamic" : event.colliderB == &staticCollider_ ? "Static" : "Unknown";
+
+	eventLogs_.insert(eventLogs_.begin(), log);
+	if (eventLogs_.size() > kMaxEventLogCount)
+	{
+		eventLogs_.resize(kMaxEventLogCount);
+	}
 }

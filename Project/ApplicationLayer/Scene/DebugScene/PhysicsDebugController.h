@@ -1,17 +1,24 @@
 #pragma once
 #include "Collider.h"
+#include "Engine/Physics/Event/IPhysicsEventListener.h"
 #include "PhysicsWorld.h"
 #include "Rigidbody.h"
 #include "Vector3.h"
+
+#include <string>
+#include <vector>
 
 namespace K4E = ::Ken4lowEngine;
 
 /// -------------------------------------------------------------
 ///					DebugScene用 物理確認コントローラ
 /// -------------------------------------------------------------
-class PhysicsDebugController
+class PhysicsDebugController : public K4E::IPhysicsEventListener
 {
 public: /// ---------- メンバ関数 ---------- ///
+
+	// 破棄時にPhysicsWorldからイベントリスナー登録を解除する。
+	~PhysicsDebugController() override;
 
 	// DebugScene専用の物理テストを初期化する。
 	void Initialize();
@@ -28,6 +35,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// テスト用のDynamic/Staticオブジェクトを初期状態に戻す。
 	void ResetTestObjects();
 
+	// PhysicsWorldから届いたイベントをDebugScene上の確認用状態へ反映する。
+	void OnPhysicsEvent(const K4E::PhysicsEvent& event) override;
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// テスト用Colliderへ現在の位置と形状を同期する。
@@ -35,6 +45,12 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// DebugScene上で確認するCollisionLayer応答をPhysicsWorldへ適用する。
 	void ApplyResponseSetting();
+
+	// イベント反応確認用の状態とログを初期化する。
+	void ClearEventReactionState();
+
+	// 最新イベントログを保存し、表示件数が増えすぎないように制限する。
+	void AddEventLog(const K4E::PhysicsEvent& event);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -68,4 +84,14 @@ private: /// ---------- メンバ変数 ---------- ///
 	int dynamicLayer_ = 1; // Dynamic側ColliderのCollisionLayer
 	int staticLayer_ = 0; // Static側ColliderのCollisionLayer
 	int responseTypeIndex_ = 2; // Debug確認用Response選択。0:Ignore, 1:Trigger, 2:Block
+
+	bool isTriggerTouching_ = false; // Trigger接触中か
+	bool isCollisionTouching_ = false; // Block接触中か
+	int triggerEnterCount_ = 0; // TriggerEnter通知回数
+	int triggerStayCount_ = 0; // TriggerStay通知回数
+	int triggerExitCount_ = 0; // TriggerExit通知回数
+	int collisionEnterCount_ = 0; // CollisionEnter通知回数
+	int collisionStayCount_ = 0; // CollisionStay通知回数
+	int collisionExitCount_ = 0; // CollisionExit通知回数
+	std::vector<std::string> eventLogs_{}; // Debug表示用の最新イベントログ
 };
