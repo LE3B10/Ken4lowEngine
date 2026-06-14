@@ -46,10 +46,17 @@ namespace Ken4lowEngine
 		void SetPositionSolveEnabled(bool enabled) { positionSolveEnabled_ = enabled; }
 		bool IsPositionSolveEnabled() const { return positionSolveEnabled_; }
 
+		// 摩擦ソルバーの有効状態を設定する。
+		void SetFrictionSolveEnabled(bool enabled) { frictionSolveEnabled_ = enabled; }
+		bool IsFrictionSolveEnabled() const { return frictionSolveEnabled_; }
+
 	private: /// ---------- メンバ関数 ---------- ///
 
 		// Rigidbodyの接地などのフレーム状態をリセットする。
 		void ClearRigidbodyFrameState();
+
+		// RigidbodyのSleep状態を更新する。
+		void UpdateRigidbodySleepState(float deltaTime);
 
 		// Contact normalから床接触状態を更新する。
 		void UpdateGroundedState(const Contact& contact) const;
@@ -73,6 +80,9 @@ namespace Ken4lowEngine
 
 		// Contact解決で位置補正を行うか。DebugSceneからON/OFFを切り替える。
 		bool positionSolveEnabled_ = true;
+
+		// Contact解決で摩擦補正を行うか。DebugSceneからON/OFFを切り替える。
+		bool frictionSolveEnabled_ = true;
 	};
 
 } // namespace Ken4lowEngine

@@ -39,6 +39,91 @@ namespace Ken4lowEngine
 		restitution_ = std::clamp(restitution, 0.0f, 1.0f);
 	}
 
+	void Rigidbody::SetStaticFriction(float staticFriction)
+	{
+		// 摩擦係数は負値を許容せず、将来の静止摩擦応答でそのまま使える値にする。
+		staticFriction_ = std::max(staticFriction, 0.0f);
+	}
+
+	void Rigidbody::SetDynamicFriction(float dynamicFriction)
+	{
+		// 動摩擦係数は負値を許容せず、接触面方向の減速量として扱う。
+		dynamicFriction_ = std::max(dynamicFriction, 0.0f);
+	}
+
+	void Rigidbody::SetSleepEnabled(bool enabled)
+	{
+		// Sleep無効時は即座に起こし、以降のSleep判定も止める。
+		sleepEnabled_ = enabled;
+		if (!sleepEnabled_)
+		{
+			WakeUp();
+		}
+	}
+
+	void Rigidbody::SetSleeping(bool isSleeping)
+	{
+		// Sleepへ入るときは速度と力を消し、次フレームへ微小な残りを持ち越さない。
+		isSleeping_ = sleepEnabled_ && isSleeping;
+		if (isSleeping_)
+		{
+			velocity_ = {};
+			force_ = {};
+			sleepTimer_ = sleepTimeThreshold_;
+		}
+		else
+		{
+			sleepTimer_ = 0.0f;
+		}
+	}
+
+	void Rigidbody::WakeUp()
+	{
+		// 外部入力や衝突応答で再び動かせるようにSleep状態を解除する。
+		isSleeping_ = false;
+		sleepTimer_ = 0.0f;
+	}
+
+	void Rigidbody::UpdateSleepState(float deltaTime)
+	{
+		// 停止状態が続いた物体をSleepへ移行する。Dynamic以外やSleep無効時は常に起きた状態にする。
+		if (!sleepEnabled_ || bodyType_ != BodyType::Dynamic)
+		{
+			WakeUp();
+			return;
+		}
+		if (isSleeping_)
+		{
+			return;
+		}
+
+		const float speedSquared = Vector3::LengthSquared(velocity_);
+		const float thresholdSquared = sleepSpeedThreshold_ * sleepSpeedThreshold_;
+		if (speedSquared <= thresholdSquared)
+		{
+			sleepTimer_ += std::max(deltaTime, 0.0f);
+			if (sleepTimer_ >= sleepTimeThreshold_)
+			{
+				SetSleeping(true);
+			}
+			return;
+		}
+
+		sleepTimer_ = 0.0f;
+	}
+
+	void Rigidbody::SetSleepSpeedThreshold(float threshold)
+	{
+		// Sleep判定の速度閾値は負値にせず、UIからの調整を安全に受ける。
+		sleepSpeedThreshold_ = std::max(threshold, 0.0f);
+	}
+
+	void Rigidbody::SetSleepTimeThreshold(float threshold)
+	{
+		// Sleep判定の時間閾値は負値にせず、即Sleepしたい場合は0.0を許容する。
+		sleepTimeThreshold_ = std::max(threshold, 0.0f);
+	}
+
 	void Rigidbody::ClearFrameState()
 	{
 		// 接地などの接触由来の状態は、PhysicsWorldのContactから毎フレーム作り直す。
@@ -54,6 +139,10 @@ namespace Ken4lowEngine
 		}
 
 		force_ += force;
+		if (Vector3::LengthSquared(force) > 0.0f)
+		{
+			WakeUp();
+		}
 	}
 
 	void Rigidbody::ClearForces()
@@ -66,6 +155,10 @@ namespace Ken4lowEngine
 	{
 		// Static/Kinematicは速度を持たせず、将来の応答対象からも外しやすくする。
 		velocity_ = (bodyType_ == BodyType::Static || bodyType_ == BodyType::Kinematic) ? Vector3{} : velocity;
+		if (Vector3::LengthSquared(velocity_) > 0.0f)
+		{
+			WakeUp();
+		}
 	}
 
 	Vector3 Rigidbody::GetVelocity() const
@@ -76,8 +169,8 @@ namespace Ken4lowEngine
 
 	void Rigidbody::Integrate(float deltaTime)
 	{
-		// 不正な時間やDynamic以外のBodyは速度積分を行わない。
-		if (deltaTime <= 0.0f || bodyType_ != BodyType::Dynamic)
+		// 不正な時間、Dynamic以外、Sleep中のBodyは速度積分を行わない。
+		if (deltaTime <= 0.0f || bodyType_ != BodyType::Dynamic || isSleeping_)
 		{
 			force_ = {};
 			return;

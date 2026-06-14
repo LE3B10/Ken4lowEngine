@@ -46,13 +46,20 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 staticPosition_{}; // Static側の現在位置
 	K4E::Vector3 dynamicInitialPosition_{ 0.0f, 4.0f, 0.0f }; // Dynamic側の初期位置
 	K4E::Vector3 staticInitialPosition_{ 0.0f, -0.5f, 0.0f }; // Static側の初期位置
-	K4E::Vector3 dynamicInitialVelocity_{ 0.0f, 0.0f, 0.0f }; // Dynamic側の初期速度
+	K4E::Vector3 dynamicInitialVelocity_{ 3.0f, 0.0f, 0.0f }; // Dynamic側の初期速度
 	K4E::Vector3 dynamicHalfSize_{ 0.75f, 0.75f, 0.75f }; // Dynamic側のAABB半サイズ
 	K4E::Vector3 staticHalfSize_{ 5.0f, 0.5f, 5.0f }; // Static側のAABB半サイズ
 
 	bool enablePhysicsStep_ = true; // PhysicsWorld::Stepを進めるか
 	bool enableResolve_ = true; // Contactによる位置/速度補正を行うか
+	bool enableFriction_ = true; // Contactによる摩擦補正を行うか
+	bool enableSleep_ = true; // Sleep状態への移行を有効にするか
 	bool useGravity_ = true; // Dynamic側へ重力を適用するか
 	float mass_ = 1.0f; // Dynamic側の質量
 	float restitution_ = 0.0f; // Dynamic側の反発係数
+	float staticFriction_ = 0.5f; // Dynamic側の静止摩擦係数
+	float dynamicFriction_ = 0.2f; // Dynamic側の動摩擦係数
+	float sleepSpeedThreshold_ = 0.05f; // Sleep判定用の速度閾値
+	float sleepTimeThreshold_ = 0.5f; // Sleep判定用の時間閾値
+	float initialHorizontalSpeed_ = 3.0f; // Reset時に与える横方向初速
 };

@@ -574,6 +574,9 @@
     <ClCompile Include="Engine\Physics\Core\Rigidbody.cpp">
       <Filter>Engine\Physics\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Physics\Solver\FrictionSolver.cpp">
+      <Filter>Engine\Physics\Solver</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Physics\Solver\PositionSolver.cpp">
       <Filter>Engine\Physics\Solver</Filter>
     </ClCompile>
@@ -1559,6 +1562,9 @@
     </ClInclude>
     <ClInclude Include="Engine\Physics\Core\Rigidbody.h">
       <Filter>Engine\Physics\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Solver\FrictionSolver.h">
+      <Filter>Engine\Physics\Solver</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Physics\Solver\PositionSolver.h">
       <Filter>Engine\Physics\Solver</Filter>

@@ -2,6 +2,7 @@
 
 #include "Collider.h"
 #include "CollisionUtility.h"
+#include "Engine/Physics/Solver/FrictionSolver.h"
 #include "Engine/Physics/Solver/PositionSolver.h"
 #include "Engine/Physics/Solver/VelocitySolver.h"
 #include "Rigidbody.h"
@@ -79,6 +80,7 @@ namespace Ken4lowEngine
 		IntegrateBodies(deltaTime);
 		DetectCollisions();
 		ResolveContacts();
+		UpdateRigidbodySleepState(deltaTime);
 	}
 
 	void PhysicsWorld::IntegrateBodies(float deltaTime)
@@ -124,14 +126,19 @@ namespace Ken4lowEngine
 	{
 		PositionSolver positionSolver{};
 		VelocitySolver velocitySolver{};
+		FrictionSolver frictionSolver{};
 
-		// Contactごとに位置補正、速度補正、接地状態更新を行い、応答分離の入口を保つ。
+		// Contactごとに位置補正、速度補正、摩擦補正、接地状態更新を行い、応答分離の入口を保つ。
 		for (Contact& contact : contacts_)
 		{
 			if (positionSolveEnabled_)
 			{
 				positionSolver.Resolve(contact);
 				velocitySolver.Resolve(contact);
+			}
+			if (frictionSolveEnabled_)
+			{
+				frictionSolver.Resolve(contact);
 			}
 			UpdateGroundedState(contact);
 		}
@@ -145,6 +152,18 @@ namespace Ken4lowEngine
 			if (rigidbody)
 			{
 				rigidbody->ClearFrameState();
+			}
+		}
+	}
+
+	void PhysicsWorld::UpdateRigidbodySleepState(float deltaTime)
+	{
+		// Step末尾で各Rigidbodyの停止継続時間を評価し、不要な積分を抑えられるようにする。
+		for (Rigidbody* rigidbody : rigidbodies_)
+		{
+			if (rigidbody)
+			{
+				rigidbody->UpdateSleepState(deltaTime);
 			}
 		}
 	}

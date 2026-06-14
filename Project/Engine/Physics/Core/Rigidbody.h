@@ -28,9 +28,40 @@ namespace Ken4lowEngine
 		void SetRestitution(float restitution);
 		float GetRestitution() const { return restitution_; }
 
+		// 静止摩擦係数を設定する。現段階では値保持を行い、将来の応答拡張に備える。
+		void SetStaticFriction(float staticFriction);
+		float GetStaticFriction() const { return staticFriction_; }
+
+		// 動摩擦係数を設定する。接触面に沿った速度減衰に使用する。
+		void SetDynamicFriction(float dynamicFriction);
+		float GetDynamicFriction() const { return dynamicFriction_; }
+
 		// 接地状態を設定する。PhysicsWorldのContact解決時に毎フレーム再計算される。
 		void SetGrounded(bool isGrounded) { isGrounded_ = isGrounded; }
 		bool IsGrounded() const { return isGrounded_; }
+
+		// Sleep機能の有効状態を設定する。
+		void SetSleepEnabled(bool enabled);
+		bool IsSleepEnabled() const { return sleepEnabled_; }
+
+		// Sleep状態を設定する。
+		void SetSleeping(bool isSleeping);
+		bool IsSleeping() const { return isSleeping_; }
+
+		// 外力や速度変更に備えてSleep状態から復帰する。
+		void WakeUp();
+
+		// 停止状態が続いた場合にSleep状態へ移行する。
+		void UpdateSleepState(float deltaTime);
+
+		// Sleep判定用の速度閾値を設定する。
+		void SetSleepSpeedThreshold(float threshold);
+		float GetSleepSpeedThreshold() const { return sleepSpeedThreshold_; }
+
+		// Sleep判定用の継続時間閾値を設定する。
+		void SetSleepTimeThreshold(float threshold);
+		float GetSleepTimeThreshold() const { return sleepTimeThreshold_; }
+		float GetSleepTimer() const { return sleepTimer_; }
 
 		// Contactから再計算されるフレーム状態をクリアする。
 		void ClearFrameState();
@@ -68,11 +99,22 @@ namespace Ken4lowEngine
 		// 接触時の反発係数。
 		float restitution_ = 0.0f;
 
+		// 摩擦係数。
+		float staticFriction_ = 0.5f;
+		float dynamicFriction_ = 0.2f;
+
 		// 重力を速度へ反映するか。
 		bool useGravity_ = false;
 
 		// このフレームで床に接触しているか。
 		bool isGrounded_ = false;
+
+		// Sleep状態と判定用タイマー。
+		bool sleepEnabled_ = true;
+		bool isSleeping_ = false;
+		float sleepTimer_ = 0.0f;
+		float sleepSpeedThreshold_ = 0.05f;
+		float sleepTimeThreshold_ = 0.5f;
 	};
 
 } // namespace Ken4lowEngine

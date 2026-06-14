@@ -31,7 +31,13 @@ void PhysicsDebugController::Update(float deltaTime)
 	dynamicRigidbody_.SetUseGravity(useGravity_);
 	dynamicRigidbody_.SetMass(mass_);
 	dynamicRigidbody_.SetRestitution(restitution_);
+	dynamicRigidbody_.SetStaticFriction(staticFriction_);
+	dynamicRigidbody_.SetDynamicFriction(dynamicFriction_);
+	dynamicRigidbody_.SetSleepEnabled(enableSleep_);
+	dynamicRigidbody_.SetSleepSpeedThreshold(sleepSpeedThreshold_);
+	dynamicRigidbody_.SetSleepTimeThreshold(sleepTimeThreshold_);
 	physicsWorld_.SetPositionSolveEnabled(enableResolve_);
+	physicsWorld_.SetFrictionSolveEnabled(enableFriction_);
 
 	if (!enablePhysicsStep_)
 	{
@@ -85,9 +91,19 @@ void PhysicsDebugController::DrawImGui()
 			{
 				physicsWorld_.SetPositionSolveEnabled(enableResolve_);
 			}
+			if (ImGui::Checkbox("Enable Friction", &enableFriction_))
+			{
+				physicsWorld_.SetFrictionSolveEnabled(enableFriction_);
+			}
+			if (ImGui::Checkbox("Enable Sleep", &enableSleep_))
+			{
+				dynamicRigidbody_.SetSleepEnabled(enableSleep_);
+			}
 			ImGui::Text("Dynamic Position: %.3f, %.3f, %.3f", dynamicPosition_.x, dynamicPosition_.y, dynamicPosition_.z);
 			ImGui::Text("Dynamic Velocity: %.3f, %.3f, %.3f", velocity.x, velocity.y, velocity.z);
 			ImGui::Text("IsGrounded: %s", dynamicRigidbody_.IsGrounded() ? "true" : "false");
+			ImGui::Text("Is Sleeping: %s", dynamicRigidbody_.IsSleeping() ? "true" : "false");
+			ImGui::Text("Sleep Timer: %.3f", dynamicRigidbody_.GetSleepTimer());
 			if (ImGui::Checkbox("UseGravity", &useGravity_))
 			{
 				dynamicRigidbody_.SetUseGravity(useGravity_);
@@ -101,8 +117,33 @@ void PhysicsDebugController::DrawImGui()
 				dynamicRigidbody_.SetRestitution(restitution_);
 				restitution_ = dynamicRigidbody_.GetRestitution();
 			}
+			if (ImGui::DragFloat("Static Friction", &staticFriction_, 0.01f, 0.0f, 10.0f))
+			{
+				dynamicRigidbody_.SetStaticFriction(staticFriction_);
+				staticFriction_ = dynamicRigidbody_.GetStaticFriction();
+			}
+			if (ImGui::DragFloat("Dynamic Friction", &dynamicFriction_, 0.01f, 0.0f, 10.0f))
+			{
+				dynamicRigidbody_.SetDynamicFriction(dynamicFriction_);
+				dynamicFriction_ = dynamicRigidbody_.GetDynamicFriction();
+			}
+			if (ImGui::DragFloat("Sleep Speed Threshold", &sleepSpeedThreshold_, 0.01f, 0.0f, 10.0f))
+			{
+				dynamicRigidbody_.SetSleepSpeedThreshold(sleepSpeedThreshold_);
+				sleepSpeedThreshold_ = dynamicRigidbody_.GetSleepSpeedThreshold();
+			}
+			if (ImGui::DragFloat("Sleep Time Threshold", &sleepTimeThreshold_, 0.01f, 0.0f, 10.0f))
+			{
+				dynamicRigidbody_.SetSleepTimeThreshold(sleepTimeThreshold_);
+				sleepTimeThreshold_ = dynamicRigidbody_.GetSleepTimeThreshold();
+			}
+			if (ImGui::DragFloat("Initial Horizontal Speed", &initialHorizontalSpeed_, 0.05f, -20.0f, 20.0f))
+			{
+				dynamicInitialVelocity_.x = initialHorizontalSpeed_;
+			}
 			if (ImGui::DragFloat3("Dynamic Position", &dynamicPosition_.x, 0.05f))
 			{
+				dynamicRigidbody_.WakeUp();
 				UpdateTestColliders();
 			}
 			if (ImGui::DragFloat3("Static Position", &staticPosition_.x, 0.05f))
@@ -129,6 +170,11 @@ void PhysicsDebugController::DrawImGui()
 			{
 				ResetTestObjects();
 			}
+			ImGui::SameLine();
+			if (ImGui::Button("Wake Up"))
+			{
+				dynamicRigidbody_.WakeUp();
+			}
 		}
 	}
 	ImGui::End();
@@ -143,14 +189,21 @@ void PhysicsDebugController::ResetTestObjects()
 	// DynamicとStaticの位置、速度、蓄積力を初期値へ戻し、同じ条件で再確認できるようにする。
 	dynamicPosition_ = dynamicInitialPosition_;
 	staticPosition_ = staticInitialPosition_;
+	dynamicInitialVelocity_.x = initialHorizontalSpeed_;
 	dynamicRigidbody_.SetBodyType(K4E::BodyType::Dynamic);
 	dynamicRigidbody_.SetMass(mass_);
 	dynamicRigidbody_.SetUseGravity(useGravity_);
 	dynamicRigidbody_.SetRestitution(restitution_);
+	dynamicRigidbody_.SetStaticFriction(staticFriction_);
+	dynamicRigidbody_.SetDynamicFriction(dynamicFriction_);
+	dynamicRigidbody_.SetSleepEnabled(enableSleep_);
+	dynamicRigidbody_.SetSleepSpeedThreshold(sleepSpeedThreshold_);
+	dynamicRigidbody_.SetSleepTimeThreshold(sleepTimeThreshold_);
 	dynamicRigidbody_.SetVelocity(dynamicInitialVelocity_);
 	dynamicRigidbody_.ClearForces();
 	dynamicRigidbody_.ClearFrameState();
 	physicsWorld_.SetPositionSolveEnabled(enableResolve_);
+	physicsWorld_.SetFrictionSolveEnabled(enableFriction_);
 	UpdateTestColliders();
 }
 

@@ -444,6 +444,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Physics\Collision\Core\WorldCollisionResolver.cpp" />
     <ClCompile Include="Engine\Physics\Core\PhysicsWorld.cpp" />
     <ClCompile Include="Engine\Physics\Core\Rigidbody.cpp" />
+    <ClCompile Include="Engine\Physics\Solver\FrictionSolver.cpp" />
     <ClCompile Include="Engine\Physics\Solver\PositionSolver.cpp" />
     <ClCompile Include="Engine\Physics\Solver\VelocitySolver.cpp" />
     <ClCompile Include="Engine\Platform\Windows\WinApp.cpp" />
@@ -1172,6 +1173,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Physics\Core\PhysicsTypes.h" />
     <ClInclude Include="Engine\Physics\Core\PhysicsWorld.h" />
     <ClInclude Include="Engine\Physics\Core\Rigidbody.h" />
+    <ClInclude Include="Engine\Physics\Solver\FrictionSolver.h" />
     <ClInclude Include="Engine\Physics\Solver\PositionSolver.h" />
     <ClInclude Include="Engine\Physics\Solver\VelocitySolver.h" />
     <ClInclude Include="Engine\Platform\Windows\DisplaySettings.h" />
