@@ -22,4 +22,14 @@ namespace Ken4lowEngine
 		Trigger,
 	};
 
+	/// -------------------------------------------------------------
+	///                         衝突応答種別
+	/// -------------------------------------------------------------
+	enum class CollisionResponseType : uint8_t
+	{
+		Ignore,
+		Trigger,
+		Block,
+	};
+
 } // namespace Ken4lowEngine

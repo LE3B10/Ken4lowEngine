@@ -440,6 +440,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Misc\Audio\MFAudioDecoder.cpp" />
     <ClCompile Include="Engine\Physics\Collision\Core\Collider.cpp" />
     <ClCompile Include="Engine\Physics\Collision\Core\CollisionUtility.cpp" />
+    <ClCompile Include="Engine\Physics\Collision\Core\CollisionResponseMatrix.cpp" />
     <ClCompile Include="Engine\Physics\Collision\Core\ContactRecord.cpp" />
     <ClCompile Include="Engine\Physics\Collision\Core\WorldCollisionResolver.cpp" />
     <ClCompile Include="Engine\Physics\Core\PhysicsWorld.cpp" />
@@ -1166,6 +1167,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Misc\Audio\MFAudioDecoder.h" />
     <ClInclude Include="Engine\Physics\Collision\Core\Collider.h" />
     <ClInclude Include="Engine\Physics\Collision\Core\CollisionUtility.h" />
+    <ClInclude Include="Engine\Physics\Collision\Core\CollisionResponseMatrix.h" />
     <ClInclude Include="Engine\Physics\Collision\Core\ContactRecord.h" />
     <ClInclude Include="Engine\Physics\Collision\Core\IDGenerator.h" />
     <ClInclude Include="Engine\Physics\Collision\Core\WorldCollisionResolver.h" />

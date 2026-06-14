@@ -1,5 +1,6 @@
 #pragma once
 #include "Contact.h"
+#include "Engine/Physics/Collision/Core/CollisionResponseMatrix.h"
 
 #include <vector>
 
@@ -72,6 +73,10 @@ namespace Ken4lowEngine
 		float GetAccumulator() const { return accumulator_; }
 		int GetLastSubStepCount() const { return lastSubStepCount_; }
 
+		// CollisionLayer同士の応答設定を取得する。
+		CollisionResponseMatrix& GetResponseMatrix() { return responseMatrix_; }
+		const CollisionResponseMatrix& GetResponseMatrix() const { return responseMatrix_; }
+
 	private: /// ---------- メンバ関数 ---------- ///
 
 		// Rigidbodyの接地などのフレーム状態をリセットする。
@@ -87,7 +92,7 @@ namespace Ken4lowEngine
 		bool TestCollisionPair(Collider* colliderA, Collider* colliderB) const;
 
 		// ColliderペアからContactを構築する。
-		Contact BuildContact(Collider* colliderA, Collider* colliderB) const;
+		Contact BuildContact(Collider* colliderA, Collider* colliderB, CollisionResponseType response) const;
 
 	private: /// ---------- メンバ変数 ---------- ///
 
@@ -99,6 +104,9 @@ namespace Ken4lowEngine
 
 		// 直近ステップで検出されたContact一覧。
 		std::vector<Contact> contacts_{};
+
+		// CollisionLayer同士のIgnore/Trigger/Block設定。
+		CollisionResponseMatrix responseMatrix_{};
 
 		// Contact解決で位置補正を行うか。DebugSceneからON/OFFを切り替える。
 		bool positionSolveEnabled_ = true;

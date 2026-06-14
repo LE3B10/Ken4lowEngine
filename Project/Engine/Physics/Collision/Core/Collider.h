@@ -130,6 +130,7 @@ namespace Ken4lowEngine
 		bool ownerAlive = true;
 		bool ownerVisible = true;
 		bool hasResponseOverrides = false;
+		uint32_t collisionLayer = 0u;
 		std::string presetName{};
 		std::array<uint8_t, kMaxCollisionChannels> responseIds{};
 
@@ -330,6 +331,10 @@ namespace Ken4lowEngine
 		// UE風ObjectChannel API。TypeIDは変えず、Preset/Response判定用のChannelだけを更新する。
 		void SetObjectChannel(::EObjectChannel objectChannel) { SetObjectChannelId(static_cast<uint32_t>(objectChannel)); }
 		::EObjectChannel GetObjectChannel() const { return static_cast<::EObjectChannel>(filterData_.objectChannelId); }
+
+		// PhysicsWorld用のCollisionLayerを設定する。既存TypeID/ObjectChannelとは独立して扱う。
+		void SetCollisionLayer(uint32_t layer) { filterData_.collisionLayer = layer; }
+		uint32_t GetCollisionLayer() const { return filterData_.collisionLayer; }
 
 		// Preset適用名を記録（Response適用はCollisionPreset/CollisionPresetLibrary側で行う）
 		void SetCollisionPreset(std::string_view presetName) { SetCollisionPresetName(presetName); }

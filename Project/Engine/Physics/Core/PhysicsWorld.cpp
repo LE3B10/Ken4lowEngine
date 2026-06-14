@@ -154,7 +154,7 @@ namespace Ken4lowEngine
 
 	void PhysicsWorld::DetectCollisions()
 	{
-		// 現段階では既存互換の総当たりでContactだけを作り、BroadPhase分離の差し替え口を残す。
+		// Response設定に応じてIgnore / Trigger / Blockを分岐し、BroadPhase分離の差し替え口を残す。
 		for (size_t i = 0; i < colliders_.size(); ++i)
 		{
 			for (size_t j = i + 1; j < colliders_.size(); ++j)
@@ -169,12 +169,17 @@ namespace Ken4lowEngine
 				{
 					continue;
 				}
+				const CollisionResponseType response = responseMatrix_.GetResponse(colliderA->GetCollisionLayer(), colliderB->GetCollisionLayer());
+				if (response == CollisionResponseType::Ignore)
+				{
+					continue;
+				}
 				if (!TestCollisionPair(colliderA, colliderB))
 				{
 					continue;
 				}
 
-				contacts_.push_back(BuildContact(colliderA, colliderB));
+				contacts_.push_back(BuildContact(colliderA, colliderB, response));
 			}
 		}
 	}
@@ -333,7 +338,7 @@ namespace Ken4lowEngine
 		}
 	}
 
-	Contact PhysicsWorld::BuildContact(Collider* colliderA, Collider* colliderB) const
+	Contact PhysicsWorld::BuildContact(Collider* colliderA, Collider* colliderB, CollisionResponseType response) const
 	{
 		Contact contact{};
 		contact.colliderA = colliderA;
@@ -380,7 +385,7 @@ namespace Ken4lowEngine
 			contact.normal = { 0.0f, 1.0f, 0.0f };
 		}
 
-		contact.isTrigger = colliderA->IsTrigger() || colliderB->IsTrigger();
+		contact.isTrigger = response == CollisionResponseType::Trigger || colliderA->IsTrigger() || colliderB->IsTrigger();
 		return contact;
 	}
 

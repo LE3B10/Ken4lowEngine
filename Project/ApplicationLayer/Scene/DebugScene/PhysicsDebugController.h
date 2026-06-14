@@ -33,6 +33,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// テスト用Colliderへ現在の位置と形状を同期する。
 	void UpdateTestColliders();
 
+	// DebugScene上で確認するCollisionLayer応答をPhysicsWorldへ適用する。
+	void ApplyResponseSetting();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::PhysicsWorld physicsWorld_; // DebugScene専用の物理ワールド
@@ -62,4 +65,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float sleepSpeedThreshold_ = 0.05f; // Sleep判定用の速度閾値
 	float sleepTimeThreshold_ = 0.5f; // Sleep判定用の時間閾値
 	float initialHorizontalSpeed_ = 3.0f; // Reset時に与える横方向初速
+	int dynamicLayer_ = 1; // Dynamic側ColliderのCollisionLayer
+	int staticLayer_ = 0; // Static側ColliderのCollisionLayer
+	int responseTypeIndex_ = 2; // Debug確認用Response選択。0:Ignore, 1:Trigger, 2:Block
 };

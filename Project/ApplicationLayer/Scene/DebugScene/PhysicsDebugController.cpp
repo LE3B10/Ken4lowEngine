@@ -3,9 +3,43 @@
 
 #include "Wireframe.h"
 
+#include <algorithm>
+
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
+
+namespace
+{
+	const char* ToResponseName(K4E::CollisionResponseType response)
+	{
+		switch (response)
+		{
+		case K4E::CollisionResponseType::Ignore:
+			return "Ignore";
+		case K4E::CollisionResponseType::Trigger:
+			return "Trigger";
+		case K4E::CollisionResponseType::Block:
+			return "Block";
+		default:
+			return "Unknown";
+		}
+	}
+
+	K4E::CollisionResponseType ToResponseType(int responseTypeIndex)
+	{
+		switch (responseTypeIndex)
+		{
+		case 0:
+			return K4E::CollisionResponseType::Ignore;
+		case 1:
+			return K4E::CollisionResponseType::Trigger;
+		case 2:
+		default:
+			return K4E::CollisionResponseType::Block;
+		}
+	}
+}
 
 /// -------------------------------------------------------------
 ///							初期化処理
@@ -19,6 +53,7 @@ void PhysicsDebugController::Initialize()
 	dynamicCollider_.SetRigidbody(&dynamicRigidbody_);
 	physicsWorld_.RegisterCollider(&staticCollider_);
 	physicsWorld_.RegisterCollider(&dynamicCollider_);
+	ApplyResponseSetting();
 	ResetTestObjects();
 }
 
@@ -176,10 +211,34 @@ void PhysicsDebugController::DrawImGui()
 				UpdateTestColliders();
 			}
 
+			// DebugScene上でResponse挙動を確認するため、Layerペアと応答種別を切り替えられるようにする。
+			ImGui::Separator();
+			if (ImGui::DragInt("Dynamic Collider Layer", &dynamicLayer_, 1.0f, 0, static_cast<int>(K4E::CollisionResponseMatrix::kMaxCollisionLayers) - 1))
+			{
+				dynamicLayer_ = std::clamp(dynamicLayer_, 0, static_cast<int>(K4E::CollisionResponseMatrix::kMaxCollisionLayers) - 1);
+				dynamicCollider_.SetCollisionLayer(static_cast<uint32_t>(dynamicLayer_));
+			}
+			if (ImGui::DragInt("Static Collider Layer", &staticLayer_, 1.0f, 0, static_cast<int>(K4E::CollisionResponseMatrix::kMaxCollisionLayers) - 1))
+			{
+				staticLayer_ = std::clamp(staticLayer_, 0, static_cast<int>(K4E::CollisionResponseMatrix::kMaxCollisionLayers) - 1);
+				staticCollider_.SetCollisionLayer(static_cast<uint32_t>(staticLayer_));
+			}
+			const char* responseItems[] = { "Ignore", "Trigger", "Block" };
+			ImGui::Combo("Response Type", &responseTypeIndex_, responseItems, 3);
+			if (ImGui::Button("Apply Response"))
+			{
+				ApplyResponseSetting();
+			}
+			const K4E::CollisionResponseType currentResponse = physicsWorld_.GetResponseMatrix().GetResponse(
+				static_cast<uint32_t>(dynamicLayer_),
+				static_cast<uint32_t>(staticLayer_));
+			ImGui::Text("Current Response: %s", ToResponseName(currentResponse));
+
 			// Contact生成結果をPhysicsWorldから直接読み、接触の有無と詳細値を確認する。
 			ImGui::Separator();
 			ImGui::Text("Contact Count: %zu", contacts.size());
 			ImGui::Text("Contact: %s", hasContact ? "true" : "false");
+			ImGui::Text("Is Trigger Contact: %s", (hasContact && contacts.front().isTrigger) ? "true" : "false");
 			if (hasContact)
 			{
 				const K4E::Contact& contact = contacts.front();
@@ -229,6 +288,7 @@ void PhysicsDebugController::ResetTestObjects()
 	dynamicRigidbody_.ClearFrameState();
 	physicsWorld_.SetPositionSolveEnabled(enableResolve_);
 	physicsWorld_.SetFrictionSolveEnabled(enableFriction_);
+	ApplyResponseSetting();
 	UpdateTestColliders();
 }
 
@@ -246,4 +306,21 @@ void PhysicsDebugController::UpdateTestColliders()
 		dynamicPosition_ - dynamicHalfSize_,
 		dynamicPosition_ + dynamicHalfSize_,
 		});
+}
+
+/// -------------------------------------------------------------
+///						Response設定適用
+/// -------------------------------------------------------------
+void PhysicsDebugController::ApplyResponseSetting()
+{
+	// DebugScene上でResponse挙動を確認するため、Collider LayerとMatrix設定を同期する。
+	dynamicLayer_ = std::clamp(dynamicLayer_, 0, static_cast<int>(K4E::CollisionResponseMatrix::kMaxCollisionLayers) - 1);
+	staticLayer_ = std::clamp(staticLayer_, 0, static_cast<int>(K4E::CollisionResponseMatrix::kMaxCollisionLayers) - 1);
+	responseTypeIndex_ = std::clamp(responseTypeIndex_, 0, 2);
+	dynamicCollider_.SetCollisionLayer(static_cast<uint32_t>(dynamicLayer_));
+	staticCollider_.SetCollisionLayer(static_cast<uint32_t>(staticLayer_));
+	physicsWorld_.GetResponseMatrix().SetResponse(
+		static_cast<uint32_t>(dynamicLayer_),
+		static_cast<uint32_t>(staticLayer_),
+		ToResponseType(responseTypeIndex_));
 }

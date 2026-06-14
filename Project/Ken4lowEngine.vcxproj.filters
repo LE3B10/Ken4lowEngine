@@ -562,6 +562,9 @@
     <ClCompile Include="Engine\Physics\Collision\Core\CollisionUtility.cpp">
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Physics\Collision\Core\CollisionResponseMatrix.cpp">
+      <Filter>Engine\Physics\Collision\Core</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Physics\Collision\Core\WorldCollisionResolver.cpp">
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClCompile>
@@ -1540,6 +1543,9 @@
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Physics\Collision\Core\CollisionUtility.h">
+      <Filter>Engine\Physics\Collision\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Collision\Core\CollisionResponseMatrix.h">
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Physics\Collision\Core\WorldCollisionResolver.h">
