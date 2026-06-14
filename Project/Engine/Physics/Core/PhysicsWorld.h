@@ -1,7 +1,7 @@
 #pragma once
 #include "Contact.h"
 #include "PhysicsWorldSettings.h"
-#include "CollisionResponseMatrix.h"
+#include "../Collision/Core/CollisionResponseMatrix.h"
 #include "PhysicsEventDispatcher.h"
 
 #include <cstddef>
