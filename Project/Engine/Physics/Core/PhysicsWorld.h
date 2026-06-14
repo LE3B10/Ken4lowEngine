@@ -1,6 +1,7 @@
 #pragma once
 #include "Contact.h"
 #include "Engine/Physics/Collision/Core/CollisionResponseMatrix.h"
+#include "Engine/Physics/Event/PhysicsEventDispatcher.h"
 
 #include <vector>
 
@@ -45,6 +46,15 @@ namespace Ken4lowEngine
 
 		// 直近ステップのContact一覧を取得する。
 		const std::vector<Contact>& GetContacts() const { return contacts_; }
+
+		// 直近ステップで生成された物理イベント一覧を取得する。
+		const std::vector<PhysicsEvent>& GetEvents() const { return eventDispatcher_.GetEvents(); }
+
+		// PhysicsWorldのイベント通知先を追加する。
+		void AddPhysicsEventListener(IPhysicsEventListener* listener) { eventDispatcher_.AddListener(listener); }
+
+		// PhysicsWorldのイベント通知先を削除する。
+		void RemovePhysicsEventListener(IPhysicsEventListener* listener) { eventDispatcher_.RemoveListener(listener); }
 
 		// 位置補正ソルバーの有効状態を設定する。
 		void SetPositionSolveEnabled(bool enabled) { positionSolveEnabled_ = enabled; }
@@ -107,6 +117,9 @@ namespace Ken4lowEngine
 
 		// CollisionLayer同士のIgnore/Trigger/Block設定。
 		CollisionResponseMatrix responseMatrix_{};
+
+		// Contact差分からCollision/Triggerイベントを生成する。
+		PhysicsEventDispatcher eventDispatcher_{};
 
 		// Contact解決で位置補正を行うか。DebugSceneからON/OFFを切り替える。
 		bool positionSolveEnabled_ = true;

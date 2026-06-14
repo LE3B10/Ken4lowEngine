@@ -40,7 +40,7 @@ namespace Ken4lowEngine
 
 	void PhysicsWorld::UnregisterCollider(Collider* collider)
 	{
-		// Collider登録解除時は、古いContactが次ステップへ残らないようにContactも掃除する。
+		// Collider登録解除時は、古いContactやイベント履歴が次ステップへ残らないように掃除する。
 		ErasePointer(colliders_, collider);
 		contacts_.erase(
 			std::remove_if(contacts_.begin(), contacts_.end(),
@@ -49,6 +49,7 @@ namespace Ken4lowEngine
 					return contact.colliderA == collider || contact.colliderB == collider;
 				}),
 			contacts_.end());
+		eventDispatcher_.Clear();
 	}
 
 	void PhysicsWorld::RegisterRigidbody(Rigidbody* rigidbody)
@@ -111,6 +112,9 @@ namespace Ken4lowEngine
 		DetectCollisions();
 		ResolveContacts();
 		UpdateRigidbodySleepState(deltaTime);
+
+		// 物理更新後に接触イベントを生成し、Trigger/BlockのEnter/Stay/Exitを外部から確認できるようにする。
+		eventDispatcher_.Update(contacts_);
 	}
 
 	void PhysicsWorld::SetUseFixedStep(bool useFixedStep)

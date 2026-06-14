@@ -39,6 +39,27 @@ namespace
 			return K4E::CollisionResponseType::Block;
 		}
 	}
+
+	const char* ToPhysicsEventName(K4E::PhysicsEventType eventType)
+	{
+		switch (eventType)
+		{
+		case K4E::PhysicsEventType::CollisionEnter:
+			return "CollisionEnter";
+		case K4E::PhysicsEventType::CollisionStay:
+			return "CollisionStay";
+		case K4E::PhysicsEventType::CollisionExit:
+			return "CollisionExit";
+		case K4E::PhysicsEventType::TriggerEnter:
+			return "TriggerEnter";
+		case K4E::PhysicsEventType::TriggerStay:
+			return "TriggerStay";
+		case K4E::PhysicsEventType::TriggerExit:
+			return "TriggerExit";
+		default:
+			return "Unknown";
+		}
+	}
 }
 
 /// -------------------------------------------------------------
@@ -258,6 +279,24 @@ void PhysicsDebugController::DrawImGui()
 			if (ImGui::Button("Wake Up"))
 			{
 				dynamicRigidbody_.WakeUp();
+			}
+		}
+
+		if (ImGui::CollapsingHeader("Physics Events", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			const std::vector<K4E::PhysicsEvent>& events = physicsWorld_.GetEvents();
+
+			// DebugScene上でPhysicsEventの発生を確認するため、直近Stepのイベントログを表示する。
+			ImGui::Text("Event Count: %zu", events.size());
+			const size_t displayCount = std::min<size_t>(events.size(), 12u);
+			for (size_t i = 0; i < displayCount; ++i)
+			{
+				const K4E::PhysicsEvent& event = events[events.size() - 1u - i];
+				ImGui::Separator();
+				ImGui::Text("Event Type: %s", ToPhysicsEventName(event.type));
+				ImGui::Text("ColliderA: %p", static_cast<void*>(event.colliderA));
+				ImGui::Text("ColliderB: %p", static_cast<void*>(event.colliderB));
+				ImGui::Text("isTrigger: %s", event.isTrigger ? "true" : "false");
 			}
 		}
 	}

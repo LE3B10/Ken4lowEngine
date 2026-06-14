@@ -577,6 +577,9 @@
     <ClCompile Include="Engine\Physics\Core\Rigidbody.cpp">
       <Filter>Engine\Physics\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Physics\Event\PhysicsEventDispatcher.cpp">
+      <Filter>Engine\Physics\Event</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Physics\Solver\FrictionSolver.cpp">
       <Filter>Engine\Physics\Solver</Filter>
     </ClCompile>
@@ -1569,6 +1572,15 @@
     <ClInclude Include="Engine\Physics\Core\Rigidbody.h">
       <Filter>Engine\Physics\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Physics\Event\IPhysicsEventListener.h">
+      <Filter>Engine\Physics\Event</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Event\PhysicsEvent.h">
+      <Filter>Engine\Physics\Event</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Event\PhysicsEventDispatcher.h">
+      <Filter>Engine\Physics\Event</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Physics\Solver\FrictionSolver.h">
       <Filter>Engine\Physics\Solver</Filter>
     </ClInclude>
@@ -2413,6 +2425,9 @@
     </Filter>
     <Filter Include="Engine\Physics\Core">
       <UniqueIdentifier>{6d3bd8c4-4f3f-43d2-b583-1f34a399e267}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Physics\Event">
+      <UniqueIdentifier>{7df87bf0-8766-4c8b-a99b-6d846fb28e26}</UniqueIdentifier>
     </Filter>
     <Filter Include="Engine\Physics\Solver">
       <UniqueIdentifier>{fe82af8f-52b0-4659-99fb-0664d6bc6f78}</UniqueIdentifier>
