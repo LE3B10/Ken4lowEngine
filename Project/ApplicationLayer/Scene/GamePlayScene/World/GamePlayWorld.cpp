@@ -42,6 +42,9 @@ namespace
 	static constexpr uint32_t kPhysicsLayerPlayer = 2u;
 	static constexpr uint32_t kPhysicsLayerTestBullet = 3u;
 	static constexpr uint32_t kPhysicsLayerTestTarget = 4u;
+	static constexpr uint32_t kPhysicsLayerPlayerBullet = 5u;
+	static constexpr uint32_t kPhysicsLayerEnemy = 6u;
+	static constexpr uint32_t kPhysicsLayerBoss = 7u;
 
 	const char* ToCollisionResponseName(K4E::CollisionResponseType response)
 	{
@@ -367,6 +370,7 @@ void GamePlayWorld::Finalize()
 	EnemyBase::SetGlobalStageNavigationObstacleAABBs(nullptr);
 	itemManager_.Clear();
 
+	UnregisterGameplayPhysicsBulletTriggerTargets();
 	characters_.Finalize();
 
 	UnregisterPlayerPhysicsGroundCheck();
@@ -407,7 +411,6 @@ void GamePlayWorld::Update(float deltaTime)
 
 	// 先にキャラクターとクリスタルを更新し、敵残数とクリスタル破壊状態からボス出現条件を評価する。
 	characters_.Update(deltaTime);
-	UpdateGameplayPhysicsTest(deltaTime);
 	crystalManager_.Update(characters_, deltaTime);
 	UpdateCrystalBossSpawnProgress();
 	UpdateBossIntro(deltaTime);
@@ -450,6 +453,7 @@ void GamePlayWorld::Update(float deltaTime)
 		bulletManager_->Update(deltaTime);
 		lastBulletUpdateMs_ = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - begin).count();
 	}
+	UpdateGameplayPhysicsTest(deltaTime);
 
 	{
 		const auto begin = std::chrono::steady_clock::now();
@@ -1314,6 +1318,21 @@ void GamePlayWorld::InitializeGameplayPhysicsTest()
 	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerTestTarget, kPhysicsLayerTestObject, K4E::CollisionResponseType::Ignore);
 	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerTestTarget, kPhysicsLayerPlayer, K4E::CollisionResponseType::Ignore);
 	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerTestTarget, kPhysicsLayerTestTarget, K4E::CollisionResponseType::Ignore);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerPlayerBullet, kPhysicsLayerEnemy, K4E::CollisionResponseType::Trigger);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerPlayerBullet, kPhysicsLayerBoss, K4E::CollisionResponseType::Trigger);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerPlayerBullet, kPhysicsLayerStage, K4E::CollisionResponseType::Trigger);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerPlayerBullet, kPhysicsLayerPlayer, K4E::CollisionResponseType::Ignore);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerPlayerBullet, kPhysicsLayerTestObject, K4E::CollisionResponseType::Ignore);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerPlayerBullet, kPhysicsLayerTestBullet, K4E::CollisionResponseType::Ignore);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerPlayerBullet, kPhysicsLayerTestTarget, K4E::CollisionResponseType::Ignore);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerPlayerBullet, kPhysicsLayerPlayerBullet, K4E::CollisionResponseType::Ignore);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerEnemy, kPhysicsLayerStage, K4E::CollisionResponseType::Ignore);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerBoss, kPhysicsLayerStage, K4E::CollisionResponseType::Ignore);
+
+	if (bulletManager_)
+	{
+		bulletManager_->SetPhysicsTriggerWorld(&gameplayPhysicsWorld_, kPhysicsLayerPlayerBullet);
+	}
 
 	physicsTestRigidbody_.SetBodyType(K4E::BodyType::Dynamic);
 	physicsTestRigidbody_.SetMass(1.0f);
@@ -1423,11 +1442,7 @@ void GamePlayWorld::RegisterGameplayPhysicsTriggerTest()
 		gameplayPhysicsWorld_.RegisterCollider(&physicsTriggerTargetCollider_);
 		gameplayPhysicsTriggerTestRegistered_ = true;
 	}
-	if (!gameplayPhysicsEventListenerRegistered_)
-	{
-		gameplayPhysicsWorld_.AddPhysicsEventListener(gameplayPhysicsEventHandler_.get());
-		gameplayPhysicsEventListenerRegistered_ = true;
-	}
+	RegisterGameplayPhysicsEventListener();
 }
 
 void GamePlayWorld::UnregisterGameplayPhysicsTriggerTest()
@@ -1435,8 +1450,10 @@ void GamePlayWorld::UnregisterGameplayPhysicsTriggerTest()
 	// 破棄済みポインタ参照を防ぐため、Scene終了や無効化時にListenerとCollider登録を解除する。
 	if (gameplayPhysicsEventListenerRegistered_ && gameplayPhysicsEventHandler_)
 	{
-		gameplayPhysicsWorld_.RemovePhysicsEventListener(gameplayPhysicsEventHandler_.get());
-		gameplayPhysicsEventListenerRegistered_ = false;
+		if (!usePhysicsForBulletTrigger_)
+		{
+			UnregisterGameplayPhysicsEventListener();
+		}
 	}
 	if (gameplayPhysicsTriggerTestRegistered_)
 	{
@@ -1454,6 +1471,26 @@ void GamePlayWorld::UnregisterGameplayPhysicsTriggerTest()
 	if (physicsTestBullet_)
 	{
 		physicsTestBullet_->Kill();
+	}
+}
+
+void GamePlayWorld::RegisterGameplayPhysicsEventListener()
+{
+	// PhysicsWorldのTriggerEventをGameplay側へ渡すため、テスト弾/実Bullet共通のListenerを登録する。
+	if (!gameplayPhysicsEventListenerRegistered_ && gameplayPhysicsEventHandler_)
+	{
+		gameplayPhysicsWorld_.AddPhysicsEventListener(gameplayPhysicsEventHandler_.get());
+		gameplayPhysicsEventListenerRegistered_ = true;
+	}
+}
+
+void GamePlayWorld::UnregisterGameplayPhysicsEventListener()
+{
+	// 破棄済みポインタ参照を防ぐため、不要になったListenerはPhysicsWorldから外す。
+	if (gameplayPhysicsEventListenerRegistered_ && gameplayPhysicsEventHandler_)
+	{
+		gameplayPhysicsWorld_.RemovePhysicsEventListener(gameplayPhysicsEventHandler_.get());
+		gameplayPhysicsEventListenerRegistered_ = false;
 	}
 }
 
@@ -1583,10 +1620,73 @@ void GamePlayWorld::SyncGameplayPhysicsTriggerTarget()
 	}
 }
 
+void GamePlayWorld::SyncGameplayPhysicsBulletTriggerTargets()
+{
+	if (!usePhysicsForBulletTrigger_)
+	{
+		UnregisterGameplayPhysicsBulletTriggerTargets();
+		return;
+	}
+
+	RegisterGameplayPhysicsEventListener();
+	BindGameplayPhysicsStageColliders();
+
+	std::vector<K4E::Collider*> desiredTargets{};
+	const std::vector<EnemyBase*> enemies = characters_.GetEnemyRawList();
+	desiredTargets.reserve(enemies.size() + 1);
+	for (EnemyBase* enemy : enemies)
+	{
+		if (!enemy || enemy->IsDead() || enemy->IsRemovable())
+		{
+			continue;
+		}
+
+		enemy->SetCollisionLayer(kPhysicsLayerEnemy);
+		desiredTargets.push_back(enemy);
+	}
+	if (guardianBoss_ && bossColliderRegistered_ && guardianBoss_->IsAlive())
+	{
+		guardianBoss_->SetCollisionLayer(kPhysicsLayerBoss);
+		desiredTargets.push_back(guardianBoss_.get());
+	}
+
+	for (K4E::Collider* registered : physicsBulletTargetColliders_)
+	{
+		if (std::find(desiredTargets.begin(), desiredTargets.end(), registered) == desiredTargets.end())
+		{
+			// 破棄済みEnemy/Boss Collider参照を防ぐため、不要になった実Bullet Trigger対象を解除する。
+			gameplayPhysicsWorld_.UnregisterCollider(registered);
+		}
+	}
+	for (K4E::Collider* target : desiredTargets)
+	{
+		gameplayPhysicsWorld_.RegisterCollider(target);
+	}
+	physicsBulletTargetColliders_ = std::move(desiredTargets);
+}
+
+void GamePlayWorld::UnregisterGameplayPhysicsBulletTriggerTargets()
+{
+	for (K4E::Collider* collider : physicsBulletTargetColliders_)
+	{
+		// 破棄済みEnemy/Boss Collider参照を防ぐため、PhysicsWorldからTarget登録を解除する。
+		gameplayPhysicsWorld_.UnregisterCollider(collider);
+	}
+	physicsBulletTargetColliders_.clear();
+	if (bulletManager_)
+	{
+		bulletManager_->SetUsePhysicsTriggerForNormalBullets(false);
+	}
+	if (!enableGameplayPhysicsTriggerTest_)
+	{
+		UnregisterGameplayPhysicsEventListener();
+	}
+}
+
 void GamePlayWorld::UpdateGameplayPhysicsTest(float deltaTime)
 {
 	// 明示ONの確認機能がある場合だけ、本編とは別PhysicsWorldでテスト物体/Player床判定を更新する。
-	if (!enableGameplayPhysicsTest_ && !enablePlayerPhysicsGroundCheck_ && !enablePlayerPhysicsDepenetration_ && !enableGameplayPhysicsTriggerTest_)
+	if (!enableGameplayPhysicsTest_ && !enablePlayerPhysicsGroundCheck_ && !enablePlayerPhysicsDepenetration_ && !enableGameplayPhysicsTriggerTest_ && !usePhysicsForBulletTrigger_)
 	{
 		return;
 	}
@@ -1597,6 +1697,7 @@ void GamePlayWorld::UpdateGameplayPhysicsTest(float deltaTime)
 		SyncGameplayPhysicsTestCollider();
 	}
 	UpdateGameplayPhysicsTriggerTest(deltaTime);
+	SyncGameplayPhysicsBulletTriggerTargets();
 	UpdatePlayerPhysicsGroundCheck();
 
 	gameplayPhysicsWorld_.Update(deltaTime);
@@ -1729,6 +1830,24 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 	}
 	ImGui::Checkbox("Apply XZ Correction", &applyPlayerPhysicsCorrectionXZ_);
 	ImGui::Checkbox("Apply Y Correction", &applyPlayerPhysicsCorrectionY_);
+	if (ImGui::Checkbox("Use Physics For Normal Bullet Trigger", &usePhysicsForBulletTrigger_))
+	{
+		// PhysicsWorld移行済みBulletの二重処理を防ぐため、通常弾だけTriggerEvent経路へ切り替える。
+		if (bulletManager_)
+		{
+			bulletManager_->SetUsePhysicsTriggerForNormalBullets(usePhysicsForBulletTrigger_);
+		}
+		if (usePhysicsForBulletTrigger_)
+		{
+			BindGameplayPhysicsStageColliders();
+			RegisterGameplayPhysicsEventListener();
+		}
+		else
+		{
+			UnregisterGameplayPhysicsBulletTriggerTargets();
+		}
+		UpdateCollisionSystemPolicyFromGameplayFlags();
+	}
 
 	if (ImGui::Button("Bind Stage Colliders"))
 	{
@@ -1765,6 +1884,13 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 	ImGui::Text("Player Collider Position: %.3f, %.3f, %.3f", playerGroundColliderPosition_.x, playerGroundColliderPosition_.y, playerGroundColliderPosition_.z);
 	ImGui::Text("Player vs Stage Contact Count: %zu", playerStageContactCount_);
 	ImGui::Text("Registered Player Collider: %s", playerGroundColliderRegistered_ ? "true" : "false");
+	ImGui::SeparatorText("Gameplay Physics Bullet Trigger");
+	ImGui::Text("Physics Trigger Bullet Count: %zu", bulletManager_ ? bulletManager_->GetPhysicsTriggerBulletCount() : 0);
+	ImGui::Text("Physics Trigger Bullet Hit Count: %d", bulletManager_ ? bulletManager_->GetPhysicsTriggerHitCount() : 0);
+	ImGui::Text("Handler Bullet Trigger Hit Count: %d", gameplayPhysicsEventHandler_ ? gameplayPhysicsEventHandler_->GetRealBulletTriggerHitCount() : 0);
+	ImGui::Text("Last Bullet Trigger Hit: %s", gameplayPhysicsEventHandler_ ? gameplayPhysicsEventHandler_->GetLatestRealBulletTriggerHit().c_str() : "None");
+	ImGui::Text("PlayerBullet vs Enemy Response: %s", ToCollisionResponseName(gameplayPhysicsWorld_.GetResponseMatrix().GetResponse(kPhysicsLayerPlayerBullet, kPhysicsLayerEnemy)));
+	ImGui::Text("PlayerBullet vs Boss Response: %s", ToCollisionResponseName(gameplayPhysicsWorld_.GetResponseMatrix().GetResponse(kPhysicsLayerPlayerBullet, kPhysicsLayerBoss)));
 	ImGui::SeparatorText("Gameplay Physics Debug");
 	if (ImGui::Checkbox("Enable Gameplay Physics Debug Draw", &enableGameplayPhysicsDebugDraw_))
 	{
@@ -1953,6 +2079,11 @@ void GamePlayWorld::ApplyGameplayPhysicsParameterSettings()
 	usePhysicsForTriggerTest_ = settings.usePhysicsForTriggerTest || settings.enableGameplayPhysicsTriggerTest;
 	usePhysicsForBulletTrigger_ = settings.usePhysicsForBulletTrigger;
 	usePhysicsForEnemyStage_ = settings.usePhysicsForEnemyStage;
+	if (bulletManager_)
+	{
+		bulletManager_->SetPhysicsTriggerWorld(&gameplayPhysicsWorld_, kPhysicsLayerPlayerBullet);
+		bulletManager_->SetUsePhysicsTriggerForNormalBullets(usePhysicsForBulletTrigger_);
+	}
 	UpdateCollisionSystemPolicyFromGameplayFlags();
 
 	if (enableGameplayPhysicsTest_ && !previousGameplayPhysicsTest)
@@ -1969,10 +2100,19 @@ void GamePlayWorld::ApplyGameplayPhysicsParameterSettings()
 	{
 		SetGameplayPhysicsTriggerTestEnabled(enableGameplayPhysicsTriggerTest_);
 	}
+	if (usePhysicsForBulletTrigger_)
+	{
+		BindGameplayPhysicsStageColliders();
+		RegisterGameplayPhysicsEventListener();
+	}
+	else
+	{
+		UnregisterGameplayPhysicsBulletTriggerTargets();
+	}
 	if (!enableGameplayPhysicsTest_ && !enablePlayerPhysicsGroundCheck_ && !enablePlayerPhysicsDepenetration_)
 	{
 		UnregisterPlayerPhysicsGroundCheck();
-		if (!enableGameplayPhysicsTriggerTest_)
+		if (!enableGameplayPhysicsTriggerTest_ && !usePhysicsForBulletTrigger_)
 		{
 			UnbindGameplayPhysicsStageColliders();
 		}

@@ -1,5 +1,6 @@
 #include "GameplayPhysicsEventHandler.h"
 
+#include "Bullet.h"
 #include "PhysicsTestBullet.h"
 #include "Engine/Physics/Collision/Core/Collider.h"
 #include "Engine/Physics/Event/PhysicsEvent.h"
@@ -16,7 +17,15 @@ void GameplayPhysicsEventHandler::Configure(PhysicsTestBullet* bullet, K4E::Coll
 void GameplayPhysicsEventHandler::OnPhysicsEvent(const K4E::PhysicsEvent& event)
 {
 	// TriggerEnterをゲーム側の処理へ変換する。Stayでは連続ヒットさせない。
-	if (event.type != K4E::PhysicsEventType::TriggerEnter || !IsBulletTargetPair(event))
+	if (event.type != K4E::PhysicsEventType::TriggerEnter)
+	{
+		return;
+	}
+	if (TryHandleBulletHit(event))
+	{
+		return;
+	}
+	if (!IsBulletTargetPair(event))
 	{
 		return;
 	}
@@ -40,8 +49,10 @@ void GameplayPhysicsEventHandler::Reset()
 {
 	// Debug表示用の反応状態だけをクリアし、PhysicsWorldの履歴はWorld側の登録解除に任せる。
 	triggerEnterCount_ = 0;
+	realBulletTriggerHitCount_ = 0;
 	hasTriggerHit_ = false;
 	latestTriggerEvent_ = "None";
+	latestRealBulletTriggerHit_ = "None";
 }
 
 bool GameplayPhysicsEventHandler::IsBulletTargetPair(const K4E::PhysicsEvent& event) const
@@ -54,4 +65,51 @@ bool GameplayPhysicsEventHandler::IsBulletTargetPair(const K4E::PhysicsEvent& ev
 	K4E::Collider* bulletCollider = bullet_->GetCollider();
 	return (event.colliderA == bulletCollider && event.colliderB == targetCollider_) ||
 		(event.colliderA == targetCollider_ && event.colliderB == bulletCollider);
+}
+
+bool GameplayPhysicsEventHandler::TryHandleBulletHit(const K4E::PhysicsEvent& event)
+{
+	// TriggerEnterを実Bulletのヒット処理へ変換する。PhysicsWorld移行済み通常弾だけを対象にする。
+	K4E::Collider* other = nullptr;
+	Bullet* bullet = FindPhysicsBullet(event, other);
+	if (!bullet || !other || !bullet->UsesPhysicsTrigger() || bullet->HasPhysicsHit())
+	{
+		return false;
+	}
+
+	bullet->HandlePhysicsTriggerHit(other);
+	if (!bullet->HasPhysicsHit())
+	{
+		return false;
+	}
+
+	++realBulletTriggerHitCount_;
+	std::ostringstream stream;
+	stream << "BulletTriggerEnter Bullet=" << bullet
+		<< " Other=" << other
+		<< " Count=" << realBulletTriggerHitCount_;
+	latestRealBulletTriggerHit_ = stream.str();
+	return true;
+}
+
+Bullet* GameplayPhysicsEventHandler::FindPhysicsBullet(const K4E::PhysicsEvent& event, K4E::Collider*& outOther) const
+{
+	outOther = nullptr;
+	if (event.colliderA)
+	{
+		if (Bullet* bullet = event.colliderA->GetOwner<Bullet>())
+		{
+			outOther = event.colliderB;
+			return bullet;
+		}
+	}
+	if (event.colliderB)
+	{
+		if (Bullet* bullet = event.colliderB->GetOwner<Bullet>())
+		{
+			outOther = event.colliderA;
+			return bullet;
+		}
+	}
+	return nullptr;
 }

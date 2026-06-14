@@ -1,6 +1,7 @@
 #include "BulletManager.h"
 #include "Bullet.h"
 #include "CollisionManager.h"
+#include "Engine/Physics/Core/PhysicsWorld.h"
 
 #include <algorithm>
 
@@ -39,6 +40,16 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 	b->SetCollisionManager(collisionManager_);
 	b->ConfigureSplashDamage(splashRadius, splashDamage, splashCanDamageSelf);
 	b->SetWeaponMetadata(weaponID, weaponCategory, deathType, deathPower, deathUpPower, deathExplosionRadius, deathImpulseScale);
+	b->SetUsePhysicsTrigger(usePhysicsTriggerForNormalBullets_);
+	if (b->UsesPhysicsTrigger())
+	{
+		// 通常弾のColliderをPhysicsWorld Trigger判定へ登録する。Legacy側には残すが命中処理はBullet側でスキップする。
+		b->SetCollisionLayer(playerBulletLayer_);
+		if (physicsWorld_)
+		{
+			physicsWorld_->RegisterCollider(b.get());
+		}
+	}
 
 	if (collisionManager_) collisionManager_->AddCollider(b.get());
 
@@ -59,6 +70,15 @@ void BulletManager::Update(float dt)
 				return false;
 			}
 
+			if (bullet->UsesPhysicsTrigger() && bullet->HasPhysicsHit())
+			{
+				++physicsTriggerHitCount_;
+			}
+			if (physicsWorld_ && bullet->UsesPhysicsTrigger())
+			{
+				// 破棄済みBullet Collider参照を防ぐため、管理対象から外す前にPhysicsWorld登録を解除する。
+				physicsWorld_->UnregisterCollider(bullet.get());
+			}
 			if (collisionManager_) collisionManager_->RemoveCollider(bullet.get());
 			return true;
 		});
@@ -72,6 +92,54 @@ size_t BulletManager::GetActiveCount() const
 		{
 			return bullet && !bullet->IsDead() && !bullet->IsRemovable();
 		}));
+}
+
+size_t BulletManager::GetPhysicsTriggerBulletCount() const
+{
+	return static_cast<size_t>(std::count_if(bullets_.begin(), bullets_.end(), [](const std::unique_ptr<Bullet>& bullet)
+		{
+			return bullet && bullet->UsesPhysicsTrigger() && !bullet->IsRemovable();
+		}));
+}
+
+void BulletManager::SetPhysicsTriggerWorld(PhysicsWorld* physicsWorld, uint32_t playerBulletLayer)
+{
+	physicsWorld_ = physicsWorld;
+	playerBulletLayer_ = playerBulletLayer;
+	RefreshPhysicsTriggerRegistrations();
+}
+
+void BulletManager::SetUsePhysicsTriggerForNormalBullets(bool enabled)
+{
+	usePhysicsTriggerForNormalBullets_ = enabled;
+	RefreshPhysicsTriggerRegistrations();
+}
+
+void BulletManager::RefreshPhysicsTriggerRegistrations()
+{
+	for (auto& bullet : bullets_)
+	{
+		if (!bullet)
+		{
+			continue;
+		}
+
+		const bool wasUsingPhysics = bullet->UsesPhysicsTrigger();
+		if (wasUsingPhysics && physicsWorld_)
+		{
+			physicsWorld_->UnregisterCollider(bullet.get());
+		}
+
+		bullet->SetUsePhysicsTrigger(usePhysicsTriggerForNormalBullets_);
+		if (bullet->UsesPhysicsTrigger())
+		{
+			bullet->SetCollisionLayer(playerBulletLayer_);
+			if (physicsWorld_ && !bullet->IsRemovable())
+			{
+				physicsWorld_->RegisterCollider(bullet.get());
+			}
+		}
+	}
 }
 
 void BulletManager::Draw()
@@ -89,6 +157,17 @@ void BulletManager::Clear()
 	if (collisionManager_)
 	{
 		for (auto& b : bullets_) collisionManager_->RemoveCollider(b.get());
+	}
+	if (physicsWorld_)
+	{
+		for (auto& b : bullets_)
+		{
+			if (b && b->UsesPhysicsTrigger())
+			{
+				// 破棄済みBullet Collider参照を防ぐため、Scene終了/一括Clear時にPhysicsWorld登録を解除する。
+				physicsWorld_->UnregisterCollider(b.get());
+			}
+		}
 	}
 	bullets_.clear();
 }

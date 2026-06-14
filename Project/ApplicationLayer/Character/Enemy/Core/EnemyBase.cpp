@@ -1088,6 +1088,11 @@ void EnemyBase::OnCollisionEnter(Collider* other)
 
 	if (other->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
 	{
+		if (auto* bullet = other->GetOwner<Bullet>(); bullet && bullet->UsesPhysicsTrigger())
+		{
+			// PhysicsWorld移行済みBulletの二重処理を防ぐため、Enemy側の旧CollisionManager被弾処理をスキップする。
+			return;
+		}
 		OnBulletHit(other);
 	}
 }

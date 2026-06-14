@@ -6,6 +6,7 @@
 
 /// ---------- 前方宣言 ---------- ///
 class CollisionManager;
+namespace Ken4lowEngine { class PhysicsWorld; }
 
 /// -------------------------------------------------------------
 ///                     弾管理クラス
@@ -52,15 +53,26 @@ public: /// ---------- メンバ関数 ---------- ///
 	// クリア処理
 	void Clear();
 
+	// 通常弾だけをPhysicsWorld Triggerへ段階移行するため、登録先Worldとレイヤーを設定する。
+	void SetPhysicsTriggerWorld(Ken4lowEngine::PhysicsWorld* physicsWorld, uint32_t playerBulletLayer);
+	void SetUsePhysicsTriggerForNormalBullets(bool enabled);
+	void RefreshPhysicsTriggerRegistrations();
+
 public: /// ---------- アクセサ ---------- ///
 
 	size_t GetCount() const { return bullets_.size(); }
 	size_t GetActiveCount() const;
+	size_t GetPhysicsTriggerBulletCount() const;
+	int GetPhysicsTriggerHitCount() const { return physicsTriggerHitCount_; }
 
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 衝突管理マネージャー（弾の衝突判定用）
 	CollisionManager* collisionManager_ = nullptr;
+	Ken4lowEngine::PhysicsWorld* physicsWorld_ = nullptr;
+	uint32_t playerBulletLayer_ = 0u;
+	bool usePhysicsTriggerForNormalBullets_ = false;
+	int physicsTriggerHitCount_ = 0;
 
 	// 弾リスト
 	std::vector<std::unique_ptr<Bullet>> bullets_;

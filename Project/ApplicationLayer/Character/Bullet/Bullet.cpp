@@ -226,6 +226,8 @@ void Bullet::Initialize(const K4E::Vector3& startPos,
 	removable_ = false;
 	deadFrames_ = 0;
 	splashTriggered_ = false;
+	usePhysicsTrigger_ = false;
+	hasPhysicsHit_ = false;
 	contactRecord_.Clear();
 }
 
@@ -252,6 +254,46 @@ void Bullet::SetWeaponMetadata(int32_t weaponID, EWeaponCategory category, EDeat
 	deathKnockbackUpPower_ = std::max(0.0f, deathUpPower);
 	deathExplosionRadius_ = std::max(0.0f, deathExplosionRadius);
 	deathImpulseScale_ = std::max(0.01f, deathImpulseScale);
+}
+
+void Bullet::SetUsePhysicsTrigger(bool enabled)
+{
+	// 通常弾だけをPhysicsWorld Triggerへ移す。対象外の弾は要求されてもLegacy側へ残す。
+	usePhysicsTrigger_ = enabled && IsEligibleForPhysicsTrigger();
+	if (!usePhysicsTrigger_)
+	{
+		ClearPhysicsHit();
+	}
+}
+
+void Bullet::MarkPhysicsHit()
+{
+	hasPhysicsHit_ = true;
+}
+
+void Bullet::ClearPhysicsHit()
+{
+	hasPhysicsHit_ = false;
+}
+
+bool Bullet::IsEligibleForPhysicsTrigger() const
+{
+	// Heavy/Special/Splash/Rocket系を避け、明確に通常のPrimaryプレイヤー弾だけを移行対象にする。
+	return GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBullet) &&
+		weaponCategory_ == EWeaponCategory::Primary &&
+		!HasSplashDamage() &&
+		deathExplosionRadius_ <= 0.0f;
+}
+
+void Bullet::HandlePhysicsTriggerHit(K4E::Collider* other)
+{
+	// TriggerEnterを実Bulletのヒット処理へ変換する。Stayでは呼ばない前提で、二重処理もここで止める。
+	if (!usePhysicsTrigger_ || hasPhysicsHit_)
+	{
+		return;
+	}
+
+	ProcessHit(other, true);
 }
 
 void Bullet::KillAndMoveFar()
@@ -398,6 +440,7 @@ void Bullet::Update(float dt)
 
 	prevPos_ = current;
 	Collider::SetCenterPosition(next);
+	// Bulletの現在位置をTrigger判定用Colliderへ同期する。PhysicsWorldはこのCollider中心/Segmentを読む。
 	if (model_) model_->SetTranslate(next);
 
 	// ざっくり範囲外で消す（必要なら world bounds に置換）
@@ -423,6 +466,13 @@ void Bullet::DrawImGui()
 }
 
 void Bullet::OnCollisionEnter(K4E::Collider* other)
+{
+	// PhysicsWorld移行済みBulletの二重処理を防ぐため、Legacy CollisionManager側の命中処理をスキップする。
+	if (usePhysicsTrigger_) return;
+	ProcessHit(other, false);
+}
+
+void Bullet::ProcessHit(K4E::Collider* other, bool fromPhysicsTrigger)
 {
 	if (!other) return;
 	if (isDead_ || removable_) return;
@@ -457,6 +507,10 @@ void Bullet::OnCollisionEnter(K4E::Collider* other)
 	const uint32_t otherId = other->GetUniqueID();
 	if (contactRecord_.Check(otherId)) return;
 	contactRecord_.Add(otherId);
+	if (fromPhysicsTrigger)
+	{
+		MarkPhysicsHit();
+	}
 
 	if (otherType == kBoss)
 	{

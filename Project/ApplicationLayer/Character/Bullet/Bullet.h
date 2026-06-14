@@ -46,6 +46,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsRemovable() const { return removable_; }
 	int GetDamage() const { return damage_; }
 	const K4E::Vector3& GetMoveVelocity() const { return moveVelocity_; }
+	// 通常弾だけをPhysicsWorldのTriggerEventへ段階移行するためのフラグを確認する。
+	bool UsesPhysicsTrigger() const { return usePhysicsTrigger_; }
+	void SetUsePhysicsTrigger(bool enabled);
+	bool HasPhysicsHit() const { return hasPhysicsHit_; }
+	void MarkPhysicsHit();
+	void ClearPhysicsHit();
+	bool IsEligibleForPhysicsTrigger() const;
+	void HandlePhysicsTriggerHit(K4E::Collider* other);
 
 	void SetShooterPosition(const K4E::Vector3& pos) { shooterPosition_ = pos; }
 	const K4E::Vector3& GetShooterPosition() const { return shooterPosition_; }
@@ -77,6 +85,7 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// 即死して遠くへ移動させる（衝突時など）
 	void KillAndMoveFar();
+	void ProcessHit(K4E::Collider* other, bool fromPhysicsTrigger);
 	void TriggerSplashDamageAt(const K4E::Vector3& center);
 	void ApplySplashDamageToType(uint32_t targetType, const K4E::Vector3& center);
 
@@ -100,6 +109,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	float deathKnockbackUpPower_ = 2.0f;
 	float deathExplosionRadius_ = 0.0f;
 	float deathImpulseScale_ = 1.0f;
+	bool usePhysicsTrigger_ = false; // 通常弾だけをPhysicsWorldのTriggerEventへ段階移行するための切り替え
+	bool hasPhysicsHit_ = false; // PhysicsWorld側で処理済みの通常弾を二重ヒットさせないためのフラグ
 
 	std::unique_ptr<K4E::Object3D> model_ = nullptr;
 	bool drawModel_ = true;

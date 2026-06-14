@@ -185,6 +185,10 @@ private: /// ---------- メンバ関数 ---------- ///
 	void DrawGameplayPhysicsTriggerTest();
 	void DrawGameplayPhysicsTriggerTestImGui();
 	void SyncGameplayPhysicsTriggerTarget();
+	void RegisterGameplayPhysicsEventListener();
+	void UnregisterGameplayPhysicsEventListener();
+	void SyncGameplayPhysicsBulletTriggerTargets();
+	void UnregisterGameplayPhysicsBulletTriggerTargets();
 	void ApplyGameplayPhysicsParameterSettings();
 	void UpdateCollisionSystemPolicyFromGameplayFlags();
 	void DrawCollisionSystemPolicyImGui();
@@ -266,6 +270,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool playerGroundColliderRegistered_ = false; // Player床判定用ColliderをPhysicsWorldへ登録済みか
 	bool gameplayPhysicsTriggerTestRegistered_ = false; // TriggerEvent確認用ColliderをPhysicsWorldへ登録済みか
 	bool gameplayPhysicsEventListenerRegistered_ = false; // TriggerEvent確認用ListenerをPhysicsWorldへ登録済みか
+	std::vector<K4E::Collider*> physicsBulletTargetColliders_{}; // 実Bullet Trigger確認用にPhysicsWorldへ登録中のEnemy/Boss Collider
 	bool playerPhysicsGrounded_ = false; // PhysicsWorld由来のPlayer床判定
 	size_t playerStageContactCount_ = 0; // Player vs StageのContact数
 	float playerCorrectionClamp_ = 1.0f; // Playerへ反映する物理補正量の1フレーム上限
