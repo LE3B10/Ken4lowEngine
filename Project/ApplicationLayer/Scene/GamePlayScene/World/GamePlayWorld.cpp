@@ -174,6 +174,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	stage_->Initialize(stageAssets.jsonPath, stageAssets.modelPath);
 	stage_->RegisterColliders(collisionManager_.get());
 	stage_->Update();
+	InitializeGameplayPhysicsTest();
 
 	// 敵AIとプレイヤー移動はステージAABBを参照して壁抜けや地面補正を行う。
 	// Stageが所有する配列なので、World解放時に必ずnullptrへ戻す。
@@ -339,6 +340,10 @@ void GamePlayWorld::Finalize()
 
 	characters_.Finalize();
 
+	UnbindGameplayPhysicsStageColliders();
+	gameplayPhysicsWorld_.ClearColliders();
+	physicsTestObject_.reset();
+
 	stage_.reset();
 	bulletManager_.reset();
 
@@ -357,6 +362,7 @@ void GamePlayWorld::Update(float deltaTime)
 	{
 		stage_->Update();
 	}
+	UpdateGameplayPhysicsTest(deltaTime);
 
 	if (bossIntroController_.IsGameplayPaused())
 	{
@@ -630,6 +636,7 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 	{
 		clearItem_->Draw();
 	}
+	DrawGameplayPhysicsTest();
 
 #ifdef _DEBUG
 	if (debugVisualsEnabled && collisionManager_)
@@ -738,6 +745,7 @@ void GamePlayWorld::DrawGameDebugImGui()
 	}
 	ImGui::Text("Player Dead: %s", IsPlayerDead() ? "true" : "false");
 	ImGui::Text("Enemies: %d", characters_.GetEnemyCount());
+	DrawGameplayPhysicsTestImGui();
 	ImGui::SeparatorText("ボス状態");
 	ImGui::Text("ボス出現済み: %s", bossSpawned_ ? "はい" : "いいえ");
 	ImGui::Text("ボスCollider登録済み: %s", bossColliderRegistered_ ? "はい" : "いいえ");
@@ -1249,6 +1257,176 @@ void GamePlayWorld::CollisionUpdate()
 
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
+}
+
+void GamePlayWorld::InitializeGameplayPhysicsTest()
+{
+	// 本編挙動へ影響しない明示ONの物理テストとして、独立したPhysicsWorldとTestObjectを準備する。
+	gameplayPhysicsWorld_.SetUseFixedStep(true);
+	gameplayPhysicsWorld_.SetPositionSolveEnabled(true);
+	gameplayPhysicsWorld_.SetFrictionSolveEnabled(true);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(0u, 0u, K4E::CollisionResponseType::Ignore);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(0u, 1u, K4E::CollisionResponseType::Block);
+
+	physicsTestRigidbody_.SetBodyType(K4E::BodyType::Dynamic);
+	physicsTestRigidbody_.SetMass(1.0f);
+	physicsTestRigidbody_.SetUseGravity(true);
+	physicsTestRigidbody_.SetRestitution(0.0f);
+	physicsTestRigidbody_.SetDynamicFriction(0.2f);
+	physicsTestRigidbody_.SetSleepEnabled(false);
+
+	physicsTestCollider_.SetRigidbody(&physicsTestRigidbody_);
+	physicsTestCollider_.SetCollisionLayer(1u);
+	gameplayPhysicsWorld_.RegisterRigidbody(&physicsTestRigidbody_);
+	gameplayPhysicsWorld_.RegisterCollider(&physicsTestCollider_);
+
+	if (auto* player = characters_.GetPlayer())
+	{
+		physicsTestInitialPosition_ = player->GetCenterPosition() + K4E::Vector3{ 0.0f, 8.0f, 3.0f };
+	}
+	else
+	{
+		physicsTestInitialPosition_ = { 0.0f, 8.0f, 0.0f };
+	}
+
+	physicsTestObject_ = std::make_unique<K4E::Object3D>();
+	physicsTestObject_->Initialize("Test/cube.gltf");
+	physicsTestObject_->SetScale(physicsTestHalfSize_ * 2.0f);
+	physicsTestObject_->SetColor({ 0.2f, 0.9f, 1.0f, 1.0f });
+
+	ResetGameplayPhysicsTestObject();
+}
+
+void GamePlayWorld::ResetGameplayPhysicsTestObject()
+{
+	// PhysicsTestObjectを初期位置へ戻し、速度・力・接触状態をリセットする。
+	physicsTestPosition_ = physicsTestInitialPosition_;
+	physicsTestRigidbody_.SetVelocity({});
+	physicsTestRigidbody_.ClearForces();
+	physicsTestRigidbody_.ClearFrameState();
+	physicsTestRigidbody_.WakeUp();
+	SyncGameplayPhysicsTestCollider();
+
+	if (physicsTestObject_)
+	{
+		physicsTestObject_->SetTranslate(physicsTestPosition_);
+		physicsTestObject_->Update();
+	}
+}
+
+void GamePlayWorld::UpdateGameplayPhysicsTest(float deltaTime)
+{
+	// Enable Gameplay Physics TestがONの時だけ、本編とは別PhysicsWorldでテスト物体を更新する。
+	if (!enableGameplayPhysicsTest_)
+	{
+		return;
+	}
+
+	physicsTestPosition_ += physicsTestRigidbody_.GetVelocity() * deltaTime;
+	SyncGameplayPhysicsTestCollider();
+	gameplayPhysicsWorld_.Update(deltaTime);
+	physicsTestPosition_ = physicsTestCollider_.GetCenterPosition();
+
+	if (physicsTestObject_)
+	{
+		physicsTestObject_->SetTranslate(physicsTestPosition_);
+		physicsTestObject_->Update();
+	}
+}
+
+void GamePlayWorld::DrawGameplayPhysicsTest()
+{
+#ifdef _DEBUG
+	// テスト有効時だけ本編ステージ上のPhysicsTestObjectとColliderを可視化する。
+	if (!enableGameplayPhysicsTest_)
+	{
+		return;
+	}
+
+	if (physicsTestObject_)
+	{
+		physicsTestObject_->Draw();
+	}
+
+	K4E::Wireframe::GetInstance()->DrawAABB(
+		physicsTestCollider_.GetAABB(),
+		physicsTestRigidbody_.IsGrounded() ? K4E::Vector4{ 0.1f, 1.0f, 0.2f, 1.0f } : K4E::Vector4{ 0.2f, 0.9f, 1.0f, 1.0f });
+#endif
+}
+
+void GamePlayWorld::DrawGameplayPhysicsTestImGui()
+{
+#ifdef USE_IMGUI
+	ImGui::SeparatorText("Gameplay Physics Test");
+
+	bool enable = enableGameplayPhysicsTest_;
+	if (ImGui::Checkbox("Enable Gameplay Physics Test", &enable))
+	{
+		enableGameplayPhysicsTest_ = enable;
+		if (enableGameplayPhysicsTest_)
+		{
+			BindGameplayPhysicsStageColliders();
+			ResetGameplayPhysicsTestObject();
+		}
+		else
+		{
+			UnbindGameplayPhysicsStageColliders();
+		}
+	}
+
+	if (ImGui::Button("Bind Stage Colliders"))
+	{
+		BindGameplayPhysicsStageColliders();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Unbind Stage Colliders"))
+	{
+		UnbindGameplayPhysicsStageColliders();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Reset Physics Test Object"))
+	{
+		ResetGameplayPhysicsTestObject();
+	}
+
+	const K4E::Vector3 velocity = physicsTestRigidbody_.GetVelocity();
+	ImGui::Text("Stage Binder Bound: %s", gameplayStagePhysicsBinder_.IsBound() ? "true" : "false");
+	ImGui::Text("Bound Stage Collider Count: %zu", gameplayStagePhysicsBinder_.GetBoundColliderCount());
+	ImGui::Text("PhysicsWorld Collider Count: %zu", gameplayPhysicsWorld_.GetColliderCount());
+	ImGui::Text("Contact Count: %zu", gameplayPhysicsWorld_.GetContacts().size());
+	ImGui::Text("IsGrounded: %s", physicsTestRigidbody_.IsGrounded() ? "true" : "false");
+	ImGui::Text("Position: %.3f, %.3f, %.3f", physicsTestPosition_.x, physicsTestPosition_.y, physicsTestPosition_.z);
+	ImGui::Text("Velocity: %.3f, %.3f, %.3f", velocity.x, velocity.y, velocity.z);
+#endif
+}
+
+void GamePlayWorld::SyncGameplayPhysicsTestCollider()
+{
+	// TestObjectの表示位置とPhysicsWorldで判定するAABBを同期する。
+	physicsTestCollider_.SetAABB({
+		physicsTestPosition_ - physicsTestHalfSize_,
+		physicsTestPosition_ + physicsTestHalfSize_,
+		});
+}
+
+void GamePlayWorld::BindGameplayPhysicsStageColliders()
+{
+	// StageCollisionBuilder由来のStageColliderを、テスト用PhysicsWorldへStatic Colliderとして登録する。
+	if (!stage_)
+	{
+		return;
+	}
+
+	std::vector<K4E::Collider*> stageColliders = stage_->GetWorldColliderPointers();
+	gameplayStagePhysicsBinder_.Bind(gameplayPhysicsWorld_, stageColliders);
+	gameplayPhysicsStageBound_ = gameplayStagePhysicsBinder_.IsBound();
+}
+
+void GamePlayWorld::UnbindGameplayPhysicsStageColliders()
+{
+	// Unbind後にStageとのContactが消えることを確認できるよう、Binder経由の登録を解除する。
+	gameplayStagePhysicsBinder_.Unbind();
+	gameplayPhysicsStageBound_ = false;
 }
 
 void GamePlayWorld::UpdateShadowLightViewProjection()

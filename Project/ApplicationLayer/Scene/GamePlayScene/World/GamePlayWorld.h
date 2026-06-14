@@ -15,6 +15,9 @@
 #include "AimTargetDetector.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "Object3D.h"
+#include "Engine/Physics/Bridge/StagePhysicsBinder.h"
+#include "Engine/Physics/Core/PhysicsWorld.h"
+#include "Engine/Physics/Core/Rigidbody.h"
 
 #include <memory>
 
@@ -155,6 +158,14 @@ public: /// ---------- メンバ関数 ---------- ///
 private: /// ---------- メンバ関数 ---------- ///
 
 	void CollisionUpdate();
+	void InitializeGameplayPhysicsTest();
+	void ResetGameplayPhysicsTestObject();
+	void UpdateGameplayPhysicsTest(float deltaTime);
+	void DrawGameplayPhysicsTest();
+	void DrawGameplayPhysicsTestImGui();
+	void SyncGameplayPhysicsTestCollider();
+	void BindGameplayPhysicsStageColliders();
+	void UnbindGameplayPhysicsStageColliders();
 	void UpdateShadowLightViewProjection();
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection) const;
 	bool IsSightBlocked(const K4E::Segment& seg) const;
@@ -187,6 +198,17 @@ private: /// ---------- メンバ変数 ---------- ///
 	AimTargetDetector aimTargetDetector_;
 	std::unique_ptr<GuardianBoss> guardianBoss_;
 	std::unique_ptr<BossClearItem> clearItem_;
+	std::unique_ptr<K4E::Object3D> physicsTestObject_;
+
+	K4E::PhysicsWorld gameplayPhysicsWorld_{}; // 本編接続前の明示ONテスト用PhysicsWorld
+	K4E::StagePhysicsBinder gameplayStagePhysicsBinder_{}; // StageCollider登録確認用Binder
+	K4E::Rigidbody physicsTestRigidbody_{}; // PhysicsTestObject用Rigidbody
+	K4E::Collider physicsTestCollider_{}; // PhysicsTestObject用Collider
+	K4E::Vector3 physicsTestPosition_{}; // PhysicsTestObjectの現在位置
+	K4E::Vector3 physicsTestInitialPosition_{ 0.0f, 8.0f, 0.0f }; // Reset時の初期位置
+	K4E::Vector3 physicsTestHalfSize_{ 0.5f, 0.5f, 0.5f }; // テスト用AABB半サイズ
+	bool enableGameplayPhysicsTest_ = false; // 本編上でPhysicsWorldテストを実行するか
+	bool gameplayPhysicsStageBound_ = false; // StageColliderをPhysicsWorldへ登録済みか
 
 	int prevWaveNumber_ = 0;
 	bool prevWaveInProgress_ = false;
