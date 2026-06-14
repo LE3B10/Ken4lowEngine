@@ -187,6 +187,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetGroundedByPhysics(bool isGrounded) { isGroundedByPhysics_ = isGrounded; }
 	bool IsGroundedByPhysics() const { return isGroundedByPhysics_; }
 
+	// PhysicsWorldで補正された位置をPlayerへ戻す。既存移動/ジャンプ処理はまだ置き換えない。
+	void ApplyPhysicsCorrectedPosition(const K4E::Vector3& worldPosition);
+
 	void SetFallDamageSettings(const FallDamageSettings& s) { fallDamageSettings_ = s; }
 
 	// Stage Editor等で編集された武器マスタを、現在実行中の武器コンポーネントへ即時反映する。

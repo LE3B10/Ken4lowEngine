@@ -748,6 +748,18 @@ void Player::SyncViewToPlayer()
 	view_.SyncViewModeToFirstPersonFlag();
 }
 
+void Player::ApplyPhysicsCorrectedPosition(const K4E::Vector3& worldPosition)
+{
+	// PhysicsWorldで補正された位置をPlayerへ戻し、壁へのめり込みを解消する。
+	if (auto* tr = GetWorldTransform())
+	{
+		tr->translate_ = worldPosition;
+		SetCenterPosition(worldPosition);
+		view_.SyncToPlayer();
+		SyncHurtboxes();
+	}
+}
+
 void Player::SetStartGameplayVisualsVisible(bool visible)
 {
 	weaponVisual_.SetVisible(visible);

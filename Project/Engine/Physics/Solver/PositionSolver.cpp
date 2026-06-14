@@ -10,8 +10,9 @@ namespace Ken4lowEngine
 	{
 		bool IsMovableBody(const Rigidbody* rigidbody)
 		{
-			// Rigidbody未設定、Static、Kinematicは今回の押し戻し対象外として扱う。
-			return rigidbody && rigidbody->GetBodyType() == BodyType::Dynamic;
+			// 入力で動くキャラクターをStatic環境から押し戻すため、DynamicとKinematicを位置補正対象にする。
+			return rigidbody &&
+				(rigidbody->GetBodyType() == BodyType::Dynamic || rigidbody->GetBodyType() == BodyType::Kinematic);
 		}
 
 		void MoveCollider(Collider* collider, const Vector3& correction)

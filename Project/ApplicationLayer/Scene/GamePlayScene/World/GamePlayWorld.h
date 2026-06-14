@@ -170,6 +170,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	void UnregisterPlayerPhysicsGroundCheck();
 	void UpdatePlayerPhysicsGroundCheck();
 	void SyncPlayerPhysicsGroundCollider(Player& player);
+	void ApplyPlayerPhysicsCorrection(Player& player);
 	bool EvaluatePlayerPhysicsGrounded();
 	void UpdateShadowLightViewProjection();
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection) const;
@@ -215,10 +216,16 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 physicsTestInitialPosition_{ 0.0f, 8.0f, 0.0f }; // Reset時の初期位置
 	K4E::Vector3 physicsTestHalfSize_{ 0.5f, 0.5f, 0.5f }; // テスト用AABB半サイズ
 	K4E::Vector3 playerGroundColliderPosition_{}; // Player床判定用Collider中心
+	K4E::Vector3 playerPositionBeforePhysics_{}; // PhysicsWorld同期前のPlayer位置
+	K4E::Vector3 playerPositionAfterPhysics_{}; // PhysicsWorld補正反映後のPlayer位置
+	K4E::Vector3 playerPhysicsCorrectionDelta_{}; // PhysicsWorldから受け取ったPlayer補正量
 	K4E::Vector3 playerGroundColliderHalfSize_{ 0.5f, 1.0f, 0.5f }; // Player床判定用AABB半サイズ
 	K4E::Vector3 playerGroundColliderOffset_{ 0.0f, 0.95f, 0.0f }; // 足元に少し重なる床判定用オフセット
 	bool enableGameplayPhysicsTest_ = false; // 本編上でPhysicsWorldテストを実行するか
 	bool enablePlayerPhysicsGroundCheck_ = false; // Player床判定だけをPhysicsWorldから取得するか
+	bool enablePlayerPhysicsDepenetration_ = false; // Player壁押し戻しだけをPhysicsWorldから受け取るか
+	bool applyPlayerPhysicsCorrectionXZ_ = true; // Player補正のXZ成分を反映するか
+	bool applyPlayerPhysicsCorrectionY_ = false; // Player補正のY成分を反映するか
 	bool gameplayPhysicsStageBound_ = false; // StageColliderをPhysicsWorldへ登録済みか
 	bool playerGroundColliderRegistered_ = false; // Player床判定用ColliderをPhysicsWorldへ登録済みか
 	bool playerPhysicsGrounded_ = false; // PhysicsWorld由来のPlayer床判定

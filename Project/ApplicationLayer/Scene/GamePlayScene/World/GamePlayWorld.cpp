@@ -1325,7 +1325,7 @@ void GamePlayWorld::ResetGameplayPhysicsTestObject()
 void GamePlayWorld::UpdateGameplayPhysicsTest(float deltaTime)
 {
 	// 明示ONの確認機能がある場合だけ、本編とは別PhysicsWorldでテスト物体/Player床判定を更新する。
-	if (!enableGameplayPhysicsTest_ && !enablePlayerPhysicsGroundCheck_)
+	if (!enableGameplayPhysicsTest_ && !enablePlayerPhysicsGroundCheck_ && !enablePlayerPhysicsDepenetration_)
 	{
 		return;
 	}
@@ -1354,6 +1354,10 @@ void GamePlayWorld::UpdateGameplayPhysicsTest(float deltaTime)
 	playerGroundRigidbody_.SetGrounded(playerPhysicsGrounded_);
 	if (auto* player = characters_.GetPlayer())
 	{
+		if (enablePlayerPhysicsDepenetration_)
+		{
+			ApplyPlayerPhysicsCorrection(*player);
+		}
 		// PhysicsWorld側の接地状態をPlayerへ反映する。既存の移動/ジャンプ判定にはまだ使わない。
 		player->SetGroundedByPhysics(enablePlayerPhysicsGroundCheck_ && playerPhysicsGrounded_);
 	}
@@ -1395,7 +1399,7 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 		}
 		else
 		{
-			if (!enablePlayerPhysicsGroundCheck_)
+			if (!enablePlayerPhysicsGroundCheck_ && !enablePlayerPhysicsDepenetration_)
 			{
 				UnbindGameplayPhysicsStageColliders();
 			}
@@ -1412,13 +1416,40 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 		}
 		else
 		{
-			UnregisterPlayerPhysicsGroundCheck();
-			if (!enableGameplayPhysicsTest_)
+			if (!enablePlayerPhysicsDepenetration_)
+			{
+				UnregisterPlayerPhysicsGroundCheck();
+			}
+			if (!enableGameplayPhysicsTest_ && !enablePlayerPhysicsDepenetration_)
 			{
 				UnbindGameplayPhysicsStageColliders();
 			}
 		}
 	}
+	bool enablePlayerDepenetration = enablePlayerPhysicsDepenetration_;
+	if (ImGui::Checkbox("Enable Player Physics Depenetration", &enablePlayerDepenetration))
+	{
+		enablePlayerPhysicsDepenetration_ = enablePlayerDepenetration;
+		if (enablePlayerPhysicsDepenetration_)
+		{
+			BindGameplayPhysicsStageColliders();
+			RegisterPlayerPhysicsGroundCheck();
+		}
+		else
+		{
+			playerPhysicsCorrectionDelta_ = {};
+			if (!enablePlayerPhysicsGroundCheck_)
+			{
+				UnregisterPlayerPhysicsGroundCheck();
+			}
+			if (!enableGameplayPhysicsTest_ && !enablePlayerPhysicsGroundCheck_)
+			{
+				UnbindGameplayPhysicsStageColliders();
+			}
+		}
+	}
+	ImGui::Checkbox("Apply XZ Correction", &applyPlayerPhysicsCorrectionXZ_);
+	ImGui::Checkbox("Apply Y Correction", &applyPlayerPhysicsCorrectionY_);
 
 	if (ImGui::Button("Bind Stage Colliders"))
 	{
@@ -1449,6 +1480,9 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 	ImGui::Text("Existing Grounded: %s", player ? (player->FSM_IsGrounded() ? "true" : "false") : "N/A");
 	ImGui::Text("Physics Grounded: %s", player ? (player->IsGroundedByPhysics() ? "true" : "false") : "N/A");
 	ImGui::Text("Player Position: %.3f, %.3f, %.3f", playerPosition.x, playerPosition.y, playerPosition.z);
+	ImGui::Text("Player Position Before Physics: %.3f, %.3f, %.3f", playerPositionBeforePhysics_.x, playerPositionBeforePhysics_.y, playerPositionBeforePhysics_.z);
+	ImGui::Text("Player Position After Physics: %.3f, %.3f, %.3f", playerPositionAfterPhysics_.x, playerPositionAfterPhysics_.y, playerPositionAfterPhysics_.z);
+	ImGui::Text("Correction Delta: %.3f, %.3f, %.3f", playerPhysicsCorrectionDelta_.x, playerPhysicsCorrectionDelta_.y, playerPhysicsCorrectionDelta_.z);
 	ImGui::Text("Player Collider Position: %.3f, %.3f, %.3f", playerGroundColliderPosition_.x, playerGroundColliderPosition_.y, playerGroundColliderPosition_.z);
 	ImGui::Text("Player vs Stage Contact Count: %zu", playerStageContactCount_);
 	ImGui::Text("Registered Player Collider: %s", playerGroundColliderRegistered_ ? "true" : "false");
@@ -1520,7 +1554,7 @@ void GamePlayWorld::UnregisterPlayerPhysicsGroundCheck()
 void GamePlayWorld::UpdatePlayerPhysicsGroundCheck()
 {
 	// Player移動は置き換えず、床判定用Colliderだけを現在のPlayer位置へ同期する。
-	if (!enablePlayerPhysicsGroundCheck_)
+	if (!enablePlayerPhysicsGroundCheck_ && !enablePlayerPhysicsDepenetration_)
 	{
 		return;
 	}
@@ -1538,12 +1572,45 @@ void GamePlayWorld::UpdatePlayerPhysicsGroundCheck()
 
 void GamePlayWorld::SyncPlayerPhysicsGroundCollider(Player& player)
 {
-	// 既存のPlayer移動を置き換えず、物理側の床判定用に位置だけ同期する。
-	playerGroundColliderPosition_ = player.GetCenterPosition() + playerGroundColliderOffset_;
+	// 既存のPlayer移動結果をPhysicsWorldへ渡し、めり込み補正だけを受け取る。
+	playerPositionBeforePhysics_ = player.GetCenterPosition();
+	playerPositionAfterPhysics_ = playerPositionBeforePhysics_;
+	playerPhysicsCorrectionDelta_ = {};
+	playerGroundColliderPosition_ = playerPositionBeforePhysics_ + playerGroundColliderOffset_;
 	playerGroundCollider_.SetAABB({
 		playerGroundColliderPosition_ - playerGroundColliderHalfSize_,
 		playerGroundColliderPosition_ + playerGroundColliderHalfSize_,
 		});
+}
+
+void GamePlayWorld::ApplyPlayerPhysicsCorrection(Player& player)
+{
+	// PhysicsWorldで補正された位置をPlayerへ戻し、壁へのめり込みを解消する。
+	const K4E::Vector3 correctedColliderPosition = playerGroundCollider_.GetCenterPosition();
+	K4E::Vector3 rawDelta = correctedColliderPosition - playerGroundColliderPosition_;
+	constexpr float kMaxCorrectionPerFrame = 1.0f;
+	rawDelta.x = std::clamp(rawDelta.x, -kMaxCorrectionPerFrame, kMaxCorrectionPerFrame);
+	rawDelta.y = std::clamp(rawDelta.y, -kMaxCorrectionPerFrame, kMaxCorrectionPerFrame);
+	rawDelta.z = std::clamp(rawDelta.z, -kMaxCorrectionPerFrame, kMaxCorrectionPerFrame);
+
+	K4E::Vector3 appliedDelta{};
+	if (applyPlayerPhysicsCorrectionXZ_)
+	{
+		appliedDelta.x = rawDelta.x;
+		appliedDelta.z = rawDelta.z;
+	}
+	if (applyPlayerPhysicsCorrectionY_)
+	{
+		appliedDelta.y = rawDelta.y;
+	}
+
+	playerPhysicsCorrectionDelta_ = appliedDelta;
+	playerPositionAfterPhysics_ = playerPositionBeforePhysics_ + appliedDelta;
+	if (K4E::Vector3::LengthSquared(appliedDelta) > 0.0f)
+	{
+		player.ApplyPhysicsCorrectedPosition(playerPositionAfterPhysics_);
+		SyncPlayerPhysicsGroundCollider(player);
+	}
 }
 
 bool GamePlayWorld::EvaluatePlayerPhysicsGrounded()
