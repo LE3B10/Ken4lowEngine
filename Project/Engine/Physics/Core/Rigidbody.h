@@ -24,6 +24,10 @@ namespace Ken4lowEngine
 		void SetUseGravity(bool useGravity) { useGravity_ = useGravity; }
 		bool IsUseGravity() const { return useGravity_; }
 
+		// PhysicsWorldから反映される重力加速度を設定する。
+		void SetGravity(const Vector3& gravity) { gravity_ = gravity; }
+		Vector3 GetGravity() const { return gravity_; }
+
 		// 反発係数を設定する。0.0で跳ねず、1.0に近いほど反発を強くする。
 		void SetRestitution(float restitution);
 		float GetRestitution() const { return restitution_; }
@@ -105,6 +109,9 @@ namespace Ken4lowEngine
 
 		// 重力を速度へ反映するか。
 		bool useGravity_ = false;
+
+		// 重力加速度。既定値は既存挙動と同じ-9.8m/s^2相当。
+		Vector3 gravity_{ 0.0f, -9.8f, 0.0f };
 
 		// このフレームで床に接触しているか。
 		bool isGrounded_ = false;

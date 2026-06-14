@@ -18,6 +18,7 @@
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "Object3D.h"
 #include "Engine/Physics/Bridge/StagePhysicsBinder.h"
+#include "Engine/Physics/Bridge/PhysicsParameterBridge.h"
 #include "Engine/Physics/Core/PhysicsWorld.h"
 #include "Engine/Physics/Debug/PhysicsDebugDraw.h"
 #include "Engine/Physics/Core/Rigidbody.h"
@@ -183,6 +184,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	void DrawGameplayPhysicsTriggerTest();
 	void DrawGameplayPhysicsTriggerTestImGui();
 	void SyncGameplayPhysicsTriggerTarget();
+	void ApplyGameplayPhysicsParameterSettings();
 	void UpdateShadowLightViewProjection();
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection) const;
 	bool IsSightBlocked(const K4E::Segment& seg) const;
@@ -221,6 +223,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<GameplayPhysicsEventHandler> gameplayPhysicsEventHandler_;
 
 	K4E::PhysicsWorld gameplayPhysicsWorld_{}; // 本編接続前の明示ONテスト用PhysicsWorld
+	K4E::PhysicsParameterBridge gameplayPhysicsParameterBridge_{}; // ParameterManagerとGameplay側PhysicsWorldの橋渡し
 	K4E::PhysicsDebugDraw gameplayPhysicsDebugDraw_{}; // Gameplay側PhysicsWorldの共通Debug可視化
 	K4E::StagePhysicsBinder gameplayStagePhysicsBinder_{}; // StageCollider登録確認用Binder
 	K4E::Rigidbody physicsTestRigidbody_{}; // PhysicsTestObject用Rigidbody
@@ -255,6 +258,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool gameplayPhysicsEventListenerRegistered_ = false; // TriggerEvent確認用ListenerをPhysicsWorldへ登録済みか
 	bool playerPhysicsGrounded_ = false; // PhysicsWorld由来のPlayer床判定
 	size_t playerStageContactCount_ = 0; // Player vs StageのContact数
+	float playerCorrectionClamp_ = 1.0f; // Playerへ反映する物理補正量の1フレーム上限
 
 	int prevWaveNumber_ = 0;
 	bool prevWaveInProgress_ = false;

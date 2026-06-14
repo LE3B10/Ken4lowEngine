@@ -577,6 +577,9 @@
     <ClCompile Include="Engine\Physics\Collision\Core\ContactRecord.cpp">
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Physics\Bridge\PhysicsParameterBridge.cpp">
+      <Filter>Engine\Physics\Bridge</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Physics\Bridge\StagePhysicsBinder.cpp">
       <Filter>Engine\Physics\Bridge</Filter>
     </ClCompile>
@@ -1578,6 +1581,9 @@
     <ClInclude Include="Engine\Physics\Collision\Core\IDGenerator.h">
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Physics\Bridge\PhysicsParameterBridge.h">
+      <Filter>Engine\Physics\Bridge</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Physics\Bridge\StagePhysicsBinder.h">
       <Filter>Engine\Physics\Bridge</Filter>
     </ClInclude>
@@ -1585,6 +1591,9 @@
       <Filter>Engine\Physics\Core</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Physics\Core\PhysicsTypes.h">
+      <Filter>Engine\Physics\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Core\PhysicsWorldSettings.h">
       <Filter>Engine\Physics\Core</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Physics\Core\PhysicsWorld.h">

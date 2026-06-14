@@ -7,7 +7,6 @@ namespace Ken4lowEngine
 	namespace
 	{
 		constexpr float kMinimumMass = 0.0001f;
-		const Vector3 kGravity{ 0.0f, -9.8f, 0.0f };
 	}
 
 	void Rigidbody::SetBodyType(BodyType bodyType)
@@ -179,7 +178,7 @@ namespace Ken4lowEngine
 		Vector3 acceleration = force_ * invMass_;
 		if (useGravity_)
 		{
-			acceleration += kGravity;
+			acceleration += gravity_;
 		}
 
 		// 現段階では位置更新先を持たず、速度だけを更新して将来のTransform接続に備える。

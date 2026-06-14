@@ -1,0 +1,11 @@
+{
+    "GameplayPhysics": {
+        "ApplyPlayerPhysicsCorrectionXZ": true,
+        "ApplyPlayerPhysicsCorrectionY": false,
+        "EnableGameplayPhysicsTest": false,
+        "EnableGameplayPhysicsTriggerTest": false,
+        "EnablePlayerPhysicsDepenetration": false,
+        "EnablePlayerPhysicsGroundCheck": false,
+        "PlayerCorrectionClamp": 1.0
+    }
+}

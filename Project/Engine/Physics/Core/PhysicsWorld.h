@@ -1,5 +1,6 @@
 #pragma once
 #include "Contact.h"
+#include "PhysicsWorldSettings.h"
 #include "Engine/Physics/Collision/Core/CollisionResponseMatrix.h"
 #include "Engine/Physics/Event/PhysicsEventDispatcher.h"
 
@@ -48,6 +49,12 @@ namespace Ken4lowEngine
 		// 検出済みContactを解決する。
 		void ResolveContacts();
 
+		// 外部設定をPhysicsWorldへ反映し、固定更新やSolver設定を調整する。
+		void ApplySettings(const PhysicsWorldSettings& settings);
+
+		// 現在のPhysicsWorld設定を取得する。
+		PhysicsWorldSettings GetSettings() const;
+
 		// 直近ステップのContact一覧を取得する。
 		const std::vector<Contact>& GetContacts() const { return contacts_; }
 
@@ -76,6 +83,10 @@ namespace Ken4lowEngine
 		void SetPositionSolveEnabled(bool enabled) { positionSolveEnabled_ = enabled; }
 		bool IsPositionSolveEnabled() const { return positionSolveEnabled_; }
 
+		// 速度補正ソルバーの有効状態を設定する。
+		void SetVelocitySolveEnabled(bool enabled) { velocitySolveEnabled_ = enabled; }
+		bool IsVelocitySolveEnabled() const { return velocitySolveEnabled_; }
+
 		// 摩擦ソルバーの有効状態を設定する。
 		void SetFrictionSolveEnabled(bool enabled) { frictionSolveEnabled_ = enabled; }
 		bool IsFrictionSolveEnabled() const { return frictionSolveEnabled_; }
@@ -102,6 +113,10 @@ namespace Ken4lowEngine
 		// CollisionLayer同士の応答設定を取得する。
 		CollisionResponseMatrix& GetResponseMatrix() { return responseMatrix_; }
 		const CollisionResponseMatrix& GetResponseMatrix() const { return responseMatrix_; }
+
+		// PhysicsWorldが各Rigidbodyへ反映する重力加速度を設定する。
+		void SetGravity(const Vector3& gravity) { gravity_ = gravity; }
+		Vector3 GetGravity() const { return gravity_; }
 
 	private: /// ---------- メンバ関数 ---------- ///
 
@@ -140,8 +155,14 @@ namespace Ken4lowEngine
 		// Contact解決で位置補正を行うか。DebugSceneからON/OFFを切り替える。
 		bool positionSolveEnabled_ = true;
 
+		// Contact解決で速度補正を行うか。DebugSceneからON/OFFを切り替える。
+		bool velocitySolveEnabled_ = true;
+
 		// Contact解決で摩擦補正を行うか。DebugSceneからON/OFFを切り替える。
 		bool frictionSolveEnabled_ = true;
+
+		// 登録済みRigidbodyへ反映する重力加速度。
+		Vector3 gravity_{ 0.0f, -9.8f, 0.0f };
 
 		// 固定更新とサブステップ制御用の状態。
 		bool useFixedStep_ = true;

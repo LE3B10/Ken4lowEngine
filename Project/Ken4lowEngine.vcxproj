@@ -445,6 +445,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Physics\Collision\Core\CollisionResponseMatrix.cpp" />
     <ClCompile Include="Engine\Physics\Collision\Core\ContactRecord.cpp" />
     <ClCompile Include="Engine\Physics\Collision\Core\WorldCollisionResolver.cpp" />
+    <ClCompile Include="Engine\Physics\Bridge\PhysicsParameterBridge.cpp" />
     <ClCompile Include="Engine\Physics\Bridge\StagePhysicsBinder.cpp" />
     <ClCompile Include="Engine\Physics\Core\PhysicsWorld.cpp" />
     <ClCompile Include="Engine\Physics\Core\Rigidbody.cpp" />
@@ -1178,9 +1179,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Physics\Collision\Core\ContactRecord.h" />
     <ClInclude Include="Engine\Physics\Collision\Core\IDGenerator.h" />
     <ClInclude Include="Engine\Physics\Collision\Core\WorldCollisionResolver.h" />
+    <ClInclude Include="Engine\Physics\Bridge\PhysicsParameterBridge.h" />
     <ClInclude Include="Engine\Physics\Bridge\StagePhysicsBinder.h" />
     <ClInclude Include="Engine\Physics\Core\Contact.h" />
     <ClInclude Include="Engine\Physics\Core\PhysicsTypes.h" />
+    <ClInclude Include="Engine\Physics\Core\PhysicsWorldSettings.h" />
     <ClInclude Include="Engine\Physics\Core\PhysicsWorld.h" />
     <ClInclude Include="Engine\Physics\Core\Rigidbody.h" />
     <ClInclude Include="Engine\Physics\Debug\PhysicsDebugDraw.h" />

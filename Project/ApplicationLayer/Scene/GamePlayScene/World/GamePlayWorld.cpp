@@ -199,6 +199,9 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	stage_->Update();
 	InitializeGameplayPhysicsTest();
 	InitializeGameplayPhysicsTriggerTest();
+	gameplayPhysicsParameterBridge_.Initialize();
+	gameplayPhysicsParameterBridge_.RegisterAppliers(this, [this]() { ApplyGameplayPhysicsParameterSettings(); });
+	ApplyGameplayPhysicsParameterSettings();
 
 	// 敵AIとプレイヤー移動はステージAABBを参照して壁抜けや地面補正を行う。
 	// Stageが所有する配列なので、World解放時に必ずnullptrへ戻す。
@@ -366,6 +369,7 @@ void GamePlayWorld::Finalize()
 
 	UnregisterPlayerPhysicsGroundCheck();
 	UnregisterGameplayPhysicsTriggerTest();
+	gameplayPhysicsParameterBridge_.Finalize(this);
 	UnbindGameplayPhysicsStageColliders();
 	gameplayPhysicsWorld_.ClearColliders();
 	physicsTestObject_.reset();
@@ -1754,6 +1758,7 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 		gameplayPhysicsDebugDraw_.GetSettings().drawPhysicsDebug = enableGameplayPhysicsDebugDraw_;
 	}
 	gameplayPhysicsDebugDraw_.DrawImGui(gameplayPhysicsWorld_);
+	gameplayPhysicsParameterBridge_.DrawImGui();
 	DrawGameplayPhysicsTriggerTestImGui();
 #endif
 }
@@ -1857,10 +1862,10 @@ void GamePlayWorld::ApplyPlayerPhysicsCorrection(Player& player)
 	// PhysicsWorldで補正された位置をPlayerへ戻し、壁へのめり込みを解消する。
 	const K4E::Vector3 correctedColliderPosition = playerGroundCollider_.GetCenterPosition();
 	K4E::Vector3 rawDelta = correctedColliderPosition - playerGroundColliderPosition_;
-	constexpr float kMaxCorrectionPerFrame = 1.0f;
-	rawDelta.x = std::clamp(rawDelta.x, -kMaxCorrectionPerFrame, kMaxCorrectionPerFrame);
-	rawDelta.y = std::clamp(rawDelta.y, -kMaxCorrectionPerFrame, kMaxCorrectionPerFrame);
-	rawDelta.z = std::clamp(rawDelta.z, -kMaxCorrectionPerFrame, kMaxCorrectionPerFrame);
+	const float maxCorrectionPerFrame = std::max(playerCorrectionClamp_, 0.0f);
+	rawDelta.x = std::clamp(rawDelta.x, -maxCorrectionPerFrame, maxCorrectionPerFrame);
+	rawDelta.y = std::clamp(rawDelta.y, -maxCorrectionPerFrame, maxCorrectionPerFrame);
+	rawDelta.z = std::clamp(rawDelta.z, -maxCorrectionPerFrame, maxCorrectionPerFrame);
 
 	K4E::Vector3 appliedDelta{};
 	if (applyPlayerPhysicsCorrectionXZ_)
@@ -1906,6 +1911,51 @@ bool GamePlayWorld::EvaluatePlayerPhysicsGrounded()
 	}
 
 	return grounded;
+}
+
+void GamePlayWorld::ApplyGameplayPhysicsParameterSettings()
+{
+	// JSON/ImGuiで調整した値をGameplay側PhysicsWorld/DebugDraw/テスト機能フラグへ反映する。
+	gameplayPhysicsParameterBridge_.ApplyTo(gameplayPhysicsWorld_);
+	gameplayPhysicsParameterBridge_.ApplyTo(gameplayPhysicsDebugDraw_);
+
+	const K4E::GameplayPhysicsSettings settings = gameplayPhysicsParameterBridge_.GetGameplaySettings();
+	const bool previousGameplayPhysicsTest = enableGameplayPhysicsTest_;
+	const bool previousGroundCheck = enablePlayerPhysicsGroundCheck_;
+	const bool previousDepenetration = enablePlayerPhysicsDepenetration_;
+	const bool previousTriggerTest = enableGameplayPhysicsTriggerTest_;
+
+	enableGameplayPhysicsTest_ = settings.enableGameplayPhysicsTest;
+	enablePlayerPhysicsGroundCheck_ = settings.enablePlayerPhysicsGroundCheck;
+	enablePlayerPhysicsDepenetration_ = settings.enablePlayerPhysicsDepenetration;
+	applyPlayerPhysicsCorrectionXZ_ = settings.applyPlayerPhysicsCorrectionXZ;
+	applyPlayerPhysicsCorrectionY_ = settings.applyPlayerPhysicsCorrectionY;
+	playerCorrectionClamp_ = settings.playerCorrectionClamp;
+	enableGameplayPhysicsTriggerTest_ = settings.enableGameplayPhysicsTriggerTest;
+	enableGameplayPhysicsDebugDraw_ = gameplayPhysicsDebugDraw_.GetSettings().drawPhysicsDebug;
+
+	if (enableGameplayPhysicsTest_ && !previousGameplayPhysicsTest)
+	{
+		BindGameplayPhysicsStageColliders();
+		ResetGameplayPhysicsTestObject();
+	}
+	if ((enablePlayerPhysicsGroundCheck_ || enablePlayerPhysicsDepenetration_) && (!previousGroundCheck && !previousDepenetration))
+	{
+		BindGameplayPhysicsStageColliders();
+		RegisterPlayerPhysicsGroundCheck();
+	}
+	if (enableGameplayPhysicsTriggerTest_ != previousTriggerTest)
+	{
+		SetGameplayPhysicsTriggerTestEnabled(enableGameplayPhysicsTriggerTest_);
+	}
+	if (!enableGameplayPhysicsTest_ && !enablePlayerPhysicsGroundCheck_ && !enablePlayerPhysicsDepenetration_)
+	{
+		UnregisterPlayerPhysicsGroundCheck();
+		if (!enableGameplayPhysicsTriggerTest_)
+		{
+			UnbindGameplayPhysicsStageColliders();
+		}
+	}
 }
 
 void GamePlayWorld::UpdateShadowLightViewProjection()

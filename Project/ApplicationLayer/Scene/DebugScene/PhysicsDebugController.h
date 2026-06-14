@@ -2,6 +2,7 @@
 #include "Collider.h"
 #include "Engine/Physics/Event/IPhysicsEventListener.h"
 #include "Engine/Physics/Bridge/StagePhysicsBinder.h"
+#include "Engine/Physics/Bridge/PhysicsParameterBridge.h"
 #include "Engine/Physics/Debug/PhysicsDebugDraw.h"
 #include "PhysicsWorld.h"
 #include "Rigidbody.h"
@@ -57,6 +58,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// 最新イベントログを保存し、表示件数が増えすぎないように制限する。
 	void AddEventLog(const K4E::PhysicsEvent& event);
 
+	// ParameterManagerから読み込んだ物理設定をDebugScene用Worldへ反映する。
+	void ApplyParameterSettings();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::PhysicsWorld physicsWorld_; // DebugScene専用の物理ワールド
@@ -78,6 +82,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	bool enablePhysicsStep_ = true; // PhysicsWorld::Stepを進めるか
 	bool enableResolve_ = true; // Contactによる位置/速度補正を行うか
+	bool enableVelocityResolve_ = true; // Contactによる速度補正を行うか
 	bool enableFriction_ = true; // Contactによる摩擦補正を行うか
 	bool enableSleep_ = true; // Sleep状態への移行を有効にするか
 	bool useGravity_ = true; // Dynamic側へ重力を適用するか
@@ -93,6 +98,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	int responseTypeIndex_ = 2; // Debug確認用Response選択。0:Ignore, 1:Trigger, 2:Block
 	bool showStagePhysicsColliders_ = true; // Binder確認用Stage Colliderをワイヤー表示するか
 	K4E::StagePhysicsBinder stagePhysicsBinder_{}; // Stage Collider群をPhysicsWorldへ登録する橋渡し確認用
+	K4E::PhysicsParameterBridge physicsParameterBridge_{}; // ParameterManagerとPhysicsWorldの橋渡し
 	K4E::PhysicsDebugDraw physicsDebugDraw_{}; // PhysicsWorld全体の共通Debug可視化
 
 	bool isTriggerTouching_ = false; // Trigger接触中か

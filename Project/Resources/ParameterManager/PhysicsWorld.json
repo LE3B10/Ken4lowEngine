@@ -1,0 +1,15 @@
+{
+    "PhysicsWorld": {
+        "EnableFrictionSolver": true,
+        "EnablePositionSolver": true,
+        "EnableSleep": true,
+        "EnableVelocitySolver": true,
+        "FixedTimeStep": 0.0166666675,
+        "GravityX": 0.0,
+        "GravityY": -9.8,
+        "GravityZ": 0.0,
+        "MaxDeltaTime": 0.1,
+        "MaxSubSteps": 4,
+        "UseFixedStep": true
+    }
+}

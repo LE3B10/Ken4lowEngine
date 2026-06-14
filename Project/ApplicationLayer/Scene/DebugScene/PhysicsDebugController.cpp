@@ -70,6 +70,7 @@ namespace
 PhysicsDebugController::~PhysicsDebugController()
 {
 	// 破棄済みポインタ参照を防ぐため、PhysicsWorldからDebug用リスナー登録を解除する。
+	physicsParameterBridge_.Finalize(this);
 	stagePhysicsBinder_.Unbind();
 	physicsWorld_.RemovePhysicsEventListener(this);
 }
@@ -80,6 +81,8 @@ PhysicsDebugController::~PhysicsDebugController()
 void PhysicsDebugController::Initialize()
 {
 	// DebugScene内だけで使うRigidbodyとColliderをPhysicsWorldへ登録する。
+	physicsParameterBridge_.Initialize();
+	physicsParameterBridge_.RegisterAppliers(this, [this]() { ApplyParameterSettings(); });
 	physicsWorld_.RegisterRigidbody(&dynamicRigidbody_);
 	// DebugScene専用の物理イベント確認のため、PhysicsDebugController自身をリスナー登録する。
 	physicsWorld_.AddPhysicsEventListener(this);
@@ -91,6 +94,7 @@ void PhysicsDebugController::Initialize()
 	InitializeDebugStageColliders();
 	ApplyResponseSetting();
 	ResetTestObjects();
+	ApplyParameterSettings();
 }
 
 /// -------------------------------------------------------------
@@ -108,6 +112,7 @@ void PhysicsDebugController::Update(float deltaTime)
 	dynamicRigidbody_.SetSleepSpeedThreshold(sleepSpeedThreshold_);
 	dynamicRigidbody_.SetSleepTimeThreshold(sleepTimeThreshold_);
 	physicsWorld_.SetPositionSolveEnabled(enableResolve_);
+	physicsWorld_.SetVelocitySolveEnabled(enableVelocityResolve_);
 	physicsWorld_.SetFrictionSolveEnabled(enableFriction_);
 
 	if (!enablePhysicsStep_)
@@ -184,6 +189,10 @@ void PhysicsDebugController::DrawImGui()
 			if (ImGui::Checkbox("Enable Resolve", &enableResolve_))
 			{
 				physicsWorld_.SetPositionSolveEnabled(enableResolve_);
+			}
+			if (ImGui::Checkbox("Enable Velocity Resolve", &enableVelocityResolve_))
+			{
+				physicsWorld_.SetVelocitySolveEnabled(enableVelocityResolve_);
 			}
 			if (ImGui::Checkbox("Enable Friction", &enableFriction_))
 			{
@@ -376,6 +385,7 @@ void PhysicsDebugController::DrawImGui()
 		}
 
 		physicsDebugDraw_.DrawImGui(physicsWorld_);
+		physicsParameterBridge_.DrawImGui();
 	}
 	ImGui::End();
 #endif // USE_IMGUI
@@ -403,6 +413,7 @@ void PhysicsDebugController::ResetTestObjects()
 	dynamicRigidbody_.ClearForces();
 	dynamicRigidbody_.ClearFrameState();
 	physicsWorld_.SetPositionSolveEnabled(enableResolve_);
+	physicsWorld_.SetVelocitySolveEnabled(enableVelocityResolve_);
 	physicsWorld_.SetFrictionSolveEnabled(enableFriction_);
 	ApplyResponseSetting();
 	UpdateTestColliders();
@@ -547,4 +558,18 @@ void PhysicsDebugController::AddEventLog(const K4E::PhysicsEvent& event)
 	{
 		eventLogs_.resize(kMaxEventLogCount);
 	}
+}
+
+/// -------------------------------------------------------------
+///						ParameterManager反映
+/// -------------------------------------------------------------
+void PhysicsDebugController::ApplyParameterSettings()
+{
+	// JSON/ImGuiで調整した値をDebugScene専用のPhysicsWorldとDebugDrawへ反映する。
+	physicsParameterBridge_.ApplyTo(physicsWorld_);
+	physicsParameterBridge_.ApplyTo(physicsDebugDraw_);
+	enableResolve_ = physicsWorld_.IsPositionSolveEnabled();
+	enableVelocityResolve_ = physicsWorld_.IsVelocitySolveEnabled();
+	enableFriction_ = physicsWorld_.IsFrictionSolveEnabled();
+	enableSleep_ = physicsParameterBridge_.GetWorldSettings().enableSleep;
 }

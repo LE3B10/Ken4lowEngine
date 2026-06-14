@@ -152,6 +152,43 @@ namespace Ken4lowEngine
 		maxSubSteps_ = std::clamp(maxSubSteps, 1, 16);
 	}
 
+	void PhysicsWorld::ApplySettings(const PhysicsWorldSettings& settings)
+	{
+		// 外部設定をPhysicsWorldへ反映し、固定更新やSolver設定を調整する。
+		SetUseFixedStep(settings.useFixedStep);
+		SetFixedTimeStep(settings.fixedTimeStep);
+		SetMaxDeltaTime(settings.maxDeltaTime);
+		SetMaxSubSteps(settings.maxSubSteps);
+		gravity_ = settings.gravity;
+		positionSolveEnabled_ = settings.enablePositionSolver;
+		velocitySolveEnabled_ = settings.enableVelocitySolver;
+		frictionSolveEnabled_ = settings.enableFrictionSolver;
+
+		for (Rigidbody* rigidbody : rigidbodies_)
+		{
+			if (rigidbody)
+			{
+				rigidbody->SetGravity(gravity_);
+				rigidbody->SetSleepEnabled(settings.enableSleep);
+			}
+		}
+	}
+
+	PhysicsWorldSettings PhysicsWorld::GetSettings() const
+	{
+		// 現在のWorld状態を設定値として返し、ParameterManager側へ同期しやすくする。
+		PhysicsWorldSettings settings{};
+		settings.useFixedStep = useFixedStep_;
+		settings.fixedTimeStep = fixedTimeStep_;
+		settings.maxDeltaTime = maxDeltaTime_;
+		settings.maxSubSteps = maxSubSteps_;
+		settings.gravity = gravity_;
+		settings.enablePositionSolver = positionSolveEnabled_;
+		settings.enableVelocitySolver = velocitySolveEnabled_;
+		settings.enableFrictionSolver = frictionSolveEnabled_;
+		return settings;
+	}
+
 	void PhysicsWorld::IntegrateBodies(float deltaTime)
 	{
 		// 登録済みRigidbodyへ速度積分を委譲する。
@@ -159,6 +196,7 @@ namespace Ken4lowEngine
 		{
 			if (rigidbody)
 			{
+				rigidbody->SetGravity(gravity_);
 				rigidbody->Integrate(deltaTime);
 			}
 		}
@@ -208,6 +246,9 @@ namespace Ken4lowEngine
 			if (positionSolveEnabled_)
 			{
 				positionSolver.Resolve(contact);
+			}
+			if (velocitySolveEnabled_)
+			{
 				velocitySolver.Resolve(contact);
 			}
 			if (frictionSolveEnabled_)
