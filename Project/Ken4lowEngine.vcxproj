@@ -284,6 +284,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\UI\ResultMenu.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\WaveManager.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\StageObjectiveManager.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\GameplayPhysicsEventHandler.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\PhysicsTestBullet.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\WaveUI\WaveUI.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\DebugTools\GamePlayDebugTools.cpp" />
@@ -974,6 +976,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\UI\ResultMenu.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\WaveManager.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\StageObjectiveManager.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\GameplayPhysicsEventHandler.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\PhysicsTestBullet.h" />
     <ClInclude Include="ApplicationLayer\UISystem\WaveUI\WaveUI.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\DebugTools\GamePlayDebugTools.h" />

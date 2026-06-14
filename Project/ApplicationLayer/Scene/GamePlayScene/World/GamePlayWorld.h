@@ -13,6 +13,8 @@
 #include "CrystalManager.h"
 #include "BossIntroController.h"
 #include "AimTargetDetector.h"
+#include "GameplayPhysicsEventHandler.h"
+#include "PhysicsTestBullet.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "Object3D.h"
 #include "Engine/Physics/Bridge/StagePhysicsBinder.h"
@@ -24,7 +26,6 @@
 namespace K4E = ::Ken4lowEngine;
 
 class Player;
-
 /// -------------------------------------------------------------
 /// ボス撃破後に出現するクリア用アイテム
 ///
@@ -172,6 +173,15 @@ private: /// ---------- メンバ関数 ---------- ///
 	void SyncPlayerPhysicsGroundCollider(Player& player);
 	void ApplyPlayerPhysicsCorrection(Player& player);
 	bool EvaluatePlayerPhysicsGrounded();
+	void InitializeGameplayPhysicsTriggerTest();
+	void SetGameplayPhysicsTriggerTestEnabled(bool enabled);
+	void RegisterGameplayPhysicsTriggerTest();
+	void UnregisterGameplayPhysicsTriggerTest();
+	void ResetGameplayPhysicsTriggerTest();
+	void UpdateGameplayPhysicsTriggerTest(float deltaTime);
+	void DrawGameplayPhysicsTriggerTest();
+	void DrawGameplayPhysicsTriggerTestImGui();
+	void SyncGameplayPhysicsTriggerTarget();
 	void UpdateShadowLightViewProjection();
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection) const;
 	bool IsSightBlocked(const K4E::Segment& seg) const;
@@ -205,6 +215,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<GuardianBoss> guardianBoss_;
 	std::unique_ptr<BossClearItem> clearItem_;
 	std::unique_ptr<K4E::Object3D> physicsTestObject_;
+	std::unique_ptr<PhysicsTestBullet> physicsTestBullet_;
+	std::unique_ptr<K4E::Object3D> physicsTriggerTargetObject_;
+	std::unique_ptr<GameplayPhysicsEventHandler> gameplayPhysicsEventHandler_;
 
 	K4E::PhysicsWorld gameplayPhysicsWorld_{}; // 本編接続前の明示ONテスト用PhysicsWorld
 	K4E::StagePhysicsBinder gameplayStagePhysicsBinder_{}; // StageCollider登録確認用Binder
@@ -212,6 +225,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Collider physicsTestCollider_{}; // PhysicsTestObject用Collider
 	K4E::Rigidbody playerGroundRigidbody_{}; // Player床判定確認用Kinematic Rigidbody
 	K4E::Collider playerGroundCollider_{}; // Player床判定確認用Collider
+	K4E::Rigidbody physicsTriggerTargetRigidbody_{}; // TriggerEvent確認用ターゲットRigidbody
+	K4E::Collider physicsTriggerTargetCollider_{}; // TriggerEvent確認用ターゲットCollider
 	K4E::Vector3 physicsTestPosition_{}; // PhysicsTestObjectの現在位置
 	K4E::Vector3 physicsTestInitialPosition_{ 0.0f, 8.0f, 0.0f }; // Reset時の初期位置
 	K4E::Vector3 physicsTestHalfSize_{ 0.5f, 0.5f, 0.5f }; // テスト用AABB半サイズ
@@ -219,15 +234,22 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 playerPositionBeforePhysics_{}; // PhysicsWorld同期前のPlayer位置
 	K4E::Vector3 playerPositionAfterPhysics_{}; // PhysicsWorld補正反映後のPlayer位置
 	K4E::Vector3 playerPhysicsCorrectionDelta_{}; // PhysicsWorldから受け取ったPlayer補正量
+	K4E::Vector3 physicsTriggerTargetPosition_{}; // TriggerEvent確認用ターゲット位置
+	K4E::Vector3 physicsTriggerTargetHalfSize_{ 0.75f, 0.75f, 0.75f }; // TriggerEvent確認用ターゲット半サイズ
+	K4E::Vector3 physicsTestBulletSpawnPosition_{}; // TriggerEvent確認用テスト弾の初期位置
+	K4E::Vector3 physicsTestBulletInitialVelocity_{ 0.0f, 0.0f, 12.0f }; // TriggerEvent確認用テスト弾の初期速度
 	K4E::Vector3 playerGroundColliderHalfSize_{ 0.5f, 1.0f, 0.5f }; // Player床判定用AABB半サイズ
 	K4E::Vector3 playerGroundColliderOffset_{ 0.0f, 0.95f, 0.0f }; // 足元に少し重なる床判定用オフセット
 	bool enableGameplayPhysicsTest_ = false; // 本編上でPhysicsWorldテストを実行するか
 	bool enablePlayerPhysicsGroundCheck_ = false; // Player床判定だけをPhysicsWorldから取得するか
 	bool enablePlayerPhysicsDepenetration_ = false; // Player壁押し戻しだけをPhysicsWorldから受け取るか
+	bool enableGameplayPhysicsTriggerTest_ = false; // TriggerEventを本編側で受け取る入口テストを実行するか
 	bool applyPlayerPhysicsCorrectionXZ_ = true; // Player補正のXZ成分を反映するか
 	bool applyPlayerPhysicsCorrectionY_ = false; // Player補正のY成分を反映するか
 	bool gameplayPhysicsStageBound_ = false; // StageColliderをPhysicsWorldへ登録済みか
 	bool playerGroundColliderRegistered_ = false; // Player床判定用ColliderをPhysicsWorldへ登録済みか
+	bool gameplayPhysicsTriggerTestRegistered_ = false; // TriggerEvent確認用ColliderをPhysicsWorldへ登録済みか
+	bool gameplayPhysicsEventListenerRegistered_ = false; // TriggerEvent確認用ListenerをPhysicsWorldへ登録済みか
 	bool playerPhysicsGrounded_ = false; // PhysicsWorld由来のPlayer床判定
 	size_t playerStageContactCount_ = 0; // Player vs StageのContact数
 

@@ -388,6 +388,12 @@
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\StageObjectiveManager.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\GameplayPhysicsEventHandler.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\PhysicsTestBullet.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossAnimationComponent.cpp">
       <Filter>ApplicationLayer\Character\Boss\Components</Filter>
     </ClCompile>
@@ -1336,6 +1342,12 @@
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\StageObjectiveManager.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\GameplayPhysicsEventHandler.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\PhysicsTestBullet.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossAnimationComponent.h">
