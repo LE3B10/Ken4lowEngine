@@ -448,6 +448,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Physics\Bridge\StagePhysicsBinder.cpp" />
     <ClCompile Include="Engine\Physics\Core\PhysicsWorld.cpp" />
     <ClCompile Include="Engine\Physics\Core\Rigidbody.cpp" />
+    <ClCompile Include="Engine\Physics\Debug\PhysicsDebugDraw.cpp" />
     <ClCompile Include="Engine\Physics\Event\PhysicsEventDispatcher.cpp" />
     <ClCompile Include="Engine\Physics\Solver\FrictionSolver.cpp" />
     <ClCompile Include="Engine\Physics\Solver\PositionSolver.cpp" />
@@ -1182,6 +1183,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Physics\Core\PhysicsTypes.h" />
     <ClInclude Include="Engine\Physics\Core\PhysicsWorld.h" />
     <ClInclude Include="Engine\Physics\Core\Rigidbody.h" />
+    <ClInclude Include="Engine\Physics\Debug\PhysicsDebugDraw.h" />
     <ClInclude Include="Engine\Physics\Event\IPhysicsEventListener.h" />
     <ClInclude Include="Engine\Physics\Event\PhysicsEvent.h" />
     <ClInclude Include="Engine\Physics\Event\PhysicsEventDispatcher.h" />

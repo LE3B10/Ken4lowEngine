@@ -17,6 +17,8 @@
 # Build results (ビルド生成物 - 重要な修正ポイント)
 # ==============================================================================
 [Dd]ebug/
+!Project/Engine/Physics/Debug/
+!Project/Engine/Physics/Debug/**
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/

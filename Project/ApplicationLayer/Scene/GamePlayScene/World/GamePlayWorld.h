@@ -19,6 +19,7 @@
 #include "Object3D.h"
 #include "Engine/Physics/Bridge/StagePhysicsBinder.h"
 #include "Engine/Physics/Core/PhysicsWorld.h"
+#include "Engine/Physics/Debug/PhysicsDebugDraw.h"
 #include "Engine/Physics/Core/Rigidbody.h"
 
 #include <memory>
@@ -220,6 +221,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<GameplayPhysicsEventHandler> gameplayPhysicsEventHandler_;
 
 	K4E::PhysicsWorld gameplayPhysicsWorld_{}; // 本編接続前の明示ONテスト用PhysicsWorld
+	K4E::PhysicsDebugDraw gameplayPhysicsDebugDraw_{}; // Gameplay側PhysicsWorldの共通Debug可視化
 	K4E::StagePhysicsBinder gameplayStagePhysicsBinder_{}; // StageCollider登録確認用Binder
 	K4E::Rigidbody physicsTestRigidbody_{}; // PhysicsTestObject用Rigidbody
 	K4E::Collider physicsTestCollider_{}; // PhysicsTestObject用Collider
@@ -244,6 +246,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool enablePlayerPhysicsGroundCheck_ = false; // Player床判定だけをPhysicsWorldから取得するか
 	bool enablePlayerPhysicsDepenetration_ = false; // Player壁押し戻しだけをPhysicsWorldから受け取るか
 	bool enableGameplayPhysicsTriggerTest_ = false; // TriggerEventを本編側で受け取る入口テストを実行するか
+	bool enableGameplayPhysicsDebugDraw_ = false; // Gameplay側PhysicsWorldのDebug可視化を行うか
 	bool applyPlayerPhysicsCorrectionXZ_ = true; // Player補正のXZ成分を反映するか
 	bool applyPlayerPhysicsCorrectionY_ = false; // Player補正のY成分を反映するか
 	bool gameplayPhysicsStageBound_ = false; // StageColliderをPhysicsWorldへ登録済みか

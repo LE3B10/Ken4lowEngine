@@ -160,6 +160,9 @@ void PhysicsDebugController::Draw()
 		const K4E::Contact& contact = contacts.front();
 		wireframe->DrawLine(contact.point, contact.point + contact.normal * 1.5f, { 1.0f, 0.2f, 0.2f, 1.0f });
 	}
+
+	// 共通Debug描画を通して、Collider/Contact/Rigidbody/Eventの状態をDebugSceneでも確認する。
+	physicsDebugDraw_.Draw(physicsWorld_);
 }
 
 /// -------------------------------------------------------------
@@ -371,6 +374,8 @@ void PhysicsDebugController::DrawImGui()
 			ImGui::Text("Bound Collider Count: %zu", stagePhysicsBinder_.GetBoundColliderCount());
 			ImGui::Text("PhysicsWorld Collider Count: %zu", physicsWorld_.GetColliderCount());
 		}
+
+		physicsDebugDraw_.DrawImGui(physicsWorld_);
 	}
 	ImGui::End();
 #endif // USE_IMGUI

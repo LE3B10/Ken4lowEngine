@@ -1620,7 +1620,7 @@ void GamePlayWorld::DrawGameplayPhysicsTest()
 {
 #ifdef _DEBUG
 	// テスト有効時だけ本編ステージ上のPhysicsTestObjectとColliderを可視化する。
-	if (!enableGameplayPhysicsTest_ && !enableGameplayPhysicsTriggerTest_)
+	if (!enableGameplayPhysicsTest_ && !enableGameplayPhysicsTriggerTest_ && !enableGameplayPhysicsDebugDraw_)
 	{
 		return;
 	}
@@ -1637,6 +1637,11 @@ void GamePlayWorld::DrawGameplayPhysicsTest()
 			physicsTestRigidbody_.IsGrounded() ? K4E::Vector4{ 0.1f, 1.0f, 0.2f, 1.0f } : K4E::Vector4{ 0.2f, 0.9f, 1.0f, 1.0f });
 	}
 	DrawGameplayPhysicsTriggerTest();
+	if (enableGameplayPhysicsDebugDraw_)
+	{
+		// Gameplay側でも共通Debug描画を使い、Player床判定/押し戻し/TriggerEventの調査に使う。
+		gameplayPhysicsDebugDraw_.Draw(gameplayPhysicsWorld_);
+	}
 #endif
 }
 
@@ -1743,6 +1748,12 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 	ImGui::Text("Player Collider Position: %.3f, %.3f, %.3f", playerGroundColliderPosition_.x, playerGroundColliderPosition_.y, playerGroundColliderPosition_.z);
 	ImGui::Text("Player vs Stage Contact Count: %zu", playerStageContactCount_);
 	ImGui::Text("Registered Player Collider: %s", playerGroundColliderRegistered_ ? "true" : "false");
+	ImGui::SeparatorText("Gameplay Physics Debug");
+	if (ImGui::Checkbox("Enable Gameplay Physics Debug Draw", &enableGameplayPhysicsDebugDraw_))
+	{
+		gameplayPhysicsDebugDraw_.GetSettings().drawPhysicsDebug = enableGameplayPhysicsDebugDraw_;
+	}
+	gameplayPhysicsDebugDraw_.DrawImGui(gameplayPhysicsWorld_);
 	DrawGameplayPhysicsTriggerTestImGui();
 #endif
 }

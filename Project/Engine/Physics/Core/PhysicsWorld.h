@@ -51,8 +51,17 @@ namespace Ken4lowEngine
 		// 直近ステップのContact一覧を取得する。
 		const std::vector<Contact>& GetContacts() const { return contacts_; }
 
+		// 登録済みCollider一覧を取得する。Debug表示専用に参照を返し、所有権は渡さない。
+		const std::vector<Collider*>& GetColliders() const { return colliders_; }
+
+		// 登録済みRigidbody一覧を取得する。Debug表示専用に参照を返し、所有権は渡さない。
+		const std::vector<Rigidbody*>& GetRigidbodies() const { return rigidbodies_; }
+
 		// 登録済みCollider数を取得する。
 		size_t GetColliderCount() const { return colliders_.size(); }
+
+		// 直近ステップのContact数を取得する。
+		size_t GetContactCount() const { return contacts_.size(); }
 
 		// 直近ステップで生成された物理イベント一覧を取得する。
 		const std::vector<PhysicsEvent>& GetEvents() const { return eventDispatcher_.GetEvents(); }

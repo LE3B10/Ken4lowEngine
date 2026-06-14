@@ -2,6 +2,7 @@
 #include "Collider.h"
 #include "Engine/Physics/Event/IPhysicsEventListener.h"
 #include "Engine/Physics/Bridge/StagePhysicsBinder.h"
+#include "Engine/Physics/Debug/PhysicsDebugDraw.h"
 #include "PhysicsWorld.h"
 #include "Rigidbody.h"
 #include "Vector3.h"
@@ -92,6 +93,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	int responseTypeIndex_ = 2; // Debug確認用Response選択。0:Ignore, 1:Trigger, 2:Block
 	bool showStagePhysicsColliders_ = true; // Binder確認用Stage Colliderをワイヤー表示するか
 	K4E::StagePhysicsBinder stagePhysicsBinder_{}; // Stage Collider群をPhysicsWorldへ登録する橋渡し確認用
+	K4E::PhysicsDebugDraw physicsDebugDraw_{}; // PhysicsWorld全体の共通Debug可視化
 
 	bool isTriggerTouching_ = false; // Trigger接触中か
 	bool isCollisionTouching_ = false; // Block接触中か
