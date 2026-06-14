@@ -167,6 +167,8 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
+	collisionSystemPolicy_.InitializeDefaults();
+	UpdateCollisionSystemPolicyFromGameplayFlags();
 
 	// 弾、キャラクター、アイテム、ステージは同じCollisionManagerへ登録し、
 	// World更新の最後にまとめて衝突解決できるようにする。
@@ -1288,6 +1290,7 @@ void GamePlayWorld::CollisionUpdate()
 {
 	if (!collisionManager_) { return; }
 
+	// PhysicsWorld移行時に二重処理を避けるため、Legacy側の判定はPolicyで担当を確認しながら段階的に整理する。
 	collisionManager_->Update();
 	collisionManager_->CheckAllCollisions();
 }
@@ -1391,6 +1394,8 @@ void GamePlayWorld::InitializeGameplayPhysicsTriggerTest()
 void GamePlayWorld::SetGameplayPhysicsTriggerTestEnabled(bool enabled)
 {
 	enableGameplayPhysicsTriggerTest_ = enabled;
+	usePhysicsForTriggerTest_ = enabled;
+	UpdateCollisionSystemPolicyFromGameplayFlags();
 	if (enableGameplayPhysicsTriggerTest_)
 	{
 		RegisterGameplayPhysicsTriggerTest();
@@ -1658,6 +1663,7 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 	if (ImGui::Checkbox("Enable Gameplay Physics Test", &enable))
 	{
 		enableGameplayPhysicsTest_ = enable;
+		usePhysicsForPlayerStage_ = enableGameplayPhysicsTest_ || enablePlayerPhysicsGroundCheck_ || enablePlayerPhysicsDepenetration_;
 		if (enableGameplayPhysicsTest_)
 		{
 			BindGameplayPhysicsStageColliders();
@@ -1670,11 +1676,14 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 				UnbindGameplayPhysicsStageColliders();
 			}
 		}
+		UpdateCollisionSystemPolicyFromGameplayFlags();
 	}
 	bool enablePlayerGroundCheck = enablePlayerPhysicsGroundCheck_;
 	if (ImGui::Checkbox("Enable Player Physics Ground Check", &enablePlayerGroundCheck))
 	{
 		enablePlayerPhysicsGroundCheck_ = enablePlayerGroundCheck;
+		usePhysicsForPlayerGround_ = enablePlayerPhysicsGroundCheck_;
+		usePhysicsForPlayerStage_ = enableGameplayPhysicsTest_ || enablePlayerPhysicsGroundCheck_ || enablePlayerPhysicsDepenetration_;
 		if (enablePlayerPhysicsGroundCheck_)
 		{
 			BindGameplayPhysicsStageColliders();
@@ -1691,11 +1700,14 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 				UnbindGameplayPhysicsStageColliders();
 			}
 		}
+		UpdateCollisionSystemPolicyFromGameplayFlags();
 	}
 	bool enablePlayerDepenetration = enablePlayerPhysicsDepenetration_;
 	if (ImGui::Checkbox("Enable Player Physics Depenetration", &enablePlayerDepenetration))
 	{
 		enablePlayerPhysicsDepenetration_ = enablePlayerDepenetration;
+		usePhysicsForPlayerDepenetration_ = enablePlayerPhysicsDepenetration_;
+		usePhysicsForPlayerStage_ = enableGameplayPhysicsTest_ || enablePlayerPhysicsGroundCheck_ || enablePlayerPhysicsDepenetration_;
 		if (enablePlayerPhysicsDepenetration_)
 		{
 			BindGameplayPhysicsStageColliders();
@@ -1713,6 +1725,7 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 				UnbindGameplayPhysicsStageColliders();
 			}
 		}
+		UpdateCollisionSystemPolicyFromGameplayFlags();
 	}
 	ImGui::Checkbox("Apply XZ Correction", &applyPlayerPhysicsCorrectionXZ_);
 	ImGui::Checkbox("Apply Y Correction", &applyPlayerPhysicsCorrectionY_);
@@ -1759,6 +1772,7 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 	}
 	gameplayPhysicsDebugDraw_.DrawImGui(gameplayPhysicsWorld_);
 	gameplayPhysicsParameterBridge_.DrawImGui();
+	DrawCollisionSystemPolicyImGui();
 	DrawGameplayPhysicsTriggerTestImGui();
 #endif
 }
@@ -1933,6 +1947,13 @@ void GamePlayWorld::ApplyGameplayPhysicsParameterSettings()
 	playerCorrectionClamp_ = settings.playerCorrectionClamp;
 	enableGameplayPhysicsTriggerTest_ = settings.enableGameplayPhysicsTriggerTest;
 	enableGameplayPhysicsDebugDraw_ = gameplayPhysicsDebugDraw_.GetSettings().drawPhysicsDebug;
+	usePhysicsForPlayerStage_ = settings.usePhysicsForPlayerStage || settings.enableGameplayPhysicsTest || settings.enablePlayerPhysicsGroundCheck || settings.enablePlayerPhysicsDepenetration;
+	usePhysicsForPlayerGround_ = settings.usePhysicsForPlayerGround || settings.enablePlayerPhysicsGroundCheck;
+	usePhysicsForPlayerDepenetration_ = settings.usePhysicsForPlayerDepenetration || settings.enablePlayerPhysicsDepenetration;
+	usePhysicsForTriggerTest_ = settings.usePhysicsForTriggerTest || settings.enableGameplayPhysicsTriggerTest;
+	usePhysicsForBulletTrigger_ = settings.usePhysicsForBulletTrigger;
+	usePhysicsForEnemyStage_ = settings.usePhysicsForEnemyStage;
+	UpdateCollisionSystemPolicyFromGameplayFlags();
 
 	if (enableGameplayPhysicsTest_ && !previousGameplayPhysicsTest)
 	{
@@ -1956,6 +1977,87 @@ void GamePlayWorld::ApplyGameplayPhysicsParameterSettings()
 			UnbindGameplayPhysicsStageColliders();
 		}
 	}
+}
+
+void GamePlayWorld::UpdateCollisionSystemPolicyFromGameplayFlags()
+{
+	// 段階移行中に旧判定と新Physics判定を切り替えるため、現在のGameplay Physicsフラグを担当表へ反映する。
+	collisionSystemPolicy_.SetOwner(
+		K4E::CollisionSystemPair::PlayerStage,
+		usePhysicsForPlayerStage_ || usePhysicsForPlayerGround_ || usePhysicsForPlayerDepenetration_
+		? K4E::CollisionSystemOwner::PhysicsWorld
+		: K4E::CollisionSystemOwner::LegacyCollisionManager);
+	collisionSystemPolicy_.SetOwner(
+		K4E::CollisionSystemPair::TriggerTest,
+		usePhysicsForTriggerTest_ || enableGameplayPhysicsTriggerTest_
+		? K4E::CollisionSystemOwner::PhysicsWorld
+		: K4E::CollisionSystemOwner::Disabled);
+	collisionSystemPolicy_.SetOwner(
+		K4E::CollisionSystemPair::PhysicsTestObjectStage,
+		enableGameplayPhysicsTest_
+		? K4E::CollisionSystemOwner::PhysicsWorld
+		: K4E::CollisionSystemOwner::Disabled);
+	collisionSystemPolicy_.SetOwner(
+		K4E::CollisionSystemPair::PlayerBulletEnemy,
+		usePhysicsForBulletTrigger_
+		? K4E::CollisionSystemOwner::PhysicsWorld
+		: K4E::CollisionSystemOwner::LegacyCollisionManager);
+	collisionSystemPolicy_.SetOwner(
+		K4E::CollisionSystemPair::PlayerBulletBoss,
+		usePhysicsForBulletTrigger_
+		? K4E::CollisionSystemOwner::PhysicsWorld
+		: K4E::CollisionSystemOwner::LegacyCollisionManager);
+	collisionSystemPolicy_.SetOwner(
+		K4E::CollisionSystemPair::EnemyStage,
+		usePhysicsForEnemyStage_
+		? K4E::CollisionSystemOwner::PhysicsWorld
+		: K4E::CollisionSystemOwner::LegacyCollisionManager);
+}
+
+void GamePlayWorld::DrawCollisionSystemPolicyImGui()
+{
+#ifdef USE_IMGUI
+	if (!ImGui::CollapsingHeader("Collision System Policy"))
+	{
+		return;
+	}
+
+	// Debug表示で、既存CollisionManagerとPhysicsWorldの責任範囲を一覧確認する。
+	ImGui::Text("PhysicsWorld Collider Count: %zu", gameplayPhysicsWorld_.GetColliderCount());
+	ImGui::Text("Legacy CollisionManager Collider Count: %zu", collisionManager_ ? collisionManager_->GetColliderCount() : 0);
+	ImGui::Text("Player vs Stage Owner: %s", K4E::CollisionSystemPolicy::ToString(collisionSystemPolicy_.GetOwner(K4E::CollisionSystemPair::PlayerStage)));
+	ImGui::Text("Bullet vs Enemy Owner: %s", K4E::CollisionSystemPolicy::ToString(collisionSystemPolicy_.GetOwner(K4E::CollisionSystemPair::PlayerBulletEnemy)));
+	ImGui::Text("BossAttack vs Player Owner: %s", K4E::CollisionSystemPolicy::ToString(collisionSystemPolicy_.GetOwner(K4E::CollisionSystemPair::BossAttackPlayer)));
+	ImGui::Text("Trigger Test Owner: %s", K4E::CollisionSystemPolicy::ToString(collisionSystemPolicy_.GetOwner(K4E::CollisionSystemPair::TriggerTest)));
+
+	if (collisionSystemPolicy_.GetOwner(K4E::CollisionSystemPair::PlayerStage) == K4E::CollisionSystemOwner::PhysicsWorld)
+	{
+		ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "Player vs Stage: existing movement remains active. Keep Physics correction flags explicit.");
+	}
+	if (collisionSystemPolicy_.GetOwner(K4E::CollisionSystemPair::PlayerBulletEnemy) == K4E::CollisionSystemOwner::PhysicsWorld ||
+		collisionSystemPolicy_.GetOwner(K4E::CollisionSystemPair::PlayerBulletBoss) == K4E::CollisionSystemOwner::PhysicsWorld)
+	{
+		ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.25f, 1.0f), "Bullet Trigger migration TODO: disable legacy damage before enabling real PhysicsWorld bullet hits.");
+	}
+
+	if (ImGui::TreeNode("Policy Table"))
+	{
+		for (const K4E::CollisionSystemRule& rule : collisionSystemPolicy_.GetRules())
+		{
+			ImGui::Text("%s | %s | %s",
+				rule.pairName,
+				K4E::CollisionSystemPolicy::ToString(rule.owner),
+				rule.migrationStatus);
+			if (rule.doubleProcessingRisk)
+			{
+				ImGui::SameLine();
+				ImGui::TextColored(ImVec4(1.0f, 0.45f, 0.25f, 1.0f), "Double-check");
+			}
+			ImGui::TextDisabled("%s", rule.note);
+		}
+		ImGui::TreePop();
+	}
+#endif
 }
 
 void GamePlayWorld::UpdateShadowLightViewProjection()

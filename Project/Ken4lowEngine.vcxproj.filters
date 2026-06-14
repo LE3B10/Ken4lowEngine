@@ -577,6 +577,9 @@
     <ClCompile Include="Engine\Physics\Collision\Core\ContactRecord.cpp">
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Physics\Bridge\CollisionSystemPolicy.cpp">
+      <Filter>Engine\Physics\Bridge</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Physics\Bridge\PhysicsParameterBridge.cpp">
       <Filter>Engine\Physics\Bridge</Filter>
     </ClCompile>
@@ -1580,6 +1583,9 @@
     </ClInclude>
     <ClInclude Include="Engine\Physics\Collision\Core\IDGenerator.h">
       <Filter>Engine\Physics\Collision\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Bridge\CollisionSystemPolicy.h">
+      <Filter>Engine\Physics\Bridge</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Physics\Bridge\PhysicsParameterBridge.h">
       <Filter>Engine\Physics\Bridge</Filter>

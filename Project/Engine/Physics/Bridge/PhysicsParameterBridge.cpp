@@ -70,6 +70,12 @@ namespace Ken4lowEngine
 			parameters->AddItem(kGameplayPhysicsGroup, "ApplyPlayerPhysicsCorrectionY", false);
 			parameters->AddItem(kGameplayPhysicsGroup, "PlayerCorrectionClamp", 1.0f, 0.0f, 5.0f);
 			parameters->AddItem(kGameplayPhysicsGroup, "EnableGameplayPhysicsTriggerTest", false);
+			parameters->AddItem(kGameplayPhysicsGroup, "UsePhysicsForPlayerStage", false);
+			parameters->AddItem(kGameplayPhysicsGroup, "UsePhysicsForPlayerGround", false);
+			parameters->AddItem(kGameplayPhysicsGroup, "UsePhysicsForPlayerDepenetration", false);
+			parameters->AddItem(kGameplayPhysicsGroup, "UsePhysicsForTriggerTest", false);
+			parameters->AddItem(kGameplayPhysicsGroup, "UsePhysicsForBulletTrigger", false);
+			parameters->AddItem(kGameplayPhysicsGroup, "UsePhysicsForEnemyStage", false);
 		}
 	}
 
@@ -204,6 +210,12 @@ namespace Ken4lowEngine
 		gameplaySettings_.applyPlayerPhysicsCorrectionY = ReadValue(parameters, kGameplayPhysicsGroup, "ApplyPlayerPhysicsCorrectionY", gameplaySettings_.applyPlayerPhysicsCorrectionY);
 		gameplaySettings_.playerCorrectionClamp = std::clamp(ReadValue(parameters, kGameplayPhysicsGroup, "PlayerCorrectionClamp", gameplaySettings_.playerCorrectionClamp), 0.0f, 5.0f);
 		gameplaySettings_.enableGameplayPhysicsTriggerTest = ReadValue(parameters, kGameplayPhysicsGroup, "EnableGameplayPhysicsTriggerTest", gameplaySettings_.enableGameplayPhysicsTriggerTest);
+		gameplaySettings_.usePhysicsForPlayerStage = ReadValue(parameters, kGameplayPhysicsGroup, "UsePhysicsForPlayerStage", gameplaySettings_.usePhysicsForPlayerStage);
+		gameplaySettings_.usePhysicsForPlayerGround = ReadValue(parameters, kGameplayPhysicsGroup, "UsePhysicsForPlayerGround", gameplaySettings_.usePhysicsForPlayerGround);
+		gameplaySettings_.usePhysicsForPlayerDepenetration = ReadValue(parameters, kGameplayPhysicsGroup, "UsePhysicsForPlayerDepenetration", gameplaySettings_.usePhysicsForPlayerDepenetration);
+		gameplaySettings_.usePhysicsForTriggerTest = ReadValue(parameters, kGameplayPhysicsGroup, "UsePhysicsForTriggerTest", gameplaySettings_.usePhysicsForTriggerTest);
+		gameplaySettings_.usePhysicsForBulletTrigger = ReadValue(parameters, kGameplayPhysicsGroup, "UsePhysicsForBulletTrigger", gameplaySettings_.usePhysicsForBulletTrigger);
+		gameplaySettings_.usePhysicsForEnemyStage = ReadValue(parameters, kGameplayPhysicsGroup, "UsePhysicsForEnemyStage", gameplaySettings_.usePhysicsForEnemyStage);
 	}
 
 } // namespace Ken4lowEngine

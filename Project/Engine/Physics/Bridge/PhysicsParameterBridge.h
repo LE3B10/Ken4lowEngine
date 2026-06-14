@@ -21,6 +21,12 @@ namespace Ken4lowEngine
 		bool applyPlayerPhysicsCorrectionY = false;
 		float playerCorrectionClamp = 1.0f;
 		bool enableGameplayPhysicsTriggerTest = false;
+		bool usePhysicsForPlayerStage = false;
+		bool usePhysicsForPlayerGround = false;
+		bool usePhysicsForPlayerDepenetration = false;
+		bool usePhysicsForTriggerTest = false;
+		bool usePhysicsForBulletTrigger = false;
+		bool usePhysicsForEnemyStage = false;
 	};
 
 	/// -------------------------------------------------------------

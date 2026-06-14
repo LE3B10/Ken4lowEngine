@@ -17,6 +17,7 @@
 #include "PhysicsTestBullet.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "Object3D.h"
+#include "Engine/Physics/Bridge/CollisionSystemPolicy.h"
 #include "Engine/Physics/Bridge/StagePhysicsBinder.h"
 #include "Engine/Physics/Bridge/PhysicsParameterBridge.h"
 #include "Engine/Physics/Core/PhysicsWorld.h"
@@ -185,6 +186,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	void DrawGameplayPhysicsTriggerTestImGui();
 	void SyncGameplayPhysicsTriggerTarget();
 	void ApplyGameplayPhysicsParameterSettings();
+	void UpdateCollisionSystemPolicyFromGameplayFlags();
+	void DrawCollisionSystemPolicyImGui();
 	void UpdateShadowLightViewProjection();
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection) const;
 	bool IsSightBlocked(const K4E::Segment& seg) const;
@@ -223,6 +226,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<GameplayPhysicsEventHandler> gameplayPhysicsEventHandler_;
 
 	K4E::PhysicsWorld gameplayPhysicsWorld_{}; // 本編接続前の明示ONテスト用PhysicsWorld
+	K4E::CollisionSystemPolicy collisionSystemPolicy_{}; // 段階移行中に旧判定と新Physics判定を切り替える担当表
 	K4E::PhysicsParameterBridge gameplayPhysicsParameterBridge_{}; // ParameterManagerとGameplay側PhysicsWorldの橋渡し
 	K4E::PhysicsDebugDraw gameplayPhysicsDebugDraw_{}; // Gameplay側PhysicsWorldの共通Debug可視化
 	K4E::StagePhysicsBinder gameplayStagePhysicsBinder_{}; // StageCollider登録確認用Binder
@@ -250,6 +254,12 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool enablePlayerPhysicsDepenetration_ = false; // Player壁押し戻しだけをPhysicsWorldから受け取るか
 	bool enableGameplayPhysicsTriggerTest_ = false; // TriggerEventを本編側で受け取る入口テストを実行するか
 	bool enableGameplayPhysicsDebugDraw_ = false; // Gameplay側PhysicsWorldのDebug可視化を行うか
+	bool usePhysicsForPlayerStage_ = false; // Player vs StageをPhysicsWorld側へ寄せる段階移行フラグ
+	bool usePhysicsForPlayerGround_ = false; // Player床判定をPhysicsWorld側へ寄せる段階移行フラグ
+	bool usePhysicsForPlayerDepenetration_ = false; // Player押し戻しをPhysicsWorld側へ寄せる段階移行フラグ
+	bool usePhysicsForTriggerTest_ = false; // テストTriggerをPhysicsWorld側イベントで扱う段階移行フラグ
+	bool usePhysicsForBulletTrigger_ = false; // 既存Bullet Trigger移行予定を明示する段階移行フラグ
+	bool usePhysicsForEnemyStage_ = false; // Enemy vs Stage移行予定を明示する段階移行フラグ
 	bool applyPlayerPhysicsCorrectionXZ_ = true; // Player補正のXZ成分を反映するか
 	bool applyPlayerPhysicsCorrectionY_ = false; // Player補正のY成分を反映するか
 	bool gameplayPhysicsStageBound_ = false; // StageColliderをPhysicsWorldへ登録済みか
