@@ -183,6 +183,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetStageWorldAABBs(const std::vector<K4E::AABB>* aabbs) { motor_.SetWorldAABBs(aabbs); }
 	void SetWorldCollisionSettings(const K4E::WorldCollisionSettings& s) { motor_.SetWorldCollisionSettings(s); }
 
+	// PhysicsWorld側で取得した床判定をDebug比較用に保持する。既存移動/ジャンプ処理はまだ置き換えない。
+	void SetGroundedByPhysics(bool isGrounded) { isGroundedByPhysics_ = isGrounded; }
+	bool IsGroundedByPhysics() const { return isGroundedByPhysics_; }
+
 	void SetFallDamageSettings(const FallDamageSettings& s) { fallDamageSettings_ = s; }
 
 	// Stage Editor等で編集された武器マスタを、現在実行中の武器コンポーネントへ即時反映する。
@@ -336,6 +340,7 @@ private: /// ----------メンバ変数 ---------- ///
 	K4E::Vector3 spawnOffset_{ 0,0,0 };
 
 	FallDamageSettings fallDamageSettings_{};
+	bool isGroundedByPhysics_ = false; // PhysicsWorld由来の床判定。現段階ではDebug比較専用。
 	std::function<void()> onDamageTaken_{};
 
 	float hitFlashTimer_ = 0.0f;

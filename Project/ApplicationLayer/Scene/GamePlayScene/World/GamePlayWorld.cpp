@@ -340,6 +340,7 @@ void GamePlayWorld::Finalize()
 
 	characters_.Finalize();
 
+	UnregisterPlayerPhysicsGroundCheck();
 	UnbindGameplayPhysicsStageColliders();
 	gameplayPhysicsWorld_.ClearColliders();
 	physicsTestObject_.reset();
@@ -362,7 +363,6 @@ void GamePlayWorld::Update(float deltaTime)
 	{
 		stage_->Update();
 	}
-	UpdateGameplayPhysicsTest(deltaTime);
 
 	if (bossIntroController_.IsGameplayPaused())
 	{
@@ -373,6 +373,7 @@ void GamePlayWorld::Update(float deltaTime)
 
 	// 先にキャラクターとクリスタルを更新し、敵残数とクリスタル破壊状態からボス出現条件を評価する。
 	characters_.Update(deltaTime);
+	UpdateGameplayPhysicsTest(deltaTime);
 	crystalManager_.Update(characters_, deltaTime);
 	UpdateCrystalBossSpawnProgress();
 	UpdateBossIntro(deltaTime);
@@ -1267,6 +1268,8 @@ void GamePlayWorld::InitializeGameplayPhysicsTest()
 	gameplayPhysicsWorld_.SetFrictionSolveEnabled(true);
 	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(0u, 0u, K4E::CollisionResponseType::Ignore);
 	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(0u, 1u, K4E::CollisionResponseType::Block);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(0u, 2u, K4E::CollisionResponseType::Block);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(1u, 2u, K4E::CollisionResponseType::Ignore);
 
 	physicsTestRigidbody_.SetBodyType(K4E::BodyType::Dynamic);
 	physicsTestRigidbody_.SetMass(1.0f);
@@ -1279,6 +1282,11 @@ void GamePlayWorld::InitializeGameplayPhysicsTest()
 	physicsTestCollider_.SetCollisionLayer(1u);
 	gameplayPhysicsWorld_.RegisterRigidbody(&physicsTestRigidbody_);
 	gameplayPhysicsWorld_.RegisterCollider(&physicsTestCollider_);
+
+	playerGroundRigidbody_.SetBodyType(K4E::BodyType::Kinematic);
+	playerGroundRigidbody_.SetUseGravity(false);
+	playerGroundCollider_.SetRigidbody(&playerGroundRigidbody_);
+	playerGroundCollider_.SetCollisionLayer(2u);
 
 	if (auto* player = characters_.GetPlayer())
 	{
@@ -1316,21 +1324,38 @@ void GamePlayWorld::ResetGameplayPhysicsTestObject()
 
 void GamePlayWorld::UpdateGameplayPhysicsTest(float deltaTime)
 {
-	// Enable Gameplay Physics TestがONの時だけ、本編とは別PhysicsWorldでテスト物体を更新する。
-	if (!enableGameplayPhysicsTest_)
+	// 明示ONの確認機能がある場合だけ、本編とは別PhysicsWorldでテスト物体/Player床判定を更新する。
+	if (!enableGameplayPhysicsTest_ && !enablePlayerPhysicsGroundCheck_)
 	{
 		return;
 	}
 
-	physicsTestPosition_ += physicsTestRigidbody_.GetVelocity() * deltaTime;
-	SyncGameplayPhysicsTestCollider();
-	gameplayPhysicsWorld_.Update(deltaTime);
-	physicsTestPosition_ = physicsTestCollider_.GetCenterPosition();
-
-	if (physicsTestObject_)
+	if (enableGameplayPhysicsTest_)
 	{
-		physicsTestObject_->SetTranslate(physicsTestPosition_);
-		physicsTestObject_->Update();
+		physicsTestPosition_ += physicsTestRigidbody_.GetVelocity() * deltaTime;
+		SyncGameplayPhysicsTestCollider();
+	}
+	UpdatePlayerPhysicsGroundCheck();
+
+	gameplayPhysicsWorld_.Update(deltaTime);
+
+	if (enableGameplayPhysicsTest_)
+	{
+		physicsTestPosition_ = physicsTestCollider_.GetCenterPosition();
+
+		if (physicsTestObject_)
+		{
+			physicsTestObject_->SetTranslate(physicsTestPosition_);
+			physicsTestObject_->Update();
+		}
+	}
+
+	playerPhysicsGrounded_ = EvaluatePlayerPhysicsGrounded();
+	playerGroundRigidbody_.SetGrounded(playerPhysicsGrounded_);
+	if (auto* player = characters_.GetPlayer())
+	{
+		// PhysicsWorld側の接地状態をPlayerへ反映する。既存の移動/ジャンプ判定にはまだ使わない。
+		player->SetGroundedByPhysics(enablePlayerPhysicsGroundCheck_ && playerPhysicsGrounded_);
 	}
 }
 
@@ -1370,7 +1395,28 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 		}
 		else
 		{
-			UnbindGameplayPhysicsStageColliders();
+			if (!enablePlayerPhysicsGroundCheck_)
+			{
+				UnbindGameplayPhysicsStageColliders();
+			}
+		}
+	}
+	bool enablePlayerGroundCheck = enablePlayerPhysicsGroundCheck_;
+	if (ImGui::Checkbox("Enable Player Physics Ground Check", &enablePlayerGroundCheck))
+	{
+		enablePlayerPhysicsGroundCheck_ = enablePlayerGroundCheck;
+		if (enablePlayerPhysicsGroundCheck_)
+		{
+			BindGameplayPhysicsStageColliders();
+			RegisterPlayerPhysicsGroundCheck();
+		}
+		else
+		{
+			UnregisterPlayerPhysicsGroundCheck();
+			if (!enableGameplayPhysicsTest_)
+			{
+				UnbindGameplayPhysicsStageColliders();
+			}
 		}
 	}
 
@@ -1390,6 +1436,8 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 	}
 
 	const K4E::Vector3 velocity = physicsTestRigidbody_.GetVelocity();
+	Player* player = characters_.GetPlayer();
+	const K4E::Vector3 playerPosition = player ? player->GetCenterPosition() : K4E::Vector3{};
 	ImGui::Text("Stage Binder Bound: %s", gameplayStagePhysicsBinder_.IsBound() ? "true" : "false");
 	ImGui::Text("Bound Stage Collider Count: %zu", gameplayStagePhysicsBinder_.GetBoundColliderCount());
 	ImGui::Text("PhysicsWorld Collider Count: %zu", gameplayPhysicsWorld_.GetColliderCount());
@@ -1397,6 +1445,13 @@ void GamePlayWorld::DrawGameplayPhysicsTestImGui()
 	ImGui::Text("IsGrounded: %s", physicsTestRigidbody_.IsGrounded() ? "true" : "false");
 	ImGui::Text("Position: %.3f, %.3f, %.3f", physicsTestPosition_.x, physicsTestPosition_.y, physicsTestPosition_.z);
 	ImGui::Text("Velocity: %.3f, %.3f, %.3f", velocity.x, velocity.y, velocity.z);
+	ImGui::SeparatorText("Player Physics Ground Check");
+	ImGui::Text("Existing Grounded: %s", player ? (player->FSM_IsGrounded() ? "true" : "false") : "N/A");
+	ImGui::Text("Physics Grounded: %s", player ? (player->IsGroundedByPhysics() ? "true" : "false") : "N/A");
+	ImGui::Text("Player Position: %.3f, %.3f, %.3f", playerPosition.x, playerPosition.y, playerPosition.z);
+	ImGui::Text("Player Collider Position: %.3f, %.3f, %.3f", playerGroundColliderPosition_.x, playerGroundColliderPosition_.y, playerGroundColliderPosition_.z);
+	ImGui::Text("Player vs Stage Contact Count: %zu", playerStageContactCount_);
+	ImGui::Text("Registered Player Collider: %s", playerGroundColliderRegistered_ ? "true" : "false");
 #endif
 }
 
@@ -1427,6 +1482,94 @@ void GamePlayWorld::UnbindGameplayPhysicsStageColliders()
 	// Unbind後にStageとのContactが消えることを確認できるよう、Binder経由の登録を解除する。
 	gameplayStagePhysicsBinder_.Unbind();
 	gameplayPhysicsStageBound_ = false;
+}
+
+void GamePlayWorld::RegisterPlayerPhysicsGroundCheck()
+{
+	// Player床判定用ColliderをPhysicsWorldへ登録する。二重登録を避け、ON時だけ参照を持たせる。
+	if (playerGroundColliderRegistered_)
+	{
+		return;
+	}
+
+	gameplayPhysicsWorld_.RegisterRigidbody(&playerGroundRigidbody_);
+	gameplayPhysicsWorld_.RegisterCollider(&playerGroundCollider_);
+	playerGroundColliderRegistered_ = true;
+}
+
+void GamePlayWorld::UnregisterPlayerPhysicsGroundCheck()
+{
+	// Scene終了時に破棄済みCollider参照を残さないよう、Player床判定用Colliderを解除する。
+	if (!playerGroundColliderRegistered_)
+	{
+		return;
+	}
+
+	gameplayPhysicsWorld_.UnregisterCollider(&playerGroundCollider_);
+	gameplayPhysicsWorld_.UnregisterRigidbody(&playerGroundRigidbody_);
+	playerGroundColliderRegistered_ = false;
+	playerStageContactCount_ = 0;
+	playerPhysicsGrounded_ = false;
+	playerGroundRigidbody_.SetGrounded(false);
+	if (auto* player = characters_.GetPlayer())
+	{
+		player->SetGroundedByPhysics(false);
+	}
+}
+
+void GamePlayWorld::UpdatePlayerPhysicsGroundCheck()
+{
+	// Player移動は置き換えず、床判定用Colliderだけを現在のPlayer位置へ同期する。
+	if (!enablePlayerPhysicsGroundCheck_)
+	{
+		return;
+	}
+
+	if (!playerGroundColliderRegistered_)
+	{
+		RegisterPlayerPhysicsGroundCheck();
+	}
+
+	if (Player* player = characters_.GetPlayer())
+	{
+		SyncPlayerPhysicsGroundCollider(*player);
+	}
+}
+
+void GamePlayWorld::SyncPlayerPhysicsGroundCollider(Player& player)
+{
+	// 既存のPlayer移動を置き換えず、物理側の床判定用に位置だけ同期する。
+	playerGroundColliderPosition_ = player.GetCenterPosition() + playerGroundColliderOffset_;
+	playerGroundCollider_.SetAABB({
+		playerGroundColliderPosition_ - playerGroundColliderHalfSize_,
+		playerGroundColliderPosition_ + playerGroundColliderHalfSize_,
+		});
+}
+
+bool GamePlayWorld::EvaluatePlayerPhysicsGrounded()
+{
+	// PhysicsWorldのContact normalから、Player ColliderがStage上面に接しているかだけを評価する。
+	playerStageContactCount_ = 0;
+	bool grounded = false;
+	constexpr float kGroundNormalThreshold = 0.5f;
+	for (const K4E::Contact& contact : gameplayPhysicsWorld_.GetContacts())
+	{
+		const bool playerIsA = contact.colliderA == &playerGroundCollider_;
+		const bool playerIsB = contact.colliderB == &playerGroundCollider_;
+		if (!playerIsA && !playerIsB)
+		{
+			continue;
+		}
+
+		++playerStageContactCount_;
+		if ((playerIsA && contact.normal.y < -kGroundNormalThreshold) ||
+			(playerIsB && contact.normal.y > kGroundNormalThreshold))
+		{
+			grounded = true;
+		}
+	}
+
+	return grounded;
 }
 
 void GamePlayWorld::UpdateShadowLightViewProjection()

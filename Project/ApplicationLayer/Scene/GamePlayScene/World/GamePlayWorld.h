@@ -166,6 +166,11 @@ private: /// ---------- メンバ関数 ---------- ///
 	void SyncGameplayPhysicsTestCollider();
 	void BindGameplayPhysicsStageColliders();
 	void UnbindGameplayPhysicsStageColliders();
+	void RegisterPlayerPhysicsGroundCheck();
+	void UnregisterPlayerPhysicsGroundCheck();
+	void UpdatePlayerPhysicsGroundCheck();
+	void SyncPlayerPhysicsGroundCollider(Player& player);
+	bool EvaluatePlayerPhysicsGrounded();
 	void UpdateShadowLightViewProjection();
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection) const;
 	bool IsSightBlocked(const K4E::Segment& seg) const;
@@ -204,11 +209,20 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::StagePhysicsBinder gameplayStagePhysicsBinder_{}; // StageCollider登録確認用Binder
 	K4E::Rigidbody physicsTestRigidbody_{}; // PhysicsTestObject用Rigidbody
 	K4E::Collider physicsTestCollider_{}; // PhysicsTestObject用Collider
+	K4E::Rigidbody playerGroundRigidbody_{}; // Player床判定確認用Kinematic Rigidbody
+	K4E::Collider playerGroundCollider_{}; // Player床判定確認用Collider
 	K4E::Vector3 physicsTestPosition_{}; // PhysicsTestObjectの現在位置
 	K4E::Vector3 physicsTestInitialPosition_{ 0.0f, 8.0f, 0.0f }; // Reset時の初期位置
 	K4E::Vector3 physicsTestHalfSize_{ 0.5f, 0.5f, 0.5f }; // テスト用AABB半サイズ
+	K4E::Vector3 playerGroundColliderPosition_{}; // Player床判定用Collider中心
+	K4E::Vector3 playerGroundColliderHalfSize_{ 0.5f, 1.0f, 0.5f }; // Player床判定用AABB半サイズ
+	K4E::Vector3 playerGroundColliderOffset_{ 0.0f, 0.95f, 0.0f }; // 足元に少し重なる床判定用オフセット
 	bool enableGameplayPhysicsTest_ = false; // 本編上でPhysicsWorldテストを実行するか
+	bool enablePlayerPhysicsGroundCheck_ = false; // Player床判定だけをPhysicsWorldから取得するか
 	bool gameplayPhysicsStageBound_ = false; // StageColliderをPhysicsWorldへ登録済みか
+	bool playerGroundColliderRegistered_ = false; // Player床判定用ColliderをPhysicsWorldへ登録済みか
+	bool playerPhysicsGrounded_ = false; // PhysicsWorld由来のPlayer床判定
+	size_t playerStageContactCount_ = 0; // Player vs StageのContact数
 
 	int prevWaveNumber_ = 0;
 	bool prevWaveInProgress_ = false;
