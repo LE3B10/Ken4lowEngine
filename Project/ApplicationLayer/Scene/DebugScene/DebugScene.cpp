@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "DebugScene.h"
+#include "PhysicsDebugController.h"
 #include <DirectXCommon.h>
 #include <Input.h>
 #include <SpriteManager.h>
@@ -15,6 +16,9 @@
 
 using namespace Ken4lowEngine;
 
+DebugScene::DebugScene() = default;
+DebugScene::~DebugScene() = default;
+
 /// -------------------------------------------------------------
 ///							初期化処理
 /// -------------------------------------------------------------
@@ -27,14 +31,9 @@ void DebugScene::Initialize()
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
 
-	// DebugScene内だけでPhysicsWorldのRigidbody積分を確認する。
-	physicsWorld_.RegisterRigidbody(&physicsTestRigidbody_);
-	physicsStaticRigidbody_.SetBodyType(K4E::BodyType::Static);
-	physicsStaticCollider_.SetRigidbody(&physicsStaticRigidbody_);
-	physicsDynamicCollider_.SetRigidbody(&physicsTestRigidbody_);
-	physicsWorld_.RegisterCollider(&physicsStaticCollider_);
-	physicsWorld_.RegisterCollider(&physicsDynamicCollider_);
-	ResetPhysicsDebugTest();
+	// 物理確認処理は専用コントローラへ委譲し、DebugSceneは呼び出し役に留める。
+	physicsDebugController_ = std::make_unique<PhysicsDebugController>();
+	physicsDebugController_->Initialize();
 }
 
 /// -------------------------------------------------------------
@@ -48,8 +47,11 @@ void DebugScene::Update()
 
 	const float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
 
-	// 本編へ接続せず、DebugScene専用の物理テストだけを進める。
-	UpdatePhysicsDebugTest(deltaTime);
+	// 本編へ接続せず、DebugScene専用の物理確認だけを更新する。
+	if (physicsDebugController_)
+	{
+		physicsDebugController_->Update(deltaTime);
+	}
 
 	collisionManager_->CheckAllCollisions();
 	collisionManager_->Update();
@@ -66,10 +68,11 @@ void DebugScene::Draw3DObjects()
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f, 1.0f });
 
-	// PhysicsWorldテスト用の現在位置をワイヤースフィアで可視化する。
-	Wireframe::GetInstance()->DrawSphere(physicsTestPosition_, 0.35f, { 0.2f, 0.9f, 1.0f, 1.0f });
-	Wireframe::GetInstance()->DrawAABB(physicsStaticCollider_.GetAABB(), { 1.0f, 0.8f, 0.15f, 1.0f });
-	Wireframe::GetInstance()->DrawAABB(physicsDynamicCollider_.GetAABB(), { 0.2f, 0.9f, 1.0f, 1.0f });
+	// DebugScene専用の物理テスト形状を描画する。
+	if (physicsDebugController_)
+	{
+		physicsDebugController_->Draw();
+	}
 
 	collisionManager_->Draw();
 #endif // _DEBUG
@@ -115,10 +118,7 @@ void DebugScene::Finalize()
 	input_->SetCursorVisible(true);
 
 	collisionManager_.reset();
-
-	physicsWorld_.UnregisterRigidbody(&physicsTestRigidbody_);
-	physicsWorld_.UnregisterCollider(&physicsStaticCollider_);
-	physicsWorld_.UnregisterCollider(&physicsDynamicCollider_);
+	physicsDebugController_.reset();
 
 	input_ = nullptr;
 	dxCommon_ = nullptr;
@@ -135,126 +135,12 @@ void DebugScene::DrawImGui()
 	LightManager::GetInstance()->DrawImGui();
 
 	// DebugScene専用のPhysicsWorld確認パネルを描画する。
-	DrawPhysicsDebugImGui();
-
-#endif // USE_IMGUI
-}
-
-/// -------------------------------------------------------------
-///					 PhysicsWorld単体テストのリセット
-/// -------------------------------------------------------------
-void DebugScene::ResetPhysicsDebugTest()
-{
-	// 位置、速度、蓄積力を初期値へ戻して同じ条件で再確認できるようにする。
-	physicsTestPosition_ = physicsTestInitialPosition_;
-	physicsTestRigidbody_.SetBodyType(K4E::BodyType::Dynamic);
-	physicsTestRigidbody_.SetMass(physicsTestMass_);
-	physicsTestRigidbody_.SetUseGravity(physicsTestUseGravity_);
-	physicsTestRigidbody_.SetRestitution(physicsTestRestitution_);
-	physicsTestRigidbody_.SetVelocity(physicsTestInitialVelocity_);
-	physicsTestRigidbody_.ClearForces();
-	physicsTestRigidbody_.ClearFrameState();
-	physicsWorld_.SetPositionSolveEnabled(physicsPositionSolveEnabled_);
-	UpdatePhysicsDebugColliders();
-}
-
-/// -------------------------------------------------------------
-///					 PhysicsWorld単体テストの更新
-/// -------------------------------------------------------------
-void DebugScene::UpdatePhysicsDebugTest(float deltaTime)
-{
-	// DebugScene側の位置をRigidbody速度で動かし、Colliderへ同期してからPhysicsWorldで接触を検出する。
-	physicsTestRigidbody_.SetUseGravity(physicsTestUseGravity_);
-	physicsTestRigidbody_.SetMass(physicsTestMass_);
-	physicsTestRigidbody_.SetRestitution(physicsTestRestitution_);
-	physicsTestPosition_ += physicsTestRigidbody_.GetVelocity() * deltaTime;
-	UpdatePhysicsDebugColliders();
-	physicsWorld_.SetPositionSolveEnabled(physicsPositionSolveEnabled_);
-	physicsWorld_.Step(deltaTime);
-	physicsTestPosition_ = physicsDynamicCollider_.GetCenterPosition();
-}
-
-/// -------------------------------------------------------------
-///					 PhysicsWorld単体テストのImGui
-/// -------------------------------------------------------------
-void DebugScene::DrawPhysicsDebugImGui()
-{
-#ifdef USE_IMGUI
-	if (ImGui::Begin("PhysicsWorld Debug"))
+	if (physicsDebugController_)
 	{
-		const K4E::Vector3 velocity = physicsTestRigidbody_.GetVelocity();
-		const std::vector<K4E::Contact>& contacts = physicsWorld_.GetContacts();
-		const bool hasContact = !contacts.empty();
-
-		// 物理テストの現在値を表示し、重力と質量はその場で調整できるようにする。
-		ImGui::Text("Position: %.3f, %.3f, %.3f", physicsTestPosition_.x, physicsTestPosition_.y, physicsTestPosition_.z);
-		ImGui::Text("Velocity: %.3f, %.3f, %.3f", velocity.x, velocity.y, velocity.z);
-		ImGui::Text("IsGrounded: %s", physicsTestRigidbody_.IsGrounded() ? "true" : "false");
-		if (ImGui::Checkbox("UseGravity", &physicsTestUseGravity_))
-		{
-			physicsTestRigidbody_.SetUseGravity(physicsTestUseGravity_);
-		}
-		if (ImGui::DragFloat("Mass", &physicsTestMass_, 0.05f, 0.1f, 100.0f))
-		{
-			physicsTestRigidbody_.SetMass(physicsTestMass_);
-		}
-		if (ImGui::DragFloat("Restitution", &physicsTestRestitution_, 0.01f, 0.0f, 1.0f))
-		{
-			physicsTestRigidbody_.SetRestitution(physicsTestRestitution_);
-			physicsTestRestitution_ = physicsTestRigidbody_.GetRestitution();
-		}
-		if (ImGui::DragFloat3("Dynamic Collider Position", &physicsTestPosition_.x, 0.05f))
-		{
-			UpdatePhysicsDebugColliders();
-		}
-		if (ImGui::DragFloat3("Static Collider Position", &physicsStaticColliderPosition_.x, 0.05f))
-		{
-			UpdatePhysicsDebugColliders();
-		}
-		if (ImGui::Checkbox("Resolve Enabled", &physicsPositionSolveEnabled_))
-		{
-			physicsWorld_.SetPositionSolveEnabled(physicsPositionSolveEnabled_);
-		}
-
-		// Contact生成結果をPhysicsWorldから直接読み、接触の有無と詳細値を確認する。
-		ImGui::Separator();
-		ImGui::Text("Contact Count: %zu", contacts.size());
-		ImGui::Text("Contact: %s", hasContact ? "true" : "false");
-		ImGui::Text("Dynamic Position: %.3f, %.3f, %.3f", physicsTestPosition_.x, physicsTestPosition_.y, physicsTestPosition_.z);
-		if (hasContact)
-		{
-			const K4E::Contact& contact = contacts.front();
-			ImGui::Text("Contact normal: %.3f, %.3f, %.3f", contact.normal.x, contact.normal.y, contact.normal.z);
-			ImGui::Text("Contact penetration: %.3f", contact.penetration);
-		}
-		else
-		{
-			ImGui::Text("Contact normal: 0.000, 0.000, 0.000");
-			ImGui::Text("Contact penetration: 0.000");
-		}
-		if (ImGui::Button("Reset"))
-		{
-			ResetPhysicsDebugTest();
-		}
+		physicsDebugController_->DrawImGui();
 	}
-	ImGui::End();
-#endif // USE_IMGUI
-}
 
-/// -------------------------------------------------------------
-///					 PhysicsWorld単体テストColliderの更新
-/// -------------------------------------------------------------
-void DebugScene::UpdatePhysicsDebugColliders()
-{
-	// DebugScene専用AABBをColliderへ同期し、PhysicsWorld::DetectCollisions()が読める状態にする。
-	physicsStaticCollider_.SetAABB({
-		physicsStaticColliderPosition_ - physicsStaticColliderHalfSize_,
-		physicsStaticColliderPosition_ + physicsStaticColliderHalfSize_,
-		});
-	physicsDynamicCollider_.SetAABB({
-		physicsTestPosition_ - physicsDynamicColliderHalfSize_,
-		physicsTestPosition_ + physicsDynamicColliderHalfSize_,
-		});
+#endif // USE_IMGUI
 }
 
 /// -------------------------------------------------------------

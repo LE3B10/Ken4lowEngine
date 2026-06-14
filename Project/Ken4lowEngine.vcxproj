@@ -170,6 +170,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\DebugTools\EnemyScalability\EnemyScalabilitySystem.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DisintegrationDebugController.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\PhysicsDebugController.cpp" />
     <ClCompile Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -785,6 +786,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\DebugTools\EnemyScalability\EnemyScalabilitySystem.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DisintegrationDebugController.h" />
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\PhysicsDebugController.h" />
     <ClInclude Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
