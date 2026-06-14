@@ -416,6 +416,12 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\Renderer\Sprite\Core\SpriteManager.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Sprite\Core\SpritePipelineSet.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Core\Wireframe.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Core\WireframePipeline.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Core\WireframeResource.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Shapes\WireframeBasicShapes.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Shapes\WireframeCollisionShapes.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Shapes\WireframePrimitiveShapes.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Effects\WireframeEffectShapes.cpp" />
     <ClCompile Include="Engine\Graphics\RenderState\Blend\BlendStateFactory.cpp" />
     <ClCompile Include="Engine\Graphics\RenderTarget\Main\MainRenderTarget.cpp" />
     <ClCompile Include="Engine\Graphics\RenderTarget\Shadow\ShadowMapRenderTarget.cpp" />
@@ -1114,6 +1120,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\Renderer\Sprite\Core\SpriteManager.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Sprite\Core\SpritePipelineSet.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Wireframe\Core\Wireframe.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Wireframe\Core\WireframeConfig.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Wireframe\Core\WireframeTypes.h" />
     <ClInclude Include="Engine\Graphics\RenderState\Blend\BlendStateFactory.h" />
     <ClInclude Include="Engine\Graphics\RenderTarget\Main\MainRenderTarget.h" />
     <ClInclude Include="Engine\Graphics\RenderTarget\Shadow\ShadowMapRenderTarget.h" />

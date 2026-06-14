@@ -982,6 +982,24 @@
     <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Core\Wireframe.cpp">
       <Filter>Engine\Graphics\Renderer\Wireframe\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Core\WireframePipeline.cpp">
+      <Filter>Engine\Graphics\Renderer\Wireframe\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Core\WireframeResource.cpp">
+      <Filter>Engine\Graphics\Renderer\Wireframe\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Shapes\WireframeBasicShapes.cpp">
+      <Filter>Engine\Graphics\Renderer\Wireframe\Shapes</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Shapes\WireframeCollisionShapes.cpp">
+      <Filter>Engine\Graphics\Renderer\Wireframe\Shapes</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Shapes\WireframePrimitiveShapes.cpp">
+      <Filter>Engine\Graphics\Renderer\Wireframe\Shapes</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Effects\WireframeEffectShapes.cpp">
+      <Filter>Engine\Graphics\Renderer\Wireframe\Effects</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2074,6 +2092,12 @@
       <Filter>Engine\Graphics\Renderer\Sprite\Effects</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\Wireframe\Core\Wireframe.h">
+      <Filter>Engine\Graphics\Renderer\Wireframe\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Wireframe\Core\WireframeConfig.h">
+      <Filter>Engine\Graphics\Renderer\Wireframe\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Wireframe\Core\WireframeTypes.h">
       <Filter>Engine\Graphics\Renderer\Wireframe\Core</Filter>
     </ClInclude>
   </ItemGroup>
