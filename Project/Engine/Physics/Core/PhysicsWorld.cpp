@@ -2,9 +2,11 @@
 
 #include "Collider.h"
 #include "CollisionUtility.h"
+#include "Engine/Physics/Solver/PositionSolver.h"
 #include "Rigidbody.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace Ken4lowEngine
 {
@@ -66,6 +68,9 @@ namespace Ken4lowEngine
 
 	void PhysicsWorld::Step(float deltaTime)
 	{
+		// Contactは毎フレーム作り直し、前フレームの接触情報を残さない。
+		contacts_.clear();
+
 		// 将来の本格接続に備え、積分、検出、解決の順序だけを固定する。
 		IntegrateBodies(deltaTime);
 		DetectCollisions();
@@ -86,8 +91,6 @@ namespace Ken4lowEngine
 
 	void PhysicsWorld::DetectCollisions()
 	{
-		contacts_.clear();
-
 		// 現段階では既存互換の総当たりでContactだけを作り、BroadPhase分離の差し替え口を残す。
 		for (size_t i = 0; i < colliders_.size(); ++i)
 		{
@@ -115,9 +118,17 @@ namespace Ken4lowEngine
 
 	void PhysicsWorld::ResolveContacts()
 	{
-		// 今回は既存ゲーム挙動を変えないため、押し戻しやイベント通知はまだ行わない。
-		for ([[maybe_unused]] const Contact& contact : contacts_)
+		if (!positionSolveEnabled_)
 		{
+			return;
+		}
+
+		PositionSolver positionSolver{};
+
+		// Trigger以外のContactだけを位置補正し、速度反射やイベント通知はまだ行わない。
+		for (Contact& contact : contacts_)
+		{
+			positionSolver.Resolve(contact);
 		}
 	}
 
@@ -216,11 +227,44 @@ namespace Ken4lowEngine
 		const Vector3 centerA = colliderA->GetCenterPosition();
 		const Vector3 centerB = colliderB->GetCenterPosition();
 		const Vector3 delta = centerB - centerA;
+		const AABB aabbA = colliderA->GetAABB();
+		const AABB aabbB = colliderB->GetAABB();
 
-		// 現段階では簡易Contactとして中心間の方向と中点を保持し、詳細なpenetration計算はNarrowPhaseへ残す。
-		contact.point = (centerA + centerB) * 0.5f;
-		contact.normal = Vector3::NormalizeSafe(delta, { 0.0f, 1.0f, 0.0f });
-		contact.penetration = 0.0f;
+		const float overlapX = std::min(aabbA.max.x, aabbB.max.x) - std::max(aabbA.min.x, aabbB.min.x);
+		const float overlapY = std::min(aabbA.max.y, aabbB.max.y) - std::max(aabbA.min.y, aabbB.min.y);
+		const float overlapZ = std::min(aabbA.max.z, aabbB.max.z) - std::max(aabbA.min.z, aabbB.min.z);
+
+		const Vector3 overlapMin{
+			std::max(aabbA.min.x, aabbB.min.x),
+			std::max(aabbA.min.y, aabbB.min.y),
+			std::max(aabbA.min.z, aabbB.min.z),
+		};
+		const Vector3 overlapMax{
+			std::min(aabbA.max.x, aabbB.max.x),
+			std::min(aabbA.max.y, aabbB.max.y),
+			std::min(aabbA.max.z, aabbB.max.z),
+		};
+
+		// まずはAABBの重なり量から最小侵入軸を選び、Contact確認に必要なnormal/penetrationを作る。
+		contact.point = (overlapMin + overlapMax) * 0.5f;
+		contact.penetration = std::max(0.0f, overlapX);
+		contact.normal = { delta.x >= 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f };
+
+		if (overlapY < contact.penetration)
+		{
+			contact.penetration = std::max(0.0f, overlapY);
+			contact.normal = { 0.0f, delta.y >= 0.0f ? 1.0f : -1.0f, 0.0f };
+		}
+		if (overlapZ < contact.penetration)
+		{
+			contact.penetration = std::max(0.0f, overlapZ);
+			contact.normal = { 0.0f, 0.0f, delta.z >= 0.0f ? 1.0f : -1.0f };
+		}
+		if (std::abs(delta.x) <= 0.0001f && std::abs(delta.y) <= 0.0001f && std::abs(delta.z) <= 0.0001f)
+		{
+			contact.normal = { 0.0f, 1.0f, 0.0f };
+		}
+
 		contact.isTrigger = colliderA->IsTrigger() || colliderB->IsTrigger();
 		return contact;
 	}

@@ -23,6 +23,7 @@ enum class ECollisionResponse : uint8_t;
 namespace Ken4lowEngine
 {
 	class Collider;
+	class Rigidbody;
 
 	/// CollisionHit は将来のBlock/Overlapイベントへ渡す詳細情報の最小単位。
 	struct CollisionHit
@@ -287,6 +288,14 @@ namespace Ken4lowEngine
 		// 現在の主Primitive形状種別を取得（既存判定には未使用）
 		ECollisionShapeType GetShapeType() const { return shapeInfo_.shapeType; }
 
+	public: /// ---------- Rigidbody連携 ---------- ///
+
+		// Rigidbody参照を設定する。nullptrを許容し、既存Colliderは未設定のまま動作できる。
+		void SetRigidbody(Rigidbody* rigidbody) { rigidbody_ = rigidbody; }
+
+		// Rigidbody参照を取得する。未設定の場合はnullptrを返す。
+		Rigidbody* GetRigidbody() const { return rigidbody_; }
+
 	public: /// ---------- デバッグ用メンバ関数 ---------- ///
 
 		// 初期化処理
@@ -414,6 +423,9 @@ namespace Ken4lowEngine
 
 		// Debug表示用のOwner型名。所有権は持たず、SetOwner<T>時だけ更新する。
 		std::string ownerDebugName_{};
+
+		// 物理応答用Rigidbody参照。所有権は持たず、未設定Colliderは従来通り静的扱いにできる。
+		Rigidbody* rigidbody_ = nullptr;
 
 	private: /// ---------- 衝突履歴（Enter/Stay/Exit 用） ---------- ///
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "BaseScene.h"
 #include "CollisionManager.h"
+#include "Collider.h"
 #include "PhysicsWorld.h"
 #include "Rigidbody.h"
 #include "Vector3.h"
@@ -60,6 +61,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	// PhysicsWorld単体確認用のImGuiを描画する
 	void DrawPhysicsDebugImGui();
 
+	// PhysicsWorld単体確認用Colliderの位置と形状を更新する
+	void UpdatePhysicsDebugColliders();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::DirectXCommon* dxCommon_ = nullptr; // DirectXCommonのポインタ
@@ -70,9 +74,17 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::PhysicsWorld physicsWorld_; // DebugScene専用の物理ワールド
 	K4E::Rigidbody physicsTestRigidbody_; // DebugScene専用のテスト剛体
+	K4E::Rigidbody physicsStaticRigidbody_; // Contact確認用の静的剛体
 	K4E::Vector3 physicsTestPosition_{}; // DebugScene専用のテスト位置
 	K4E::Vector3 physicsTestInitialPosition_{ 0.0f, 8.0f, 0.0f }; // テスト初期位置
 	K4E::Vector3 physicsTestInitialVelocity_{ 1.5f, 3.0f, 0.0f }; // テスト初期速度
 	bool physicsTestUseGravity_ = true; // テスト用重力フラグ
 	float physicsTestMass_ = 1.0f; // テスト用質量
+
+	K4E::Collider physicsStaticCollider_; // Contact確認用の静的Collider
+	K4E::Collider physicsDynamicCollider_; // Contact確認用の動的Collider
+	K4E::Vector3 physicsStaticColliderPosition_{ 2.0f, 7.0f, 0.0f }; // 静的Collider位置
+	K4E::Vector3 physicsDynamicColliderHalfSize_{ 0.75f, 0.75f, 0.75f }; // 動的Collider半サイズ
+	K4E::Vector3 physicsStaticColliderHalfSize_{ 1.25f, 1.25f, 1.25f }; // 静的Collider半サイズ
+	bool physicsPositionSolveEnabled_ = true; // Contactによる位置補正の有効フラグ
 };

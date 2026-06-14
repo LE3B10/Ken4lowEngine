@@ -42,6 +42,10 @@ namespace Ken4lowEngine
 		// 直近ステップのContact一覧を取得する。
 		const std::vector<Contact>& GetContacts() const { return contacts_; }
 
+		// 位置補正ソルバーの有効状態を設定する。
+		void SetPositionSolveEnabled(bool enabled) { positionSolveEnabled_ = enabled; }
+		bool IsPositionSolveEnabled() const { return positionSolveEnabled_; }
+
 	private: /// ---------- メンバ関数 ---------- ///
 
 		// Colliderペアが接触しているかを既存Primitive判定で調べる。
@@ -60,6 +64,9 @@ namespace Ken4lowEngine
 
 		// 直近ステップで検出されたContact一覧。
 		std::vector<Contact> contacts_{};
+
+		// Contact解決で位置補正を行うか。DebugSceneからON/OFFを切り替える。
+		bool positionSolveEnabled_ = true;
 	};
 
 } // namespace Ken4lowEngine

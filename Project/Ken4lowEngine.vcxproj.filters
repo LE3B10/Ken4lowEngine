@@ -571,6 +571,9 @@
     <ClCompile Include="Engine\Physics\Core\Rigidbody.cpp">
       <Filter>Engine\Physics\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Physics\Solver\PositionSolver.cpp">
+      <Filter>Engine\Physics\Solver</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Level\LevelLoader.cpp">
       <Filter>Engine\Scene\Level</Filter>
     </ClCompile>
@@ -1548,6 +1551,9 @@
     <ClInclude Include="Engine\Physics\Core\Rigidbody.h">
       <Filter>Engine\Physics\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Physics\Solver\PositionSolver.h">
+      <Filter>Engine\Physics\Solver</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Scene\Level\LevelData.h">
       <Filter>Engine\Scene\Level</Filter>
     </ClInclude>
@@ -2383,6 +2389,9 @@
     </Filter>
     <Filter Include="Engine\Physics\Core">
       <UniqueIdentifier>{6d3bd8c4-4f3f-43d2-b583-1f34a399e267}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Physics\Solver">
+      <UniqueIdentifier>{fe82af8f-52b0-4659-99fb-0664d6bc6f78}</UniqueIdentifier>
     </Filter>
     <Filter Include="Engine\Scene\Level">
       <UniqueIdentifier>{d8135d35-c676-47d1-ac56-ea8a28dabcaf}</UniqueIdentifier>
