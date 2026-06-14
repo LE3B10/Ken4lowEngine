@@ -4,6 +4,7 @@
 #include "Wireframe.h"
 
 #include <algorithm>
+#include <cstdint>
 
 #ifdef USE_IMGUI
 #include <imgui.h>

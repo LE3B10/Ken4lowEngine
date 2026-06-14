@@ -1,8 +1,8 @@
 #pragma once
 #include "Contact.h"
 #include "PhysicsWorldSettings.h"
-#include "Engine/Physics/Collision/Core/CollisionResponseMatrix.h"
-#include "Engine/Physics/Event/PhysicsEventDispatcher.h"
+#include "CollisionResponseMatrix.h"
+#include "PhysicsEventDispatcher.h"
 
 #include <cstddef>
 #include <vector>

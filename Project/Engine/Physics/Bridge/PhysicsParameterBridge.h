@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Engine/Physics/Core/PhysicsWorldSettings.h"
-#include "Engine/Physics/Debug/PhysicsDebugDraw.h"
+#include "PhysicsWorldSettings.h"
+#include "PhysicsDebugDraw.h"
 
 #include <functional>
 

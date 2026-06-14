@@ -17,12 +17,12 @@
 #include "PhysicsTestBullet.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "Object3D.h"
-#include "Engine/Physics/Bridge/CollisionSystemPolicy.h"
-#include "Engine/Physics/Bridge/StagePhysicsBinder.h"
-#include "Engine/Physics/Bridge/PhysicsParameterBridge.h"
-#include "Engine/Physics/Core/PhysicsWorld.h"
-#include "Engine/Physics/Debug/PhysicsDebugDraw.h"
-#include "Engine/Physics/Core/Rigidbody.h"
+#include "CollisionSystemPolicy.h"
+#include "StagePhysicsBinder.h"
+#include "PhysicsParameterBridge.h"
+#include "PhysicsWorld.h"
+#include "PhysicsDebugDraw.h"
+#include "Rigidbody.h"
 
 #include <memory>
 

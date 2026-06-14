@@ -1,5 +1,5 @@
 #pragma once
-#include "Engine/Physics/Core/PhysicsTypes.h"
+#include "PhysicsTypes.h"
 
 #include <array>
 #include <cstdint>

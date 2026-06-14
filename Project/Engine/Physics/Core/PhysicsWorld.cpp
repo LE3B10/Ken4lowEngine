@@ -2,9 +2,9 @@
 
 #include "Collider.h"
 #include "CollisionUtility.h"
-#include "Engine/Physics/Solver/FrictionSolver.h"
-#include "Engine/Physics/Solver/PositionSolver.h"
-#include "Engine/Physics/Solver/VelocitySolver.h"
+#include "FrictionSolver.h"
+#include "PositionSolver.h"
+#include "VelocitySolver.h"
 #include "Rigidbody.h"
 
 #include <algorithm>

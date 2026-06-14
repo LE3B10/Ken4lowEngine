@@ -1,9 +1,9 @@
 #pragma once
 #include "Collider.h"
-#include "Engine/Physics/Event/IPhysicsEventListener.h"
-#include "Engine/Physics/Bridge/StagePhysicsBinder.h"
-#include "Engine/Physics/Bridge/PhysicsParameterBridge.h"
-#include "Engine/Physics/Debug/PhysicsDebugDraw.h"
+#include "IPhysicsEventListener.h"
+#include "StagePhysicsBinder.h"
+#include "PhysicsParameterBridge.h"
+#include "PhysicsDebugDraw.h"
 #include "PhysicsWorld.h"
 #include "Rigidbody.h"
 #include "Vector3.h"

@@ -32,7 +32,7 @@ namespace Ken4lowEngine
 		// Compiled 配下の .dds 一覧を先に索引化
 		BuildTexturePathIndex();
 
-		LoadTexture("Debug/uvChecker.dds");
+		LoadTexture("Sample/uvChecker.dds");
 	}
 
 	void TextureManager::Finalize()
@@ -71,45 +71,22 @@ namespace Ken4lowEngine
 		heapProperties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
 
 		ComPtr<ID3D12Resource> resource = nullptr;
-		HRESULT hr = device->CreateCommittedResource(
-			&heapProperties,
-			D3D12_HEAP_FLAG_NONE,
-			&resourceDesc,
-			D3D12_RESOURCE_STATE_COPY_DEST,
-			nullptr,
-			IID_PPV_ARGS(&resource));
+		HRESULT hr = device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resourceDesc, D3D12_RESOURCE_STATE_COPY_DEST, nullptr, IID_PPV_ARGS(&resource));
 		assert(SUCCEEDED(hr));
 
 		return resource;
 	}
 
 	[[nodiscard]]
-	ComPtr<ID3D12Resource> TextureManager::UploadTextureData(
-		ID3D12Resource* texture,
-		const DirectX::ScratchImage& mipImages,
-		ID3D12Device* device,
-		ID3D12GraphicsCommandList* commandList)
+	ComPtr<ID3D12Resource> TextureManager::UploadTextureData(ID3D12Resource* texture, const DirectX::ScratchImage& mipImages, ID3D12Device* device, ID3D12GraphicsCommandList* commandList)
 	{
 		std::vector<D3D12_SUBRESOURCE_DATA> subresources;
-		DirectX::PrepareUpload(
-			device,
-			mipImages.GetImages(),
-			mipImages.GetImageCount(),
-			mipImages.GetMetadata(),
-			subresources);
+		DirectX::PrepareUpload(device, mipImages.GetImages(), mipImages.GetImageCount(), mipImages.GetMetadata(), subresources);
 
 		uint64_t intermediateSize = GetRequiredIntermediateSize(texture, 0, UINT(subresources.size()));
-		ComPtr<ID3D12Resource> intermediateResource =
-			ResourceManager::CreateBufferResource(device, intermediateSize);
+		ComPtr<ID3D12Resource> intermediateResource = ResourceManager::CreateBufferResource(device, intermediateSize);
 
-		UpdateSubresources(
-			commandList,
-			texture,
-			intermediateResource.Get(),
-			0,
-			0,
-			UINT(subresources.size()),
-			subresources.data());
+		UpdateSubresources(commandList, texture, intermediateResource.Get(), 0, 0, UINT(subresources.size()), subresources.data());
 
 		D3D12_RESOURCE_BARRIER barrier{};
 		barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -129,11 +106,7 @@ namespace Ken4lowEngine
 		DirectX::ScratchImage image{};
 		std::wstring filePathW = ConvertString(filePath);
 
-		HRESULT hr = DirectX::LoadFromWICFile(
-			filePathW.c_str(),
-			DirectX::WIC_FLAGS_FORCE_SRGB,
-			nullptr,
-			image);
+		HRESULT hr = DirectX::LoadFromWICFile(filePathW.c_str(), DirectX::WIC_FLAGS_FORCE_SRGB, nullptr, image);
 		assert(SUCCEEDED(hr));
 
 		return image;
@@ -185,12 +158,7 @@ namespace Ken4lowEngine
 			metaData0.mipLevels = 1;
 			metaData0.arraySize = 1;
 
-			hr = normalized.Initialize2D(
-				metaData0.format,
-				metaData0.width,
-				metaData0.height,
-				metaData0.arraySize,
-				metaData0.mipLevels);
+			hr = normalized.Initialize2D(metaData0.format, metaData0.width, metaData0.height, metaData0.arraySize, metaData0.mipLevels);
 			assert(SUCCEEDED(hr));
 
 			const DirectX::Image* srcImage = image.GetImage(0, 0, 0);
@@ -202,13 +170,7 @@ namespace Ken4lowEngine
 				static_cast<size_t>(srcImage->height)
 			};
 
-			hr = DirectX::CopyRectangle(
-				*srcImage,
-				srcRect,
-				*destImage,
-				DirectX::TEX_FILTER_DEFAULT,
-				0,
-				UINT(srcImage->height));
+			hr = DirectX::CopyRectangle(*srcImage, srcRect, *destImage, DirectX::TEX_FILTER_DEFAULT, 0, UINT(srcImage->height));
 			assert(SUCCEEDED(hr));
 
 			uploadImage = &normalized;
@@ -225,12 +187,7 @@ namespace Ken4lowEngine
 		textureData.resource = CreateTextureResource(dxCommon_->GetDevice(), textureData.metaData);
 		textureData.resource->SetName(L"TextureResource");
 
-		ComPtr<ID3D12Resource> intermediateResource =
-			UploadTextureData(
-				textureData.resource.Get(),
-				*uploadImage,
-				dxCommon_->GetDevice(),
-				dxCommon_->GetCommandManager()->GetCommandList());
+		ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(textureData.resource.Get(), *uploadImage, dxCommon_->GetDevice(), dxCommon_->GetCommandManager()->GetCommandList());
 
 		dxCommon_->GetCommandManager()->ExecuteAndWait();
 
@@ -255,10 +212,7 @@ namespace Ken4lowEngine
 			srvDesc.Texture2D.MipLevels = UINT(textureData.metaData.mipLevels);
 		}
 
-		dxCommon_->GetDevice()->CreateShaderResourceView(
-			textureData.resource.Get(),
-			&srvDesc,
-			textureData.srvHandleCPU);
+		dxCommon_->GetDevice()->CreateShaderResourceView(textureData.resource.Get(), &srvDesc, textureData.srvHandleCPU);
 	}
 
 	void TextureManager::ReloadTexture(const std::string& filePath)
@@ -280,25 +234,15 @@ namespace Ken4lowEngine
 		LoadTexture(key);
 	}
 
-	void TextureManager::CreateSolidColorTexture(
-		const std::string& key,
-		uint8_t r, uint8_t g, uint8_t b, uint8_t a,
-		uint32_t width, uint32_t height)
+	void TextureManager::CreateSolidColorTexture(const std::string& key, uint8_t r, uint8_t g, uint8_t b, uint8_t a, uint32_t width, uint32_t height)
 	{
 		std::string filePathStr = NormalizeTexturePath(key);
 
-		if (textureDatas.contains(filePathStr))
-		{
-			return;
-		}
+		if (textureDatas.contains(filePathStr))	return;
+
 
 		DirectX::ScratchImage baseImage{};
-		HRESULT hr = baseImage.Initialize2D(
-			DXGI_FORMAT_R8G8B8A8_UNORM_SRGB,
-			width,
-			height,
-			1,
-			1);
+		HRESULT hr = baseImage.Initialize2D(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, width, height, 1, 1);
 		assert(SUCCEEDED(hr));
 
 		auto img = baseImage.GetImage(0, 0, 0);
@@ -318,12 +262,7 @@ namespace Ken4lowEngine
 		textureData.metaData = baseImage.GetMetadata();
 		textureData.resource = CreateTextureResource(dxCommon_->GetDevice(), textureData.metaData);
 
-		ComPtr<ID3D12Resource> intermediateResource =
-			UploadTextureData(
-				textureData.resource.Get(),
-				baseImage,
-				dxCommon_->GetDevice(),
-				dxCommon_->GetCommandManager()->GetCommandList());
+		ComPtr<ID3D12Resource> intermediateResource = UploadTextureData(textureData.resource.Get(), baseImage, dxCommon_->GetDevice(), dxCommon_->GetCommandManager()->GetCommandList());
 
 		dxCommon_->GetCommandManager()->ExecuteAndWait();
 
@@ -343,10 +282,7 @@ namespace Ken4lowEngine
 			textureData.srvHandleCPU);
 	}
 
-	void TextureManager::SetGraphicsRootDescriptorTable(
-		ID3D12GraphicsCommandList* commandList,
-		UINT rootParameter,
-		D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU)
+	void TextureManager::SetGraphicsRootDescriptorTable(ID3D12GraphicsCommandList* commandList, UINT rootParameter, D3D12_GPU_DESCRIPTOR_HANDLE textureSRVHandleGPU)
 	{
 		commandList->SetGraphicsRootDescriptorTable(rootParameter, textureSRVHandleGPU);
 	}
@@ -424,26 +360,16 @@ namespace Ken4lowEngine
 
 		for (const auto& entry : std::filesystem::recursive_directory_iterator(root))
 		{
-			if (!entry.is_regular_file())
-			{
-				continue;
-			}
+			if (!entry.is_regular_file()) continue;
 
 			const std::filesystem::path path = entry.path();
-			if (!path.has_extension())
-			{
-				continue;
-			}
+			if (!path.has_extension()) continue;
 
-			if (ToLowerString(path.extension().generic_string()) != ".dds")
-			{
-				continue;
-			}
+			if (ToLowerString(path.extension().generic_string()) != ".dds")	continue;
 
 			const std::string fullPath = NormalizeSlashes(path.generic_string());
 			const std::string fileName = ToLowerString(path.filename().generic_string());
-			const std::string relativePath =
-				ToLowerString(NormalizeSlashes(std::filesystem::relative(path, root).generic_string()));
+			const std::string relativePath = ToLowerString(NormalizeSlashes(std::filesystem::relative(path, root).generic_string()));
 
 			texturePathIndex_[fileName].push_back(fullPath);
 			texturePathIndex_[relativePath].push_back(fullPath);
@@ -452,10 +378,7 @@ namespace Ken4lowEngine
 
 	std::string TextureManager::FindCompiledTexturePath(const std::string& query) const
 	{
-		if (query.empty())
-		{
-			return "";
-		}
+		if (query.empty()) return "";
 
 		std::string normalized = ToLowerString(NormalizeSlashes(query));
 
@@ -545,8 +468,7 @@ namespace Ken4lowEngine
 
 	std::string TextureManager::ToLowerString(std::string s)
 	{
-		std::transform(
-			s.begin(), s.end(), s.begin(),
+		std::transform(s.begin(), s.end(), s.begin(),
 			[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 		return s;
 	}

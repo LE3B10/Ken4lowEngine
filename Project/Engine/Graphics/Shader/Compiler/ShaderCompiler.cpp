@@ -8,9 +8,7 @@ namespace Ken4lowEngine
 
 #pragma comment(lib, "dxcompiler.lib")
 
-	void ShaderCompiler::ValidateArguments(
-		const ShaderDescriptor& desc,
-		DXCCompilerManager* dxcManager)
+	void ShaderCompiler::ValidateArguments(const ShaderDescriptor& desc, DXCCompilerManager* dxcManager)
 	{
 		assert(dxcManager != nullptr);
 		assert(desc.filePath != nullptr);
@@ -21,9 +19,7 @@ namespace Ken4lowEngine
 		assert(desc.profile[0] != L'\0');
 	}
 
-	Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::CompileShader(
-		const ShaderDescriptor& desc,
-		DXCCompilerManager* dxcManager)
+	Microsoft::WRL::ComPtr<IDxcBlob> ShaderCompiler::CompileShader(const ShaderDescriptor& desc, DXCCompilerManager* dxcManager)
 	{
 		ValidateArguments(desc, dxcManager);
 
@@ -66,12 +62,7 @@ namespace Ken4lowEngine
 		};
 
 		Microsoft::WRL::ComPtr<IDxcResult> shaderResult = nullptr;
-		hr = dxcCompiler->Compile(
-			&shaderSourceBuffer,
-			arguments,
-			_countof(arguments),
-			includeHandler,
-			IID_PPV_ARGS(&shaderResult));
+		hr = dxcCompiler->Compile(&shaderSourceBuffer, arguments, _countof(arguments), includeHandler, IID_PPV_ARGS(&shaderResult));
 		assert(SUCCEEDED(hr));
 		assert(shaderResult != nullptr);
 
@@ -92,11 +83,7 @@ namespace Ken4lowEngine
 		assert(SUCCEEDED(hr));
 		assert(shaderBlob != nullptr);
 
-		Log(ConvertString(std::format(
-			L"Compile Succeeded, name:{}, path:{}, profile:{}\n",
-			desc.debugName,
-			desc.filePath,
-			desc.profile)));
+		Log(ConvertString(std::format(L"Compile Succeeded, name:{}, path:{}, profile:{}\n", desc.debugName, desc.filePath, desc.profile)));
 
 		return shaderBlob;
 	}

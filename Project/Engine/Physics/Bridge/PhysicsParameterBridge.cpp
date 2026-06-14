@@ -1,6 +1,6 @@
 #include "PhysicsParameterBridge.h"
 
-#include "Engine/Physics/Core/PhysicsWorld.h"
+#include "PhysicsWorld.h"
 #include "ParameterManager.h"
 
 #ifdef USE_IMGUI

@@ -1,7 +1,7 @@
 #pragma once
-#include "Engine/Physics/Core/Contact.h"
-#include "Engine/Physics/Event/IPhysicsEventListener.h"
-#include "Engine/Physics/Event/PhysicsEvent.h"
+#include "Contact.h"
+#include "IPhysicsEventListener.h"
+#include "PhysicsEvent.h"
 
 #include <cstdint>
 #include <cstddef>

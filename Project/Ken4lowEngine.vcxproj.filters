@@ -592,7 +592,7 @@
     <ClCompile Include="Engine\Physics\Core\Rigidbody.cpp">
       <Filter>Engine\Physics\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Physics\Debug\PhysicsDebugDraw.cpp">
+    <ClCompile Include="Engine\Physics\DebugDraw\PhysicsDebugDraw.cpp">
       <Filter>Engine\Physics\Debug</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Physics\Event\PhysicsEventDispatcher.cpp">
@@ -1608,7 +1608,7 @@
     <ClInclude Include="Engine\Physics\Core\Rigidbody.h">
       <Filter>Engine\Physics\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Physics\Debug\PhysicsDebugDraw.h">
+    <ClInclude Include="Engine\Physics\DebugDraw\PhysicsDebugDraw.h">
       <Filter>Engine\Physics\Debug</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Physics\Event\IPhysicsEventListener.h">

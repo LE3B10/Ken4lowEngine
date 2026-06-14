@@ -1,6 +1,6 @@
 #pragma once
 #include "AABB.h"
-#include "Engine/Graphics/Culling/BoundingVolume.h"
+#include "BoundingVolume.h"
 #include "Object3D.h"
 #include "Vector3.h"
 

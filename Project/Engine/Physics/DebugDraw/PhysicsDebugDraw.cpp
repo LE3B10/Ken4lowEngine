@@ -1,11 +1,11 @@
 #include "PhysicsDebugDraw.h"
 
-#include "Engine/Physics/Collision/Core/Collider.h"
-#include "Engine/Physics/Core/Contact.h"
-#include "Engine/Physics/Core/PhysicsTypes.h"
-#include "Engine/Physics/Core/PhysicsWorld.h"
-#include "Engine/Physics/Core/Rigidbody.h"
-#include "Engine/Physics/Event/PhysicsEvent.h"
+#include "Collider.h"
+#include "Contact.h"
+#include "PhysicsTypes.h"
+#include "PhysicsWorld.h"
+#include "Rigidbody.h"
+#include "PhysicsEvent.h"
 #include "Wireframe.h"
 
 #include <algorithm>

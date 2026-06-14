@@ -1,7 +1,7 @@
 #include "StagePhysicsBinder.h"
 
-#include "Engine/Physics/Collision/Core/Collider.h"
-#include "Engine/Physics/Core/PhysicsWorld.h"
+#include "Collider.h"
+#include "PhysicsWorld.h"
 
 #include <algorithm>
 

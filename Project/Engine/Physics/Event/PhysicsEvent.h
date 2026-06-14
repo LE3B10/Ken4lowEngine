@@ -1,5 +1,5 @@
 #pragma once
-#include "Engine/Physics/Core/Contact.h"
+#include "Contact.h"
 
 namespace Ken4lowEngine
 {
