@@ -44,6 +44,12 @@ namespace Ken4lowEngine
 		force_ += force;
 	}
 
+	void Rigidbody::ClearForces()
+	{
+		// Resetや外部制御から次ステップへ持ち越したくない力を破棄する。
+		force_ = {};
+	}
+
 	void Rigidbody::SetVelocity(const Vector3& velocity)
 	{
 		// Staticは速度を持たせず、将来の押し戻し対象からも外しやすくする。

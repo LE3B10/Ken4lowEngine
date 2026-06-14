@@ -27,6 +27,9 @@ namespace Ken4lowEngine
 		// 力を蓄積し、次のIntegrateで速度へ反映する。
 		void AddForce(const Vector3& force);
 
+		// 蓄積された力をクリアする。
+		void ClearForces();
+
 		// 速度を直接設定する。
 		void SetVelocity(const Vector3& velocity);
 

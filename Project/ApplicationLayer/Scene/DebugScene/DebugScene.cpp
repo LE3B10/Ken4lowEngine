@@ -10,6 +10,7 @@
 
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
+#include <imgui.h>
 #endif // USE_IMGUI
 
 using namespace Ken4lowEngine;
@@ -25,6 +26,10 @@ void DebugScene::Initialize()
 	// 衝突判定マネージャーの初期化
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
+
+	// DebugScene内だけでPhysicsWorldのRigidbody積分を確認する。
+	physicsWorld_.RegisterRigidbody(&physicsTestRigidbody_);
+	ResetPhysicsDebugTest();
 }
 
 /// -------------------------------------------------------------
@@ -36,7 +41,10 @@ void DebugScene::Update()
 	UpdateDebug();
 #endif // _DEBUG
 
-	//float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
+	const float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
+
+	// 本編へ接続せず、DebugScene専用の物理テストだけを進める。
+	UpdatePhysicsDebugTest(deltaTime);
 
 	collisionManager_->CheckAllCollisions();
 	collisionManager_->Update();
@@ -52,6 +60,9 @@ void DebugScene::Draw3DObjects()
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f, 1.0f });
+
+	// PhysicsWorldテスト用の現在位置をワイヤースフィアで可視化する。
+	Wireframe::GetInstance()->DrawSphere(physicsTestPosition_, 0.35f, { 0.2f, 0.9f, 1.0f, 1.0f });
 
 	collisionManager_->Draw();
 #endif // _DEBUG
@@ -98,6 +109,8 @@ void DebugScene::Finalize()
 
 	collisionManager_.reset();
 
+	physicsWorld_.UnregisterRigidbody(&physicsTestRigidbody_);
+
 	input_ = nullptr;
 	dxCommon_ = nullptr;
 }
@@ -112,6 +125,65 @@ void DebugScene::DrawImGui()
 	// ライトのImGui描画
 	LightManager::GetInstance()->DrawImGui();
 
+	// DebugScene専用のPhysicsWorld確認パネルを描画する。
+	DrawPhysicsDebugImGui();
+
+#endif // USE_IMGUI
+}
+
+/// -------------------------------------------------------------
+///					 PhysicsWorld単体テストのリセット
+/// -------------------------------------------------------------
+void DebugScene::ResetPhysicsDebugTest()
+{
+	// 位置、速度、蓄積力を初期値へ戻して同じ条件で再確認できるようにする。
+	physicsTestPosition_ = physicsTestInitialPosition_;
+	physicsTestRigidbody_.SetBodyType(K4E::BodyType::Dynamic);
+	physicsTestRigidbody_.SetMass(physicsTestMass_);
+	physicsTestRigidbody_.SetUseGravity(physicsTestUseGravity_);
+	physicsTestRigidbody_.SetVelocity(physicsTestInitialVelocity_);
+	physicsTestRigidbody_.ClearForces();
+}
+
+/// -------------------------------------------------------------
+///					 PhysicsWorld単体テストの更新
+/// -------------------------------------------------------------
+void DebugScene::UpdatePhysicsDebugTest(float deltaTime)
+{
+	// PhysicsWorld経由でRigidbodyを積分し、得られた速度でDebugScene側のテスト位置を動かす。
+	physicsTestRigidbody_.SetUseGravity(physicsTestUseGravity_);
+	physicsTestRigidbody_.SetMass(physicsTestMass_);
+	physicsWorld_.Step(deltaTime);
+	physicsTestPosition_ += physicsTestRigidbody_.GetVelocity() * deltaTime;
+}
+
+/// -------------------------------------------------------------
+///					 PhysicsWorld単体テストのImGui
+/// -------------------------------------------------------------
+void DebugScene::DrawPhysicsDebugImGui()
+{
+#ifdef USE_IMGUI
+	if (ImGui::Begin("PhysicsWorld Debug"))
+	{
+		const K4E::Vector3 velocity = physicsTestRigidbody_.GetVelocity();
+
+		// 物理テストの現在値を表示し、重力と質量はその場で調整できるようにする。
+		ImGui::Text("Position: %.3f, %.3f, %.3f", physicsTestPosition_.x, physicsTestPosition_.y, physicsTestPosition_.z);
+		ImGui::Text("Velocity: %.3f, %.3f, %.3f", velocity.x, velocity.y, velocity.z);
+		if (ImGui::Checkbox("UseGravity", &physicsTestUseGravity_))
+		{
+			physicsTestRigidbody_.SetUseGravity(physicsTestUseGravity_);
+		}
+		if (ImGui::DragFloat("Mass", &physicsTestMass_, 0.05f, 0.1f, 100.0f))
+		{
+			physicsTestRigidbody_.SetMass(physicsTestMass_);
+		}
+		if (ImGui::Button("Reset"))
+		{
+			ResetPhysicsDebugTest();
+		}
+	}
+	ImGui::End();
 #endif // USE_IMGUI
 }
 

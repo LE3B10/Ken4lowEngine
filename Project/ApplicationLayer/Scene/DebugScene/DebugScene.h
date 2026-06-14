@@ -1,6 +1,9 @@
 #pragma once
 #include "BaseScene.h"
 #include "CollisionManager.h"
+#include "PhysicsWorld.h"
+#include "Rigidbody.h"
+#include "Vector3.h"
 
 #include <memory>
 
@@ -48,6 +51,15 @@ private: /// ---------- メンバ関数 ---------- ///
 	// デバッグカメラの更新
 	void UpdateDebug();
 
+	// PhysicsWorld単体確認用の初期状態へ戻す
+	void ResetPhysicsDebugTest();
+
+	// PhysicsWorld単体確認用の更新
+	void UpdatePhysicsDebugTest(float deltaTime);
+
+	// PhysicsWorld単体確認用のImGuiを描画する
+	void DrawPhysicsDebugImGui();
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	K4E::DirectXCommon* dxCommon_ = nullptr; // DirectXCommonのポインタ
@@ -55,4 +67,12 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool isDebugCamera_ = false; // デバッグカメラ使用フラグ
 
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突管理マネージャー
+
+	K4E::PhysicsWorld physicsWorld_; // DebugScene専用の物理ワールド
+	K4E::Rigidbody physicsTestRigidbody_; // DebugScene専用のテスト剛体
+	K4E::Vector3 physicsTestPosition_{}; // DebugScene専用のテスト位置
+	K4E::Vector3 physicsTestInitialPosition_{ 0.0f, 8.0f, 0.0f }; // テスト初期位置
+	K4E::Vector3 physicsTestInitialVelocity_{ 1.5f, 3.0f, 0.0f }; // テスト初期速度
+	bool physicsTestUseGravity_ = true; // テスト用重力フラグ
+	float physicsTestMass_ = 1.0f; // テスト用質量
 };
