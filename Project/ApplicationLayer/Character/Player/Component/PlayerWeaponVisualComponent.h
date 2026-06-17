@@ -85,16 +85,16 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool visible_ = true;
 
 	// 武器のローカルオフセットと回転（右手に対する位置と向きの調整）
-	K4E::Vector3 hipLocalOffset_{ 0.0f, -1.0f, 0.25f };
-	K4E::Vector3 hipLocalRotate_{ 1.57f, 1.57f, 0.0f };
+	K4E::Vector3 hipLocalOffset_{ -0.13f, -0.69f, 0.31f };
+	K4E::Vector3 hipLocalRotate_{ 1.8326f, 1.5708f, 0.0f };
 
 	// ADS（Aim Down Sights）時のローカルオフセットと回転（サイトを覗くときの位置と向きの調整）
-	K4E::Vector3 adsLocalOffset_{ 0.0f, -1.0f, 0.25f };
-	K4E::Vector3 adsLocalRotate_{ 1.57f, 1.57f, 0.0f };
+	K4E::Vector3 adsLocalOffset_{ -0.07f, -0.60f, 0.30f };
+	K4E::Vector3 adsLocalRotate_{ 1.5708f, 1.5708f, 0.1396f };
 
-	// 手に持つときのローカルオフセットと回転（右手に持ったときの位置と向きの調整）
+	// 武器が右腕に埋まらないよう、手元ソケットを現在の調整値に固定する。
 	K4E::Vector3 handSocketLocalOffset_{ 0.05f, -0.08f, 0.12f };
-	K4E::Vector3 handSocketLocalRotate_{ 0.0f, -1.57f, 0.0f };
+	K4E::Vector3 handSocketLocalRotate_{ 0.0f, -1.5708f, 0.0f };
 
 	// クォータニオンで武器の回転を調整するか。
 	// true の場合は下の Quaternion 値を使い、false の場合は従来の Euler 角を使う。

@@ -45,6 +45,7 @@ namespace
 	static constexpr uint32_t kPhysicsLayerPlayerBullet = 5u;
 	static constexpr uint32_t kPhysicsLayerEnemy = 6u;
 	static constexpr uint32_t kPhysicsLayerBoss = 7u;
+	static constexpr float kStage1BeginnerBossMaxHP = 900.0f;
 
 	const char* ToCollisionResponseName(K4E::CollisionResponseType response)
 	{
@@ -148,6 +149,7 @@ void BossClearItem::OnCollision(K4E::Collider* other)
 void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 {
 	const auto stageAssets = stageContext.GetCurrentStageAssets();
+	stage1BeginnerBalanceEnabled_ = stageContext.IsBeginningPlainStage();
 	auto* lightManager = LightManager::GetInstance();
 
 	// GamePlayScene開始時は保存済みプリセットを優先し、なければ確認用ライトへ戻す。
@@ -192,9 +194,12 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	hudManager_ = std::make_unique<HUDManager>();
 	hudManager_->SetPlayer(characters_.GetPlayer());
 	hudManager_->Initialize();
+	// ステージ1は初心者向けにするため、HUD上もプライマリ武器1枠だけを表示する。
+	hudManager_->SetWeaponSlotVisibleSlotCount(stage1BeginnerBalanceEnabled_ ? 1 : WeaponSlot::kSlotCount);
 
 	if (auto* player = characters_.GetPlayer())
 	{
+		player->SetAllowedHotbarSlotCount(stage1BeginnerBalanceEnabled_ ? 1 : WeaponSlot::kSlotCount);
 		player->SetHUDManager(hudManager_.get());
 	}
 
@@ -340,6 +345,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 
 	crystalManager_.SetSkyBox(skyBox_.get());
 	crystalManager_.Initialize(crystalSpawnPoints, collisionManager_.get(), &stage_->GetFloorAABBs(), &stage_->GetNavigationObstacleAABBs());
+	crystalManager_.SetStage1BeginnerBalanceEnabled(stage1BeginnerBalanceEnabled_);
 	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
 	bossIntroController_.Initialize(bossSpawnPosition_);
 
@@ -1098,6 +1104,15 @@ void GamePlayWorld::SpawnGuardianBoss(bool registerCollider)
 
 	guardianBoss_ = std::make_unique<GuardianBoss>();
 	guardianBoss_->Initialize();
+	if (stage1BeginnerBalanceEnabled_)
+	{
+		// ステージ1はプライマリ武器1丁で倒し切れるよう、ボスHPだけを導入ステージ用に下げる。
+		if (auto* status = guardianBoss_->GetStatusComponent())
+		{
+			status->SetMaxHP(kStage1BeginnerBossMaxHP);
+			status->SetHP(kStage1BeginnerBossMaxHP);
+		}
+	}
 
 	if (stage_)
 	{

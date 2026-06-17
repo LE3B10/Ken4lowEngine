@@ -46,6 +46,12 @@ void PlayerWeaponController::HandleWheelSwitch(InputSnapshot& snap)
 		return;
 	}
 
+	if (weapon_->GetAllowedHotbarSlotCount() <= 1)
+	{
+		snap.weaponSwitch = 0;
+		return;
+	}
+
 	bool switched = false;
 
 	// ホイール切替だけを担当

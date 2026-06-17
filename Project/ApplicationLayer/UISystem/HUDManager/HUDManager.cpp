@@ -261,6 +261,14 @@ void HUDManager::SetBossHP(float hp, float maxHp, bool bossBattleActive)
 	bossHpBarRuntimeVisible_ = bossHpBarSettings_.visible && bossBattleActive_ && bossHp_ > 0.0f;
 }
 
+void HUDManager::SetWeaponSlotVisibleSlotCount(int count)
+{
+	if (weaponSlot_)
+	{
+		weaponSlot_->SetVisibleSlotCount(count);
+	}
+}
+
 void HUDManager::NotifyPlayerHit(float strength01)
 {
 	if (hpWidget_) hpWidget_->NotifyHit(strength01);

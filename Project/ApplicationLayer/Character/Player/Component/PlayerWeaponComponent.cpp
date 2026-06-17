@@ -239,13 +239,20 @@ void PlayerWeaponComponent::SwitchWeaponCategoryByDelta(int delta)
 		currentIndex = 0;
 	}
 
+	const int allowedSlotCount = std::clamp(allowedHotbarSlotCount_, 1, 6);
+	if (allowedSlotCount <= 1)
+	{
+		SwitchWeaponCategory(EWeaponCategory::Primary);
+		return;
+	}
+
 	currentIndex += (delta > 0) ? 1 : -1;
 
 	if (currentIndex < 0)
 	{
-		currentIndex = 5;
+		currentIndex = allowedSlotCount - 1;
 	}
-	if (currentIndex >= 6)
+	if (currentIndex >= allowedSlotCount)
 	{
 		currentIndex = 0;
 	}
@@ -263,6 +270,16 @@ void PlayerWeaponComponent::SwitchWeaponCategoryByDelta(int delta)
 	}
 
 	SwitchWeaponCategory(nextCategory);
+}
+
+void PlayerWeaponComponent::SetAllowedHotbarSlotCount(int count)
+{
+	allowedHotbarSlotCount_ = std::clamp(count, 1, 6);
+	if (GetSelectedHot_barIndex() >= allowedHotbarSlotCount_)
+	{
+		// ステージ1など許可枠を狭める場合は、実装上もプライマリへ戻して表示と操作を揃える。
+		SwitchWeaponCategory(EWeaponCategory::Primary);
+	}
 }
 
 void PlayerWeaponComponent::TickWeapon(float dt)
@@ -329,6 +346,12 @@ void PlayerWeaponComponent::SwitchWeaponByDelta(int delta)
 
 void PlayerWeaponComponent::SwitchWeaponCategory(EWeaponCategory category)
 {
+	const int hotbarIndex = CategoryToHotbarIndex(category);
+	if (hotbarIndex < 0 || hotbarIndex >= allowedHotbarSlotCount_)
+	{
+		return;
+	}
+
 	// まずロード（失敗したら何もしない）
 	if (!LoadWeaponMasterDataOnce())
 		return;
@@ -367,6 +390,11 @@ void PlayerWeaponComponent::SwitchWeaponCategory(EWeaponCategory category)
 		}
 		return;
 	}
+}
+
+bool PlayerWeaponComponent::IsHotbarSlotAllowed(int slot) const
+{
+	return slot >= 1 && slot <= allowedHotbarSlotCount_;
 }
 
 void PlayerWeaponComponent::ApplyMeleeInputRemap(InputSnapshot& snapshot)
@@ -583,7 +611,11 @@ void PlayerWeaponComponent::UpdateAndHandleInput(float dt, InputSnapshot& snapsh
 	if (snapshot.weaponSlotPressed != 0)
 	{
 		EWeaponCategory cat = weaponCategory_;
-		if (SlotToCategory(snapshot.weaponSlotPressed, cat))
+		if (!IsHotbarSlotAllowed(snapshot.weaponSlotPressed))
+		{
+			snapshot.weaponSlotPressed = 0;
+		}
+		else if (SlotToCategory(snapshot.weaponSlotPressed, cat))
 		{
 			if (cat != weaponCategory_)
 			{

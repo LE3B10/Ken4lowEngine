@@ -100,6 +100,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void UnlockNextStage();
 
 	int GetCurrentStageIndex() const { return currentStageIndex_; }
+	bool IsBeginningPlainStage() const;
 
 	bool HasPlayerSpawnPoint() const { return hasPlayerSpawnPoint_; }
 	const K4E::Vector3& GetPlayerSpawnPoint() const { return playerSpawnPoint_; }

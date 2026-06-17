@@ -112,6 +112,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool GetCurrentAdsMoveMultiplier(float& outAdsMoveMul) const;
 
 	void SwitchWeaponCategoryByDelta(int delta);
+	void SetAllowedHotbarSlotCount(int count);
+	int GetAllowedHotbarSlotCount() const { return allowedHotbarSlotCount_; }
 
 	int AddReserveAmmo(int amount);
 	int GetMagazineAmmo() const;
@@ -124,6 +126,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	void TickWeapon(float dt);
 	void SwitchWeaponByDelta(int delta);
 	void SwitchWeaponCategory(EWeaponCategory category);
+	bool IsHotbarSlotAllowed(int slot) const;
 	void ApplyMeleeInputRemap(InputSnapshot& snapshot);
 
 	void BuildInitialAmmoViewCacheFromMasterData();
@@ -144,6 +147,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	int32_t currentWeaponId_ = 0;
 	std::array<int32_t, 6> lastWeaponIdByCategory_{}; // category index -> last equipped id
 	bool lastAimHeld_ = false;
+	int allowedHotbarSlotCount_ = 6;
 
 	// HUD表示用：スロットごとの弾薬表示キャッシュ
 	mutable std::array<AmmoView, 6> ammoViewCache_{};

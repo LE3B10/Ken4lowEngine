@@ -433,6 +433,8 @@ void PlayerViewComponent::DrawImGui()
 		ImGui::Separator();
 		ImGui::Text("Pitch ViewModel Offset");
 		ImGui::DragFloat("Pitch Offset Max Deg", &viewModelPitchOffsetMaxDeg_, 1.0f, 10.0f, 89.0f, "%.1f");
+		ImGui::DragFloat("Pitch Rotation Follow", &armPitchFollow_, 0.01f, 0.0f, 1.0f, "%.2f");
+		ImGui::DragFloat("Pitch Rotation Limit Deg", &armPitchRotationLimitDeg_, 0.5f, 0.0f, 30.0f, "%.1f");
 		ImGui::DragFloat3("Pitch Up Left Offset", &pitchUpLeftArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
 		ImGui::DragFloat3("Pitch Down Left Offset", &pitchDownLeftArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
 		ImGui::DragFloat3("Pitch Up Right Offset", &pitchUpRightArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
@@ -605,9 +607,12 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	K4E::Vector3 lrot = Lerp(baseLeftRot_, aimLeftRot_, t);
 	K4E::Vector3 rrot = Lerp(baseRightRot_, aimRightRot_, t);
 
-	// カメラのピッチ追従
-	lrot.x += camPitch_ * armPitchFollow_;
-	rrot.x += camPitch_ * armPitchFollow_;
+	// 腕回転がカメラPitchに強く追従すると上下視点で武器角度が崩れるため、回転追従は小さく制限する。
+	const float pitchRotationLimit = DegToRad(std::max(0.0f, armPitchRotationLimitDeg_));
+	const float pitchRotation = std::clamp(camPitch_ * armPitchFollow_, -pitchRotationLimit, pitchRotationLimit);
+	const float adsRotationScale = 1.0f - t * 0.55f;
+	lrot.x += pitchRotation * 0.35f * adsRotationScale;
+	rrot.x += pitchRotation * 0.45f * adsRotationScale;
 
 	// 通常の見た目反動
 	lrot.x += vmKickPitch_ * 0.75f;

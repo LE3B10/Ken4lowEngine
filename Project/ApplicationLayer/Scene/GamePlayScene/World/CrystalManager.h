@@ -36,6 +36,7 @@ public:
 	void DrawHpBars();
 	void DrawImGui();
 	void SetSkyBox(K4E::SkyBox* skyBox) { skyBox_ = skyBox; }
+	void SetStage1BeginnerBalanceEnabled(bool enabled);
 
 	int GetCrystalCount() const { return static_cast<int>(crystals_.size()); }
 	int GetAliveCrystalCount() const;
@@ -57,6 +58,7 @@ private:
 	void RegisterCrystalParameters(CrystalSpawnPoint& spawnPoint);
 	void UnregisterCrystalParameters();
 	void ApplyParameterToSpawnPoint(CrystalSpawnPoint& spawnPoint);
+	void ApplyStage1BeginnerBalance(CrystalSpawnPoint& spawnPoint);
 	void SyncCrystalsFromParameterManager();
 	void SyncCrystalFromSpawnPoint(size_t index);
 	void RegisterReactionParameters();
@@ -140,6 +142,7 @@ private:
 	K4E::Vector4 normalSkyColor_{ 1.0f, 1.0f, 1.0f, 1.0f };
 	K4E::Vector4 brokenSkyColor_{ 0.55f, 0.18f, 0.28f, 1.0f };
 	K4E::LightManager::LightingSettingsGPU baseLightingSettings_{};
+	bool stage1BeginnerBalanceEnabled_ = false;
 	int debugAliveNormalEnemyCount_ = 0;
 	bool debugBossSpawnConditionMet_ = false;
 	bool debugBossSpawned_ = false;

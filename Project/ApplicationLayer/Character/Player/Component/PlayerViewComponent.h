@@ -115,30 +115,30 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 baseLeftRot_ = { -1.04f, 2.35f, -0.61f };
 	K4E::Vector3 baseRightRot_ = { -std::numbers::pi_v<float> *0.5f, 0.0f, 0.0f };
 
-	// 通常時の左腕を武器側へ寄せるための位置補正。ImGuiから調整する。
-	K4E::Vector3 leftHipSupportOffset_{ 0.63f, -0.16f, 0.40f };
-	K4E::Vector3 rightHipSupportOffset_{ 0.0f, 0.0f, 0.0f };
+	// 通常時の腕は右下かつ手前に寄せ、画面中央を塞ぎにくくする。
+	K4E::Vector3 leftHipSupportOffset_{ 0.42f, -0.28f, -0.18f };
+	K4E::Vector3 rightHipSupportOffset_{ 0.28f, -0.20f, -0.32f };
 
 	// カメラPitchに応じて、FPSの腕・武器を画面内に残すための通常時補正。
-	K4E::Vector3 pitchUpLeftArmOffset_{ 0.00f, 0.50f, -1.10f };
-	K4E::Vector3 pitchDownLeftArmOffset_{ 0.00f, 0.70f, 0.00f };
+	K4E::Vector3 pitchUpLeftArmOffset_{ 0.00f, 0.20f, -0.35f };
+	K4E::Vector3 pitchDownLeftArmOffset_{ 0.00f, 0.25f, 0.05f };
 
-	K4E::Vector3 pitchUpRightArmOffset_{ 0.00f, 0.45f, -0.59f };
-	K4E::Vector3 pitchDownRightArmOffset_{ 0.00f, 0.45f, 0.31f };
+	K4E::Vector3 pitchUpRightArmOffset_{ 0.00f, 0.18f, -0.24f };
+	K4E::Vector3 pitchDownRightArmOffset_{ 0.00f, 0.18f, 0.08f };
 
 	// ADS中のPitch補正。
 	// 通常時のPitch補正とは別に、上向き/下向き時のADS腕位置をImGuiから調整する。
-	K4E::Vector3 adsPitchUpLeftArmOffset_{ 0.00f, -0.55f, -1.56f };
-	K4E::Vector3 adsPitchDownLeftArmOffset_{ 0.00f, 1.78f, 0.25f };
+	K4E::Vector3 adsPitchUpLeftArmOffset_{ 0.00f, -0.18f, -0.42f };
+	K4E::Vector3 adsPitchDownLeftArmOffset_{ 0.00f, 0.42f, 0.10f };
 
-	K4E::Vector3 adsPitchUpRightArmOffset_{ 0.00f, -0.23f, -1.57f };
-	K4E::Vector3 adsPitchDownRightArmOffset_{ 0.00f, 1.32f, -0.23f };
+	K4E::Vector3 adsPitchUpRightArmOffset_{ 0.00f, -0.08f, -0.40f };
+	K4E::Vector3 adsPitchDownRightArmOffset_{ 0.00f, 0.36f, -0.08f };
 
 	float viewModelPitchOffsetMaxDeg_ = 70.0f;
 
-	// ADS時は通常構えの向きを保ったまま、位置だけ少し中央・武器側へ寄せる。
-	K4E::Vector3 aimLeftPos_{ -0.48f, 0.38f, 0.78f };
-	K4E::Vector3 aimRightPos_{ 0.20f, 0.55f, 0.85f };
+	// ADS時は武器と手元を中央へ寄せ、覗き込み状態を分かりやすくする。
+	K4E::Vector3 aimLeftPos_{ -0.32f, 0.30f, 0.42f };
+	K4E::Vector3 aimRightPos_{ 0.02f, 0.42f, 0.48f };
 
 	// 左腕はADS中に大きく回転させない。通常構えのまま近づける。
 	K4E::Vector3 aimRightRot_ = { -std::numbers::pi_v<float> *0.5f, 0.0f, 0.0f };
@@ -149,11 +149,9 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	float camPitch_ = 0.0f;
 
-	// FPSの腕・武器は「ワールド上の腕」ではなく、カメラ前に固定されるViewModelとして見せる。
-	// Apex / Valorant などのFPSでは、上下を向いても武器が完全には画面外へ逃げない。
-	// そのため、カメラPitchへの追従は弱めにする。
-	// 0.82f だと上下端で右腕と武器が画面外へ寄りやすい。
-	float armPitchFollow_ = 0.82f;
+	// 腕回転はカメラPitchへ強く追従させず、崩れ防止のため小さくクランプする。
+	float armPitchFollow_ = 0.16f;
+	float armPitchRotationLimitDeg_ = 8.0f;
 
 	CameraFovHooks fovHooks_{};
 	float prevAppliedFovMul_ = 1.0f;

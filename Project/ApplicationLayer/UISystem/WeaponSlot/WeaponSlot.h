@@ -83,6 +83,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 描画処理
 	void Draw();
 
+	void SetVisibleSlotCount(int count);
+	int GetVisibleSlotCount() const { return visibleSlotCount_; }
+
 	// スロットアイコン（スロット0..5に対応して6枚渡す）
 	void InitializeIcons(const std::array<std::string, kSlotCount>& iconTex);
 
@@ -99,6 +102,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	Layout layout_{};
 
 	int selectedIndex_ = -1;
+	int visibleSlotCount_ = kSlotCount;
 
 	std::string frameTex_;
 	std::string selectedTex_;

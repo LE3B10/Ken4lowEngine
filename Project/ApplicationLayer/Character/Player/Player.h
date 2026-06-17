@@ -139,6 +139,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	}
 
 	void EquipWeaponById(int32_t weaponID) { weapon_.EquipWeaponById(weaponID); }
+	void SetAllowedHotbarSlotCount(int count) { weapon_.SetAllowedHotbarSlotCount(count); }
 
 	PlayerWeaponComponent& GetWeaponComponent() { return weapon_; }
 

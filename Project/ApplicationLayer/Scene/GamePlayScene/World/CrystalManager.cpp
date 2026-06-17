@@ -333,6 +333,23 @@ void CrystalManager::DrawHpBars()
 	}
 }
 
+void CrystalManager::SetStage1BeginnerBalanceEnabled(bool enabled)
+{
+	stage1BeginnerBalanceEnabled_ = enabled;
+
+	if (!stage1BeginnerBalanceEnabled_)
+	{
+		return;
+	}
+
+	for (size_t i = 0; i < spawnPoints_.size() && i < crystals_.size(); ++i)
+	{
+		ApplyStage1BeginnerBalance(spawnPoints_[i]);
+		crystals_[i].ApplyInitialHpSettings(spawnPoints_[i]);
+		SyncCrystalFromSpawnPoint(i);
+	}
+}
+
 int CrystalManager::GetAliveCrystalCount() const
 {
 	return static_cast<int>(std::count_if(crystals_.begin(), crystals_.end(),
@@ -457,11 +474,30 @@ void CrystalManager::ApplyParameterToSpawnPoint(CrystalSpawnPoint& spawnPoint)
 	spawnPoint.enableInfiniteSpawn = spawnPoint.isActive;
 }
 
+void CrystalManager::ApplyStage1BeginnerBalance(CrystalSpawnPoint& spawnPoint)
+{
+	// ステージ1は初心者向けにするため、クリスタル由来の敵も近接敵のみを出現させる。
+	spawnPoint.spawnEnemyType = EnemyType::Melee;
+	spawnPoint.hp = 350;
+	spawnPoint.maxHp = 350;
+	spawnPoint.spawnInterval = 7.0f;
+	spawnPoint.initialDelay = 7.0f;
+	spawnPoint.maxSpawnCount = 2;
+	spawnPoint.maxAliveEnemies = 2;
+	spawnPoint.spawnRadius = 4.0f;
+	spawnPoint.spawnPattern = "Interval";
+	spawnPoint.enableInfiniteSpawn = spawnPoint.isActive;
+}
+
 void CrystalManager::SyncCrystalsFromParameterManager()
 {
 	for (size_t i = 0; i < spawnPoints_.size() && i < crystals_.size(); ++i)
 	{
 		ApplyParameterToSpawnPoint(spawnPoints_[i]);
+		if (stage1BeginnerBalanceEnabled_)
+		{
+			ApplyStage1BeginnerBalance(spawnPoints_[i]);
+		}
 		SyncCrystalFromSpawnPoint(i);
 	}
 }

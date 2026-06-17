@@ -14,14 +14,14 @@ namespace
 	{
 		std::vector<StageInfo> stages;
 		stages.push_back({
-		0u,
-		"始まりの平原",
-		"WAVE",
-		"UI/StageSelect/stage01.dds",
-		"基本戦闘を学ぶウェーブ制ステージ",
-		"",
-		false,
-		0u,
+			0u,
+			"始まりの平原",
+			"WAVE",
+			"UI/StageSelect/stage01.dds",
+			"基本戦闘を学ぶウェーブ制ステージ",
+			"",
+			false,
+			0u,
 		{ 0.18f, 0.49f, 0.20f, 1.0f },
 		false
 			});
@@ -123,6 +123,17 @@ GamePlayStageContext::StageAssetPaths GamePlayStageContext::GetCurrentStageAsset
 GamePlayStageContext::StageRule GamePlayStageContext::GetCurrentStageRule() const
 {
 	return GetStageRule(currentStageIndex_);
+}
+
+bool GamePlayStageContext::IsBeginningPlainStage() const
+{
+	const auto& stages = StageRepository::GetInstance().GetStages();
+	if (currentStageIndex_ >= 0 && currentStageIndex_ < static_cast<int>(stages.size()))
+	{
+		return stages[static_cast<size_t>(currentStageIndex_)].name == "始まりの平原";
+	}
+
+	return currentStageIndex_ == 0;
 }
 
 GamePlayStageContext::StageAssetPaths GamePlayStageContext::GetStageAssetPaths(int stageIndex) const
@@ -359,6 +370,11 @@ void GamePlayStageContext::SetupWaves(WaveManager* waveManager) const
 			WaveSpawnEntry entry{};
 			entry.position = spawn.position;
 			entry.enemyType = spawn.enemyType;
+			if (IsBeginningPlainStage() && entry.enemyType == EnemyType::MidRange)
+			{
+				// ステージ1は初心者向けにするため、通常Waveも近接敵のみを出現させる。
+				entry.enemyType = EnemyType::Melee;
+			}
 
 			const int spawnCount = std::max(1, spawn.count);
 			for (int i = 0; i < spawnCount; ++i)

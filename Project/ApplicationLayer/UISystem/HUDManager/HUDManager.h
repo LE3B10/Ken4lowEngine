@@ -61,6 +61,7 @@ public: /// ---------- セッタ ---------- ///
 	void SetCrosshairVisible(bool v) { if (crosshair_) crosshair_->SetVisible(v); }
 	void SetReloadCircleVisible(bool v) { if (reloadCircle_) reloadCircle_->SetVisible(v); }
 	void SetHPVisible(bool v) { if (hpWidget_) hpWidget_->SetVisible(v); }
+	void SetWeaponSlotVisibleSlotCount(int count);
 
 	// WeaponSlot のHUDスナップショットを受け取る（HUD側でWeaponSlotの状態を参照して描画するため）
 	void SetWeaponSlotSnapshot(const WeaponSlot::HudSnapshot& snapshot) { weaponSlotSnapshot_ = snapshot; }

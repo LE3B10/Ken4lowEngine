@@ -294,6 +294,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float lastCollisionUpdateMs_ = 0.0f;
 	K4E::Vector3 bossSpawnPosition_{ 0.0f, 2.25f, 30.0f };
 	BossIntroController bossIntroController_;
+	bool stage1BeginnerBalanceEnabled_ = false;
 	bool bossSpawned_ = false;
 	bool bossColliderRegistered_ = false;
 	bool bossSpawnConditionMet_ = false;

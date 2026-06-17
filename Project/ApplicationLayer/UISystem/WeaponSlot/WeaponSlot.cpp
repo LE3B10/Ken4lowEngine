@@ -110,6 +110,10 @@ void WeaponSlot::InitializeAmmoDelimiter(const std::string& slashTex, const Vect
 void WeaponSlot::Update(const HudSnapshot& hud)
 {
 	selectedIndex_ = std::clamp(hud.selectedIndex, -1, kSlotCount - 1);
+	if (selectedIndex_ >= visibleSlotCount_)
+	{
+		selectedIndex_ = -1;
+	}
 	RebuildLayout();
 
 	if (!drawAmmo_) return;
@@ -131,7 +135,7 @@ void WeaponSlot::Draw()
 	if (drawSlotNumbers_) numberDrawer_.Reset();
 	if (drawAmmo_)       ammoDrawer_.Reset();
 
-	for (int i = 0; i < kSlotCount; ++i)
+	for (int i = 0; i < visibleSlotCount_; ++i)
 	{
 		const bool selected = (i == selectedIndex_);
 		if (selected) frameSelected_[i]->Draw();
@@ -220,6 +224,16 @@ void WeaponSlot::Draw()
 	}
 }
 
+void WeaponSlot::SetVisibleSlotCount(int count)
+{
+	visibleSlotCount_ = std::clamp(count, 1, kSlotCount);
+	if (selectedIndex_ >= visibleSlotCount_)
+	{
+		selectedIndex_ = -1;
+	}
+	RebuildLayout();
+}
+
 void WeaponSlot::InitializeIcons(const std::array<std::string, kSlotCount>& iconTex)
 {
 	for (int i = 0; i < kSlotCount; ++i)
@@ -255,7 +269,8 @@ void WeaponSlot::RebuildLayout()
 {
 	const float slot = layout_.slotSize;
 	const float space = layout_.spacing;
-	const float totalW = kSlotCount * slot + (kSlotCount - 1) * space;
+	const int visibleSlotCount = std::clamp(visibleSlotCount_, 1, kSlotCount);
+	const float totalW = visibleSlotCount * slot + (visibleSlotCount - 1) * space;
 
 	// Weapon slot HUDは固定内部解像度1920x1080の下端を基準にする。
 	float screenW = static_cast<float>(GameViewportConstants::Width);
@@ -268,7 +283,7 @@ void WeaponSlot::RebuildLayout()
 	const float iconSize = slot * iconScale;
 	const float iconOffsetY = -10.0f; // 少し下げる（数字と干渉しない）
 
-	for (int i = 0; i < kSlotCount; ++i)
+	for (int i = 0; i < visibleSlotCount; ++i)
 	{
 		const float x = startX + i * (slot + space);
 
