@@ -78,6 +78,20 @@ private:
 /// -------------------------------------------------------------
 class GamePlayWorld
 {
+private:
+	enum class TutorialStep
+	{
+		None,
+		CrystalExplanation,
+		MovePractice,
+		MouseLookPractice,
+		ShootPractice,
+		ReloadPractice,
+		EnemyPractice,
+		ItemPickupPractice,
+		Completed,
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// StageContextのステージ情報をもとに、ステージ/キャラクター/衝突/HUD/目的管理を生成する。
@@ -205,6 +219,18 @@ private: /// ---------- メンバ関数 ---------- ///
 	void StartStage1ObjectiveGuide();
 	void UpdateStage1ObjectiveIntro(float deltaTime);
 	void FinishStage1ObjectiveIntro();
+	void AdvanceStage1TutorialStep();
+	bool IsTutorialPlaying() const;
+	bool IsGameplayBlocked() const;
+	bool AllowsPlayerMove() const;
+	bool AllowsPlayerShoot() const;
+	bool AllowsReload() const;
+	bool AllowsTutorialEnemyUpdate() const;
+	void ApplyStage1TutorialPlayerRestrictions();
+	void SpawnStage1TutorialEnemy();
+	void ClearStage1TutorialEnemy();
+	void SpawnStage1TutorialItems();
+	void UpdateStage1TutorialHud(float tutorialAlpha);
 	void AlignPlayerViewToFirstCrystal(Player& player);
 	void UpdateStage1ObjectiveGuideHud(bool bossBattleActive);
 	void ResetBossIntroForDebug();
@@ -310,6 +336,22 @@ private: /// ---------- メンバ変数 ---------- ///
 	float stage1ItemIntroFadeInTime_ = 0.4f;
 	float stage1ItemIntroHoldTime_ = 4.0f;
 	float stage1ItemIntroFadeOutTime_ = 0.8f;
+	TutorialStep stage1TutorialStep_ = TutorialStep::None;
+	float stage1MoveProgress_ = 0.0f;
+	float stage1MouseLookProgress_ = 0.0f;
+	float stage1ShootProgress_ = 0.0f;
+	int stage1ShootCount_ = 0;
+	K4E::Vector3 stage1MovePreviousPlayerPosition_{};
+	EnemyBase* stage1TutorialEnemy_ = nullptr;
+	bool stage1TutorialEnemySpawned_ = false;
+	bool stage1TutorialItemSpawned_ = false;
+	int stage1TutorialItemsCollected_ = 0;
+	bool stage1SavedEnemyDeathDropEnabled_ = true;
+	bool stage1ReloadStarted_ = false;
+	bool stage1ReloadWasReloading_ = false;
+	bool stage1TutorialCompletionNotified_ = false;
+	float stage1TutorialCompleteTimer_ = 0.0f;
+	float stage1TutorialCompleteHoldTime_ = 1.4f;
 	K4E::Vector3 stage1ObjectiveSavedCameraRotation_{};
 	bool bossSpawned_ = false;
 	bool bossColliderRegistered_ = false;

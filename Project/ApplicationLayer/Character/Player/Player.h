@@ -130,6 +130,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SetWeaponMasterDirectory(const std::filesystem::path& dir) { weapon_.SetMasterDirectory(dir); }
 	void SetDebugCamera(bool on) { runtime_.isDebugCamera = on; }
+	void SetTutorialInputRestrictions(bool enabled, bool allowMove, bool allowShoot, bool allowReload);
 
 	// 現在武器のリロード状態をHUD用に取得する。戻り値falseなら表示用情報なし。
 	bool GetReloadUI(bool& outIsReloading, float& outReloadTimer, float& outReloadSec)
@@ -345,6 +346,10 @@ private: /// ----------メンバ変数 ---------- ///
 	FallDamageSettings fallDamageSettings_{};
 	bool isGroundedByPhysics_ = false; // PhysicsWorld由来の床判定。現段階ではDebug比較専用。
 	std::function<void()> onDamageTaken_{};
+	bool tutorialInputRestricted_ = false;
+	bool tutorialAllowsMove_ = true;
+	bool tutorialAllowsShoot_ = true;
+	bool tutorialAllowsReload_ = true;
 
 	float hitFlashTimer_ = 0.0f;
 	float hitFlashDuration_ = 0.18f;

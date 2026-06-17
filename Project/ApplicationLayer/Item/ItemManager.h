@@ -47,6 +47,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Spawn(ItemType type, const K4E::Vector3& position);
 	void SpawnHealSmall(const K4E::Vector3& position);
 	void SpawnAmmoSmall(const K4E::Vector3& position);
+	void SetConsumeItemWhenFull(bool enabled) { consumeItemWhenFull_ = enabled; }
+	void SetEnemyDeathDropEnabled(bool enabled) { enemyDeathDropEnabled_ = enabled; }
+	bool TryGetFirstActiveItemPosition(ItemType type, K4E::Vector3& outPosition) const;
 	void TryDropFromEnemyDeath(const K4E::Vector3& deathPosition);
 	void TryDropEnemyItem(const K4E::Vector3& deathPosition);
 	ItemType RollEnemyDrop();

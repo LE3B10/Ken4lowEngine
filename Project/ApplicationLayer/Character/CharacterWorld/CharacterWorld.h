@@ -69,6 +69,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 全消し
 	void ClearEnemies();
+	bool RemoveEnemy(EnemyBase* enemy);
 	void SetEnemyKilledCallback(std::function<void(const K4E::Vector3&)> callback) { onEnemyKilled_ = std::move(callback); }
 
 	int GetEnemyCount() const { return static_cast<int>(enemies_.size()); }

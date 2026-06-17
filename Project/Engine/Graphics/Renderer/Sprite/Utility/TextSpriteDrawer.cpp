@@ -3,6 +3,10 @@
 #include <TextureManager.h>
 #include <algorithm>
 #include <cassert>
+#include <iomanip>
+#include <sstream>
+
+#include <Windows.h>
 
 namespace Ken4lowEngine
 {
@@ -62,6 +66,7 @@ namespace Ken4lowEngine
 
 		reusable_.clear();
 		glyphTable_.clear();
+		warnedMissingGlyphs_.clear();
 		currentIndex_ = 0;
 
 		texturePath_.clear();
@@ -90,9 +95,27 @@ namespace Ken4lowEngine
 		auto fallbackIt = glyphTable_.find(fallbackCodepoint_);
 		if (fallbackIt != glyphTable_.end())
 		{
+			if (warnedMissingGlyphs_.insert(codepoint).second)
+			{
+				std::ostringstream oss;
+				oss << "[TextSpriteDrawer] Missing glyph: U+"
+					<< std::uppercase << std::hex << std::setw(4) << std::setfill('0') << static_cast<uint32_t>(codepoint)
+					<< " fallback=U+" << static_cast<uint32_t>(fallbackCodepoint_) << "\n";
+				// 不足しているグリフを確認しやすくするため、同じcodepointは一度だけ警告する。
+				OutputDebugStringA(oss.str().c_str());
+			}
 			return &fallbackIt->second;
 		}
 
+		if (warnedMissingGlyphs_.insert(codepoint).second)
+		{
+			std::ostringstream oss;
+			oss << "[TextSpriteDrawer] Missing glyph: U+"
+				<< std::uppercase << std::hex << std::setw(4) << std::setfill('0') << static_cast<uint32_t>(codepoint)
+				<< " no fallback glyph\n";
+			// 不足しているグリフを確認しやすくするため、同じcodepointは一度だけ警告する。
+			OutputDebugStringA(oss.str().c_str());
+		}
 		return nullptr;
 	}
 

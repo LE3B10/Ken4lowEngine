@@ -190,6 +190,14 @@ void Player::BindDependencies(const PlayerDependencies& deps)
 	melee_.BindDependencies(&view_, refs_.collisionManager);
 }
 
+void Player::SetTutorialInputRestrictions(bool enabled, bool allowMove, bool allowShoot, bool allowReload)
+{
+	tutorialInputRestricted_ = enabled;
+	tutorialAllowsMove_ = allowMove;
+	tutorialAllowsShoot_ = allowShoot;
+	tutorialAllowsReload_ = allowReload;
+}
+
 /// -------------------------------------------------------------
 ///				　			　 更新処理
 /// -------------------------------------------------------------
@@ -246,6 +254,34 @@ Player::InputFrameContext Player::BuildInputFrameContext(float /*deltaTime*/)
 {
 	InputFrameContext ctx{};
 	ctx.rawSnap = BuildInputSnapshot(*refs_.input);
+	if (tutorialInputRestricted_)
+	{
+		// チュートリアル中は現在の練習ステップで必要な入力だけをPlayerへ渡す。
+		ctx.rawSnap.weaponSwitch = 0;
+		ctx.rawSnap.weaponSlotPressed = 0;
+		ctx.rawSnap.toggleFireModePressed = false;
+		ctx.rawSnap.meleePressed = false;
+		ctx.rawSnap.aimHeld = tutorialAllowsShoot_ ? ctx.rawSnap.aimHeld : false;
+		ctx.rawSnap.aimPressed = tutorialAllowsShoot_ ? ctx.rawSnap.aimPressed : false;
+		if (!tutorialAllowsMove_)
+		{
+			ctx.rawSnap.moveX = 0.0f;
+			ctx.rawSnap.moveZ = 0.0f;
+			ctx.rawSnap.sprintHeld = false;
+			ctx.rawSnap.jumpHeld = false;
+			ctx.rawSnap.jumpPressed = false;
+			ctx.rawSnap.blinkPressed = false;
+		}
+		if (!tutorialAllowsShoot_)
+		{
+			ctx.rawSnap.fireHeld = false;
+			ctx.rawSnap.firePressed = false;
+		}
+		if (!tutorialAllowsReload_)
+		{
+			ctx.rawSnap.reloadPressed = false;
+		}
+	}
 	return ctx;
 }
 

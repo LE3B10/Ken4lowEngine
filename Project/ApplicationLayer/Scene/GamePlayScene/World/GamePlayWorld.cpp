@@ -12,12 +12,14 @@
 #include "Wireframe.h"
 #include "Player.h"
 #include "EnemyBase.h"
+#include "EnemyHPBarProjector.h"
 #include "GameplayPhysicsEventHandler.h"
 #include "GpuParticleManager.h"
 #include "ParticleManager.h"
 #include "PhysicsTestBullet.h"
 #include "CollisionPreset.h"
 #include "CollisionTypeIdDef.h"
+#include "Input.h"
 #include <LogString.h>
 
 #include <cassert>
@@ -1140,6 +1142,21 @@ void GamePlayWorld::StartStage1ObjectiveGuide()
 	// ステージ1は導入ステージなので、開始直後に目的表示と最初のクリスタル方向を案内する。
 	stage1ObjectiveIntroActive_ = true;
 	stage1ObjectiveIntroTimer_ = 0.0f;
+	stage1TutorialStep_ = TutorialStep::CrystalExplanation;
+	stage1MoveProgress_ = 0.0f;
+	stage1MouseLookProgress_ = 0.0f;
+	stage1ShootProgress_ = 0.0f;
+	stage1ShootCount_ = 0;
+	stage1TutorialEnemy_ = nullptr;
+	stage1TutorialEnemySpawned_ = false;
+	stage1TutorialItemSpawned_ = false;
+	stage1TutorialItemsCollected_ = 0;
+	stage1SavedEnemyDeathDropEnabled_ = itemManager_.IsEnemyDeathDropEnabled();
+	itemManager_.SetEnemyDeathDropEnabled(false);
+	stage1ReloadStarted_ = false;
+	stage1ReloadWasReloading_ = false;
+	stage1TutorialCompletionNotified_ = false;
+	stage1TutorialCompleteTimer_ = 0.0f;
 	hudManager_->SetStage1ObjectiveGuide(
 		true,
 		crystalManager_.GetDestroyedCrystalCount(),
@@ -1147,8 +1164,9 @@ void GamePlayWorld::StartStage1ObjectiveGuide()
 		false,
 		bossDefeated_,
 		true);
-	hudManager_->SetStage1ObjectiveTutorialAlpha(0.0f);
+	hudManager_->SetStage1ObjectiveTutorialAlpha(1.0f);
 	hudManager_->SetStage1ObjectiveTutorialPage(0);
+	hudManager_->SetStage1ObjectiveTutorialProgress(0.0f);
 	hudManager_->NotifyStage1ObjectiveGuideStarted();
 	if (auto* player = characters_.GetPlayer())
 	{
@@ -1157,41 +1175,144 @@ void GamePlayWorld::StartStage1ObjectiveGuide()
 			stage1ObjectiveSavedCameraRotation_ = camera->GetRotate();
 		}
 		AlignPlayerViewToFirstCrystal(*player);
+		stage1MovePreviousPlayerPosition_ = player->GetCenterPosition();
 	}
 }
 
 void GamePlayWorld::UpdateStage1ObjectiveIntro(float deltaTime)
 {
 	stage1ObjectiveIntroTimer_ += deltaTime;
-	const float crystalFadeInTime = std::max(0.0f, stage1ObjectiveIntroFadeInTime_);
-	const float crystalHoldTime = std::max(0.0f, stage1ObjectiveIntroHoldTime_);
-	const float crystalFadeOutTime = std::max(0.0f, stage1ObjectiveIntroFadeOutTime_);
-	const float itemFadeInTime = std::max(0.0f, stage1ItemIntroFadeInTime_);
-	const float itemHoldTime = std::max(0.0f, stage1ItemIntroHoldTime_);
-	const float itemFadeOutTime = std::max(0.0f, stage1ItemIntroFadeOutTime_);
-	const float crystalFadeOutStart = crystalFadeInTime + crystalHoldTime;
-	const float itemStart = crystalFadeOutStart + crystalFadeOutTime;
-	const float itemFadeOutStart = itemStart + itemFadeInTime + itemHoldTime;
-	const float totalDuration = itemFadeOutStart + itemFadeOutTime;
-
-	const bool isItemPage = stage1ObjectiveIntroTimer_ >= itemStart;
-	const float pageTimer = isItemPage ? stage1ObjectiveIntroTimer_ - itemStart : stage1ObjectiveIntroTimer_;
-	const float fadeInTime = isItemPage ? itemFadeInTime : crystalFadeInTime;
-	const float holdTime = isItemPage ? itemHoldTime : crystalHoldTime;
-	const float fadeOutTime = isItemPage ? itemFadeOutTime : crystalFadeOutTime;
-	const float fadeOutStart = fadeInTime + holdTime;
 	float tutorialAlpha = 1.0f;
-	if (fadeInTime > 0.0f && pageTimer < fadeInTime)
-	{
-		tutorialAlpha = std::clamp(pageTimer / fadeInTime, 0.0f, 1.0f);
-	}
-	else if (fadeOutTime > 0.0f && pageTimer >= fadeOutStart)
-	{
-		tutorialAlpha = 1.0f - std::clamp((pageTimer - fadeOutStart) / fadeOutTime, 0.0f, 1.0f);
-	}
 
 	crystalManager_.UpdatePresentationOnly(characters_, deltaTime);
-	crystalManager_.SetFirstAliveCrystalGuideHighlight(isItemPage ? 0.0f : tutorialAlpha);
+	crystalManager_.SetFirstAliveCrystalGuideHighlight(
+		stage1TutorialStep_ == TutorialStep::CrystalExplanation ? tutorialAlpha : 0.0f);
+
+	auto* input = K4E::Input::GetInstance();
+	const bool clickedNext = input && (input->TriggerMouse(0) || input->TriggerKey(DIK_RETURN) || input->TriggerKey(DIK_SPACE) || input->TriggerButton(K4E::XButtons.A));
+	if (stage1TutorialStep_ == TutorialStep::CrystalExplanation && clickedNext)
+	{
+		// 目的説明中のクリックは射撃ではなく、チュートリアル進行入力として扱う。
+		AdvanceStage1TutorialStep();
+	}
+
+	ApplyStage1TutorialPlayerRestrictions();
+	if (auto* player = characters_.GetPlayer())
+	{
+		if (stage1TutorialStep_ == TutorialStep::MovePractice)
+		{
+			const K4E::Vector3 before = player->GetCenterPosition();
+			characters_.UpdatePlayerOnly(deltaTime);
+			const K4E::Vector3 after = player->GetCenterPosition();
+			const K4E::Vector3 delta = after - before;
+			const float movedDistance = std::sqrt(delta.x * delta.x + delta.z * delta.z);
+			// 移動操作を実際に行わせ、初心者がWASD移動を覚えてから次へ進める。
+			stage1MoveProgress_ = std::clamp(stage1MoveProgress_ + movedDistance / 4.0f, 0.0f, 1.0f);
+			stage1MovePreviousPlayerPosition_ = after;
+			if (stage1MoveProgress_ >= 1.0f)
+			{
+				AdvanceStage1TutorialStep();
+			}
+		}
+		else if (stage1TutorialStep_ == TutorialStep::MouseLookPractice)
+		{
+			characters_.UpdatePlayerOnly(deltaTime);
+			const float mouseLookAmount = input
+				? (std::fabs(static_cast<float>(input->GetMouseMoveX())) + std::fabs(static_cast<float>(input->GetMouseMoveY())))
+				: 0.0f;
+			// FPS操作に必要な視点移動を覚えさせるため、マウス移動量で進捗を進める。
+			stage1MouseLookProgress_ = std::clamp(stage1MouseLookProgress_ + mouseLookAmount / 600.0f, 0.0f, 1.0f);
+			if (stage1MouseLookProgress_ >= 1.0f)
+			{
+				AdvanceStage1TutorialStep();
+			}
+		}
+		else if (stage1TutorialStep_ == TutorialStep::ItemPickupPractice)
+		{
+			SpawnStage1TutorialItems();
+			characters_.UpdatePlayerOnly(deltaTime);
+			itemManager_.Update(player, deltaTime);
+			// アイテムを2つ実際に拾わせ、取得方法と効果を理解させる。
+			if (itemManager_.ConsumeCollected(ItemType::AmmoSmall))
+			{
+				++stage1TutorialItemsCollected_;
+			}
+			if (itemManager_.ConsumeCollected(ItemType::HealSmall))
+			{
+				++stage1TutorialItemsCollected_;
+			}
+			if (stage1TutorialItemsCollected_ >= 2)
+			{
+				AdvanceStage1TutorialStep();
+			}
+		}
+		else if (stage1TutorialStep_ == TutorialStep::ShootPractice)
+		{
+			const int magazineBefore = player->GetCurrentWeaponMagazineAmmo();
+			characters_.UpdatePlayerOnly(deltaTime);
+			const int magazineAfter = player->GetCurrentWeaponMagazineAmmo();
+			// 説明後の左クリックは射撃入力として扱い、実際に弾が出た回数で練習進捗を進める。
+			if (magazineAfter < magazineBefore)
+			{
+				++stage1ShootCount_;
+				stage1ShootProgress_ = std::clamp(static_cast<float>(stage1ShootCount_) / 3.0f, 0.0f, 1.0f);
+				player->AddReserveAmmo(3);
+			}
+			if (bulletManager_)
+			{
+				bulletManager_->Update(deltaTime);
+			}
+			if (stage1ShootProgress_ >= 1.0f)
+			{
+				AdvanceStage1TutorialStep();
+			}
+		}
+		else if (stage1TutorialStep_ == TutorialStep::ReloadPractice)
+		{
+			characters_.UpdatePlayerOnly(deltaTime);
+			bool isReloading = false;
+			float reloadTimer = 0.0f;
+			float reloadSec = 0.0f;
+			player->GetReloadUI(isReloading, reloadTimer, reloadSec);
+			if (isReloading)
+			{
+				stage1ReloadStarted_ = true;
+			}
+			// リロード操作を確実に覚えさせるため、開始ではなく完了を検知して次へ進める。
+			if (stage1ReloadStarted_ && stage1ReloadWasReloading_ && !isReloading)
+			{
+				AdvanceStage1TutorialStep();
+			}
+			stage1ReloadWasReloading_ = isReloading;
+		}
+		else if (stage1TutorialStep_ == TutorialStep::EnemyPractice)
+		{
+			SpawnStage1TutorialEnemy();
+			characters_.Update(deltaTime);
+			if (bulletManager_)
+			{
+				bulletManager_->Update(deltaTime);
+			}
+			if (collisionManager_)
+			{
+				CollisionUpdate();
+			}
+			if (stage1TutorialEnemy_ && stage1TutorialEnemy_->IsDead())
+			{
+				AdvanceStage1TutorialStep();
+			}
+		}
+		else if (stage1TutorialStep_ == TutorialStep::Completed)
+		{
+			stage1TutorialCompleteTimer_ += deltaTime;
+			tutorialAlpha = 1.0f - std::clamp(stage1TutorialCompleteTimer_ / std::max(0.01f, stage1TutorialCompleteHoldTime_), 0.0f, 1.0f);
+			if (stage1TutorialCompleteTimer_ >= stage1TutorialCompleteHoldTime_)
+			{
+				FinishStage1ObjectiveIntro();
+				return;
+			}
+		}
+	}
 
 	if (skyBox_)
 	{
@@ -1218,44 +1339,249 @@ void GamePlayWorld::UpdateStage1ObjectiveIntro(float deltaTime)
 				width,
 				height,
 				deltaTime,
-				isItemPage ? nullptr : crystalManager_.GetFirstAliveCrystal(),
+				stage1TutorialStep_ == TutorialStep::CrystalExplanation ? crystalManager_.GetFirstAliveCrystal() : nullptr,
 				true,
-				crystalFadeInTime + crystalHoldTime + crystalFadeOutTime);
+				0.3f);
 		}
 		hudManager_->SetHP(
 			characters_.GetPlayer()->GetHP(),
 			characters_.GetPlayer()->GetMaxHP());
 		hudManager_->SetBossHP(0.0f, 0.0f, false);
 		hudManager_->SetStage1ObjectiveTutorialAlpha(tutorialAlpha);
-		hudManager_->SetStage1ObjectiveTutorialPage(isItemPage ? 1 : 0);
-		UpdateStage1ObjectiveGuideHud(false);
+		UpdateStage1TutorialHud(tutorialAlpha);
 		hudManager_->Update(deltaTime);
-	}
-
-	if (stage1ObjectiveIntroTimer_ >= totalDuration)
-	{
-		FinishStage1ObjectiveIntro();
 	}
 }
 
 void GamePlayWorld::FinishStage1ObjectiveIntro()
 {
 	stage1ObjectiveIntroActive_ = false;
+	stage1TutorialStep_ = TutorialStep::Completed;
 	crystalManager_.SetFirstAliveCrystalGuideHighlight(0.0f);
+	itemManager_.SetEnemyDeathDropEnabled(stage1SavedEnemyDeathDropEnabled_);
 	if (auto* player = characters_.GetPlayer())
 	{
-		if (auto* camera = player->GetCamera())
-		{
-			// クリスタル案内カメラ後はプレイヤーの通常視点へ戻してから操作を再開する。
-			player->SetViewLookAngles(stage1ObjectiveSavedCameraRotation_.x, stage1ObjectiveSavedCameraRotation_.y);
-			player->SyncViewToPlayer();
-			camera->Update();
-		}
+		player->SetTutorialInputRestrictions(false, true, true, true);
 	}
 	if (hudManager_)
 	{
 		hudManager_->SetStage1ObjectiveTutorialAlpha(0.0f);
 		hudManager_->SetStage1ObjectiveTutorialPage(0);
+		hudManager_->SetStage1ObjectiveTutorialProgress(0.0f);
+		hudManager_->SetStage1TutorialItemMarker(0, false, {}, 0);
+		hudManager_->SetStage1TutorialItemMarker(1, false, {}, 0);
+	}
+	itemManager_.SetConsumeItemWhenFull(false);
+	UpdateStage1ObjectiveGuideHud(false);
+}
+
+void GamePlayWorld::AdvanceStage1TutorialStep()
+{
+	switch (stage1TutorialStep_)
+	{
+	case TutorialStep::CrystalExplanation:
+		stage1TutorialStep_ = TutorialStep::MovePractice;
+		if (auto* player = characters_.GetPlayer())
+		{
+			stage1MovePreviousPlayerPosition_ = player->GetCenterPosition();
+		}
+		break;
+	case TutorialStep::MovePractice:
+		stage1TutorialStep_ = TutorialStep::MouseLookPractice;
+		stage1MouseLookProgress_ = 0.0f;
+		break;
+	case TutorialStep::MouseLookPractice:
+		stage1TutorialStep_ = TutorialStep::ShootPractice;
+		break;
+	case TutorialStep::ShootPractice:
+		stage1TutorialStep_ = TutorialStep::ReloadPractice;
+		stage1ReloadStarted_ = false;
+		stage1ReloadWasReloading_ = false;
+		break;
+	case TutorialStep::ReloadPractice:
+		stage1TutorialStep_ = TutorialStep::EnemyPractice;
+		break;
+	case TutorialStep::EnemyPractice:
+		// 敵撃破練習が終わったら、アイテム練習へ入る前にチュートリアル敵を完全に片付ける。
+		ClearStage1TutorialEnemy();
+		stage1TutorialStep_ = TutorialStep::ItemPickupPractice;
+		stage1TutorialItemsCollected_ = 0;
+		stage1TutorialItemSpawned_ = false;
+		break;
+	case TutorialStep::ItemPickupPractice:
+		stage1TutorialStep_ = TutorialStep::Completed;
+		stage1TutorialCompleteTimer_ = 0.0f;
+		stage1TutorialCompletionNotified_ = true;
+		break;
+	default:
+		break;
+	}
+	stage1ObjectiveIntroTimer_ = 0.0f;
+}
+
+bool GamePlayWorld::IsTutorialPlaying() const
+{
+	return stage1ObjectiveIntroActive_ && stage1TutorialStep_ != TutorialStep::None && stage1TutorialStep_ != TutorialStep::Completed;
+}
+
+bool GamePlayWorld::IsGameplayBlocked() const
+{
+	return stage1ObjectiveIntroActive_ && stage1TutorialStep_ != TutorialStep::Completed;
+}
+
+bool GamePlayWorld::AllowsPlayerMove() const
+{
+	return stage1TutorialStep_ == TutorialStep::ItemPickupPractice ||
+		stage1TutorialStep_ == TutorialStep::MovePractice ||
+		stage1TutorialStep_ == TutorialStep::MouseLookPractice ||
+		stage1TutorialStep_ == TutorialStep::ShootPractice ||
+		stage1TutorialStep_ == TutorialStep::ReloadPractice ||
+		stage1TutorialStep_ == TutorialStep::EnemyPractice;
+}
+
+bool GamePlayWorld::AllowsPlayerShoot() const
+{
+	return stage1TutorialStep_ == TutorialStep::ShootPractice ||
+		stage1TutorialStep_ == TutorialStep::EnemyPractice;
+}
+
+bool GamePlayWorld::AllowsReload() const
+{
+	return stage1TutorialStep_ == TutorialStep::ReloadPractice ||
+		stage1TutorialStep_ == TutorialStep::EnemyPractice;
+}
+
+bool GamePlayWorld::AllowsTutorialEnemyUpdate() const
+{
+	return stage1TutorialStep_ == TutorialStep::EnemyPractice;
+}
+
+void GamePlayWorld::ApplyStage1TutorialPlayerRestrictions()
+{
+	if (auto* player = characters_.GetPlayer())
+	{
+		// チュートリアル中は本番のゲーム進行を止め、現在の練習ステップだけを許可する。
+		player->SetTutorialInputRestrictions(
+			stage1ObjectiveIntroActive_,
+			AllowsPlayerMove(),
+			AllowsPlayerShoot(),
+			AllowsReload());
+	}
+}
+
+void GamePlayWorld::SpawnStage1TutorialEnemy()
+{
+	if (stage1TutorialEnemySpawned_)
+	{
+		return;
+	}
+	auto* player = characters_.GetPlayer();
+	if (!player)
+	{
+		return;
+	}
+	const K4E::Vector3 playerPos = player->GetCenterPosition();
+	const K4E::Vector3 spawnPosition{ playerPos.x, playerPos.y, playerPos.z + 8.0f };
+	// 本番開始前に弱い敵を1体倒させ、射撃とリロードの流れを確認させる。
+	EnemyBase& enemy = characters_.SpawnEnemyAt(spawnPosition, EnemyType::Melee);
+	enemy.SetMaxHp(60);
+	enemy.SetCurrentHp(60);
+	stage1TutorialEnemy_ = &enemy;
+	stage1TutorialEnemySpawned_ = true;
+}
+
+void GamePlayWorld::ClearStage1TutorialEnemy()
+{
+	if (stage1TutorialEnemy_)
+	{
+		// アイテム取得練習では敵を残さず、プレイヤーが拾う対象に集中できるようにする。
+		characters_.RemoveEnemy(stage1TutorialEnemy_);
+	}
+	stage1TutorialEnemy_ = nullptr;
+	stage1TutorialEnemySpawned_ = false;
+}
+
+void GamePlayWorld::SpawnStage1TutorialItems()
+{
+	if (stage1TutorialItemSpawned_)
+	{
+		return;
+	}
+	auto* player = characters_.GetPlayer();
+	if (!player)
+	{
+		return;
+	}
+	const K4E::Vector3 playerPos = player->GetCenterPosition();
+	itemManager_.SetConsumeItemWhenFull(true);
+	// アイテムを2つ実際に拾わせ、取得方法と効果を理解させる。
+	itemManager_.SpawnAmmoSmall({ playerPos.x + 2.2f, playerPos.y, playerPos.z + 4.0f });
+	itemManager_.SpawnHealSmall({ playerPos.x - 2.2f, playerPos.y, playerPos.z + 4.0f });
+	itemManager_.RegisterColliders(collisionManager_.get());
+	stage1TutorialItemSpawned_ = true;
+}
+
+void GamePlayWorld::UpdateStage1TutorialHud(float /*tutorialAlpha*/)
+{
+	if (!hudManager_)
+	{
+		return;
+	}
+
+	int page = 0;
+	float progress = 0.0f;
+	switch (stage1TutorialStep_)
+	{
+	case TutorialStep::CrystalExplanation: page = 0; break;
+	case TutorialStep::MovePractice:
+		page = 1;
+		progress = stage1MoveProgress_;
+		break;
+	case TutorialStep::MouseLookPractice:
+		page = 2;
+		progress = stage1MouseLookProgress_;
+		break;
+	case TutorialStep::ShootPractice:
+		page = 3;
+		progress = stage1ShootProgress_;
+		break;
+	case TutorialStep::ReloadPractice: page = 4; break;
+	case TutorialStep::EnemyPractice: page = 5; break;
+	case TutorialStep::ItemPickupPractice:
+		page = 6;
+		progress = std::clamp(static_cast<float>(stage1TutorialItemsCollected_) / 2.0f, 0.0f, 1.0f);
+		break;
+	case TutorialStep::Completed: page = 7; break;
+	default: break;
+	}
+	hudManager_->SetStage1ObjectiveTutorialPage(page);
+	hudManager_->SetStage1ObjectiveTutorialProgress(progress);
+
+	hudManager_->SetStage1TutorialItemMarker(0, false, {}, 0);
+	hudManager_->SetStage1TutorialItemMarker(1, false, {}, 0);
+	if (stage1TutorialStep_ == TutorialStep::ItemPickupPractice)
+	{
+		auto projectMarker = [this](int markerIndex, ItemType itemType, int markerType)
+		{
+			K4E::Vector3 itemPosition{};
+			if (!itemManager_.TryGetFirstActiveItemPosition(itemType, itemPosition))
+			{
+				return;
+			}
+			if (auto* player = characters_.GetPlayer())
+			{
+				if (auto* camera = player->GetCamera())
+				{
+					const float width = static_cast<float>(K4E::GameViewportConstants::Width);
+					const float height = static_cast<float>(K4E::GameViewportConstants::Height);
+					const K4E::Vector3 markerWorld{ itemPosition.x, itemPosition.y + 0.5f, itemPosition.z };
+					const HpBarProjectResult projected = ProjectWorldToScreen(markerWorld, camera->GetViewMatrix(), camera->GetProjectionMatrix(), width, height);
+					hudManager_->SetStage1TutorialItemMarker(markerIndex, projected.inFront && projected.inScreen, projected.screenPos, markerType);
+				}
+			}
+		};
+		projectMarker(0, ItemType::AmmoSmall, 1);
+		projectMarker(1, ItemType::HealSmall, 0);
 	}
 	UpdateStage1ObjectiveGuideHud(false);
 }

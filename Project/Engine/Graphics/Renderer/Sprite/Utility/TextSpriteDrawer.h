@@ -2,6 +2,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include "Sprite.h"
 #include "Vector2.h"
@@ -88,6 +89,7 @@ namespace Ken4lowEngine
 		Vector4 color_{ 1.0f, 1.0f, 1.0f, 1.0f };
 
 		std::unordered_map<char32_t, GlyphInfo> glyphTable_;
+		mutable std::unordered_set<char32_t> warnedMissingGlyphs_;
 		std::vector<std::unique_ptr<Sprite>> reusable_;
 		size_t currentIndex_ = 0;
 	};

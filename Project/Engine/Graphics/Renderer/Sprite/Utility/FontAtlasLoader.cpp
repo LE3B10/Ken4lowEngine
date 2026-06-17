@@ -382,7 +382,8 @@ namespace Ken4lowEngine
 
 			if (kv.contains("id"))
 			{
-				codepoint = static_cast<char32_t>(std::stoul(kv["id"], nullptr, 10));
+				// id が "65" / "0041" / "0x0041" / "U+0041" のどれでも読めるようにする。
+				codepoint = DecodeCodepoint(kv["id"]);
 			}
 			else if (kv.contains("char"))
 			{
@@ -390,7 +391,8 @@ namespace Ken4lowEngine
 			}
 			else if (kv.contains("codepoint"))
 			{
-				codepoint = static_cast<char32_t>(std::stoul(kv["codepoint"], nullptr, 10));
+				// codepoint も10進数固定ではなく、フォント生成形式に合わせて柔軟に読む。
+				codepoint = DecodeCodepoint(kv["codepoint"]);
 			}
 
 			if (codepoint == U'\0')

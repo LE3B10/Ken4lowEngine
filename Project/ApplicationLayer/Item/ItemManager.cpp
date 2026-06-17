@@ -110,6 +110,19 @@ void ItemManager::SpawnAmmoSmall(const K4E::Vector3& position)
 	SpawnConfigured(ItemType::AmmoSmall, spawnPosition);
 }
 
+bool ItemManager::TryGetFirstActiveItemPosition(ItemType type, K4E::Vector3& outPosition) const
+{
+	for (const auto& item : items_)
+	{
+		if (item && item->IsActive() && item->GetType() == type)
+		{
+			outPosition = item->GetPosition();
+			return true;
+		}
+	}
+	return false;
+}
+
 void ItemManager::TryDropFromEnemyDeath(const K4E::Vector3& deathPosition)
 {
 	TryDropEnemyItem(deathPosition);

@@ -16,6 +16,23 @@ namespace
 {
 	constexpr const char* kBossHpBarGroup = "BossHpBar";
 
+	std::string ToPercentText(int percent)
+	{
+		return std::to_string(std::clamp(percent, 0, 100)) + "%";
+	}
+
+	std::string BuildProgressBlocks(float progress)
+	{
+		const int filled = std::clamp(static_cast<int>(std::round(progress * 10.0f)), 0, 10);
+		std::string out = "［";
+		for (int i = 0; i < 10; ++i)
+		{
+			out += (i < filled) ? "■" : "□";
+		}
+		out += "］";
+		return out;
+	}
+
 	float Length2D(float x, float y)
 	{
 		return std::sqrt(x * x + y * y);
@@ -291,7 +308,23 @@ void HUDManager::SetStage1ObjectiveTutorialAlpha(float alpha)
 
 void HUDManager::SetStage1ObjectiveTutorialPage(int page)
 {
-	stage1ObjectiveTutorialPage_ = std::clamp(page, 0, 1);
+	stage1ObjectiveTutorialPage_ = std::clamp(page, 0, 7);
+}
+
+void HUDManager::SetStage1ObjectiveTutorialProgress(float progress)
+{
+	stage1ObjectiveTutorialProgress_ = std::clamp(progress, 0.0f, 1.0f);
+}
+
+void HUDManager::SetStage1TutorialItemMarker(int markerIndex, bool visible, const K4E::Vector2& screenPosition, int itemType)
+{
+	if (markerIndex < 0 || markerIndex >= static_cast<int>(stage1TutorialItemMarkers_.size()))
+	{
+		return;
+	}
+	stage1TutorialItemMarkers_[markerIndex].visible = visible;
+	stage1TutorialItemMarkers_[markerIndex].screenPosition = screenPosition;
+	stage1TutorialItemMarkers_[markerIndex].itemType = itemType;
 }
 
 void HUDManager::NotifyStage1ObjectiveGuideStarted()
@@ -720,39 +753,167 @@ void HUDManager::DrawStage1ObjectiveGuide()
 			stage1ObjectiveTextDrawer_->SetColor({ 0.42f, 0.90f, 1.0f, stage1ObjectiveGuideAlpha_ });
 			stage1ObjectiveTextDrawer_->DrawTextCentered("光っている青い結晶が破壊対象だ", {
 				stage1ObjectiveGuideSettings_.tutorialCenter.x,
-				stage1ObjectiveGuideSettings_.tutorialCenter.y + 20.0f
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 12.0f
 				});
 			stage1ObjectiveTextDrawer_->DrawTextCentered("すべて破壊するとボスが出現する", {
 				stage1ObjectiveGuideSettings_.tutorialCenter.x,
-				stage1ObjectiveGuideSettings_.tutorialCenter.y + 66.0f
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 54.0f
+				});
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.smallScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 1.0f, 0.82f, 0.30f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("左クリックで次へ", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 96.0f
+				});
+		}
+		else if (stage1ObjectiveTutorialPage_ == 1)
+		{
+			const int percent = static_cast<int>(std::round(stage1ObjectiveTutorialProgress_ * 100.0f));
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.titleScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.96f, 0.98f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			// 日本語と英数字を分けず、UTF-8文字列としてまとめてTextSpriteDrawerへ渡す。
+			stage1ObjectiveTextDrawer_->DrawTextCentered("WASDで移動しろ", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y - 54.0f
+				});
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.progressScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.42f, 0.90f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("移動練習：" + ToPercentText(percent), {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 18.0f
+				});
+			stage1ObjectiveTextDrawer_->DrawTextCentered(BuildProgressBlocks(stage1ObjectiveTutorialProgress_), {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 64.0f
+				});
+		}
+		else if (stage1ObjectiveTutorialPage_ == 2)
+		{
+			const int percent = static_cast<int>(std::round(stage1ObjectiveTutorialProgress_ * 100.0f));
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.titleScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.96f, 0.98f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("マウスで視点を動かせ", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y - 54.0f
+				});
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.progressScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.42f, 0.90f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("視点移動：" + ToPercentText(percent), {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 18.0f
+				});
+			stage1ObjectiveTextDrawer_->DrawTextCentered(BuildProgressBlocks(stage1ObjectiveTutorialProgress_), {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 64.0f
+				});
+		}
+		else if (stage1ObjectiveTutorialPage_ == 3)
+		{
+			const int shotCount = std::clamp(static_cast<int>(std::round(stage1ObjectiveTutorialProgress_ * 3.0f)), 0, 3);
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.titleScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.96f, 0.98f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			// チュートリアル用テキストを共通フォントへ統一し、キー表記が欠けないようにする。
+			stage1ObjectiveTextDrawer_->DrawTextCentered("左クリックで射撃しろ", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y - 54.0f
+				});
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.progressScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.42f, 0.90f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("射撃練習：" + std::to_string(shotCount) + " / 3", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 18.0f
+				});
+			stage1ObjectiveTextDrawer_->DrawTextCentered(BuildProgressBlocks(stage1ObjectiveTutorialProgress_), {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 64.0f
+				});
+		}
+		else if (stage1ObjectiveTutorialPage_ == 4)
+		{
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.titleScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.96f, 0.98f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("Rキーでリロードしろ", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y - 18.0f
+				});
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.smallScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.42f, 0.90f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("リロード完了で次へ", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 44.0f
+				});
+		}
+		else if (stage1ObjectiveTutorialPage_ == 5)
+		{
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.titleScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.96f, 0.98f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("敵を倒してみろ", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y - 20.0f
+				});
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.smallScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.42f, 0.90f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("リロード後に出た弱い敵を1体倒そう", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 42.0f
+				});
+		}
+		else if (stage1ObjectiveTutorialPage_ == 6)
+		{
+			const int pickedCount = std::clamp(static_cast<int>(std::round(stage1ObjectiveTutorialProgress_ * 2.0f)), 0, 2);
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.titleScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.96f, 0.98f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("アイテムを2つ拾え", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y - 48.0f
+				});
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.smallScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.42f, 0.90f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("アイテムに近づくと自動で拾える", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 8.0f
+				});
+			stage1ObjectiveTextDrawer_->DrawTextCentered("取得：" + std::to_string(pickedCount) + " / 2", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 58.0f
 				});
 		}
 		else
 		{
-			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.progressScale);
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.titleScale);
 			stage1ObjectiveTextDrawer_->SetColor({ 0.96f, 0.98f, 1.0f, stage1ObjectiveGuideAlpha_ });
-			stage1ObjectiveTextDrawer_->DrawTextCentered("アイテムを拾って戦闘に備えろ", {
+			stage1ObjectiveTextDrawer_->DrawTextCentered("チュートリアル完了", {
 				stage1ObjectiveGuideSettings_.tutorialCenter.x,
-				stage1ObjectiveGuideSettings_.tutorialCenter.y - 82.0f
+				stage1ObjectiveGuideSettings_.tutorialCenter.y - 20.0f
 				});
 			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.smallScale);
 			stage1ObjectiveTextDrawer_->SetColor({ 0.42f, 0.90f, 1.0f, stage1ObjectiveGuideAlpha_ });
-			stage1ObjectiveTextDrawer_->DrawTextCentered("弾薬箱：弾を補充する", {
-				stage1ObjectiveGuideSettings_.tutorialCenter.x,
-				stage1ObjectiveGuideSettings_.tutorialCenter.y - 36.0f
-				});
-			stage1ObjectiveTextDrawer_->DrawTextCentered("回復薬：HPを回復する", {
-				stage1ObjectiveGuideSettings_.tutorialCenter.x,
-				stage1ObjectiveGuideSettings_.tutorialCenter.y - 2.0f
-				});
-			stage1ObjectiveTextDrawer_->SetColor({ 0.90f, 0.96f, 1.0f, stage1ObjectiveGuideAlpha_ });
-			stage1ObjectiveTextDrawer_->DrawTextCentered("アイテムは近づくと自動で拾える", {
+			stage1ObjectiveTextDrawer_->DrawTextCentered("クリスタルを3つ破壊しろ", {
 				stage1ObjectiveGuideSettings_.tutorialCenter.x,
 				stage1ObjectiveGuideSettings_.tutorialCenter.y + 42.0f
 				});
-			stage1ObjectiveTextDrawer_->DrawTextCentered("WASD：移動　左クリック：射撃　R：リロード", {
-				stage1ObjectiveGuideSettings_.tutorialCenter.x,
-				stage1ObjectiveGuideSettings_.tutorialCenter.y + 82.0f
+		}
+		for (const Stage1TutorialItemMarker& marker : stage1TutorialItemMarkers_)
+		{
+			if (!marker.visible)
+			{
+				continue;
+			}
+			const bool isAmmo = marker.itemType == 1;
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.smallScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 1.0f, 0.92f, 0.28f, stage1ObjectiveGuideAlpha_ });
+			// 初心者が拾う対象を見失わないよう、チュートリアル中はアイテム上に説明マーカーを表示する。
+			stage1ObjectiveTextDrawer_->DrawTextCentered("▼", {
+				marker.screenPosition.x,
+				marker.screenPosition.y - 54.0f
+				});
+			stage1ObjectiveTextDrawer_->DrawTextCentered(isAmmo ? "弾薬箱" : "回復薬", {
+				marker.screenPosition.x,
+				marker.screenPosition.y - 18.0f
+				});
+			stage1ObjectiveTextDrawer_->DrawTextCentered(isAmmo ? "弾を補充" : "HPを回復", {
+				marker.screenPosition.x,
+				marker.screenPosition.y + 16.0f
 				});
 		}
 		return;

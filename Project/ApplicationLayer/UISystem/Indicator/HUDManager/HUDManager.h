@@ -12,6 +12,7 @@
 #include "Vector3.h"
 #include "Vector4.h"
 
+#include <array>
 #include <memory>
 #include <string>
 
@@ -51,6 +52,8 @@ public: /// ---------- セッタ ---------- ///
 	void SetStage1ObjectiveGuide(bool enabled, int destroyedCrystals, int totalCrystals, bool bossBattleActive, bool bossDefeated, bool tutorialActive);
 	void SetStage1ObjectiveTutorialAlpha(float alpha);
 	void SetStage1ObjectiveTutorialPage(int page);
+	void SetStage1ObjectiveTutorialProgress(float progress);
+	void SetStage1TutorialItemMarker(int markerIndex, bool visible, const K4E::Vector2& screenPosition, int itemType);
 	void NotifyStage1ObjectiveGuideStarted();
 	void NotifyStage1BossAppeared();
 	// ボス登場演出後、プレイヤーがボスの方向を見失わないようHUDマーカーへ位置情報を渡す。
@@ -137,7 +140,7 @@ private: /// ---------- メンバ変数 ---------- ///
 		K4E::Vector2 center{ 250.0f, 94.0f };
 		K4E::Vector2 panelSize{ 380.0f, 54.0f };
 		K4E::Vector2 tutorialCenter{ 960.0f, 270.0f };
-		K4E::Vector2 tutorialPanelSize{ 860.0f, 240.0f };
+		K4E::Vector2 tutorialPanelSize{ 920.0f, 260.0f };
 		K4E::Vector2 noticeCenter{ 960.0f, 156.0f };
 		float titleScale = 0.92f;
 		float progressScale = 0.58f;
@@ -145,6 +148,13 @@ private: /// ---------- メンバ変数 ---------- ///
 		float noticeScale = 0.78f;
 		float introHoldTime = 7.0f;
 		float bossNoticeTime = 3.2f;
+	};
+
+	struct Stage1TutorialItemMarker
+	{
+		bool visible = false;
+		K4E::Vector2 screenPosition{};
+		int itemType = 0;
 	};
 
 	void RegisterBossHpBarParameters();
@@ -212,7 +222,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool stage1ObjectiveTutorialActive_ = false;
 	int stage1ObjectiveTutorialPage_ = 0;
 	float stage1ObjectiveTutorialAlpha_ = 0.0f;
+	float stage1ObjectiveTutorialProgress_ = 0.0f;
 	float stage1ObjectiveIntroTimer_ = 0.0f;
 	float stage1ObjectiveGuideAlpha_ = 0.0f;
 	float stage1BossNoticeTimer_ = 0.0f;
+	std::array<Stage1TutorialItemMarker, 2> stage1TutorialItemMarkers_{};
 };

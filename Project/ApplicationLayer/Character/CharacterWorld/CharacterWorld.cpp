@@ -189,6 +189,33 @@ void CharacterWorld::ClearEnemies()
 	enemies_.clear();
 }
 
+bool CharacterWorld::RemoveEnemy(EnemyBase* enemy)
+{
+	if (!enemy)
+	{
+		return false;
+	}
+
+	const auto it = std::find_if(enemies_.begin(), enemies_.end(),
+		[enemy](const std::unique_ptr<EnemyBase>& entry)
+		{
+			return entry.get() == enemy;
+		});
+	if (it == enemies_.end())
+	{
+		return false;
+	}
+
+	// チュートリアル専用敵を即座に管理外へ出し、更新・描画・当たり判定が残らないようにする。
+	notifiedKilledEnemies_.erase(enemy);
+	if (ctx_.collisionManager_)
+	{
+		ctx_.collisionManager_->RemoveCollider(enemy);
+	}
+	enemies_.erase(it);
+	return true;
+}
+
 void CharacterWorld::Update(float dt)
 {
 	if (player_) player_->Update(dt);
