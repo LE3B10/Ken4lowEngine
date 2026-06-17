@@ -192,6 +192,7 @@ void PlayerViewComponent::SyncToPlayer()
 void PlayerViewComponent::SetLookAngles(float pitchRad, float yawRad)
 {
 	fpsCamera_.SetLookAngles(pitchRad, yawRad);
+	if (bodyTr_) bodyTr_->rotate_.y = fpsCamera_.GetYaw();
 }
 
 void PlayerViewComponent::SyncViewModeToFirstPersonFlag()

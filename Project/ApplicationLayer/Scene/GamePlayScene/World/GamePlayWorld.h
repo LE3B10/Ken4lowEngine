@@ -200,6 +200,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	void UpdateBossIntroPausedWorld(float deltaTime);
 	void SpawnGuardianBoss(bool registerCollider);
 	void RegisterGuardianBossCollider();
+	void AlignPlayerViewToBossAfterIntro(Player& player);
+	void UpdateBossGuideHud(Player& player, bool bossBattleActive);
 	void ResetBossIntroForDebug();
 	void UpdateBossClearProgress(float deltaTime);
 	void SpawnClearItem(const K4E::Vector3& bossPosition);

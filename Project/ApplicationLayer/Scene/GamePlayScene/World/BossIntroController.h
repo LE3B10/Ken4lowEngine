@@ -83,6 +83,7 @@ public:
 	const Settings& GetSettings() const { return settings_; }
 	const K4E::Vector3& GetBossAppearPosition() const { return settings_.bossAppearPosition; }
 	K4E::Vector3 GetBossStartPosition() const;
+	K4E::Vector3 GetBossLookTarget() const;
 
 private:
 	void RegisterParameters();

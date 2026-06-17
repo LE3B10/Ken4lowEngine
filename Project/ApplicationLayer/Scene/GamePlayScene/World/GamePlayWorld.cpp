@@ -47,6 +47,21 @@ namespace
 	static constexpr uint32_t kPhysicsLayerBoss = 7u;
 	static constexpr float kStage1BeginnerBossMaxHP = 900.0f;
 
+	bool CalcLookAnglesToTarget(const K4E::Vector3& from, const K4E::Vector3& target, float& outPitch, float& outYaw)
+	{
+		K4E::Vector3 direction = target - from;
+		if (K4E::Vector3::LengthSquared(direction) <= 0.000001f)
+		{
+			return false;
+		}
+
+		direction = K4E::Vector3::Normalize(direction);
+		outYaw = std::atan2(-direction.x, direction.z);
+		const float xzLen = std::sqrt(direction.x * direction.x + direction.z * direction.z);
+		outPitch = std::atan2(-direction.y, xzLen);
+		return true;
+	}
+
 	const char* ToCollisionResponseName(K4E::CollisionResponseType response)
 	{
 		switch (response)
@@ -535,6 +550,7 @@ void GamePlayWorld::Update(float deltaTime)
 			guardianBoss_ ? guardianBoss_->GetHP() : 0.0f,
 			guardianBoss_ ? guardianBoss_->GetMaxHP() : 0.0f,
 			bossBattleActive);
+		UpdateBossGuideHud(*characters_.GetPlayer(), bossBattleActive);
 		hudManager_->Update(deltaTime);
 	}
 
@@ -1054,15 +1070,52 @@ void GamePlayWorld::UpdateBossIntro(float deltaTime)
 		RegisterGuardianBossCollider();
 		if (player)
 		{
-			player->SyncViewToPlayer();
-			if (auto* resumedCamera = player->GetCamera())
-			{
-				// Completed後は演出用更新を止め、通常FPSカメラを描画用MainCameraへ戻す。
-				K4E::CameraManager::GetInstance()->SetMainCamera(resumedCamera);
-				resumedCamera->Update();
-			}
+			AlignPlayerViewToBossAfterIntro(*player);
+		}
+		if (hudManager_)
+		{
+			hudManager_->NotifyBossIntroCompleted(guardianBoss_ ? guardianBoss_->GetPosition() : bossSpawnPosition_);
 		}
 	}
+}
+
+void GamePlayWorld::AlignPlayerViewToBossAfterIntro(Player& player)
+{
+	auto* resumedCamera = player.GetCamera();
+	if (!resumedCamera)
+	{
+		return;
+	}
+
+	float pitch = 0.0f;
+	float yaw = 0.0f;
+	if (CalcLookAnglesToTarget(resumedCamera->GetTranslate(), bossIntroController_.GetBossLookTarget(), pitch, yaw))
+	{
+		// カットシーン復帰時も通常FPSカメラの内部角度をボス方向へ合わせ、次フレームで元視線へ戻らないようにする。
+		player.SetViewLookAngles(pitch, yaw);
+	}
+
+	player.SyncViewToPlayer();
+	K4E::CameraManager::GetInstance()->SetMainCamera(resumedCamera);
+	resumedCamera->Update();
+}
+
+void GamePlayWorld::UpdateBossGuideHud(Player& player, bool bossBattleActive)
+{
+	if (!hudManager_)
+	{
+		return;
+	}
+
+	auto* camera = player.GetCamera();
+	if (!camera)
+	{
+		hudManager_->SetBossGuide(player.GetCenterPosition(), bossSpawnPosition_, { 0.0f, 0.0f, 1.0f }, false);
+		return;
+	}
+
+	const K4E::Vector3 bossPosition = guardianBoss_ ? guardianBoss_->GetPosition() : bossSpawnPosition_;
+	hudManager_->SetBossGuide(player.GetCenterPosition(), bossPosition, camera->GetForward(), bossBattleActive);
 }
 
 void GamePlayWorld::UpdateBossIntroPausedWorld(float deltaTime)

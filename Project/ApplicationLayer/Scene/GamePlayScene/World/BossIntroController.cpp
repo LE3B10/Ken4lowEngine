@@ -247,6 +247,13 @@ K4E::Vector3 BossIntroController::GetBossStartPosition() const
 	return start;
 }
 
+K4E::Vector3 BossIntroController::GetBossLookTarget() const
+{
+	K4E::Vector3 target = settings_.bossAppearPosition;
+	target.y += 2.5f;
+	return target;
+}
+
 void BossIntroController::RegisterParameters()
 {
 	auto* parameters = K4E::ParameterManager::GetInstance();
@@ -327,8 +334,7 @@ void BossIntroController::BeginCutscene(K4E::Camera* camera)
 		savedCameraRotation_ = camera->GetRotate();
 	}
 
-	introCameraTarget_ = settings_.bossAppearPosition;
-	introCameraTarget_.y += 2.5f;
+	introCameraTarget_ = GetBossLookTarget();
 	introCameraPosition_ = settings_.bossAppearPosition + K4E::Vector3{ 0.0f, 7.0f, -18.0f };
 
 	// ボス登場カットシーンの開始に合わせ、足元の土煙演出も初期化する。
@@ -402,10 +408,8 @@ void BossIntroController::UpdateCameraReturn(float deltaTime, GuardianBoss* boss
 		}
 		else
 		{
-			// 演出用カメラから通常カメラへ戻すため、保存していた位置と回転を直接復元する。
-			camera->SetTranslate(savedCameraPosition_);
-			camera->SetRotate(savedCameraRotation_);
-			camera->Update();
+			// 復帰後もボス方向を向かせ、演出後に位置を見失わないようにする。
+			ApplyCameraLookAtBoss(camera, savedCameraPosition_, introCameraTarget_);
 		}
 	}
 

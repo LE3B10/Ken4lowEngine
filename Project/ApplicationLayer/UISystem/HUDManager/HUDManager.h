@@ -7,6 +7,7 @@
 #include "DamageIndicatorManager.h"
 #include "NoAmmoUI.h"
 #include "ControlGuideUI.h"
+#include "Vector2.h"
 #include "Vector3.h"
 #include "Vector4.h"
 
@@ -46,6 +47,12 @@ public: /// ---------- セッタ ---------- ///
 	void SetHP(float hp, float maxHp);
 	// ボス本体のHPを参照し、ボス戦用の大型HPバーへ反映する。
 	void SetBossHP(float hp, float maxHp, bool bossBattleActive);
+	// ボス登場演出後、プレイヤーがボスの方向を見失わないようHUDマーカーへ位置情報を渡す。
+	void SetBossGuide(const K4E::Vector3& playerPos,
+		const K4E::Vector3& bossPos,
+		const K4E::Vector3& cameraForward,
+		bool bossBattleActive);
+	void NotifyBossIntroCompleted(const K4E::Vector3& bossPos);
 	// 被弾時のHP表示リアクションを発火する。
 	void NotifyPlayerHit(float strength01 = 1.0f);
 
@@ -108,11 +115,24 @@ private: /// ---------- メンバ変数 ---------- ///
 		bool hideWaveUI = true;
 	};
 
+	struct BossGuideSettings
+	{
+		bool visible = true;
+		K4E::Vector2 center{ 960.0f, 540.0f };
+		float radius = 155.0f;
+		float holdTime = 8.0f;
+		float lineThickness = 6.0f;
+		float dotSize = 24.0f;
+	};
+
 	void RegisterBossHpBarParameters();
 	void ApplyBossHpBarParameters();
 	void InitializeBossHpBarSprites();
 	void UpdateBossHpBarSprites();
 	void DrawBossHpBar();
+	void InitializeBossGuideSprites();
+	void UpdateBossGuideSprites(float deltaTime);
+	void DrawBossGuide();
 
 	Player* player_ = nullptr; // プレイヤーへの参照（HUDがゲーム状態を参照するため）
 
@@ -143,4 +163,15 @@ private: /// ---------- メンバ変数 ---------- ///
 	float bossMaxHp_ = 0.0f;
 	float bossHpRate_ = 0.0f;
 	float bossDelayedHpRate_ = 0.0f;
+	BossGuideSettings bossGuideSettings_{};
+	std::unique_ptr<K4E::Sprite> bossGuideLineSprite_;
+	std::unique_ptr<K4E::Sprite> bossGuideDotBackSprite_;
+	std::unique_ptr<K4E::Sprite> bossGuideDotSprite_;
+	bool bossGuideActive_ = false;
+	float bossGuideTimer_ = 0.0f;
+	float bossGuideAngle_ = 0.0f;
+	float bossGuideLineLength_ = 0.0f;
+	K4E::Vector2 bossGuideLineCenter_{};
+	K4E::Vector2 bossGuideDotPosition_{};
+	K4E::Vector3 bossGuideBossPosition_{};
 };
