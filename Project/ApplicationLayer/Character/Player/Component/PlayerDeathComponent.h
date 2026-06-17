@@ -12,7 +12,7 @@ class HUDManager;
 class PlayerMotorComponent;
 class PlayerViewComponent;
 class PlayerWeaponVisualComponent;
-class PlayerHurtboxComponent;
+class PlayerDamageCollider;
 class PlayerVfx;
 
 class PlayerDeathComponent
@@ -33,7 +33,7 @@ public:
 		PlayerMotorComponent& motor,
 		PlayerViewComponent& view,
 		PlayerWeaponVisualComponent& weaponVisual,
-		PlayerHurtboxComponent& hurtbox,
+		PlayerDamageCollider& damageCollider,
 		PlayerVfx& vfx,
 		HUDManager* hudManager,
 		float hp,

@@ -210,15 +210,8 @@ PlayerDamageComponent::DamageFeedback PlayerDamageComponent::OnHitByEnemyBullet(
 
 	ApplyDamageKnockback(player, view, &attackerPosition, fb.hitStrength01);
 
-	float stunSec = 0.08f;
-	switch (part)
-	{
-	case PlayerHitPart::Head:
-		stunSec = 0.15f;
-		break;
-	default:
-		break;
-	}
+	(void)part;
+	const float stunSec = 0.08f;
 
 	PlayerContext ctx{ api, inputSnap, 0.0f };
 	api.player->GetBrainComponent().GetBrain().status.RequestStun(ctx, stunSec);

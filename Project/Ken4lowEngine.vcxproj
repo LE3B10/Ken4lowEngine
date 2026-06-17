@@ -270,7 +270,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataLoader.cpp" />
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataValidator.cpp" />
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataWriter.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Player\PlayerHurtbox.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Player\PlayerDamageCollider.cpp" />
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponInstance.cpp" />
     <ClCompile Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponSystem.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\HPWidget\HPWidget.cpp" />
@@ -299,7 +299,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerBrainComponent.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerDeathComponent.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerHurtboxComponent.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerCombatComponent.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerDamageComponent.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Player\PlayerWeaponController.cpp" />
@@ -964,7 +963,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponMasterDataWriter.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerInputSnapshot.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerStateMachines.h" />
-    <ClInclude Include="ApplicationLayer\Character\Player\PlayerHurtbox.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\PlayerDamageCollider.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponInstance.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponParams.h" />
     <ClInclude Include="ApplicationLayer\WeaponSystem\WeaponMasterData\WeaponSystem.h" />
@@ -997,7 +996,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Boss\Animations\IBossAttackAnimation.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerBrainComponent.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerDeathComponent.h" />
-    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerHurtboxComponent.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerCombatComponent.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerDamageComponent.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerWeaponController.h" />

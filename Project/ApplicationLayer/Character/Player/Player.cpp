@@ -18,12 +18,10 @@
 #include <imgui.h>
 #endif
 
-#include "PlayerHurtbox.h"
 #include "PlayerInputSnapshot.h"
 #include "PlayerStateMachines.h"
 #include "PlayerBrainComponent.h"
 #include "PlayerDeathComponent.h"
-#include "PlayerHurtboxComponent.h"
 #include "PlayerWeaponController.h"
 #include "PlayerCombatComponent.h"
 
@@ -109,7 +107,11 @@ void Player::Initialize()
 	ApplyCollisionPreset(*this, ECollisionPresetId::Player);
 	K4E::Collider::SetOwner<Player>(this);
 
-	hurtbox_.Initialize(*this, refs_.collisionManager);
+	damageCollider_.Initialize(this, static_cast<uint32_t>(CollisionTypeIdDef::kPlayer));
+	if (refs_.collisionManager)
+	{
+		refs_.collisionManager->AddCollider(&damageCollider_);
+	}
 
 	damage_.Initialize(100.0f);
 	if (refs_.hudManager)
@@ -204,7 +206,7 @@ void Player::Update(float deltaTime)
 		// ここを更新しないと、BaseCharacter 側で右腕が更新された後も
 		// 武器だけ前フレームの行列に残り、右腕から離れて見える。
 		weaponVisual_.Update(deltaTime, inputSnap_.aimHeld);
-		SyncHurtboxes();
+		SyncDamageCollider();
 
 		return;
 	}
@@ -479,13 +481,13 @@ void Player::UpdatePresentation(float deltaTime)
 	view_.SetFirstPersonLeftArmVisible(!IsCurrentWeaponMeleeForView());
 
 	weaponVisual_.Update(deltaTime, inputSnap_.aimHeld);
-	SyncHurtboxes();
+	SyncDamageCollider();
 	vfx_.Update(deltaTime);
 }
 
-void Player::SyncHurtboxes()
+void Player::SyncDamageCollider()
 {
-	hurtbox_.Sync(*this);
+	damageCollider_.SyncFromOwner();
 }
 
 /// -------------------------------------------------------------
@@ -516,7 +518,7 @@ void Player::DrawPlayerDebugImGui()
 	ImGui::Text("HP: %.1f", GetHP());
 	view_.DrawImGui();
 	combat_.DrawImGui();
-	hurtbox_.DrawImGui();
+	damageCollider_.DrawImGui();
 #endif
 }
 
@@ -756,7 +758,7 @@ void Player::ApplyPhysicsCorrectedPosition(const K4E::Vector3& worldPosition)
 		tr->translate_ = worldPosition;
 		SetCenterPosition(worldPosition);
 		view_.SyncToPlayer();
-		SyncHurtboxes();
+		SyncDamageCollider();
 	}
 }
 
@@ -771,7 +773,7 @@ void Player::WarmupStartGameplayVisuals()
 	view_.SetFirstPersonView(true);
 	weaponVisual_.SetVisible(false);
 	weaponVisual_.Update(0.0f, false);
-	SyncHurtboxes();
+	SyncDamageCollider();
 }
 
 void Player::ApplyEditedWeaponDataFromEditor(int32_t weaponID, const FWeaponMasterData& data)
@@ -829,7 +831,7 @@ void Player::UpdateDeath(float deltaTime)
 		motor_,
 		view_,
 		weaponVisual_,
-		hurtbox_,
+		damageCollider_,
 		vfx_,
 		refs_.hudManager,
 		damage_.GetHP(),

@@ -3,7 +3,7 @@
 
 #include "Player.h"
 #include "HUDManager.h"
-#include "PlayerHurtboxComponent.h"
+#include "PlayerDamageCollider.h"
 #include "PlayerMotorComponent.h"
 #include "PlayerVfx.h"
 #include "PlayerViewComponent.h"
@@ -82,7 +82,7 @@ void PlayerDeathComponent::Update(
 	PlayerMotorComponent& motor,
 	PlayerViewComponent& view,
 	PlayerWeaponVisualComponent& weaponVisual,
-	PlayerHurtboxComponent& hurtbox,
+	PlayerDamageCollider& damageCollider,
 	PlayerVfx& vfx,
 	HUDManager* hudManager,
 	float hp,
@@ -159,7 +159,7 @@ void PlayerDeathComponent::Update(
 	}
 
 	weaponVisual.Update(deltaTime, false);
-	hurtbox.Sync(owner);
+	damageCollider.SyncFromOwner();
 	vfx.Update(deltaTime);
 	owner.BaseCharacter::Update(deltaTime);
 

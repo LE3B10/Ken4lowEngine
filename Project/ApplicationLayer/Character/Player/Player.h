@@ -2,9 +2,8 @@
 #include <BaseCharacter.h>
 #include <Object3D.h>
 #include "ContactRecord.h"
-#include "PlayerHurtbox.h"
+#include "PlayerDamageCollider.h"
 #include "PlayerDeathComponent.h"
-#include "PlayerHurtboxComponent.h"
 
 #include "PlayerStateMachines.h"
 #include "PlayerFsmApi.h"
@@ -278,7 +277,7 @@ private: /// ---------- 内部構造体 ---------- ///
 
 private: /// ---------- メンバ関数 ---------- ///
 
-	void SyncHurtboxes();
+	void SyncDamageCollider();
 
 	void ApplyFallDamage(float deltaTime);
 
@@ -336,7 +335,7 @@ private: /// ----------メンバ変数 ---------- ///
 	PlayerVfx vfx_{};
 
 	PlayerDeathComponent death_{};
-	PlayerHurtboxComponent hurtbox_{};
+	PlayerDamageCollider damageCollider_{};
 	PlayerDamageComponent damage_{};
 
 	K4E::Vector3 spawnPos_{ 0,0,0 };

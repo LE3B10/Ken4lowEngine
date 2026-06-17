@@ -1,6 +1,4 @@
 #pragma once
-#include "PlayerHurtbox.h"
-
 #include <cstdint>
 #include <functional>
 #include <unordered_map>
@@ -23,6 +21,11 @@ class PlayerDeathComponent;
 struct InputSnapshot;
 struct FallDamageSettings;
 struct PlayerAPI;
+
+enum class PlayerHitPart : uint8_t
+{
+	Body,
+};
 
 /// ------------------------------------------------------------
 /// PlayerDamageComponent

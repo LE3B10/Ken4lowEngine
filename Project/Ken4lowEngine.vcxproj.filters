@@ -283,7 +283,7 @@
     <ClCompile Include="ApplicationLayer\Character\Bullet\BulletManager.cpp">
       <Filter>ApplicationLayer\Character\Bullet</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\PlayerHurtbox.cpp">
+    <ClCompile Include="ApplicationLayer\Character\Player\PlayerDamageCollider.cpp">
       <Filter>ApplicationLayer\Character\Player</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\EnemySpawnCrystal.cpp">
@@ -458,9 +458,6 @@
       <Filter>ApplicationLayer\Character\Player\Component</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerDeathComponent.cpp">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerHurtboxComponent.cpp">
       <Filter>ApplicationLayer\Character\Player\Component</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerCombatComponent.cpp">
@@ -1239,7 +1236,7 @@
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerStateMachines.h">
       <Filter>ApplicationLayer\Character\Player</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\PlayerHurtbox.h">
+    <ClInclude Include="ApplicationLayer\Character\Player\PlayerDamageCollider.h">
       <Filter>ApplicationLayer\Character\Player</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\EnemySpawnCrystal.h">
@@ -1447,9 +1444,6 @@
       <Filter>ApplicationLayer\Character\Player\Component</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerDeathComponent.h">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerHurtboxComponent.h">
       <Filter>ApplicationLayer\Character\Player\Component</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerCombatComponent.h">
