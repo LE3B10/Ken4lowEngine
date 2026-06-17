@@ -366,6 +366,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 
 	enemyHpBarManager_.Initialize();
 	aimTargetDetector_.Initialize();
+	StartStage1ObjectiveGuide();
 }
 
 void GamePlayWorld::Finalize()
@@ -550,6 +551,7 @@ void GamePlayWorld::Update(float deltaTime)
 			guardianBoss_ ? guardianBoss_->GetHP() : 0.0f,
 			guardianBoss_ ? guardianBoss_->GetMaxHP() : 0.0f,
 			bossBattleActive);
+		UpdateStage1ObjectiveGuideHud(bossBattleActive);
 		UpdateBossGuideHud(*characters_.GetPlayer(), bossBattleActive);
 		hudManager_->Update(deltaTime);
 	}
@@ -1116,6 +1118,67 @@ void GamePlayWorld::UpdateBossGuideHud(Player& player, bool bossBattleActive)
 
 	const K4E::Vector3 bossPosition = guardianBoss_ ? guardianBoss_->GetPosition() : bossSpawnPosition_;
 	hudManager_->SetBossGuide(player.GetCenterPosition(), bossPosition, camera->GetForward(), bossBattleActive);
+}
+
+void GamePlayWorld::StartStage1ObjectiveGuide()
+{
+	if (!stage1BeginnerBalanceEnabled_ || !hudManager_)
+	{
+		return;
+	}
+
+	// ステージ1は導入ステージなので、開始直後に目的表示と最初のクリスタル方向を案内する。
+	hudManager_->SetStage1ObjectiveGuide(
+		true,
+		crystalManager_.GetDestroyedCrystalCount(),
+		crystalManager_.GetCrystalCount(),
+		false,
+		bossDefeated_);
+	hudManager_->NotifyStage1ObjectiveGuideStarted();
+	if (auto* player = characters_.GetPlayer())
+	{
+		AlignPlayerViewToFirstCrystal(*player);
+	}
+}
+
+void GamePlayWorld::AlignPlayerViewToFirstCrystal(Player& player)
+{
+	auto* camera = player.GetCamera();
+	if (!camera)
+	{
+		return;
+	}
+
+	K4E::Vector3 crystalPosition{};
+	if (!crystalManager_.TryGetFirstAliveCrystalPosition(crystalPosition))
+	{
+		return;
+	}
+
+	crystalPosition.y += 1.8f;
+	float pitch = 0.0f;
+	float yaw = 0.0f;
+	if (CalcLookAnglesToTarget(camera->GetTranslate(), crystalPosition, pitch, yaw))
+	{
+		player.SetViewLookAngles(pitch, yaw);
+		player.SyncViewToPlayer();
+		camera->Update();
+	}
+}
+
+void GamePlayWorld::UpdateStage1ObjectiveGuideHud(bool bossBattleActive)
+{
+	if (!hudManager_)
+	{
+		return;
+	}
+
+	hudManager_->SetStage1ObjectiveGuide(
+		stage1BeginnerBalanceEnabled_,
+		crystalManager_.GetDestroyedCrystalCount(),
+		crystalManager_.GetCrystalCount(),
+		bossBattleActive || bossSpawned_ || bossIntroController_.HasPlayed(),
+		bossDefeated_);
 }
 
 void GamePlayWorld::UpdateBossIntroPausedWorld(float deltaTime)

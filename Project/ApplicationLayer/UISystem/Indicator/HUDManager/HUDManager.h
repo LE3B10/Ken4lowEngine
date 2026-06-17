@@ -7,6 +7,7 @@
 #include "DamageIndicatorManager.h"
 #include "NoAmmoUI.h"
 #include "ControlGuideUI.h"
+#include "TextSpriteDrawer.h"
 #include "Vector2.h"
 #include "Vector3.h"
 #include "Vector4.h"
@@ -47,6 +48,8 @@ public: /// ---------- セッタ ---------- ///
 	void SetHP(float hp, float maxHp);
 	// ボス本体のHPを参照し、ボス戦用の大型HPバーへ反映する。
 	void SetBossHP(float hp, float maxHp, bool bossBattleActive);
+	void SetStage1ObjectiveGuide(bool enabled, int destroyedCrystals, int totalCrystals, bool bossBattleActive, bool bossDefeated);
+	void NotifyStage1ObjectiveGuideStarted();
 	// ボス登場演出後、プレイヤーがボスの方向を見失わないようHUDマーカーへ位置情報を渡す。
 	void SetBossGuide(const K4E::Vector3& playerPos,
 		const K4E::Vector3& bossPos,
@@ -125,6 +128,16 @@ private: /// ---------- メンバ変数 ---------- ///
 		float dotSize = 24.0f;
 	};
 
+	struct Stage1ObjectiveGuideSettings
+	{
+		bool visible = true;
+		K4E::Vector2 center{ 960.0f, 132.0f };
+		K4E::Vector2 panelSize{ 620.0f, 94.0f };
+		float titleScale = 0.92f;
+		float progressScale = 0.58f;
+		float introHoldTime = 7.0f;
+	};
+
 	void RegisterBossHpBarParameters();
 	void ApplyBossHpBarParameters();
 	void InitializeBossHpBarSprites();
@@ -133,6 +146,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	void InitializeBossGuideSprites();
 	void UpdateBossGuideSprites(float deltaTime);
 	void DrawBossGuide();
+	void InitializeStage1ObjectiveGuide();
+	void UpdateStage1ObjectiveGuideSprites(float deltaTime);
+	void DrawStage1ObjectiveGuide();
 
 	Player* player_ = nullptr; // プレイヤーへの参照（HUDがゲーム状態を参照するため）
 
@@ -174,4 +190,16 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector2 bossGuideLineCenter_{};
 	K4E::Vector2 bossGuideDotPosition_{};
 	K4E::Vector3 bossGuideBossPosition_{};
+	Stage1ObjectiveGuideSettings stage1ObjectiveGuideSettings_{};
+	std::unique_ptr<K4E::Sprite> stage1ObjectiveGuideBackSprite_;
+	std::unique_ptr<K4E::Sprite> stage1ObjectiveGuideAccentSprite_;
+	std::unique_ptr<K4E::TextSpriteDrawer> stage1ObjectiveTextDrawer_;
+	bool stage1ObjectiveGuideEnabled_ = false;
+	bool stage1ObjectiveTextReady_ = false;
+	int stage1DestroyedCrystals_ = 0;
+	int stage1TotalCrystals_ = 0;
+	bool stage1BossBattleActive_ = false;
+	bool stage1BossDefeated_ = false;
+	float stage1ObjectiveIntroTimer_ = 0.0f;
+	float stage1ObjectiveGuideAlpha_ = 0.0f;
 };

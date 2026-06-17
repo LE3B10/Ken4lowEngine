@@ -40,6 +40,8 @@ public:
 
 	int GetCrystalCount() const { return static_cast<int>(crystals_.size()); }
 	int GetAliveCrystalCount() const;
+	int GetDestroyedCrystalCount() const { return GetCrystalCount() - GetAliveCrystalCount(); }
+	bool TryGetFirstAliveCrystalPosition(K4E::Vector3& outPosition) const;
 	int GetAliveCrystalSpawnEnemyCount() const;
 	bool AreAllCrystalsDestroyed() const;
 	bool IsCrystalEnemySpawnEnabled() const { return enableCrystalEnemySpawn_; }

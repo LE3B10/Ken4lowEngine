@@ -313,7 +313,7 @@
     <ClCompile Include="ApplicationLayer\UISystem\HPWidget\HPWidget.cpp">
       <Filter>ApplicationLayer\UISystem\HPWidget</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\UISystem\HUDManager\HUDManager.cpp">
+    <ClCompile Include="ApplicationLayer\UISystem\Indicator\HUDManager\HUDManager.cpp">
       <Filter>ApplicationLayer\UISystem\HUDManager</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerMotorComponent.cpp">
@@ -1269,7 +1269,7 @@
     <ClInclude Include="ApplicationLayer\UISystem\HPWidget\HPWidget.h">
       <Filter>ApplicationLayer\UISystem\HPWidget</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\UISystem\HUDManager\HUDManager.h">
+    <ClInclude Include="ApplicationLayer\UISystem\Indicator\HUDManager\HUDManager.h">
       <Filter>ApplicationLayer\UISystem\HUDManager</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerMotorComponent.h">

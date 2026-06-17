@@ -356,6 +356,19 @@ int CrystalManager::GetAliveCrystalCount() const
 		[](const EnemySpawnCrystal& crystal) { return crystal.IsAlive(); }));
 }
 
+bool CrystalManager::TryGetFirstAliveCrystalPosition(K4E::Vector3& outPosition) const
+{
+	for (const EnemySpawnCrystal& crystal : crystals_)
+	{
+		if (crystal.IsAlive())
+		{
+			outPosition = crystal.GetPosition();
+			return true;
+		}
+	}
+	return false;
+}
+
 int CrystalManager::GetAliveCrystalSpawnEnemyCount() const
 {
 	int totalCount = 0;

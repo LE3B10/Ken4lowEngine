@@ -2,9 +2,11 @@
 #include "HUDManager.h"
 #include "Player.h"
 #include "ParameterManager.h"
+#include "FontAtlasLoader.h"
 
 #include <algorithm>
 #include <cmath>
+#include <string>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -101,6 +103,7 @@ void HUDManager::Initialize()
 
 	InitializeBossHpBarSprites();
 	InitializeBossGuideSprites();
+	InitializeStage1ObjectiveGuide();
 	RegisterBossHpBarParameters();
 	ApplyBossHpBarParameters();
 }
@@ -231,6 +234,7 @@ void HUDManager::Update(float deltaTime)
 	ApplyBossHpBarParameters();
 	UpdateBossHpBarSprites();
 	UpdateBossGuideSprites(deltaTime);
+	UpdateStage1ObjectiveGuideSprites(deltaTime);
 }
 
 /// -------------------------------------------------------------
@@ -243,6 +247,7 @@ void HUDManager::Draw()
 	if (crosshair_ && crosshair_->IsVisible()) crosshair_->Draw();
 	if (weaponSlot_) weaponSlot_->Draw();
 	if (waveUI_ && IsWaveUIDrawEnabled()) waveUI_->Draw();
+	DrawStage1ObjectiveGuide();
 	DrawBossHpBar();
 	DrawBossGuide();
 
@@ -267,6 +272,21 @@ void HUDManager::SetBossHP(float hp, float maxHp, bool bossBattleActive)
 	// ボスHP率をUIへ反映する処理。最大HPが0以下なら安全に0扱いにする。
 	bossHpRate_ = (bossMaxHp_ > 0.0f) ? std::clamp(bossHp_ / bossMaxHp_, 0.0f, 1.0f) : 0.0f;
 	bossHpBarRuntimeVisible_ = bossHpBarSettings_.visible && bossBattleActive_ && bossHp_ > 0.0f;
+}
+
+void HUDManager::SetStage1ObjectiveGuide(bool enabled, int destroyedCrystals, int totalCrystals, bool bossBattleActive, bool bossDefeated)
+{
+	stage1ObjectiveGuideEnabled_ = enabled;
+	stage1DestroyedCrystals_ = std::clamp(destroyedCrystals, 0, std::max(0, totalCrystals));
+	stage1TotalCrystals_ = std::max(0, totalCrystals);
+	stage1BossBattleActive_ = bossBattleActive;
+	stage1BossDefeated_ = bossDefeated;
+}
+
+void HUDManager::NotifyStage1ObjectiveGuideStarted()
+{
+	// ステージ1開始時に目的を強めに表示し、初心者が最初の目標を見失わないようにする。
+	stage1ObjectiveIntroTimer_ = std::max(0.0f, stage1ObjectiveGuideSettings_.introHoldTime);
 }
 
 void HUDManager::SetBossGuide(const K4E::Vector3& playerPos,
@@ -478,6 +498,36 @@ void HUDManager::InitializeBossGuideSprites()
 	bossGuideDotSprite_->SetAnchorPoint({ 0.5f, 0.5f });
 }
 
+void HUDManager::InitializeStage1ObjectiveGuide()
+{
+	stage1ObjectiveGuideBackSprite_ = std::make_unique<K4E::Sprite>();
+	stage1ObjectiveGuideBackSprite_->Initialize("Effects/white.dds");
+	stage1ObjectiveGuideBackSprite_->SetAnchorPoint({ 0.5f, 0.5f });
+
+	stage1ObjectiveGuideAccentSprite_ = std::make_unique<K4E::Sprite>();
+	stage1ObjectiveGuideAccentSprite_->Initialize("Effects/white.dds");
+	stage1ObjectiveGuideAccentSprite_->SetAnchorPoint({ 0.5f, 0.5f });
+
+	stage1ObjectiveTextDrawer_ = std::make_unique<K4E::TextSpriteDrawer>();
+	stage1ObjectiveTextReady_ = false;
+	try
+	{
+		auto fontDefJP = K4E::FontAtlasLoader::LoadFromJson(
+			"UI/Font/JP/DotGothic16-Regular_atlas.dds",
+			"Resources/Fonts/Compiled/JP/DotGothic16-Regular.json",
+			32.0f,
+			32.0f,
+			U'?'
+		);
+		stage1ObjectiveTextDrawer_->Initialize(fontDefJP);
+		stage1ObjectiveTextReady_ = true;
+	}
+	catch (...)
+	{
+		stage1ObjectiveTextReady_ = false;
+	}
+}
+
 void HUDManager::UpdateBossHpBarSprites()
 {
 	const float approachSpeed = 0.9f;
@@ -563,6 +613,36 @@ void HUDManager::UpdateBossGuideSprites(float deltaTime)
 	}
 }
 
+void HUDManager::UpdateStage1ObjectiveGuideSprites(float deltaTime)
+{
+	if (stage1ObjectiveIntroTimer_ > 0.0f)
+	{
+		stage1ObjectiveIntroTimer_ = std::max(0.0f, stage1ObjectiveIntroTimer_ - deltaTime);
+	}
+
+	const bool shouldShow = stage1ObjectiveGuideSettings_.visible && stage1ObjectiveGuideEnabled_ && !stage1BossDefeated_;
+	const float targetAlpha = shouldShow ? (stage1ObjectiveIntroTimer_ > 0.0f ? 0.92f : 0.72f) : 0.0f;
+	const float approach = std::clamp(deltaTime * 8.0f, 0.0f, 1.0f);
+	stage1ObjectiveGuideAlpha_ += (targetAlpha - stage1ObjectiveGuideAlpha_) * approach;
+
+	const K4E::Vector2 center = stage1ObjectiveGuideSettings_.center;
+	const K4E::Vector2 size = stage1ObjectiveGuideSettings_.panelSize;
+	if (stage1ObjectiveGuideBackSprite_)
+	{
+		stage1ObjectiveGuideBackSprite_->SetPosition(center);
+		stage1ObjectiveGuideBackSprite_->SetSize(size);
+		stage1ObjectiveGuideBackSprite_->SetColor({ 0.03f, 0.035f, 0.045f, stage1ObjectiveGuideAlpha_ * 0.82f });
+		stage1ObjectiveGuideBackSprite_->Update();
+	}
+	if (stage1ObjectiveGuideAccentSprite_)
+	{
+		stage1ObjectiveGuideAccentSprite_->SetPosition({ center.x, center.y + size.y * 0.5f - 5.0f });
+		stage1ObjectiveGuideAccentSprite_->SetSize({ size.x * 0.92f, 5.0f });
+		stage1ObjectiveGuideAccentSprite_->SetColor({ 0.35f, 0.86f, 1.0f, stage1ObjectiveGuideAlpha_ });
+		stage1ObjectiveGuideAccentSprite_->Update();
+	}
+}
+
 void HUDManager::DrawBossHpBar()
 {
 	// ボスHPバーを表示する条件判定。登場演出完了後のボス戦中だけ画面固定UIとして描く。
@@ -575,6 +655,44 @@ void HUDManager::DrawBossHpBar()
 	if (bossHpBackSprite_) bossHpBackSprite_->Draw();
 	if (bossHpDelaySprite_) bossHpDelaySprite_->Draw();
 	if (bossHpFillSprite_) bossHpFillSprite_->Draw();
+}
+
+void HUDManager::DrawStage1ObjectiveGuide()
+{
+	if (stage1ObjectiveGuideAlpha_ <= 0.01f || !stage1ObjectiveGuideEnabled_)
+	{
+		return;
+	}
+
+	if (stage1ObjectiveGuideBackSprite_) stage1ObjectiveGuideBackSprite_->Draw();
+	if (stage1ObjectiveGuideAccentSprite_) stage1ObjectiveGuideAccentSprite_->Draw();
+
+	if (!stage1ObjectiveTextReady_ || !stage1ObjectiveTextDrawer_)
+	{
+		return;
+	}
+
+	const bool crystalsDone = stage1TotalCrystals_ > 0 && stage1DestroyedCrystals_ >= stage1TotalCrystals_;
+	const std::string title = crystalsDone ? "ボスが出現した" : "クリスタルを3つ破壊しろ";
+	const std::string progress = crystalsDone
+		? "ボスを倒せ"
+		: ("クリスタル破壊 " + std::to_string(stage1DestroyedCrystals_) + " / " + std::to_string(stage1TotalCrystals_));
+
+	stage1ObjectiveTextDrawer_->Reset();
+	stage1ObjectiveTextDrawer_->SetLetterSpacing(1.0f);
+	stage1ObjectiveTextDrawer_->SetLineSpacing(6.0f);
+	stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.titleScale);
+	stage1ObjectiveTextDrawer_->SetColor({ 0.96f, 0.98f, 1.0f, stage1ObjectiveGuideAlpha_ });
+	stage1ObjectiveTextDrawer_->DrawTextCentered(title, {
+		stage1ObjectiveGuideSettings_.center.x,
+		stage1ObjectiveGuideSettings_.center.y - 18.0f
+		});
+	stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.progressScale);
+	stage1ObjectiveTextDrawer_->SetColor({ 0.42f, 0.90f, 1.0f, stage1ObjectiveGuideAlpha_ });
+	stage1ObjectiveTextDrawer_->DrawTextCentered(progress, {
+		stage1ObjectiveGuideSettings_.center.x,
+		stage1ObjectiveGuideSettings_.center.y + 28.0f
+		});
 }
 
 void HUDManager::DrawBossGuide()
