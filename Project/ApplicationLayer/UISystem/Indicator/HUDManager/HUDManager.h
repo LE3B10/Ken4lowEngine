@@ -48,8 +48,11 @@ public: /// ---------- セッタ ---------- ///
 	void SetHP(float hp, float maxHp);
 	// ボス本体のHPを参照し、ボス戦用の大型HPバーへ反映する。
 	void SetBossHP(float hp, float maxHp, bool bossBattleActive);
-	void SetStage1ObjectiveGuide(bool enabled, int destroyedCrystals, int totalCrystals, bool bossBattleActive, bool bossDefeated);
+	void SetStage1ObjectiveGuide(bool enabled, int destroyedCrystals, int totalCrystals, bool bossBattleActive, bool bossDefeated, bool tutorialActive);
+	void SetStage1ObjectiveTutorialAlpha(float alpha);
+	void SetStage1ObjectiveTutorialPage(int page);
 	void NotifyStage1ObjectiveGuideStarted();
+	void NotifyStage1BossAppeared();
 	// ボス登場演出後、プレイヤーがボスの方向を見失わないようHUDマーカーへ位置情報を渡す。
 	void SetBossGuide(const K4E::Vector3& playerPos,
 		const K4E::Vector3& bossPos,
@@ -131,11 +134,17 @@ private: /// ---------- メンバ変数 ---------- ///
 	struct Stage1ObjectiveGuideSettings
 	{
 		bool visible = true;
-		K4E::Vector2 center{ 960.0f, 132.0f };
-		K4E::Vector2 panelSize{ 620.0f, 94.0f };
+		K4E::Vector2 center{ 250.0f, 94.0f };
+		K4E::Vector2 panelSize{ 380.0f, 54.0f };
+		K4E::Vector2 tutorialCenter{ 960.0f, 270.0f };
+		K4E::Vector2 tutorialPanelSize{ 860.0f, 240.0f };
+		K4E::Vector2 noticeCenter{ 960.0f, 156.0f };
 		float titleScale = 0.92f;
 		float progressScale = 0.58f;
+		float smallScale = 0.54f;
+		float noticeScale = 0.78f;
 		float introHoldTime = 7.0f;
+		float bossNoticeTime = 3.2f;
 	};
 
 	void RegisterBossHpBarParameters();
@@ -200,6 +209,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	int stage1TotalCrystals_ = 0;
 	bool stage1BossBattleActive_ = false;
 	bool stage1BossDefeated_ = false;
+	bool stage1ObjectiveTutorialActive_ = false;
+	int stage1ObjectiveTutorialPage_ = 0;
+	float stage1ObjectiveTutorialAlpha_ = 0.0f;
 	float stage1ObjectiveIntroTimer_ = 0.0f;
 	float stage1ObjectiveGuideAlpha_ = 0.0f;
+	float stage1BossNoticeTimer_ = 0.0f;
 };

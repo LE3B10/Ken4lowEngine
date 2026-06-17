@@ -77,6 +77,7 @@ public:
 	void SpawnEnemy(CharacterWorld& characters);
 	void ApplySpawnerSettings(const CrystalSpawnPoint& spawnPoint, const std::vector<K4E::AABB>* floorAABBs = nullptr, const std::vector<K4E::AABB>* obstacleAABBs = nullptr);
 	void ApplyInitialHpSettings(const CrystalSpawnPoint& spawnPoint);
+	void SetGuideHighlight(float alpha);
 	void AdvanceSpawnTimer(float deltaTime);
 	bool IsSpawnReady() const;
 	void ConsumeSpawnTimer();
@@ -164,6 +165,8 @@ private:
 	float breakingTimer_ = 0.0f;
 	bool justBroken_ = false;
 	int hitCount_ = 0;
+	float guideHighlightAlpha_ = 0.0f;
+	float guideHighlightTimer_ = 0.0f;
 	std::unique_ptr<K4E::Object3D> debugCube_;
 	std::vector<const EnemyBase*> spawnedEnemies_;
 	static float s_spawnYOffset_;

@@ -350,21 +350,46 @@ void CrystalManager::SetStage1BeginnerBalanceEnabled(bool enabled)
 	}
 }
 
+void CrystalManager::SetFirstAliveCrystalGuideHighlight(float alpha)
+{
+	const float highlightAlpha = std::clamp(alpha, 0.0f, 1.0f);
+	bool applied = false;
+	for (EnemySpawnCrystal& crystal : crystals_)
+	{
+		// ステージ1開始案内では、最初に壊す対象だけを強調して迷いを減らす。
+		const bool shouldHighlight = !applied && crystal.IsAlive();
+		crystal.SetGuideHighlight(shouldHighlight ? highlightAlpha : 0.0f);
+		if (shouldHighlight)
+		{
+			applied = true;
+		}
+	}
+}
+
 int CrystalManager::GetAliveCrystalCount() const
 {
 	return static_cast<int>(std::count_if(crystals_.begin(), crystals_.end(),
 		[](const EnemySpawnCrystal& crystal) { return crystal.IsAlive(); }));
 }
 
-bool CrystalManager::TryGetFirstAliveCrystalPosition(K4E::Vector3& outPosition) const
+const EnemySpawnCrystal* CrystalManager::GetFirstAliveCrystal() const
 {
 	for (const EnemySpawnCrystal& crystal : crystals_)
 	{
 		if (crystal.IsAlive())
 		{
-			outPosition = crystal.GetPosition();
-			return true;
+			return &crystal;
 		}
+	}
+	return nullptr;
+}
+
+bool CrystalManager::TryGetFirstAliveCrystalPosition(K4E::Vector3& outPosition) const
+{
+	if (const EnemySpawnCrystal* crystal = GetFirstAliveCrystal())
+	{
+		outPosition = crystal->GetPosition();
+		return true;
 	}
 	return false;
 }

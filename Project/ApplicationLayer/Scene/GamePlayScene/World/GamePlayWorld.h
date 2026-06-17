@@ -203,6 +203,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	void AlignPlayerViewToBossAfterIntro(Player& player);
 	void UpdateBossGuideHud(Player& player, bool bossBattleActive);
 	void StartStage1ObjectiveGuide();
+	void UpdateStage1ObjectiveIntro(float deltaTime);
+	void FinishStage1ObjectiveIntro();
 	void AlignPlayerViewToFirstCrystal(Player& player);
 	void UpdateStage1ObjectiveGuideHud(bool bossBattleActive);
 	void ResetBossIntroForDebug();
@@ -300,6 +302,15 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector3 bossSpawnPosition_{ 0.0f, 2.25f, 30.0f };
 	BossIntroController bossIntroController_;
 	bool stage1BeginnerBalanceEnabled_ = false;
+	bool stage1ObjectiveIntroActive_ = false;
+	float stage1ObjectiveIntroTimer_ = 0.0f;
+	float stage1ObjectiveIntroFadeInTime_ = 0.4f;
+	float stage1ObjectiveIntroHoldTime_ = 4.0f;
+	float stage1ObjectiveIntroFadeOutTime_ = 0.8f;
+	float stage1ItemIntroFadeInTime_ = 0.4f;
+	float stage1ItemIntroHoldTime_ = 4.0f;
+	float stage1ItemIntroFadeOutTime_ = 0.8f;
+	K4E::Vector3 stage1ObjectiveSavedCameraRotation_{};
 	bool bossSpawned_ = false;
 	bool bossColliderRegistered_ = false;
 	bool bossSpawnConditionMet_ = false;

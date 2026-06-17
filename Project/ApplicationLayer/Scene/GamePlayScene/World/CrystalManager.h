@@ -37,10 +37,12 @@ public:
 	void DrawImGui();
 	void SetSkyBox(K4E::SkyBox* skyBox) { skyBox_ = skyBox; }
 	void SetStage1BeginnerBalanceEnabled(bool enabled);
+	void SetFirstAliveCrystalGuideHighlight(float alpha);
 
 	int GetCrystalCount() const { return static_cast<int>(crystals_.size()); }
 	int GetAliveCrystalCount() const;
 	int GetDestroyedCrystalCount() const { return GetCrystalCount() - GetAliveCrystalCount(); }
+	const EnemySpawnCrystal* GetFirstAliveCrystal() const;
 	bool TryGetFirstAliveCrystalPosition(K4E::Vector3& outPosition) const;
 	int GetAliveCrystalSpawnEnemyCount() const;
 	bool AreAllCrystalsDestroyed() const;

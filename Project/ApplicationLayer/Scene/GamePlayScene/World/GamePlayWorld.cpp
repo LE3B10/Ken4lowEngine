@@ -424,6 +424,12 @@ void GamePlayWorld::Update(float deltaTime)
 		stage_->Update();
 	}
 
+	if (stage1ObjectiveIntroActive_)
+	{
+		UpdateStage1ObjectiveIntro(deltaTime);
+		return;
+	}
+
 	if (bossIntroController_.IsGameplayPaused())
 	{
 		// ボス登場演出中は通常ゲーム進行を止め、カメラとボス登場Transformだけを進める。
@@ -1077,6 +1083,10 @@ void GamePlayWorld::UpdateBossIntro(float deltaTime)
 		if (hudManager_)
 		{
 			hudManager_->NotifyBossIntroCompleted(guardianBoss_ ? guardianBoss_->GetPosition() : bossSpawnPosition_);
+			if (stage1BeginnerBalanceEnabled_)
+			{
+				hudManager_->NotifyStage1BossAppeared();
+			}
 		}
 	}
 }
@@ -1128,17 +1138,126 @@ void GamePlayWorld::StartStage1ObjectiveGuide()
 	}
 
 	// ステージ1は導入ステージなので、開始直後に目的表示と最初のクリスタル方向を案内する。
+	stage1ObjectiveIntroActive_ = true;
+	stage1ObjectiveIntroTimer_ = 0.0f;
 	hudManager_->SetStage1ObjectiveGuide(
 		true,
 		crystalManager_.GetDestroyedCrystalCount(),
 		crystalManager_.GetCrystalCount(),
 		false,
-		bossDefeated_);
+		bossDefeated_,
+		true);
+	hudManager_->SetStage1ObjectiveTutorialAlpha(0.0f);
+	hudManager_->SetStage1ObjectiveTutorialPage(0);
 	hudManager_->NotifyStage1ObjectiveGuideStarted();
 	if (auto* player = characters_.GetPlayer())
 	{
+		if (auto* camera = player->GetCamera())
+		{
+			stage1ObjectiveSavedCameraRotation_ = camera->GetRotate();
+		}
 		AlignPlayerViewToFirstCrystal(*player);
 	}
+}
+
+void GamePlayWorld::UpdateStage1ObjectiveIntro(float deltaTime)
+{
+	stage1ObjectiveIntroTimer_ += deltaTime;
+	const float crystalFadeInTime = std::max(0.0f, stage1ObjectiveIntroFadeInTime_);
+	const float crystalHoldTime = std::max(0.0f, stage1ObjectiveIntroHoldTime_);
+	const float crystalFadeOutTime = std::max(0.0f, stage1ObjectiveIntroFadeOutTime_);
+	const float itemFadeInTime = std::max(0.0f, stage1ItemIntroFadeInTime_);
+	const float itemHoldTime = std::max(0.0f, stage1ItemIntroHoldTime_);
+	const float itemFadeOutTime = std::max(0.0f, stage1ItemIntroFadeOutTime_);
+	const float crystalFadeOutStart = crystalFadeInTime + crystalHoldTime;
+	const float itemStart = crystalFadeOutStart + crystalFadeOutTime;
+	const float itemFadeOutStart = itemStart + itemFadeInTime + itemHoldTime;
+	const float totalDuration = itemFadeOutStart + itemFadeOutTime;
+
+	const bool isItemPage = stage1ObjectiveIntroTimer_ >= itemStart;
+	const float pageTimer = isItemPage ? stage1ObjectiveIntroTimer_ - itemStart : stage1ObjectiveIntroTimer_;
+	const float fadeInTime = isItemPage ? itemFadeInTime : crystalFadeInTime;
+	const float holdTime = isItemPage ? itemHoldTime : crystalHoldTime;
+	const float fadeOutTime = isItemPage ? itemFadeOutTime : crystalFadeOutTime;
+	const float fadeOutStart = fadeInTime + holdTime;
+	float tutorialAlpha = 1.0f;
+	if (fadeInTime > 0.0f && pageTimer < fadeInTime)
+	{
+		tutorialAlpha = std::clamp(pageTimer / fadeInTime, 0.0f, 1.0f);
+	}
+	else if (fadeOutTime > 0.0f && pageTimer >= fadeOutStart)
+	{
+		tutorialAlpha = 1.0f - std::clamp((pageTimer - fadeOutStart) / fadeOutTime, 0.0f, 1.0f);
+	}
+
+	crystalManager_.UpdatePresentationOnly(characters_, deltaTime);
+	crystalManager_.SetFirstAliveCrystalGuideHighlight(isItemPage ? 0.0f : tutorialAlpha);
+
+	if (skyBox_)
+	{
+		skyBox_->Update();
+		skyBox_->AdvanceCloudLayer(deltaTime);
+	}
+
+	UpdateShadowLightViewProjection();
+	if (stage_)
+	{
+		stage_->UpdateShadowMatrix(shadowLightViewProjection_);
+	}
+	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
+
+	if (hudManager_ && characters_.GetPlayer())
+	{
+		if (auto* camera = characters_.GetPlayer()->GetCamera())
+		{
+			const float width = static_cast<float>(K4E::GameViewportConstants::Width);
+			const float height = static_cast<float>(K4E::GameViewportConstants::Height);
+			crystalManager_.UpdateHpBars(
+				camera->GetViewMatrix(),
+				camera->GetProjectionMatrix(),
+				width,
+				height,
+				deltaTime,
+				isItemPage ? nullptr : crystalManager_.GetFirstAliveCrystal(),
+				true,
+				crystalFadeInTime + crystalHoldTime + crystalFadeOutTime);
+		}
+		hudManager_->SetHP(
+			characters_.GetPlayer()->GetHP(),
+			characters_.GetPlayer()->GetMaxHP());
+		hudManager_->SetBossHP(0.0f, 0.0f, false);
+		hudManager_->SetStage1ObjectiveTutorialAlpha(tutorialAlpha);
+		hudManager_->SetStage1ObjectiveTutorialPage(isItemPage ? 1 : 0);
+		UpdateStage1ObjectiveGuideHud(false);
+		hudManager_->Update(deltaTime);
+	}
+
+	if (stage1ObjectiveIntroTimer_ >= totalDuration)
+	{
+		FinishStage1ObjectiveIntro();
+	}
+}
+
+void GamePlayWorld::FinishStage1ObjectiveIntro()
+{
+	stage1ObjectiveIntroActive_ = false;
+	crystalManager_.SetFirstAliveCrystalGuideHighlight(0.0f);
+	if (auto* player = characters_.GetPlayer())
+	{
+		if (auto* camera = player->GetCamera())
+		{
+			// クリスタル案内カメラ後はプレイヤーの通常視点へ戻してから操作を再開する。
+			player->SetViewLookAngles(stage1ObjectiveSavedCameraRotation_.x, stage1ObjectiveSavedCameraRotation_.y);
+			player->SyncViewToPlayer();
+			camera->Update();
+		}
+	}
+	if (hudManager_)
+	{
+		hudManager_->SetStage1ObjectiveTutorialAlpha(0.0f);
+		hudManager_->SetStage1ObjectiveTutorialPage(0);
+	}
+	UpdateStage1ObjectiveGuideHud(false);
 }
 
 void GamePlayWorld::AlignPlayerViewToFirstCrystal(Player& player)
@@ -1178,7 +1297,8 @@ void GamePlayWorld::UpdateStage1ObjectiveGuideHud(bool bossBattleActive)
 		crystalManager_.GetDestroyedCrystalCount(),
 		crystalManager_.GetCrystalCount(),
 		bossBattleActive || bossSpawned_ || bossIntroController_.HasPlayed(),
-		bossDefeated_);
+		bossDefeated_,
+		stage1ObjectiveIntroActive_);
 }
 
 void GamePlayWorld::UpdateBossIntroPausedWorld(float deltaTime)

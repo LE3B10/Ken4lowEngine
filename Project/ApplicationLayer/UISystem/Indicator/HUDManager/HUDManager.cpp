@@ -274,19 +274,35 @@ void HUDManager::SetBossHP(float hp, float maxHp, bool bossBattleActive)
 	bossHpBarRuntimeVisible_ = bossHpBarSettings_.visible && bossBattleActive_ && bossHp_ > 0.0f;
 }
 
-void HUDManager::SetStage1ObjectiveGuide(bool enabled, int destroyedCrystals, int totalCrystals, bool bossBattleActive, bool bossDefeated)
+void HUDManager::SetStage1ObjectiveGuide(bool enabled, int destroyedCrystals, int totalCrystals, bool bossBattleActive, bool bossDefeated, bool tutorialActive)
 {
 	stage1ObjectiveGuideEnabled_ = enabled;
 	stage1DestroyedCrystals_ = std::clamp(destroyedCrystals, 0, std::max(0, totalCrystals));
 	stage1TotalCrystals_ = std::max(0, totalCrystals);
 	stage1BossBattleActive_ = bossBattleActive;
 	stage1BossDefeated_ = bossDefeated;
+	stage1ObjectiveTutorialActive_ = tutorialActive;
+}
+
+void HUDManager::SetStage1ObjectiveTutorialAlpha(float alpha)
+{
+	stage1ObjectiveTutorialAlpha_ = std::clamp(alpha, 0.0f, 1.0f);
+}
+
+void HUDManager::SetStage1ObjectiveTutorialPage(int page)
+{
+	stage1ObjectiveTutorialPage_ = std::clamp(page, 0, 1);
 }
 
 void HUDManager::NotifyStage1ObjectiveGuideStarted()
 {
 	// ステージ1開始時に目的を強めに表示し、初心者が最初の目標を見失わないようにする。
 	stage1ObjectiveIntroTimer_ = std::max(0.0f, stage1ObjectiveGuideSettings_.introHoldTime);
+}
+
+void HUDManager::NotifyStage1BossAppeared()
+{
+	stage1BossNoticeTimer_ = std::max(0.0f, stage1ObjectiveGuideSettings_.bossNoticeTime);
 }
 
 void HUDManager::SetBossGuide(const K4E::Vector3& playerPos,
@@ -521,8 +537,7 @@ void HUDManager::InitializeStage1ObjectiveGuide()
 		);
 		stage1ObjectiveTextDrawer_->Initialize(fontDefJP);
 		stage1ObjectiveTextReady_ = true;
-	}
-	catch (...)
+	} catch (...)
 	{
 		stage1ObjectiveTextReady_ = false;
 	}
@@ -619,14 +634,29 @@ void HUDManager::UpdateStage1ObjectiveGuideSprites(float deltaTime)
 	{
 		stage1ObjectiveIntroTimer_ = std::max(0.0f, stage1ObjectiveIntroTimer_ - deltaTime);
 	}
+	if (stage1BossNoticeTimer_ > 0.0f)
+	{
+		stage1BossNoticeTimer_ = std::max(0.0f, stage1BossNoticeTimer_ - deltaTime);
+	}
 
 	const bool shouldShow = stage1ObjectiveGuideSettings_.visible && stage1ObjectiveGuideEnabled_ && !stage1BossDefeated_;
-	const float targetAlpha = shouldShow ? (stage1ObjectiveIntroTimer_ > 0.0f ? 0.92f : 0.72f) : 0.0f;
-	const float approach = std::clamp(deltaTime * 8.0f, 0.0f, 1.0f);
-	stage1ObjectiveGuideAlpha_ += (targetAlpha - stage1ObjectiveGuideAlpha_) * approach;
+	if (stage1ObjectiveTutorialActive_)
+	{
+		stage1ObjectiveGuideAlpha_ = shouldShow ? 0.92f * stage1ObjectiveTutorialAlpha_ : 0.0f;
+	}
+	else
+	{
+		const float targetAlpha = shouldShow ? 0.70f : 0.0f;
+		const float approach = std::clamp(deltaTime * 8.0f, 0.0f, 1.0f);
+		stage1ObjectiveGuideAlpha_ += (targetAlpha - stage1ObjectiveGuideAlpha_) * approach;
+	}
 
-	const K4E::Vector2 center = stage1ObjectiveGuideSettings_.center;
-	const K4E::Vector2 size = stage1ObjectiveGuideSettings_.panelSize;
+	const K4E::Vector2 center = stage1ObjectiveTutorialActive_
+		? stage1ObjectiveGuideSettings_.tutorialCenter
+		: stage1ObjectiveGuideSettings_.center;
+	const K4E::Vector2 size = stage1ObjectiveTutorialActive_
+		? stage1ObjectiveGuideSettings_.tutorialPanelSize
+		: stage1ObjectiveGuideSettings_.panelSize;
 	if (stage1ObjectiveGuideBackSprite_)
 	{
 		stage1ObjectiveGuideBackSprite_->SetPosition(center);
@@ -672,27 +702,81 @@ void HUDManager::DrawStage1ObjectiveGuide()
 		return;
 	}
 
-	const bool crystalsDone = stage1TotalCrystals_ > 0 && stage1DestroyedCrystals_ >= stage1TotalCrystals_;
-	const std::string title = crystalsDone ? "ボスが出現した" : "クリスタルを3つ破壊しろ";
-	const std::string progress = crystalsDone
-		? "ボスを倒せ"
-		: ("クリスタル破壊 " + std::to_string(stage1DestroyedCrystals_) + " / " + std::to_string(stage1TotalCrystals_));
-
 	stage1ObjectiveTextDrawer_->Reset();
 	stage1ObjectiveTextDrawer_->SetLetterSpacing(1.0f);
 	stage1ObjectiveTextDrawer_->SetLineSpacing(6.0f);
-	stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.titleScale);
-	stage1ObjectiveTextDrawer_->SetColor({ 0.96f, 0.98f, 1.0f, stage1ObjectiveGuideAlpha_ });
-	stage1ObjectiveTextDrawer_->DrawTextCentered(title, {
+
+	if (stage1ObjectiveTutorialActive_)
+	{
+		if (stage1ObjectiveTutorialPage_ == 0)
+		{
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.titleScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.96f, 0.98f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("クリスタルを3つ破壊しろ", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y - 34.0f
+				});
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.progressScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.42f, 0.90f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("光っている青い結晶が破壊対象だ", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 20.0f
+				});
+			stage1ObjectiveTextDrawer_->DrawTextCentered("すべて破壊するとボスが出現する", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 66.0f
+				});
+		}
+		else
+		{
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.progressScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.96f, 0.98f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("アイテムを拾って戦闘に備えろ", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y - 82.0f
+				});
+			stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.smallScale);
+			stage1ObjectiveTextDrawer_->SetColor({ 0.42f, 0.90f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("弾薬箱：弾を補充する", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y - 36.0f
+				});
+			stage1ObjectiveTextDrawer_->DrawTextCentered("回復薬：HPを回復する", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y - 2.0f
+				});
+			stage1ObjectiveTextDrawer_->SetColor({ 0.90f, 0.96f, 1.0f, stage1ObjectiveGuideAlpha_ });
+			stage1ObjectiveTextDrawer_->DrawTextCentered("アイテムは近づくと自動で拾える", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 42.0f
+				});
+			stage1ObjectiveTextDrawer_->DrawTextCentered("WASD：移動　左クリック：射撃　R：リロード", {
+				stage1ObjectiveGuideSettings_.tutorialCenter.x,
+				stage1ObjectiveGuideSettings_.tutorialCenter.y + 82.0f
+				});
+		}
+		return;
+	}
+
+	const bool crystalsDone = stage1TotalCrystals_ > 0 && stage1DestroyedCrystals_ >= stage1TotalCrystals_;
+	const std::string objective = crystalsDone
+		? "目標：ボスを倒せ"
+		: ("目標：クリスタル " + std::to_string(stage1DestroyedCrystals_) + " / " + std::to_string(stage1TotalCrystals_));
+
+	stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.smallScale);
+	stage1ObjectiveTextDrawer_->SetColor({ 0.90f, 0.96f, 1.0f, stage1ObjectiveGuideAlpha_ });
+	stage1ObjectiveTextDrawer_->DrawTextCentered(objective, {
 		stage1ObjectiveGuideSettings_.center.x,
-		stage1ObjectiveGuideSettings_.center.y - 18.0f
+		stage1ObjectiveGuideSettings_.center.y - 2.0f
 		});
-	stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.progressScale);
-	stage1ObjectiveTextDrawer_->SetColor({ 0.42f, 0.90f, 1.0f, stage1ObjectiveGuideAlpha_ });
-	stage1ObjectiveTextDrawer_->DrawTextCentered(progress, {
-		stage1ObjectiveGuideSettings_.center.x,
-		stage1ObjectiveGuideSettings_.center.y + 28.0f
-		});
+
+	if (stage1BossNoticeTimer_ > 0.0f)
+	{
+		const float noticeAlpha = std::clamp(stage1BossNoticeTimer_ / std::max(0.01f, stage1ObjectiveGuideSettings_.bossNoticeTime), 0.0f, 1.0f);
+		stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.noticeScale);
+		stage1ObjectiveTextDrawer_->SetColor({ 1.0f, 0.78f, 0.22f, noticeAlpha });
+		stage1ObjectiveTextDrawer_->DrawTextCentered("ボスが出現した！", stage1ObjectiveGuideSettings_.noticeCenter);
+	}
 }
 
 void HUDManager::DrawBossGuide()

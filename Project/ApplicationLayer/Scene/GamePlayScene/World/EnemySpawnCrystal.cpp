@@ -101,6 +101,8 @@ void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint, const st
 	aliveSpawnedEnemyCount = 0;
 	spawnedEnemies_.clear();
 	hitCount_ = 0;
+	guideHighlightAlpha_ = 0.0f;
+	guideHighlightTimer_ = 0.0f;
 	ResetSpawnRuntime();
 
 	ApplyInitialHpSettings(spawnPoint);
@@ -140,6 +142,7 @@ void EnemySpawnCrystal::Update(const CharacterWorld& characters, float deltaTime
 		debugCube_->SetColor(BuildVisualColor(reactionSettings));
 		debugCube_->Update();
 	}
+	guideHighlightTimer_ += deltaTime;
 }
 
 void EnemySpawnCrystal::Draw() const
@@ -224,6 +227,11 @@ void EnemySpawnCrystal::ApplyInitialHpSettings(const CrystalSpawnPoint& spawnPoi
 {
 	maxHp = std::max(1, spawnPoint.maxHp);
 	hp = std::clamp(spawnPoint.hp, 1, maxHp);
+}
+
+void EnemySpawnCrystal::SetGuideHighlight(float alpha)
+{
+	guideHighlightAlpha_ = Clamp01(alpha);
 }
 
 void EnemySpawnCrystal::AdvanceSpawnTimer(float deltaTime)
@@ -420,6 +428,12 @@ K4E::Vector4 EnemySpawnCrystal::BuildVisualColor(const CrystalReactionSettings& 
 	{
 		color = LerpColor(color, { 1.0f, 1.0f, 1.0f, color.w }, 0.75f);
 	}
+	if (guideHighlightAlpha_ > 0.0f && state_ != State::Breaking && state_ != State::Broken)
+	{
+		const float pulse = 0.5f + 0.5f * std::sin(guideHighlightTimer_ * 7.0f);
+		const float highlight = guideHighlightAlpha_ * (0.45f + pulse * 0.35f);
+		color = LerpColor(color, { 1.0f, 0.95f, 0.35f, color.w }, highlight);
+	}
 
 	return color;
 }
@@ -445,6 +459,12 @@ K4E::Vector3 EnemySpawnCrystal::BuildVisualScale(const CrystalReactionSettings& 
 		const float t = Clamp01(breakingTimer_ / std::max(0.05f, reactionSettings.breakingDuration));
 		const float scaleBoost = 1.0f + (reactionSettings.breakEffectScale - 1.0f) * (1.0f - std::abs(t * 2.0f - 1.0f));
 		visualScale = visualScale * scaleBoost;
+	}
+	else if (guideHighlightAlpha_ > 0.0f)
+	{
+		// ステージ1開始案内中だけ破壊対象を少し脈動させ、初心者がクリスタルを識別しやすくする。
+		const float pulse = 0.5f + 0.5f * std::sin(guideHighlightTimer_ * 7.0f);
+		visualScale = visualScale * (1.0f + guideHighlightAlpha_ * (0.06f + pulse * 0.08f));
 	}
 	return visualScale;
 }
