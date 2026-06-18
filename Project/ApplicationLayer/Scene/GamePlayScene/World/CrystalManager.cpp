@@ -1,16 +1,14 @@
-#define NOMINMAX
+﻿#define NOMINMAX
 #include "CrystalManager.h"
 
 #include "CharacterWorld.h"
 #include "CameraManager.h"
 #include "CollisionManager.h"
 #include "EnemyBase.h"
-#include "EnemyHPBarProjector.h"
 #include "SkyBox.h"
 
 #include <algorithm>
 #include <cmath>
-#include <utility>
 #include <string>
 
 #ifdef USE_IMGUI
@@ -53,16 +51,8 @@ void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoint
 		crystal.Initialize(spawnPoint, floorAABBs_, obstacleAABBs_);
 		crystals_.push_back(std::move(crystal));
 	}
-	crystalHpBars_.clear();
-	crystalHpBars_.reserve(crystals_.size());
-	for (size_t i = 0; i < crystals_.size(); ++i)
-	{
-		auto bar = std::make_unique<EnemyHPBar>();
-		bar->Initialize();
-		crystalHpBars_.push_back(std::move(bar));
-	}
-	crystalHpBarDebugInfos_.resize(crystals_.size());
-	crystalHpBarAimTimers_.assign(crystals_.size(), 0.0f);
+	// クリスタル数に合わせてHPバーを用意し、表示管理は専用Controllerへ任せる。
+	crystalHpBarController_.Initialize(crystals_.size());
 
 	if (collisionManager_)
 	{
@@ -104,9 +94,7 @@ void CrystalManager::Finalize()
 	crystalParameterController_.UnregisterSkyColorParameters();
 	RestoreWorldColor();
 	crystals_.clear();
-	crystalHpBars_.clear();
-	crystalHpBarDebugInfos_.clear();
-	crystalHpBarAimTimers_.clear();
+	crystalHpBarController_.Finalize();
 	spawnPoints_.clear();
 	collisionManager_ = nullptr;
 	floorAABBs_ = nullptr;
@@ -189,114 +177,13 @@ void CrystalManager::Draw() const
 
 void CrystalManager::UpdateHpBars(const Ken4lowEngine::Matrix4x4& viewMatrix, const Ken4lowEngine::Matrix4x4& projMatrix, float screenWidth, float screenHeight, float deltaTime, const EnemySpawnCrystal* aimedCrystal, bool showOnlyWhenAimed, float visibleHoldTime)
 {
-	crystalHpBarDrawCalled_ = false;
-	crystalHpBarVisibleCount_ = 0;
-	if (crystalHpBarDebugInfos_.size() != crystals_.size())
-	{
-		crystalHpBarDebugInfos_.resize(crystals_.size());
-	}
-	if (crystalHpBarAimTimers_.size() != crystals_.size())
-	{
-		crystalHpBarAimTimers_.assign(crystals_.size(), 0.0f);
-	}
-	if (crystalHpBars_.size() != crystals_.size())
-	{
-		crystalHpBars_.clear();
-		crystalHpBars_.reserve(crystals_.size());
-		for (size_t i = 0; i < crystals_.size(); ++i)
-		{
-			auto bar = std::make_unique<EnemyHPBar>();
-			bar->Initialize();
-			crystalHpBars_.push_back(std::move(bar));
-		}
-		crystalHpBarAimTimers_.assign(crystals_.size(), 0.0f);
-	}
-
-	if (!crystalHpBarVisible_)
-	{
-		for (auto& bar : crystalHpBars_)
-		{
-			if (bar) { bar->SetVisible(false); }
-		}
-		return;
-	}
-
-	for (size_t i = 0; i < crystals_.size(); ++i)
-	{
-		const EnemySpawnCrystal& crystal = crystals_[i];
-		CrystalHpBarDebugInfo debug{};
-		debug.hp = crystal.GetHp();
-		debug.maxHp = crystal.GetMaxHp();
-		debug.hpRate = std::clamp(crystal.GetHpRate(), 0.0f, 1.0f);
-		debug.active = crystal.IsAlive();
-		debug.broken = crystal.IsDestroyed();
-
-		bool visible = true;
-		if (&crystal == aimedCrystal)
-		{
-			crystalHpBarAimTimers_[i] = std::max(0.0f, visibleHoldTime);
-		}
-		else if (crystalHpBarAimTimers_[i] > 0.0f)
-		{
-			crystalHpBarAimTimers_[i] = std::max(0.0f, crystalHpBarAimTimers_[i] - deltaTime);
-		}
-		if (crystal.IsDestroyed())
-		{
-			visible = false;
-			debug.hiddenReason = "Broken";
-		}
-		else if (showOnlyWhenAimed && &crystal != aimedCrystal && crystalHpBarAimTimers_[i] <= 0.0f)
-		{
-			// 照準対象だけHPバーを表示する処理。短い保持時間で外れ際のチラつきを抑える。
-			visible = false;
-			debug.hiddenReason = "Not aimed";
-		}
-		else if (!crystalHpBarAlwaysVisible_ && crystal.GetHp() >= crystal.GetMaxHp())
-		{
-			visible = false;
-			debug.hiddenReason = "Full HP";
-		}
-
-		const Ken4lowEngine::Vector3& pos = crystal.GetPosition();
-		const Ken4lowEngine::Vector3& scale = crystal.GetScale();
-		// クリスタル頭上HPバーの表示位置をParameterManager調整値込みで計算する。
-		const Ken4lowEngine::Vector3 hpBarWorldPos{ pos.x, pos.y + std::abs(scale.y) * 0.65f + crystalHpBarOffsetY_, pos.z };
-		debug.worldPosition = hpBarWorldPos;
-		const HpBarProjectResult projected = ProjectWorldToScreen(hpBarWorldPos, viewMatrix, projMatrix, screenWidth, screenHeight);
-		debug.screenPosition = projected.screenPos;
-		debug.inFront = projected.inFront;
-		debug.inScreen = projected.inScreen;
-		if (visible && (!projected.inFront || !projected.inScreen))
-		{
-			visible = false;
-			debug.hiddenReason = projected.inFront ? "Out of screen" : "Behind camera";
-		}
-
-		// クリスタルHP率を計算し、最大HPが不正でも0除算しないようGetter側の安全値を使う。
-		const float hpRate = debug.hpRate;
-		debug.visible = visible;
-		if (visible)
-		{
-			++crystalHpBarVisibleCount_;
-		}
-		if (i < crystalHpBars_.size() && crystalHpBars_[i])
-		{
-			crystalHpBars_[i]->Update(projected.screenPos, hpRate, visible, deltaTime, crystalHpBarWidth_, crystalHpBarHeight_);
-		}
-		crystalHpBarDebugInfos_[i] = debug;
-	}
+	// クリスタルHPバーの投影・表示判定は専用Controllerへ委譲する。
+	crystalHpBarController_.Update(crystals_, viewMatrix, projMatrix, screenWidth, screenHeight, deltaTime, aimedCrystal, showOnlyWhenAimed, visibleHoldTime);
 }
 
 void CrystalManager::DrawHpBars()
 {
-	crystalHpBarDrawCalled_ = true;
-	for (auto& bar : crystalHpBars_)
-	{
-		if (bar)
-		{
-			bar->Draw();
-		}
-	}
+	crystalHpBarController_.Draw();
 }
 
 void CrystalManager::SetStage1BeginnerBalanceEnabled(bool enabled)
@@ -458,13 +345,14 @@ CrystalParameterController::ReactionBinding CrystalManager::BuildReactionParamet
 
 CrystalParameterController::HpBarBinding CrystalManager::BuildHpBarParameterBinding()
 {
+	CrystalHpBarController::Settings& settings = crystalHpBarController_.GetSettings();
 	return {
-		&crystalHpBarVisible_,
-		&crystalHpBarAlwaysVisible_,
-		&crystalHpBarOffsetY_,
-		&crystalHpBarWidth_,
-		&crystalHpBarHeight_,
-		&crystalHpBarShowTime_
+		&settings.visible,
+		&settings.alwaysVisible,
+		&settings.offsetY,
+		&settings.width,
+		&settings.height,
+		&settings.showTime
 	};
 }
 
@@ -708,30 +596,7 @@ void CrystalManager::DrawImGui()
 	ImGui::Text("ボス登場要求フラグ: %s", requestBossAppear_ ? "はい" : "いいえ");
 	ImGui::Text("世界色変化: %.2f / %.2f 秒", worldColorChangeTimer_, worldColorChangeTime_);
 	ImGui::Text("世界色変化完了: %s", worldColorChangeComplete_ ? "はい" : "いいえ");
-	ImGui::SeparatorText("Crystal HP Bar");
-	ImGui::Text("表示: %s", crystalHpBarVisible_ ? "ON" : "OFF");
-	ImGui::Text("常時表示: %s", crystalHpBarAlwaysVisible_ ? "ON" : "OFF");
-	ImGui::Text("OffsetY / Size: %.2f / %.1f x %.1f", crystalHpBarOffsetY_, crystalHpBarWidth_, crystalHpBarHeight_);
-	ImGui::Text("被弾後表示時間: %.2f 秒", crystalHpBarShowTime_);
-	ImGui::Text("Draw呼び出し: %s", crystalHpBarDrawCalled_ ? "はい" : "いいえ");
-	ImGui::Text("表示対象数: %d / %d", crystalHpBarVisibleCount_, static_cast<int>(crystalHpBarDebugInfos_.size()));
-	for (size_t i = 0; i < crystalHpBarDebugInfos_.size(); ++i)
-	{
-		const auto& info = crystalHpBarDebugInfos_[i];
-		ImGui::Text(
-			"CrystalHPBar[%d] HP:%d/%d Rate:%.2f World:(%.2f,%.2f,%.2f) Screen:(%.1f,%.1f) visible:%s reason:%s",
-			static_cast<int>(i),
-			info.hp,
-			info.maxHp,
-			info.hpRate,
-			info.worldPosition.x,
-			info.worldPosition.y,
-			info.worldPosition.z,
-			info.screenPosition.x,
-			info.screenPosition.y,
-			info.visible ? "true" : "false",
-			info.hiddenReason.empty() ? "-" : info.hiddenReason.c_str());
-	}
+	crystalHpBarController_.DrawImGui();
 	ImGui::SeparatorText("Sky Color Effect");
 	ImGui::Text("空色変化ON: %s", skyColorChangeEnabled_ ? "ON" : "OFF");
 	ImGui::Text("全クリスタル破壊時に変化: %s", changeSkyOnAllCrystalsBroken_ ? "ON" : "OFF");

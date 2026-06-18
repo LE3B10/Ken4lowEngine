@@ -1,11 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include "EnemySpawnCrystal.h"
-#include "EnemyHPBar.h"
 #include "CrystalParameterController.h"
+#include "CrystalHpBarController.h"
 
 #include <cstddef>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -97,31 +96,7 @@ private:
 	float worldColorChangeTime_ = 3.0f;
 	float worldDarkness_ = 0.45f;
 	float worldRedTint_ = 0.35f;
-	bool crystalHpBarVisible_ = true;
-	bool crystalHpBarAlwaysVisible_ = true;
-	float crystalHpBarOffsetY_ = 0.35f;
-	float crystalHpBarWidth_ = 82.0f;
-	float crystalHpBarHeight_ = 9.0f;
-	float crystalHpBarShowTime_ = 3.0f;
-	struct CrystalHpBarDebugInfo
-	{
-		int hp = 0;
-		int maxHp = 0;
-		float hpRate = 0.0f;
-		K4E::Vector3 worldPosition{};
-		K4E::Vector2 screenPosition{};
-		bool active = false;
-		bool broken = false;
-		bool inFront = false;
-		bool inScreen = false;
-		bool visible = false;
-		std::string hiddenReason;
-	};
-	std::vector<std::unique_ptr<EnemyHPBar>> crystalHpBars_;
-	std::vector<CrystalHpBarDebugInfo> crystalHpBarDebugInfos_;
-	std::vector<float> crystalHpBarAimTimers_;
-	bool crystalHpBarDrawCalled_ = false;
-	int crystalHpBarVisibleCount_ = 0;
+	CrystalHpBarController crystalHpBarController_;
 	K4E::SkyBox* skyBox_ = nullptr;
 	bool skyColorChangeEnabled_ = true;
 	bool changeSkyOnAllCrystalsBroken_ = true;
