@@ -2,6 +2,7 @@
 
 #include "EnemySpawnCrystal.h"
 #include "EnemyHPBar.h"
+#include "CrystalParameterController.h"
 
 #include <cstddef>
 #include <memory>
@@ -59,21 +60,12 @@ private:
 	EnemySpawnCrystal* GetSelectedCrystal();
 	const EnemySpawnCrystal* GetSelectedCrystal() const;
 	EnemySpawnCrystal* FindNextSpawnableCrystal();
-	void RegisterCrystalParameters(CrystalSpawnPoint& spawnPoint);
-	void UnregisterCrystalParameters();
-	void ApplyParameterToSpawnPoint(CrystalSpawnPoint& spawnPoint);
 	void ApplyStage1BeginnerBalance(CrystalSpawnPoint& spawnPoint);
 	void SyncCrystalsFromParameterManager();
 	void SyncCrystalFromSpawnPoint(size_t index);
-	void RegisterReactionParameters();
-	void UnregisterReactionParameters();
-	void ApplyReactionParameters();
-	void RegisterHpBarParameters();
-	void UnregisterHpBarParameters();
-	void ApplyHpBarParameters();
-	void RegisterSkyColorParameters();
-	void UnregisterSkyColorParameters();
-	void ApplySkyColorParameters();
+	CrystalParameterController::ReactionBinding BuildReactionParameterBinding();
+	CrystalParameterController::HpBarBinding BuildHpBarParameterBinding();
+	CrystalParameterController::SkyColorBinding BuildSkyColorParameterBinding();
 	void HandleCrystalBreakEvents();
 	void BeginWorldColorChange();
 	void UpdateWorldColorChange(float deltaTime);
@@ -82,14 +74,11 @@ private:
 	void ApplySkyColor(const K4E::Vector4& color);
 	K4E::Vector4 LerpColor(const K4E::Vector4& a, const K4E::Vector4& b, float t) const;
 	void RestoreWorldColor();
-	std::string BuildCrystalGroupName(const CrystalSpawnPoint& spawnPoint) const;
-	const char* ToEnemyTypeName(EnemyType enemyType) const;
-	EnemyType ParseCrystalEnemyType(const std::string& enemyTypeName) const;
 
 private:
 	static constexpr float kMaxUpdateDeltaTime = 1.0f / 30.0f;
 	std::vector<CrystalSpawnPoint> spawnPoints_;
-	std::vector<std::string> parameterGroupNames_;
+	CrystalParameterController crystalParameterController_;
 	CrystalReactionSettings reactionSettings_{};
 	std::vector<EnemySpawnCrystal> crystals_;
 	CollisionManager* collisionManager_ = nullptr;

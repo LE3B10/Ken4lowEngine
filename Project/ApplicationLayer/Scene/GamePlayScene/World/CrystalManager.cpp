@@ -6,7 +6,6 @@
 #include "CollisionManager.h"
 #include "EnemyBase.h"
 #include "EnemyHPBarProjector.h"
-#include "ParameterManager.h"
 #include "SkyBox.h"
 
 #include <algorithm>
@@ -18,36 +17,6 @@
 #include <imgui.h>
 #endif
 
-namespace
-{
-	constexpr float kMinimumSpawnInterval = 0.05f;
-	constexpr const char* kCrystalSpawnerRootGroup = "CrystalSpawner";
-	constexpr const char* kCrystalReactionGroup = "CrystalEffect/CrystalReaction";
-	constexpr const char* kCrystalHpBarGroup = "CrystalHpBar";
-	constexpr const char* kSkyColorGroup = "SkyColorEffect";
-
-	const std::vector<std::string>& CrystalEnemyTypeOptions()
-	{
-		static const std::vector<std::string> options = {
-			"Legacy",
-			"Melee",
-			"MidRange",
-			"GuardianBoss"
-		};
-		return options;
-	}
-
-	const std::vector<std::string>& CrystalSpawnPatternOptions()
-	{
-		static const std::vector<std::string> options = {
-			"Single",
-			"Interval",
-			"Burst"
-		};
-		return options;
-	}
-}
-
 CrystalManager::~CrystalManager()
 {
 	Finalize();
@@ -58,25 +27,23 @@ void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoint
 	Finalize();
 
 	baseLightingSettings_ = Ken4lowEngine::LightManager::GetInstance()->GetLightingSettings();
-	RegisterReactionParameters();
-	ApplyReactionParameters();
-	RegisterHpBarParameters();
-	ApplyHpBarParameters();
-	RegisterSkyColorParameters();
-	ApplySkyColorParameters();
+	// ParameterManager関連は専用Controllerに任せ、CrystalManagerは生成と進行管理に集中する。
+	crystalParameterController_.RegisterReactionParameters(BuildReactionParameterBinding());
+	crystalParameterController_.ApplyReactionParameters(BuildReactionParameterBinding());
+	crystalParameterController_.RegisterHpBarParameters(BuildHpBarParameterBinding());
+	crystalParameterController_.ApplyHpBarParameters(BuildHpBarParameterBinding());
+	crystalParameterController_.RegisterSkyColorParameters(BuildSkyColorParameterBinding());
+	crystalParameterController_.ApplySkyColorParameters(BuildSkyColorParameterBinding());
 	ApplySkyColor(normalSkyColor_);
 
 	collisionManager_ = collisionManager;
 	floorAABBs_ = floorAABBs;
 	obstacleAABBs_ = obstacleAABBs;
 	spawnPoints_ = spawnPoints;
-	parameterGroupNames_.clear();
-	parameterGroupNames_.reserve(spawnPoints_.size());
-
 	for (CrystalSpawnPoint& spawnPoint : spawnPoints_)
 	{
-		RegisterCrystalParameters(spawnPoint);
-		ApplyParameterToSpawnPoint(spawnPoint);
+		crystalParameterController_.RegisterCrystalParameters(spawnPoint, [this]() { SyncCrystalsFromParameterManager(); });
+		crystalParameterController_.ApplyParameterToSpawnPoint(spawnPoint);
 	}
 
 	crystals_.reserve(spawnPoints_.size());
@@ -131,17 +98,16 @@ void CrystalManager::Finalize()
 		}
 	}
 
-	UnregisterCrystalParameters();
-	UnregisterReactionParameters();
-	UnregisterHpBarParameters();
-	UnregisterSkyColorParameters();
+	crystalParameterController_.UnregisterCrystalParameters();
+	crystalParameterController_.UnregisterReactionParameters();
+	crystalParameterController_.UnregisterHpBarParameters();
+	crystalParameterController_.UnregisterSkyColorParameters();
 	RestoreWorldColor();
 	crystals_.clear();
 	crystalHpBars_.clear();
 	crystalHpBarDebugInfos_.clear();
 	crystalHpBarAimTimers_.clear();
 	spawnPoints_.clear();
-	parameterGroupNames_.clear();
 	collisionManager_ = nullptr;
 	floorAABBs_ = nullptr;
 	obstacleAABBs_ = nullptr;
@@ -150,9 +116,9 @@ void CrystalManager::Finalize()
 void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 {
 	SyncCrystalsFromParameterManager();
-	ApplyReactionParameters();
-	ApplyHpBarParameters();
-	ApplySkyColorParameters();
+	crystalParameterController_.ApplyReactionParameters(BuildReactionParameterBinding());
+	crystalParameterController_.ApplyHpBarParameters(BuildHpBarParameterBinding());
+	crystalParameterController_.ApplySkyColorParameters(BuildSkyColorParameterBinding());
 
 	for (EnemySpawnCrystal& crystal : crystals_)
 	{
@@ -201,7 +167,7 @@ void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 void CrystalManager::UpdatePresentationOnly(CharacterWorld& characters, float deltaTime)
 {
 	SyncCrystalsFromParameterManager();
-	ApplyReactionParameters();
+	crystalParameterController_.ApplyReactionParameters(BuildReactionParameterBinding());
 
 	for (EnemySpawnCrystal& crystal : crystals_)
 	{
@@ -441,80 +407,9 @@ EnemySpawnCrystal* CrystalManager::FindNextSpawnableCrystal()
 	return nullptr;
 }
 
-void CrystalManager::RegisterCrystalParameters(CrystalSpawnPoint& spawnPoint)
-{
-	const std::string groupName = BuildCrystalGroupName(spawnPoint);
-	parameterGroupNames_.push_back(groupName);
-
-	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
-	parameters->CreateGroup(groupName);
-
-	// クリスタル自体をスポナーとしてParameterManagerへ登録し、既存のJson保存/読み込みに乗せる。
-	parameters->AddItem(groupName, "isActive", spawnPoint.isActive);
-	parameters->AddItem(groupName, "position", spawnPoint.position, Ken4lowEngine::Vector3{ -200.0f, -50.0f, -200.0f }, Ken4lowEngine::Vector3{ 200.0f, 80.0f, 200.0f });
-	parameters->AddItem(groupName, "rotation", spawnPoint.rotation, Ken4lowEngine::Vector3{ -3.141592f, -3.141592f, -3.141592f }, Ken4lowEngine::Vector3{ 3.141592f, 3.141592f, 3.141592f });
-	parameters->AddItem(groupName, "scale", spawnPoint.scale, Ken4lowEngine::Vector3{ 0.1f, 0.1f, 0.1f }, Ken4lowEngine::Vector3{ 10.0f, 10.0f, 10.0f });
-	parameters->AddItem(groupName, "hp", spawnPoint.hp, 1, 10000);
-	parameters->AddItem(groupName, "maxHp", spawnPoint.maxHp, 1, 10000);
-	parameters->AddStringItem(groupName, "enemyType", ToEnemyTypeName(spawnPoint.spawnEnemyType), CrystalEnemyTypeOptions());
-	parameters->AddItem(groupName, "spawnInterval", spawnPoint.spawnInterval, 0.05f, 60.0f);
-	parameters->AddItem(groupName, "initialDelay", spawnPoint.initialDelay, 0.0f, 60.0f);
-	parameters->AddItem(groupName, "maxSpawnCount", spawnPoint.maxSpawnCount, 0, 1000);
-	parameters->AddItem(groupName, "maxAliveCount", spawnPoint.maxAliveEnemies, 0, 100);
-	parameters->AddItem(groupName, "spawnRadius", spawnPoint.spawnRadius, 0.0f, 50.0f);
-	parameters->AddStringItem(groupName, "spawnPattern", spawnPoint.spawnPattern, CrystalSpawnPatternOptions());
-
-	parameters->SetDisplayName(groupName, "isActive", "有効");
-	parameters->SetDisplayName(groupName, "position", "座標");
-	parameters->SetDisplayName(groupName, "rotation", "回転");
-	parameters->SetDisplayName(groupName, "scale", "スケール");
-	parameters->SetDisplayName(groupName, "hp", "初期HP");
-	parameters->SetDisplayName(groupName, "maxHp", "最大HP");
-	parameters->SetDisplayName(groupName, "enemyType", "敵タイプ");
-	parameters->SetDisplayName(groupName, "spawnInterval", "湧き間隔");
-	parameters->SetDisplayName(groupName, "initialDelay", "初回湧き遅延");
-	parameters->SetDisplayName(groupName, "maxSpawnCount", "最大湧き数");
-	parameters->SetDisplayName(groupName, "maxAliveCount", "同時出現数");
-	parameters->SetDisplayName(groupName, "spawnRadius", "湧き半径");
-	parameters->SetDisplayName(groupName, "spawnPattern", "湧き方");
-
-	parameters->RegisterParameterApplier(groupName, this, [this]() { SyncCrystalsFromParameterManager(); });
-	parameters->LoadFile(groupName);
-}
-
-void CrystalManager::UnregisterCrystalParameters()
-{
-	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
-	for (const std::string& groupName : parameterGroupNames_)
-	{
-		parameters->UnregisterParameterApplier(groupName, this);
-	}
-}
-
-void CrystalManager::ApplyParameterToSpawnPoint(CrystalSpawnPoint& spawnPoint)
-{
-	const std::string groupName = BuildCrystalGroupName(spawnPoint);
-	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
-
-	spawnPoint.isActive = parameters->GetValue<bool>(groupName, "isActive");
-	spawnPoint.position = parameters->GetValue<Ken4lowEngine::Vector3>(groupName, "position");
-	spawnPoint.rotation = parameters->GetValue<Ken4lowEngine::Vector3>(groupName, "rotation");
-	spawnPoint.scale = parameters->GetValue<Ken4lowEngine::Vector3>(groupName, "scale");
-	spawnPoint.hp = std::max(1, parameters->GetValue<int32_t>(groupName, "hp"));
-	spawnPoint.maxHp = std::max(1, parameters->GetValue<int32_t>(groupName, "maxHp"));
-	spawnPoint.spawnEnemyType = ParseCrystalEnemyType(parameters->GetValue<std::string>(groupName, "enemyType"));
-	spawnPoint.spawnInterval = std::max(kMinimumSpawnInterval, parameters->GetValue<float>(groupName, "spawnInterval"));
-	spawnPoint.initialDelay = std::max(0.0f, parameters->GetValue<float>(groupName, "initialDelay"));
-	spawnPoint.maxSpawnCount = std::max(0, parameters->GetValue<int32_t>(groupName, "maxSpawnCount"));
-	spawnPoint.maxAliveEnemies = std::max(0, parameters->GetValue<int32_t>(groupName, "maxAliveCount"));
-	spawnPoint.spawnRadius = std::max(0.0f, parameters->GetValue<float>(groupName, "spawnRadius"));
-	spawnPoint.spawnPattern = parameters->GetValue<std::string>(groupName, "spawnPattern");
-	spawnPoint.enableInfiniteSpawn = spawnPoint.isActive;
-}
-
 void CrystalManager::ApplyStage1BeginnerBalance(CrystalSpawnPoint& spawnPoint)
 {
-	// ステージ1は初心者向けにするため、クリスタル由来の敵も近接敵のみを出現させる。
+	// ステージ1では弾切れや被弾に慣れていないプレイヤーでも進めるよう、クリスタル由来の敵を控えめにする。
 	spawnPoint.spawnEnemyType = EnemyType::Melee;
 	spawnPoint.hp = 350;
 	spawnPoint.maxHp = 350;
@@ -531,7 +426,7 @@ void CrystalManager::SyncCrystalsFromParameterManager()
 {
 	for (size_t i = 0; i < spawnPoints_.size() && i < crystals_.size(); ++i)
 	{
-		ApplyParameterToSpawnPoint(spawnPoints_[i]);
+		crystalParameterController_.ApplyParameterToSpawnPoint(spawnPoints_[i]);
 		if (stage1BeginnerBalanceEnabled_)
 		{
 			ApplyStage1BeginnerBalance(spawnPoints_[i]);
@@ -551,136 +446,40 @@ void CrystalManager::SyncCrystalFromSpawnPoint(size_t index)
 	crystals_[index].ApplySpawnerSettings(spawnPoints_[index], floorAABBs_, obstacleAABBs_);
 }
 
-void CrystalManager::RegisterReactionParameters()
+CrystalParameterController::ReactionBinding CrystalManager::BuildReactionParameterBinding()
 {
-	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
-	parameters->CreateGroup(kCrystalReactionGroup);
-
-	parameters->AddItem(kCrystalReactionGroup, "hitFlashTime", reactionSettings_.hitFlashTime, 0.0f, 2.0f);
-	parameters->AddItem(kCrystalReactionGroup, "hitShakePower", reactionSettings_.hitShakePower, 0.0f, 2.0f);
-	parameters->AddItem(kCrystalReactionGroup, "hitShakeTime", reactionSettings_.hitShakeTime, 0.0f, 2.0f);
-	parameters->AddItem(kCrystalReactionGroup, "breakingDuration", reactionSettings_.breakingDuration, 0.05f, 5.0f);
-	parameters->AddItem(kCrystalReactionGroup, "breakEffectScale", reactionSettings_.breakEffectScale, 1.0f, 4.0f);
-	parameters->AddItem(kCrystalReactionGroup, "worldColorChangeTime", worldColorChangeTime_, 0.1f, 10.0f);
-	parameters->AddItem(kCrystalReactionGroup, "worldDarkness", worldDarkness_, 0.0f, 1.0f);
-	parameters->AddItem(kCrystalReactionGroup, "worldRedTint", worldRedTint_, 0.0f, 1.0f);
-	parameters->AddItem(kCrystalReactionGroup, "criticalHpRate", reactionSettings_.criticalHpRate, 0.0f, 1.0f);
-	parameters->AddItem(kCrystalReactionGroup, "damagedHpRate", reactionSettings_.damagedHpRate, 0.0f, 1.0f);
-
-	parameters->SetDisplayName(kCrystalReactionGroup, "hitFlashTime", "ヒット点滅時間");
-	parameters->SetDisplayName(kCrystalReactionGroup, "hitShakePower", "ヒット揺れ強度");
-	parameters->SetDisplayName(kCrystalReactionGroup, "hitShakeTime", "ヒット揺れ時間");
-	parameters->SetDisplayName(kCrystalReactionGroup, "breakingDuration", "破壊演出時間");
-	parameters->SetDisplayName(kCrystalReactionGroup, "breakEffectScale", "破壊拡大率");
-	parameters->SetDisplayName(kCrystalReactionGroup, "worldColorChangeTime", "世界色変化時間");
-	parameters->SetDisplayName(kCrystalReactionGroup, "worldDarkness", "世界暗さ");
-	parameters->SetDisplayName(kCrystalReactionGroup, "worldRedTint", "世界赤み");
-	parameters->SetDisplayName(kCrystalReactionGroup, "criticalHpRate", "瀕死HP割合");
-	parameters->SetDisplayName(kCrystalReactionGroup, "damagedHpRate", "損傷HP割合");
-
-	parameters->RegisterParameterApplier(kCrystalReactionGroup, this, [this]() { ApplyReactionParameters(); });
-	parameters->LoadFile(kCrystalReactionGroup);
+	return {
+		&reactionSettings_,
+		&worldColorChangeTime_,
+		&worldDarkness_,
+		&worldRedTint_
+	};
 }
 
-void CrystalManager::UnregisterReactionParameters()
+CrystalParameterController::HpBarBinding CrystalManager::BuildHpBarParameterBinding()
 {
-	Ken4lowEngine::ParameterManager::GetInstance()->UnregisterParameterApplier(kCrystalReactionGroup, this);
+	return {
+		&crystalHpBarVisible_,
+		&crystalHpBarAlwaysVisible_,
+		&crystalHpBarOffsetY_,
+		&crystalHpBarWidth_,
+		&crystalHpBarHeight_,
+		&crystalHpBarShowTime_
+	};
 }
 
-void CrystalManager::ApplyReactionParameters()
+CrystalParameterController::SkyColorBinding CrystalManager::BuildSkyColorParameterBinding()
 {
-	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
-	reactionSettings_.hitFlashTime = parameters->GetValue<float>(kCrystalReactionGroup, "hitFlashTime");
-	reactionSettings_.hitShakePower = parameters->GetValue<float>(kCrystalReactionGroup, "hitShakePower");
-	reactionSettings_.hitShakeTime = parameters->GetValue<float>(kCrystalReactionGroup, "hitShakeTime");
-	reactionSettings_.breakingDuration = parameters->GetValue<float>(kCrystalReactionGroup, "breakingDuration");
-	reactionSettings_.breakEffectScale = parameters->GetValue<float>(kCrystalReactionGroup, "breakEffectScale");
-	worldColorChangeTime_ = parameters->GetValue<float>(kCrystalReactionGroup, "worldColorChangeTime");
-	worldDarkness_ = parameters->GetValue<float>(kCrystalReactionGroup, "worldDarkness");
-	worldRedTint_ = parameters->GetValue<float>(kCrystalReactionGroup, "worldRedTint");
-	reactionSettings_.criticalHpRate = parameters->GetValue<float>(kCrystalReactionGroup, "criticalHpRate");
-	reactionSettings_.damagedHpRate = parameters->GetValue<float>(kCrystalReactionGroup, "damagedHpRate");
-	reactionSettings_.criticalHpRate = std::clamp(reactionSettings_.criticalHpRate, 0.0f, 1.0f);
-	reactionSettings_.damagedHpRate = std::clamp(reactionSettings_.damagedHpRate, reactionSettings_.criticalHpRate, 1.0f);
-}
-
-void CrystalManager::RegisterHpBarParameters()
-{
-	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
-	parameters->CreateGroup(kCrystalHpBarGroup);
-	parameters->AddItem(kCrystalHpBarGroup, "crystalHpBarVisible", crystalHpBarVisible_);
-	parameters->AddItem(kCrystalHpBarGroup, "crystalHpBarAlwaysVisible", crystalHpBarAlwaysVisible_);
-	parameters->AddItem(kCrystalHpBarGroup, "crystalHpBarOffsetY", crystalHpBarOffsetY_, -2.0f, 8.0f);
-	parameters->AddItem(kCrystalHpBarGroup, "crystalHpBarWidth", crystalHpBarWidth_, 20.0f, 240.0f);
-	parameters->AddItem(kCrystalHpBarGroup, "crystalHpBarHeight", crystalHpBarHeight_, 2.0f, 40.0f);
-	parameters->AddItem(kCrystalHpBarGroup, "crystalHpBarShowTime", crystalHpBarShowTime_, 0.0f, 10.0f);
-	parameters->SetDisplayName(kCrystalHpBarGroup, "crystalHpBarVisible", "クリスタルHPバー表示");
-	parameters->SetDisplayName(kCrystalHpBarGroup, "crystalHpBarAlwaysVisible", "常時表示");
-	parameters->SetDisplayName(kCrystalHpBarGroup, "crystalHpBarOffsetY", "頭上オフセットY");
-	parameters->SetDisplayName(kCrystalHpBarGroup, "crystalHpBarWidth", "バー幅");
-	parameters->SetDisplayName(kCrystalHpBarGroup, "crystalHpBarHeight", "バー高さ");
-	parameters->SetDisplayName(kCrystalHpBarGroup, "crystalHpBarShowTime", "被弾後表示時間");
-	parameters->RegisterParameterApplier(kCrystalHpBarGroup, this, [this]() { ApplyHpBarParameters(); });
-	parameters->LoadFile(kCrystalHpBarGroup);
-}
-
-void CrystalManager::UnregisterHpBarParameters()
-{
-	Ken4lowEngine::ParameterManager::GetInstance()->UnregisterParameterApplier(kCrystalHpBarGroup, this);
-}
-
-void CrystalManager::ApplyHpBarParameters()
-{
-	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
-	crystalHpBarVisible_ = parameters->GetValue<bool>(kCrystalHpBarGroup, "crystalHpBarVisible");
-	crystalHpBarAlwaysVisible_ = parameters->GetValue<bool>(kCrystalHpBarGroup, "crystalHpBarAlwaysVisible");
-	crystalHpBarOffsetY_ = parameters->GetValue<float>(kCrystalHpBarGroup, "crystalHpBarOffsetY");
-	crystalHpBarWidth_ = std::max(1.0f, parameters->GetValue<float>(kCrystalHpBarGroup, "crystalHpBarWidth"));
-	crystalHpBarHeight_ = std::max(1.0f, parameters->GetValue<float>(kCrystalHpBarGroup, "crystalHpBarHeight"));
-	crystalHpBarShowTime_ = std::max(0.0f, parameters->GetValue<float>(kCrystalHpBarGroup, "crystalHpBarShowTime"));
-}
-
-void CrystalManager::RegisterSkyColorParameters()
-{
-	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
-	parameters->CreateGroup(kSkyColorGroup);
-	parameters->AddItem(kSkyColorGroup, "skyColorChangeEnabled", skyColorChangeEnabled_);
-	parameters->AddItem(kSkyColorGroup, "skyColorChangeTime", skyColorChangeTime_, 0.1f, 10.0f);
-	parameters->AddItem(kSkyColorGroup, "normalSkyColor", normalSkyColor_);
-	parameters->AddItem(kSkyColorGroup, "brokenSkyColor", brokenSkyColor_);
-	parameters->AddItem(kSkyColorGroup, "skyDarkness", skyDarkness_, 0.0f, 1.0f);
-	parameters->AddItem(kSkyColorGroup, "skyRedTint", skyRedTint_, 0.0f, 1.0f);
-	parameters->AddItem(kSkyColorGroup, "skyPurpleTint", skyPurpleTint_, 0.0f, 1.0f);
-	parameters->AddItem(kSkyColorGroup, "changeSkyOnAllCrystalsBroken", changeSkyOnAllCrystalsBroken_);
-	parameters->SetDisplayName(kSkyColorGroup, "skyColorChangeEnabled", "空色変化ON");
-	parameters->SetDisplayName(kSkyColorGroup, "skyColorChangeTime", "空色変化時間");
-	parameters->SetDisplayName(kSkyColorGroup, "normalSkyColor", "通常空色");
-	parameters->SetDisplayName(kSkyColorGroup, "brokenSkyColor", "破壊後空色");
-	parameters->SetDisplayName(kSkyColorGroup, "skyDarkness", "空の暗さ");
-	parameters->SetDisplayName(kSkyColorGroup, "skyRedTint", "赤み");
-	parameters->SetDisplayName(kSkyColorGroup, "skyPurpleTint", "紫み");
-	parameters->SetDisplayName(kSkyColorGroup, "changeSkyOnAllCrystalsBroken", "全破壊時に空色変化");
-	parameters->RegisterParameterApplier(kSkyColorGroup, this, [this]() { ApplySkyColorParameters(); });
-	parameters->LoadFile(kSkyColorGroup);
-}
-
-void CrystalManager::UnregisterSkyColorParameters()
-{
-	Ken4lowEngine::ParameterManager::GetInstance()->UnregisterParameterApplier(kSkyColorGroup, this);
-}
-
-void CrystalManager::ApplySkyColorParameters()
-{
-	auto* parameters = Ken4lowEngine::ParameterManager::GetInstance();
-	// ParameterManagerから空色設定を反映する処理。
-	skyColorChangeEnabled_ = parameters->GetValue<bool>(kSkyColorGroup, "skyColorChangeEnabled");
-	skyColorChangeTime_ = std::max(0.1f, parameters->GetValue<float>(kSkyColorGroup, "skyColorChangeTime"));
-	normalSkyColor_ = parameters->GetValue<K4E::Vector4>(kSkyColorGroup, "normalSkyColor");
-	brokenSkyColor_ = parameters->GetValue<K4E::Vector4>(kSkyColorGroup, "brokenSkyColor");
-	skyDarkness_ = std::clamp(parameters->GetValue<float>(kSkyColorGroup, "skyDarkness"), 0.0f, 1.0f);
-	skyRedTint_ = std::clamp(parameters->GetValue<float>(kSkyColorGroup, "skyRedTint"), 0.0f, 1.0f);
-	skyPurpleTint_ = std::clamp(parameters->GetValue<float>(kSkyColorGroup, "skyPurpleTint"), 0.0f, 1.0f);
-	changeSkyOnAllCrystalsBroken_ = parameters->GetValue<bool>(kSkyColorGroup, "changeSkyOnAllCrystalsBroken");
+	return {
+		&skyColorChangeEnabled_,
+		&changeSkyOnAllCrystalsBroken_,
+		&skyColorChangeTime_,
+		&normalSkyColor_,
+		&brokenSkyColor_,
+		&skyDarkness_,
+		&skyRedTint_,
+		&skyPurpleTint_
+	};
 }
 
 void CrystalManager::HandleCrystalBreakEvents()
@@ -842,35 +641,6 @@ void CrystalManager::RestoreWorldColor()
 	skyColorChangeComplete_ = false;
 	skyColorChangeTimer_ = 0.0f;
 	ApplySkyColor(normalSkyColor_);
-}
-
-std::string CrystalManager::BuildCrystalGroupName(const CrystalSpawnPoint& spawnPoint) const
-{
-	return std::string(kCrystalSpawnerRootGroup) + "/" + spawnPoint.crystalName;
-}
-
-const char* CrystalManager::ToEnemyTypeName(EnemyType enemyType) const
-{
-	switch (enemyType)
-	{
-	case EnemyType::Melee:
-		return "Melee";
-	case EnemyType::MidRange:
-		return "MidRange";
-	case EnemyType::Legacy:
-	default:
-		return "Legacy";
-	}
-}
-
-EnemyType CrystalManager::ParseCrystalEnemyType(const std::string& enemyTypeName) const
-{
-	if (enemyTypeName == "GuardianBoss")
-	{
-		// 今回はボス生成へ接続せず、将来のBossCrystal用指定としてLegacyへフォールバックする。
-		return EnemyType::Legacy;
-	}
-	return ParseEnemyType(enemyTypeName);
 }
 
 void CrystalManager::DrawImGui()
