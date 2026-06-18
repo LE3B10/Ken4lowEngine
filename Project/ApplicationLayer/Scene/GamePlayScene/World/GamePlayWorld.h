@@ -6,16 +6,17 @@
 #include "WaveManager.h"
 #include "Stage.h"
 #include "StageObjectiveManager.h"
+#include "GamePlayStageContext.h"
 #include <SkyBox.h>
 #include "DataAssetPresets.h"
 #include "EnemyHPBarManager.h"
 #include "ItemManager.h"
 #include "CrystalManager.h"
-#include "BossIntroController.h"
+#include "BossBattleController.h"
 #include "AimTargetDetector.h"
 #include "GameplayPhysicsEventHandler.h"
+#include "Stage1TutorialController.h"
 #include "PhysicsTestBullet.h"
-#include "Derived/GuardianBoss/GuardianBoss.h"
 #include "Object3D.h"
 #include "CollisionSystemPolicy.h"
 #include "StagePhysicsBinder.h"
@@ -30,46 +31,6 @@ namespace K4E = ::Ken4lowEngine;
 
 class Player;
 /// -------------------------------------------------------------
-/// ボス撃破後に出現するクリア用アイテム
-///
-/// GamePlayWorldが生成・所有し、CollisionManagerへ登録する。
-/// 取得後は遠方へ移動して当たり判定から外し、World側のクリア判定へ通知する。
-/// -------------------------------------------------------------
-class BossClearItem : public K4E::Collider
-{
-public:
-	// ボス位置を基準に表示モデルとItem判定を生成する。CollisionManager登録は呼び出し側が行う。
-	void Initialize(const K4E::Vector3& position);
-	// 浮遊・回転演出とCollider中心を同期する。
-	void Update(float deltaTime);
-	// 未取得かつ生成済みのときだけモデルを描画する。
-	void Draw();
-	// プレイヤー中心との距離で取得可能か判定する。実取得処理はGamePlayWorld側で行う。
-	bool CheckPickup(const Player& player) const;
-	// 取得済みにして判定を遠方へ逃がす。CollisionManagerからの削除は呼び出し側が行う。
-	void MarkCollected();
-
-	bool IsSpawned() const { return spawned_; }
-	bool IsCollected() const { return collected_; }
-	const K4E::Vector3& GetPosition() const { return position_; }
-
-	void OnCollision(K4E::Collider* other) override;
-	K4E::Vector3 GetCenterPosition() const override { return position_; }
-	void SetCenterPosition(const K4E::Vector3& pos) override { position_ = pos; }
-
-private:
-	std::unique_ptr<K4E::Object3D> object3d_;
-	K4E::Vector3 position_{};
-	K4E::Vector3 basePosition_{};
-	K4E::Vector3 rotation_{};
-	K4E::Vector3 halfSize_{ 0.9f, 0.9f, 0.9f };
-	float pickupRadius_ = 2.1f;
-	float floatTimer_ = 0.0f;
-	bool spawned_ = false;
-	bool collected_ = false;
-};
-
-/// -------------------------------------------------------------
 /// GamePlayScene内のランタイムWorld管理クラス
 ///
 /// ステージ、キャラクター、弾、HUD、Wave、クリスタル、ボス、アイテム、衝突を所有し、
@@ -79,18 +40,6 @@ private:
 class GamePlayWorld
 {
 private:
-	enum class TutorialStep
-	{
-		None,
-		CrystalExplanation,
-		MovePractice,
-		MouseLookPractice,
-		ShootPractice,
-		ReloadPractice,
-		EnemyPractice,
-		ItemPickupPractice,
-		Completed,
-	};
 
 public: /// ---------- メンバ関数 ---------- ///
 
@@ -134,7 +83,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	bool IsStageObjectiveCleared() const;
 	bool IsStageObjectiveFailed() const;
-	bool IsGameClearRequested() const { return isGameClear_; }
+	bool IsGameClearRequested() const { return bossBattleController_.IsGameClearRequested(); }
 
 	void SetDebugCameraEnabled(bool enabled);
 
@@ -168,12 +117,41 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsFinalPhaseReady() const { return crystalManager_.IsFinalPhaseReady(); }
 	bool IsBossAppearRequested() const { return crystalManager_.IsBossAppearRequested(); }
 	bool IsWorldColorChangeComplete() const { return crystalManager_.IsWorldColorChangeComplete(); }
-	bool IsBossIntroActive() const { return bossIntroController_.IsRunning(); }
-	bool IsBossIntroGameplayPaused() const { return bossIntroController_.IsGameplayPaused(); }
+	bool IsBossIntroActive() const { return bossBattleController_.IsIntroActive(); }
+	bool IsBossIntroGameplayPaused() const { return bossBattleController_.IsIntroGameplayPaused(); }
 	// カメラ演出中は通常3D/HUDを止め、専用描画だけに切り替える。
-	bool IsBossIntroPresentationActive() const { return bossIntroController_.IsGameplayPaused(); }
+	bool IsBossIntroPresentationActive() const { return bossBattleController_.IsIntroPresentationActive(); }
 
 private: /// ---------- メンバ関数 ---------- ///
+
+	// Initializeを責務ごとに分け、World生成時の副作用を追いやすくする。
+	void InitializeLighting();
+	void InitializeSkyBox();
+	void InitializeCollisionSystems();
+	void InitializeCharacterSystems();
+	void InitializeHUD();
+	void InitializeStageAndPhysics(const GamePlayStageContext::StageAssetPaths& stageAssets);
+	void InitializePlayerSpawn(GamePlayStageContext& stageContext);
+	void InitializeWaveSystem(GamePlayStageContext& stageContext);
+	void InitializeBossState(GamePlayStageContext& stageContext);
+	void InitializeStage1Crystals();
+	void InitializeRuntimeHelpers();
+
+	// Updateを責務ごとに分け、ステージ進行・戦闘・HUD更新の混在を抑える。
+	void UpdateStageRuntime();
+	bool UpdateBlockingStage1Intro(float deltaTime);
+	bool UpdateBlockingBossIntro(float deltaTime);
+	void UpdateGameplayActors(float deltaTime);
+	void UpdateBossRuntime(float deltaTime);
+	void UpdateItemRuntime(float deltaTime);
+	void UpdateShadowRuntime();
+	void UpdateBulletAndCollisionRuntime(float deltaTime);
+	void UpdateSkyBoxRuntime(float deltaTime);
+	void UpdateAimTargetRuntime();
+	void UpdateHpBarRuntime(float deltaTime);
+	void UpdateHudRuntime(float deltaTime);
+	void UpdateWaveRuntime(float deltaTime);
+	void UpdateStageObjectiveRuntime(float deltaTime);
 
 	void CollisionUpdate();
 	void InitializeGameplayPhysicsTest();
@@ -209,34 +187,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	void UpdateShadowLightViewProjection();
 	bool TryGetDirectionalLightFromManager(K4E::Vector3& outDirection) const;
 	bool IsSightBlocked(const K4E::Segment& seg) const;
-	void UpdateCrystalBossSpawnProgress();
-	void UpdateBossIntro(float deltaTime);
-	void UpdateBossIntroPausedWorld(float deltaTime);
-	void SpawnGuardianBoss(bool registerCollider);
-	void RegisterGuardianBossCollider();
-	void AlignPlayerViewToBossAfterIntro(Player& player);
-	void UpdateBossGuideHud(Player& player, bool bossBattleActive);
-	void StartStage1ObjectiveGuide();
-	void UpdateStage1ObjectiveIntro(float deltaTime);
-	void FinishStage1ObjectiveIntro();
-	void AdvanceStage1TutorialStep();
-	bool IsTutorialPlaying() const;
-	bool IsGameplayBlocked() const;
-	bool AllowsPlayerMove() const;
-	bool AllowsPlayerShoot() const;
-	bool AllowsReload() const;
-	bool AllowsTutorialEnemyUpdate() const;
-	void ApplyStage1TutorialPlayerRestrictions();
-	void SpawnStage1TutorialEnemy();
-	void ClearStage1TutorialEnemy();
-	void SpawnStage1TutorialItems();
-	void UpdateStage1TutorialHud(float tutorialAlpha);
-	void AlignPlayerViewToFirstCrystal(Player& player);
-	void UpdateStage1ObjectiveGuideHud(bool bossBattleActive);
-	void ResetBossIntroForDebug();
-	void UpdateBossClearProgress(float deltaTime);
-	void SpawnClearItem(const K4E::Vector3& bossPosition);
-	void CollectClearItem();
+	Stage1TutorialController::Dependencies BuildStage1TutorialDependencies();
+	BossBattleController::Dependencies BuildBossBattleDependencies();
 
 
 private: /// ---------- メンバ変数 ---------- ///
@@ -255,8 +207,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	ItemManager itemManager_;
 	CrystalManager crystalManager_;
 	AimTargetDetector aimTargetDetector_;
-	std::unique_ptr<GuardianBoss> guardianBoss_;
-	std::unique_ptr<BossClearItem> clearItem_;
 	std::unique_ptr<K4E::Object3D> physicsTestObject_;
 	std::unique_ptr<PhysicsTestBullet> physicsTestBullet_;
 	std::unique_ptr<K4E::Object3D> physicsTriggerTargetObject_;
@@ -325,39 +275,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	float lastBulletUpdateMs_ = 0.0f;
 	float lastCollisionUpdateMs_ = 0.0f;
-	K4E::Vector3 bossSpawnPosition_{ 0.0f, 2.25f, 30.0f };
-	BossIntroController bossIntroController_;
 	bool stage1BeginnerBalanceEnabled_ = false;
-	bool stage1ObjectiveIntroActive_ = false;
-	float stage1ObjectiveIntroTimer_ = 0.0f;
-	float stage1ObjectiveIntroFadeInTime_ = 0.4f;
-	float stage1ObjectiveIntroHoldTime_ = 4.0f;
-	float stage1ObjectiveIntroFadeOutTime_ = 0.8f;
-	float stage1ItemIntroFadeInTime_ = 0.4f;
-	float stage1ItemIntroHoldTime_ = 4.0f;
-	float stage1ItemIntroFadeOutTime_ = 0.8f;
-	TutorialStep stage1TutorialStep_ = TutorialStep::None;
-	float stage1MoveProgress_ = 0.0f;
-	float stage1MouseLookProgress_ = 0.0f;
-	float stage1ShootProgress_ = 0.0f;
-	int stage1ShootCount_ = 0;
-	K4E::Vector3 stage1MovePreviousPlayerPosition_{};
-	EnemyBase* stage1TutorialEnemy_ = nullptr;
-	bool stage1TutorialEnemySpawned_ = false;
-	bool stage1TutorialItemSpawned_ = false;
-	int stage1TutorialItemsCollected_ = 0;
-	bool stage1SavedEnemyDeathDropEnabled_ = true;
-	bool stage1ReloadStarted_ = false;
-	bool stage1ReloadWasReloading_ = false;
-	bool stage1TutorialCompletionNotified_ = false;
-	float stage1TutorialCompleteTimer_ = 0.0f;
-	float stage1TutorialCompleteHoldTime_ = 1.4f;
-	K4E::Vector3 stage1ObjectiveSavedCameraRotation_{};
-	bool bossSpawned_ = false;
-	bool bossColliderRegistered_ = false;
-	bool bossSpawnConditionMet_ = false;
-	bool bossDefeated_ = false;
-	bool clearItemSpawned_ = false;
-	bool clearItemCollected_ = false;
-	bool isGameClear_ = false;
+	Stage1TutorialController stage1TutorialController_{}; // ステージ1専用チュートリアルの状態と進行をWorld本体から分離する。
+	BossBattleController bossBattleController_{}; // ボス登場からクリアアイテム取得までの進行をWorld本体から分離する。
 };

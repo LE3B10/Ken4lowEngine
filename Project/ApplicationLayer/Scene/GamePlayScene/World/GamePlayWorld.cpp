@@ -1,7 +1,6 @@
-#define NOMINMAX
+﻿#define NOMINMAX
 #include "DirectXCommon.h"
 #include "GamePlayWorld.h"
-
 #include "GamePlayStageContext.h"
 #include "GameViewportConstants.h"
 
@@ -11,18 +10,17 @@
 #include "JsonDataManager.h"
 #include "Wireframe.h"
 #include "Player.h"
+#include "Derived/GuardianBoss/GuardianBoss.h"
 #include "EnemyBase.h"
 #include "EnemyHPBarProjector.h"
 #include "GameplayPhysicsEventHandler.h"
 #include "GpuParticleManager.h"
 #include "ParticleManager.h"
 #include "PhysicsTestBullet.h"
-#include "CollisionPreset.h"
 #include "CollisionTypeIdDef.h"
 #include "Input.h"
 #include <LogString.h>
 
-#include <cassert>
 #include <algorithm>
 #include <chrono>
 #include <cmath>
@@ -38,7 +36,6 @@ using namespace Ken4lowEngine;
 
 namespace
 {
-	static constexpr float kPi = std::numbers::pi_v<float>;
 	static constexpr uint32_t kPhysicsLayerStage = 0u;
 	static constexpr uint32_t kPhysicsLayerTestObject = 1u;
 	static constexpr uint32_t kPhysicsLayerPlayer = 2u;
@@ -47,22 +44,6 @@ namespace
 	static constexpr uint32_t kPhysicsLayerPlayerBullet = 5u;
 	static constexpr uint32_t kPhysicsLayerEnemy = 6u;
 	static constexpr uint32_t kPhysicsLayerBoss = 7u;
-	static constexpr float kStage1BeginnerBossMaxHP = 900.0f;
-
-	bool CalcLookAnglesToTarget(const K4E::Vector3& from, const K4E::Vector3& target, float& outPitch, float& outYaw)
-	{
-		K4E::Vector3 direction = target - from;
-		if (K4E::Vector3::LengthSquared(direction) <= 0.000001f)
-		{
-			return false;
-		}
-
-		direction = K4E::Vector3::Normalize(direction);
-		outYaw = std::atan2(-direction.x, direction.z);
-		const float xzLen = std::sqrt(direction.x * direction.x + direction.z * direction.z);
-		outPitch = std::atan2(-direction.y, xzLen);
-		return true;
-	}
 
 	const char* ToCollisionResponseName(K4E::CollisionResponseType response)
 	{
@@ -80,102 +61,39 @@ namespace
 	}
 }
 
-void BossClearItem::Initialize(const K4E::Vector3& position)
-{
-	K4E::Vector3 spawnPosition = position;
-	spawnPosition.y += 1.25f;
-
-	position_ = spawnPosition;
-	basePosition_ = spawnPosition;
-	rotation_ = {};
-	floatTimer_ = 0.0f;
-	spawned_ = true;
-	collected_ = false;
-
-	ApplyCollisionPreset(*this, ECollisionPresetId::Item); // BossClearItemは通常Itemと同じkItem判定を保つPreset移行対象にする。
-#ifdef _DEBUG
-	const uint32_t legacyItemTypeId = static_cast<uint32_t>(CollisionTypeIdDef::kItem);
-	assert(GetTypeID() == legacyItemTypeId && "BossClearItem preset must keep legacy kItem TypeID.");
-#endif
-	SetOwner<BossClearItem>(this);
-	SetOBBHalfSize(halfSize_);
-	SetCenterPosition(position_);
-
-	object3d_ = std::make_unique<K4E::Object3D>();
-	object3d_->Initialize("Test/cube.gltf");
-	object3d_->SetScale({ 1.8f, 1.8f, 1.8f });
-	object3d_->SetTranslate(position_);
-	object3d_->SetColor({ 1.0f, 0.85f, 0.05f, 1.0f });
-	object3d_->Update();
-}
-
-void BossClearItem::Update(float deltaTime)
-{
-	if (!spawned_ || collected_)
-	{
-		return;
-	}
-
-	floatTimer_ += deltaTime * 3.0f;
-	position_ = basePosition_;
-	position_.y += std::sinf(floatTimer_) * 0.25f;
-	rotation_.y += deltaTime * 1.2f;
-
-	SetCenterPosition(position_);
-	SetOrientation(rotation_);
-
-	if (object3d_)
-	{
-		object3d_->SetTranslate(position_);
-		object3d_->SetRotate(rotation_);
-		object3d_->Update();
-	}
-}
-
-void BossClearItem::Draw()
-{
-	if (spawned_ && !collected_ && object3d_)
-	{
-		object3d_->Draw();
-	}
-}
-
-bool BossClearItem::CheckPickup(const Player& player) const
-{
-	if (!spawned_ || collected_)
-	{
-		return false;
-	}
-
-	const K4E::Vector3 diff = position_ - player.GetCenterPosition();
-	return K4E::Vector3::Length(diff) <= pickupRadius_;
-}
-
-void BossClearItem::MarkCollected()
-{
-	collected_ = true;
-	SetEnabled(false);
-	SetCenterPosition({ 1.0e9f, 1.0e9f, 1.0e9f });
-}
-
-void BossClearItem::OnCollision(K4E::Collider* other)
-{
-	(void)other;
-}
-
 void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 {
 	const auto stageAssets = stageContext.GetCurrentStageAssets();
 	stage1BeginnerBalanceEnabled_ = stageContext.IsBeginningPlainStage();
+
+	InitializeLighting();
+	InitializeSkyBox();
+	InitializeCollisionSystems();
+	InitializeCharacterSystems();
+	InitializeHUD();
+	InitializeStageAndPhysics(stageAssets);
+	InitializePlayerSpawn(stageContext);
+	InitializeWaveSystem(stageContext);
+	InitializeBossState(stageContext);
+	InitializeStage1Crystals();
+	InitializeRuntimeHelpers();
+}
+
+void GamePlayWorld::InitializeLighting()
+{
 	auto* lightManager = LightManager::GetInstance();
 
 	// GamePlayScene開始時は保存済みプリセットを優先し、なければ確認用ライトへ戻す。
 	lightManager->ResetToDefaultLighting();
 	lightManager->SetShadowCasterLightIndex(-1);
 	lightManager->SetManualShadowFocusPosition({ 0.0f, 0.0f, 0.0f });
+}
 
+void GamePlayWorld::InitializeSkyBox()
+{
 	skyBox_ = std::make_unique<K4E::SkyBox>();
 	skyBox_->Initialize("SkyBox/skybox.dds");
+
 	K4E::JsonAssetEntry skyBoxPresetEntry;
 	if (K4E::JsonDataManager::SafeLoad("Resources/DataAssets/SkyBoxPresets/debug_skybox.json", skyBoxPresetEntry))
 	{
@@ -186,7 +104,10 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 			K4E::ApplySkyBoxPreset(*skyBox_, *skyBoxPreset);
 		}
 	}
+}
 
+void GamePlayWorld::InitializeCollisionSystems()
+{
 	collisionManager_ = std::make_unique<CollisionManager>();
 	collisionManager_->Initialize();
 	collisionSystemPolicy_.InitializeDefaults();
@@ -196,21 +117,29 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	// World更新の最後にまとめて衝突解決できるようにする。
 	bulletManager_ = std::make_unique<BulletManager>();
 	bulletManager_->Initialize(collisionManager_.get());
+}
 
+void GamePlayWorld::InitializeCharacterSystems()
+{
 	GameContext ctx{};
 	ctx.collisionManager_ = collisionManager_.get();
 	ctx.bulletManager_ = bulletManager_.get();
 	characters_.Initialize(ctx);
+
 	itemManager_.Initialize();
 	itemManager_.RegisterColliders(collisionManager_.get());
 	characters_.SetEnemyKilledCallback([this](const K4E::Vector3& deathPosition)
 		{
 			itemManager_.TryDropFromEnemyDeath(deathPosition);
 		});
+}
 
+void GamePlayWorld::InitializeHUD()
+{
 	hudManager_ = std::make_unique<HUDManager>();
 	hudManager_->SetPlayer(characters_.GetPlayer());
 	hudManager_->Initialize();
+
 	// ステージ1は初心者向けにするため、HUD上もプライマリ武器1枠だけを表示する。
 	hudManager_->SetWeaponSlotVisibleSlotCount(stage1BeginnerBalanceEnabled_ ? 1 : WeaponSlot::kSlotCount);
 
@@ -219,11 +148,15 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 		player->SetAllowedHotbarSlotCount(stage1BeginnerBalanceEnabled_ ? 1 : WeaponSlot::kSlotCount);
 		player->SetHUDManager(hudManager_.get());
 	}
+}
 
+void GamePlayWorld::InitializeStageAndPhysics(const GamePlayStageContext::StageAssetPaths& stageAssets)
+{
 	stage_ = std::make_unique<K4E::Stage>();
 	stage_->Initialize(stageAssets.jsonPath, stageAssets.modelPath);
 	stage_->RegisterColliders(collisionManager_.get());
 	stage_->Update();
+
 	InitializeGameplayPhysicsTest();
 	InitializeGameplayPhysicsTriggerTest();
 	gameplayPhysicsParameterBridge_.Initialize();
@@ -245,8 +178,11 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 		playerCollisionSettings.centerOffset = { 0.0f, 1.0f, 0.0f };
 		player->SetWorldCollisionSettings(playerCollisionSettings);
 	}
+}
 
-	stageContext.LoadSpawnPointsFromLevel(stageAssets.jsonPath);
+void GamePlayWorld::InitializePlayerSpawn(GamePlayStageContext& stageContext)
+{
+	stageContext.LoadSpawnPointsFromLevel(stageContext.GetCurrentStageAssets().jsonPath);
 
 	// ステージ目的の実行中状態は専用マネージャへ集約する。
 	stageObjectiveManager_ = std::make_unique<StageObjectiveManager>();
@@ -275,14 +211,16 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 		characters_.Update(0.0f);
 	}
 
-
 	if (stage_)
 	{
 		stage_->Update();
 	}
 
 	CollisionUpdate();
+}
 
+void GamePlayWorld::InitializeWaveSystem(GamePlayStageContext& stageContext)
+{
 	waveManager_ = std::make_unique<WaveManager>();
 
 	if (stageObjectiveManager_ && stageObjectiveManager_->UsesWaveSystem())
@@ -297,24 +235,20 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	prevWaveNumber_ = 0;
 	prevWaveInProgress_ = false;
 	prevAllWavesCleared_ = false;
-	bossSpawnPosition_ = stageContext.HasBossSpawnPoint() ? stageContext.GetBossSpawnPoint() : K4E::Vector3{ 0.0f, 2.25f, 30.0f };
-	if (!stageContext.HasBossSpawnPoint())
-	{
-		// Blender側BossSpawnPointが未設定の間は、DebugSceneと同じ仮固定座標を使う。
-		bossSpawnPosition_ = { 0.0f, 2.25f, 30.0f };
-	}
-	bossSpawned_ = false;
-	bossColliderRegistered_ = false;
-	bossSpawnConditionMet_ = false;
-	bossDefeated_ = false;
-	clearItemSpawned_ = false;
-	clearItemCollected_ = false;
-	isGameClear_ = false;
-	clearItem_.reset();
+}
 
+void GamePlayWorld::InitializeBossState(GamePlayStageContext& stageContext)
+{
+	// ボス戦専用の状態はControllerへ集約し、World側のメンバ肥大化を抑える。
+	bossBattleController_.Initialize(stageContext, stage1BeginnerBalanceEnabled_);
+}
+
+void GamePlayWorld::InitializeStage1Crystals()
+{
 	// 現状のクリスタルはLevelDataではなくC++側の固定配置で、全破壊後にボス出現へ進む。
 	// 明示的なvectorを使い、初期化子の型差で意図しない変換が起きないようにする。
 	std::vector<CrystalSpawnPoint> crystalSpawnPoints;
+
 	CrystalSpawnPoint centerCrystalSpawnPoint;
 	centerCrystalSpawnPoint.crystalName = "Crystal_01";
 	centerCrystalSpawnPoint.position = { 0.0f, 2.0f, 20.0f };
@@ -363,27 +297,20 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 	crystalManager_.SetSkyBox(skyBox_.get());
 	crystalManager_.Initialize(crystalSpawnPoints, collisionManager_.get(), &stage_->GetFloorAABBs(), &stage_->GetNavigationObstacleAABBs());
 	crystalManager_.SetStage1BeginnerBalanceEnabled(stage1BeginnerBalanceEnabled_);
-	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
-	bossIntroController_.Initialize(bossSpawnPosition_);
+	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossBattleController_.IsSpawnConditionMet(), bossBattleController_.IsSpawned(), bossBattleController_.GetBossSpawnPosition());
+}
 
+void GamePlayWorld::InitializeRuntimeHelpers()
+{
 	enemyHpBarManager_.Initialize();
 	aimTargetDetector_.Initialize();
-	StartStage1ObjectiveGuide();
+	stage1TutorialController_.Start(BuildStage1TutorialDependencies(), stage1BeginnerBalanceEnabled_, bossBattleController_.IsDefeated());
 }
+
 
 void GamePlayWorld::Finalize()
 {
-	if (guardianBoss_ && collisionManager_)
-	{
-		collisionManager_->RemoveCollider(guardianBoss_.get());
-	}
-	if (clearItem_ && collisionManager_)
-	{
-		collisionManager_->RemoveCollider(clearItem_.get());
-	}
-	guardianBoss_.reset();
-	clearItem_.reset();
-	bossIntroController_.Finalize();
+	bossBattleController_.Finalize(BuildBossBattleDependencies());
 	crystalManager_.Finalize();
 	stageObjectiveManager_.reset();
 	waveManager_.reset();
@@ -421,40 +348,95 @@ void GamePlayWorld::Finalize()
 
 void GamePlayWorld::Update(float deltaTime)
 {
+	UpdateStageRuntime();
+
+	if (UpdateBlockingStage1Intro(deltaTime))
+	{
+		return;
+	}
+
+	if (UpdateBlockingBossIntro(deltaTime))
+	{
+		return;
+	}
+
+	UpdateGameplayActors(deltaTime);
+	UpdateBossRuntime(deltaTime);
+	UpdateItemRuntime(deltaTime);
+	UpdateShadowRuntime();
+	UpdateBulletAndCollisionRuntime(deltaTime);
+	UpdateSkyBoxRuntime(deltaTime);
+	UpdateAimTargetRuntime();
+	UpdateHpBarRuntime(deltaTime);
+	UpdateHudRuntime(deltaTime);
+	UpdateWaveRuntime(deltaTime);
+	UpdateStageObjectiveRuntime(deltaTime);
+}
+
+void GamePlayWorld::UpdateStageRuntime()
+{
 	if (stage_)
 	{
 		stage_->Update();
 	}
+}
 
-	if (stage1ObjectiveIntroActive_)
+bool GamePlayWorld::UpdateBlockingStage1Intro(float deltaTime)
+{
+	if (!stage1TutorialController_.IsActive())
 	{
-		UpdateStage1ObjectiveIntro(deltaTime);
-		return;
+		return false;
 	}
 
-	if (bossIntroController_.IsGameplayPaused())
+	stage1TutorialController_.Update(BuildStage1TutorialDependencies(), deltaTime);
+	return true;
+}
+
+bool GamePlayWorld::UpdateBlockingBossIntro(float deltaTime)
+{
+	if (!bossBattleController_.IsIntroGameplayPaused())
 	{
-		// ボス登場演出中は通常ゲーム進行を止め、カメラとボス登場Transformだけを進める。
-		UpdateBossIntroPausedWorld(deltaTime);
-		return;
+		return false;
 	}
 
+	// ボス登場演出中は通常ゲーム進行を止め、カメラとボス登場Transformだけを進める。
+	bossBattleController_.UpdatePausedWorld(BuildBossBattleDependencies(), deltaTime);
+
+	if (skyBox_)
+	{
+		skyBox_->Update();
+		skyBox_->AdvanceCloudLayer(deltaTime);
+	}
+
+	UpdateShadowLightViewProjection();
+	if (stage_)
+	{
+		stage_->UpdateShadowMatrix(shadowLightViewProjection_);
+	}
+	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
+	if (auto* boss = bossBattleController_.GetBoss())
+	{
+		boss->UpdateShadowMatrix(shadowLightViewProjection_);
+	}
+	return true;
+}
+
+void GamePlayWorld::UpdateGameplayActors(float deltaTime)
+{
 	// 先にキャラクターとクリスタルを更新し、敵残数とクリスタル破壊状態からボス出現条件を評価する。
 	characters_.Update(deltaTime);
 	crystalManager_.Update(characters_, deltaTime);
-	UpdateCrystalBossSpawnProgress();
-	UpdateBossIntro(deltaTime);
-	if (guardianBoss_)
-	{
-		if (auto* player = characters_.GetPlayer())
-		{
-			guardianBoss_->SetTargetPosition(player->GetCenterPosition());
-			guardianBoss_->SetTargetPlayer(player);
-		}
-		guardianBoss_->Update(deltaTime);
-	}
-	UpdateBossClearProgress(deltaTime);
-	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
+	bossBattleController_.UpdateSpawnProgress(BuildBossBattleDependencies());
+	bossBattleController_.UpdateIntro(BuildBossBattleDependencies(), deltaTime);
+}
+
+void GamePlayWorld::UpdateBossRuntime(float deltaTime)
+{
+	bossBattleController_.UpdateRuntime(BuildBossBattleDependencies(), deltaTime);
+}
+
+void GamePlayWorld::UpdateItemRuntime(float deltaTime)
+{
 	if (auto* player = characters_.GetPlayer())
 	{
 		itemManager_.Update(player, deltaTime);
@@ -463,7 +445,10 @@ void GamePlayWorld::Update(float deltaTime)
 	{
 		itemManager_.Update(deltaTime);
 	}
+}
 
+void GamePlayWorld::UpdateShadowRuntime()
+{
 	UpdateShadowLightViewProjection();
 
 	if (stage_)
@@ -471,11 +456,14 @@ void GamePlayWorld::Update(float deltaTime)
 		stage_->UpdateShadowMatrix(shadowLightViewProjection_);
 	}
 	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
-	if (guardianBoss_)
+	if (auto* boss = bossBattleController_.GetBoss())
 	{
-		guardianBoss_->UpdateShadowMatrix(shadowLightViewProjection_);
+		boss->UpdateShadowMatrix(shadowLightViewProjection_);
 	}
+}
 
+void GamePlayWorld::UpdateBulletAndCollisionRuntime(float deltaTime)
+{
 	if (bulletManager_)
 	{
 		// 弾更新と衝突更新はデバッグ表示用に処理時間を保存する。
@@ -483,6 +471,7 @@ void GamePlayWorld::Update(float deltaTime)
 		bulletManager_->Update(deltaTime);
 		lastBulletUpdateMs_ = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - begin).count();
 	}
+
 	UpdateGameplayPhysicsTest(deltaTime);
 
 	{
@@ -490,24 +479,35 @@ void GamePlayWorld::Update(float deltaTime)
 		CollisionUpdate();
 		lastCollisionUpdateMs_ = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - begin).count();
 	}
+}
 
+void GamePlayWorld::UpdateSkyBoxRuntime(float deltaTime)
+{
 	if (skyBox_)
 	{
 		skyBox_->Update();
 		skyBox_->AdvanceCloudLayer(deltaTime);
 	}
+}
 
-	if (collisionManager_)
+void GamePlayWorld::UpdateAimTargetRuntime()
+{
+	if (!collisionManager_)
 	{
-		if (auto* player = characters_.GetPlayer())
-		{
-			if (auto* camera = player->GetCamera())
-			{
-				aimTargetDetector_.Update(*camera, *collisionManager_);
-			}
-		}
+		return;
 	}
 
+	if (auto* player = characters_.GetPlayer())
+	{
+		if (auto* camera = player->GetCamera())
+		{
+			aimTargetDetector_.Update(*camera, *collisionManager_);
+		}
+	}
+}
+
+void GamePlayWorld::UpdateHpBarRuntime(float deltaTime)
+{
 	if (auto* player = characters_.GetPlayer())
 	{
 		if (auto* camera = player->GetCamera())
@@ -539,75 +539,91 @@ void GamePlayWorld::Update(float deltaTime)
 				aimTargetDetector_.GetHpBarVisibleHoldTime());
 		}
 	}
+}
 
-	if (hudManager_ && characters_.GetPlayer())
+void GamePlayWorld::UpdateHudRuntime(float deltaTime)
+{
+	if (!hudManager_ || !characters_.GetPlayer())
 	{
-		// 照準先判定、HP、Wave状態などWorld側でしか分からない情報をHUDへ集約する。
-		const bool isTargetingEnemy = aimTargetDetector_.HasDamageableTarget();
-		hudManager_->SetCrosshairTargetColors(
-			aimTargetDetector_.GetCrosshairNormalColor(),
-			aimTargetDetector_.GetCrosshairTargetColor());
-		hudManager_->SetCrosshairTargetingEnemy(isTargetingEnemy);
-
-		hudManager_->SetHP(
-			characters_.GetPlayer()->GetHP(),
-			characters_.GetPlayer()->GetMaxHP());
-
-		const bool bossBattleActive =
-			guardianBoss_ && bossColliderRegistered_ && guardianBoss_->IsAlive() && !bossIntroController_.IsGameplayPaused();
-		hudManager_->SetBossHP(
-			guardianBoss_ ? guardianBoss_->GetHP() : 0.0f,
-			guardianBoss_ ? guardianBoss_->GetMaxHP() : 0.0f,
-			bossBattleActive);
-		UpdateStage1ObjectiveGuideHud(bossBattleActive);
-		UpdateBossGuideHud(*characters_.GetPlayer(), bossBattleActive);
-		hudManager_->Update(deltaTime);
+		return;
 	}
 
-	if (stageObjectiveManager_ && stageObjectiveManager_->UsesWaveSystem() && waveManager_)
+	// 照準先判定、HP、Wave状態などWorld側でしか分からない情報をHUDへ集約する。
+	const bool isTargetingEnemy = aimTargetDetector_.HasDamageableTarget();
+	hudManager_->SetCrosshairTargetColors(
+		aimTargetDetector_.GetCrosshairNormalColor(),
+		aimTargetDetector_.GetCrosshairTargetColor());
+	hudManager_->SetCrosshairTargetingEnemy(isTargetingEnemy);
+
+	hudManager_->SetHP(
+		characters_.GetPlayer()->GetHP(),
+		characters_.GetPlayer()->GetMaxHP());
+
+	const bool bossBattleActive = bossBattleController_.IsBossBattleActive();
+	bossBattleController_.UpdateHud(BuildBossBattleDependencies(), deltaTime);
+	stage1TutorialController_.UpdateObjectiveGuideHud(
+		BuildStage1TutorialDependencies(),
+		stage1BeginnerBalanceEnabled_,
+		bossBattleActive,
+		bossBattleController_.IsSpawned(),
+		bossBattleController_.HasIntroPlayed(),
+		bossBattleController_.IsDefeated());
+	bossBattleController_.UpdateBossGuideHud(*characters_.GetPlayer(), *hudManager_);
+	hudManager_->Update(deltaTime);
+}
+
+void GamePlayWorld::UpdateWaveRuntime(float deltaTime)
+{
+	if (!stageObjectiveManager_ || !stageObjectiveManager_->UsesWaveSystem() || !waveManager_)
 	{
-		// WaveManagerはウェーブ使用ステージだけで更新し、非ウェーブ目的と分離する。
-		waveManager_->Update(characters_, deltaTime);
+		return;
+	}
 
-		const int currentWave = waveManager_->GetCurrentWaveNumber();
-		const int totalWaves = waveManager_->GetTotalWaveCount();
-		const bool isWaveInProgress = waveManager_->IsWaveInProgress();
-		const bool isWaitingNextWave = waveManager_->IsWaitingNextWave();
-		const bool isAllWavesCleared = waveManager_->IsAllWavesCleared();
-		const bool isFinalWave = (currentWave >= totalWaves);
+	// WaveManagerはウェーブ使用ステージだけで更新し、非ウェーブ目的と分離する。
+	waveManager_->Update(characters_, deltaTime);
 
-		if (hudManager_)
+	const int currentWave = waveManager_->GetCurrentWaveNumber();
+	const int totalWaves = waveManager_->GetTotalWaveCount();
+	const bool isWaveInProgress = waveManager_->IsWaveInProgress();
+	const bool isWaitingNextWave = waveManager_->IsWaitingNextWave();
+	const bool isAllWavesCleared = waveManager_->IsAllWavesCleared();
+	const bool isFinalWave = (currentWave >= totalWaves);
+
+	if (hudManager_)
+	{
+		WaveUI::DisplayState state{};
+		state.currentWave = currentWave;
+		state.totalWaves = totalWaves;
+		state.isWaveInProgress = isWaveInProgress;
+		state.isWaitingNextWave = isWaitingNextWave;
+		state.isAllWavesCleared = isAllWavesCleared;
+
+		hudManager_->SetWaveDisplayState(state);
+
+		if (isWaveInProgress && (!prevWaveInProgress_ || currentWave != prevWaveNumber_))
 		{
-			WaveUI::DisplayState state{};
-			state.currentWave = currentWave;
-			state.totalWaves = totalWaves;
-			state.isWaveInProgress = isWaveInProgress;
-			state.isWaitingNextWave = isWaitingNextWave;
-			state.isAllWavesCleared = isAllWavesCleared;
-
-			hudManager_->SetWaveDisplayState(state);
-
-			if (isWaveInProgress && (!prevWaveInProgress_ || currentWave != prevWaveNumber_))
-			{
-				hudManager_->NotifyWaveStarted(currentWave, isFinalWave);
-			}
-
-			if (isAllWavesCleared && !prevAllWavesCleared_)
-			{
-				hudManager_->NotifyAllWavesCleared();
-			}
+			hudManager_->NotifyWaveStarted(currentWave, isFinalWave);
 		}
 
-		prevWaveNumber_ = currentWave;
-		prevWaveInProgress_ = isWaveInProgress;
-		prevAllWavesCleared_ = isAllWavesCleared;
+		if (isAllWavesCleared && !prevAllWavesCleared_)
+		{
+			hudManager_->NotifyAllWavesCleared();
+		}
 	}
 
+	prevWaveNumber_ = currentWave;
+	prevWaveInProgress_ = isWaveInProgress;
+	prevAllWavesCleared_ = isAllWavesCleared;
+}
+
+void GamePlayWorld::UpdateStageObjectiveRuntime(float deltaTime)
+{
 	if (stageObjectiveManager_)
 	{
 		stageObjectiveManager_->Update(deltaTime);
 	}
 }
+
 
 void GamePlayWorld::UpdateIntroVisuals()
 {
@@ -676,12 +692,7 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 	if (!hideCharactersDuringIntro)
 	{
 		characters_.Draw();
-		if (guardianBoss_)
-		{
-			// Draw直前に現在の通常ViewProjectionでWVPを更新し、演出用ViewProjectionの残留を防ぐ。
-			guardianBoss_->ForceSyncWorldTransform();
-			guardianBoss_->Draw();
-		}
+		bossBattleController_.DrawBoss();
 	}
 
 	if (stage_)
@@ -703,10 +714,7 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 	}
 
 	itemManager_.Draw();
-	if (clearItem_)
-	{
-		clearItem_->Draw();
-	}
+	bossBattleController_.DrawClearItem();
 	DrawGameplayPhysicsTest();
 
 #ifdef _DEBUG
@@ -739,12 +747,7 @@ void GamePlayWorld::DrawBossIntro3D()
 		stage_->Draw();
 	}
 
-	if (guardianBoss_)
-	{
-		// ボス登場演出中に通常3D描画を止め、ボスだけを現在の演出用ViewProjectionへ同期する。
-		guardianBoss_->ForceSyncWorldTransform();
-		guardianBoss_->Draw();
-	}
+	bossBattleController_.DrawBossIntro3D();
 }
 
 void GamePlayWorld::DrawShadow(bool hideCharactersDuringIntro)
@@ -757,10 +760,7 @@ void GamePlayWorld::DrawShadow(bool hideCharactersDuringIntro)
 	if (!hideCharactersDuringIntro)
 	{
 		characters_.DrawShadow();
-		if (guardianBoss_)
-		{
-			guardianBoss_->DrawShadow();
-		}
+		bossBattleController_.DrawShadow();
 	}
 }
 
@@ -771,10 +771,7 @@ void GamePlayWorld::DrawBossIntroShadow()
 		stage_->DrawShadow();
 	}
 
-	if (guardianBoss_)
-	{
-		guardianBoss_->DrawShadow();
-	}
+	bossBattleController_.DrawBossIntroShadow();
 }
 
 void GamePlayWorld::DrawHUD(bool hideDuringIntro)
@@ -785,7 +782,7 @@ void GamePlayWorld::DrawHUD(bool hideDuringIntro)
 	crystalManager_.DrawHpBars();
 
 	enemyHpBarManager_.Draw();
-	
+
 	if (hudManager_)
 	{
 		hudManager_->Draw();
@@ -817,49 +814,7 @@ void GamePlayWorld::DrawGameDebugImGui()
 	ImGui::Text("Player Dead: %s", IsPlayerDead() ? "true" : "false");
 	ImGui::Text("Enemies: %d", characters_.GetEnemyCount());
 	DrawGameplayPhysicsTestImGui();
-	ImGui::SeparatorText("ボス状態");
-	ImGui::Text("ボス出現済み: %s", bossSpawned_ ? "はい" : "いいえ");
-	ImGui::Text("ボスCollider登録済み: %s", bossColliderRegistered_ ? "はい" : "いいえ");
-	ImGui::Text("ボス登場演出中: %s", bossIntroController_.IsRunning() ? "はい" : "いいえ");
-	ImGui::Text("ボス登場による進行停止: %s", bossIntroController_.IsGameplayPaused() ? "はい" : "いいえ");
-	{
-		auto* debugPlayer = characters_.GetPlayer();
-		bossIntroController_.SetDebugSnapshot(guardianBoss_.get(), debugPlayer ? debugPlayer->GetCamera() : nullptr);
-	}
-	bossIntroController_.DrawImGui();
-	ImGui::SeparatorText("Boss Intro Draw Debug");
-	const bool bossIntroPresentationActive = IsBossIntroPresentationActive();
-	ImGui::Text("isBossIntroActive: %s", bossIntroController_.IsRunning() ? "true" : "false");
-	ImGui::Text("Camera Kind: %s", bossIntroPresentationActive ? "BossIntro Camera" : "Gameplay Camera");
-	ImGui::Text("ViewProjection Kind: %s", bossIntroPresentationActive ? "BossIntro ViewProjection" : "Gameplay ViewProjection");
-	ImGui::Text("Draw Gameplay 3D: %s", bossIntroPresentationActive ? "false" : "true");
-	ImGui::Text("Draw Gameplay UI: %s", bossIntroPresentationActive ? "false" : "true");
-	ImGui::Text("Draw BossIntro 3D: %s", bossIntroPresentationActive ? "true" : "false");
-	ImGui::Text("Draw Gameplay Route: %s", bossIntroPresentationActive ? "false" : "true");
-	if (guardianBoss_)
-	{
-		ImGui::Text("ボス生存中: %s", guardianBoss_->IsAlive() ? "はい" : "いいえ");
-		ImGui::Text("ボスHP: %.1f", guardianBoss_->GetHP());
-		ImGui::Text("ボス最大HP: %.1f", guardianBoss_->GetMaxHP());
-		ImGui::Text("ボスHP割合: %.1f%%", guardianBoss_->GetHPRate() * 100.0f);
-		ImGui::Text("近接攻撃ヒット回数: %d", guardianBoss_->GetMeleeHitCount());
-		ImGui::Text("銃弾ヒット回数: %d", guardianBoss_->GetBulletHitCount());
-		ImGui::Text("最後にボスへ与えたダメージ: %.1f", guardianBoss_->GetLastReceivedDamage());
-		ImGui::Text("ボス攻撃ヒット回数: %d", guardianBoss_->GetBossAttackHitCount());
-		ImGui::Text("最後にプレイヤーが受けたボスダメージ: %.1f", guardianBoss_->GetLastPlayerDamage());
-	}
-	else
-	{
-		ImGui::Text("ボス生存中: いいえ");
-		ImGui::Text("ボスHP: 0.0");
-		ImGui::Text("ボス最大HP: 0.0");
-		ImGui::Text("ボスHP割合: 0.0%%");
-		ImGui::Text("近接攻撃ヒット回数: 0");
-		ImGui::Text("銃弾ヒット回数: 0");
-		ImGui::Text("最後にボスへ与えたダメージ: 0.0");
-		ImGui::Text("ボス攻撃ヒット回数: 0");
-		ImGui::Text("最後にプレイヤーが受けたボスダメージ: 0.0");
-	}
+	bossBattleController_.DrawImGui(BuildBossBattleDependencies(), IsBossIntroPresentationActive());
 	if (auto* player = characters_.GetPlayer())
 	{
 		ImGui::Text("Player HP: %.1f / %.1f", player->GetHP(), player->GetMaxHP());
@@ -871,17 +826,6 @@ void GamePlayWorld::DrawGameDebugImGui()
 
 	aimTargetDetector_.DrawImGui();
 
-	ImGui::SeparatorText("クリアCube状態");
-	ImGui::Text("クリアCube出現済み: %s", clearItemSpawned_ ? "はい" : "いいえ");
-	ImGui::Text("クリアCube取得済み: %s", clearItemCollected_ ? "はい" : "いいえ");
-	const K4E::Vector3 clearPos = clearItem_ ? clearItem_->GetPosition() : K4E::Vector3{};
-	ImGui::Text("クリアCube座標: %.2f, %.2f, %.2f", clearPos.x, clearPos.y, clearPos.z);
-	ImGui::Text("ゲームクリア判定: %s", isGameClear_ ? "はい" : "いいえ");
-	ImGui::Text("ボス撃破済み: %s", bossDefeated_ ? "はい" : "いいえ");
-	if (guardianBoss_)
-	{
-		guardianBoss_->DrawImGui();
-	}
 	crystalManager_.DrawImGui();
 
 	auto* wireframe = K4E::Wireframe::GetInstance();
@@ -999,814 +943,6 @@ bool GamePlayWorld::IsPlayerDead()
 	return player && player->GetHP() <= 0;
 }
 
-void GamePlayWorld::UpdateCrystalBossSpawnProgress()
-{
-	bossSpawnConditionMet_ = crystalManager_.AreAllCrystalsDestroyed() && !bossSpawned_;
-
-	// 全クリスタル破壊を検知し、即スポーンではなくボス登場遅延を開始する。
-	if (bossSpawnConditionMet_ && !bossIntroController_.HasPlayed() && !bossIntroController_.IsRunning())
-	{
-		bossIntroController_.RequestStart(bossSpawnPosition_);
-	}
-}
-
-void GamePlayWorld::UpdateBossIntro(float deltaTime)
-{
-	if (bossIntroController_.ConsumeDebugResetRequest())
-	{
-		ResetBossIntroForDebug();
-	}
-
-	if (bossIntroController_.ConsumeDebugStartRequest())
-	{
-		ResetBossIntroForDebug();
-		bossIntroController_.RequestStart(bossIntroController_.GetBossAppearPosition());
-	}
-
-	if (bossIntroController_.ConsumeDebugClearBossParentRequest() && guardianBoss_)
-	{
-		// 検証用: 親子Transformが原因か切り分けるため、ワールド座標を維持して親を外す。
-		guardianBoss_->ClearRootParentKeepingWorldPosition();
-		guardianBoss_->ForceSyncWorldTransform();
-	}
-
-	if (bossIntroController_.ConsumeDebugForceBossToAppearRequest() && guardianBoss_)
-	{
-		guardianBoss_->ClearRootParentKeepingWorldPosition();
-		// 検証用: ボスを最終ワールド座標へ固定して、カメラ追従に見える原因がTransformか確認する。
-		guardianBoss_->SetPosition(bossIntroController_.GetBossAppearPosition());
-		guardianBoss_->SetYaw(3.141592f);
-		guardianBoss_->ForceSyncWorldTransform();
-	}
-
-	if (bossIntroController_.ConsumeDebugUseGameplayViewProjectionRequest())
-	{
-		if (auto* debugPlayer = characters_.GetPlayer())
-		{
-			if (auto* gameplayCamera = debugPlayer->GetCamera())
-			{
-				// 検証用: 演出用ViewProjectionから通常ViewProjectionへ戻して、描画行列側の問題を切り分ける。
-				K4E::CameraManager::GetInstance()->SetMainCamera(gameplayCamera);
-				gameplayCamera->Update();
-			}
-		}
-		if (guardianBoss_)
-		{
-			guardianBoss_->ForceSyncWorldTransform();
-		}
-	}
-
-	if (!bossIntroController_.IsRunning())
-	{
-		return;
-	}
-
-	auto* player = characters_.GetPlayer();
-	auto* camera = player ? player->GetCamera() : nullptr;
-	if (camera)
-	{
-		K4E::CameraManager::GetInstance()->SetMainCamera(camera);
-	}
-	bossIntroController_.Update(deltaTime, guardianBoss_.get(), camera);
-
-	if (bossIntroController_.ConsumeBossSpawnRequest())
-	{
-		bossSpawnPosition_ = bossIntroController_.GetBossAppearPosition();
-		SpawnGuardianBoss(false);
-	}
-
-	if (bossIntroController_.ConsumeBossColliderEnableRequest())
-	{
-		RegisterGuardianBossCollider();
-		if (player)
-		{
-			AlignPlayerViewToBossAfterIntro(*player);
-		}
-		if (hudManager_)
-		{
-			hudManager_->NotifyBossIntroCompleted(guardianBoss_ ? guardianBoss_->GetPosition() : bossSpawnPosition_);
-			if (stage1BeginnerBalanceEnabled_)
-			{
-				hudManager_->NotifyStage1BossAppeared();
-			}
-		}
-	}
-}
-
-void GamePlayWorld::AlignPlayerViewToBossAfterIntro(Player& player)
-{
-	auto* resumedCamera = player.GetCamera();
-	if (!resumedCamera)
-	{
-		return;
-	}
-
-	float pitch = 0.0f;
-	float yaw = 0.0f;
-	if (CalcLookAnglesToTarget(resumedCamera->GetTranslate(), bossIntroController_.GetBossLookTarget(), pitch, yaw))
-	{
-		// カットシーン復帰時も通常FPSカメラの内部角度をボス方向へ合わせ、次フレームで元視線へ戻らないようにする。
-		player.SetViewLookAngles(pitch, yaw);
-	}
-
-	player.SyncViewToPlayer();
-	K4E::CameraManager::GetInstance()->SetMainCamera(resumedCamera);
-	resumedCamera->Update();
-}
-
-void GamePlayWorld::UpdateBossGuideHud(Player& player, bool bossBattleActive)
-{
-	if (!hudManager_)
-	{
-		return;
-	}
-
-	auto* camera = player.GetCamera();
-	if (!camera)
-	{
-		hudManager_->SetBossGuide(player.GetCenterPosition(), bossSpawnPosition_, { 0.0f, 0.0f, 1.0f }, false);
-		return;
-	}
-
-	const K4E::Vector3 bossPosition = guardianBoss_ ? guardianBoss_->GetPosition() : bossSpawnPosition_;
-	hudManager_->SetBossGuide(player.GetCenterPosition(), bossPosition, camera->GetForward(), bossBattleActive);
-}
-
-void GamePlayWorld::StartStage1ObjectiveGuide()
-{
-	if (!stage1BeginnerBalanceEnabled_ || !hudManager_)
-	{
-		return;
-	}
-
-	// ステージ1は導入ステージなので、開始直後に目的表示と最初のクリスタル方向を案内する。
-	stage1ObjectiveIntroActive_ = true;
-	stage1ObjectiveIntroTimer_ = 0.0f;
-	stage1TutorialStep_ = TutorialStep::CrystalExplanation;
-	stage1MoveProgress_ = 0.0f;
-	stage1MouseLookProgress_ = 0.0f;
-	stage1ShootProgress_ = 0.0f;
-	stage1ShootCount_ = 0;
-	stage1TutorialEnemy_ = nullptr;
-	stage1TutorialEnemySpawned_ = false;
-	stage1TutorialItemSpawned_ = false;
-	stage1TutorialItemsCollected_ = 0;
-	stage1SavedEnemyDeathDropEnabled_ = itemManager_.IsEnemyDeathDropEnabled();
-	itemManager_.SetEnemyDeathDropEnabled(false);
-	stage1ReloadStarted_ = false;
-	stage1ReloadWasReloading_ = false;
-	stage1TutorialCompletionNotified_ = false;
-	stage1TutorialCompleteTimer_ = 0.0f;
-	hudManager_->SetStage1ObjectiveGuide(
-		true,
-		crystalManager_.GetDestroyedCrystalCount(),
-		crystalManager_.GetCrystalCount(),
-		false,
-		bossDefeated_,
-		true);
-	hudManager_->SetStage1ObjectiveTutorialAlpha(1.0f);
-	hudManager_->SetStage1ObjectiveTutorialPage(0);
-	hudManager_->SetStage1ObjectiveTutorialProgress(0.0f);
-	hudManager_->NotifyStage1ObjectiveGuideStarted();
-	if (auto* player = characters_.GetPlayer())
-	{
-		if (auto* camera = player->GetCamera())
-		{
-			stage1ObjectiveSavedCameraRotation_ = camera->GetRotate();
-		}
-		AlignPlayerViewToFirstCrystal(*player);
-		stage1MovePreviousPlayerPosition_ = player->GetCenterPosition();
-	}
-}
-
-void GamePlayWorld::UpdateStage1ObjectiveIntro(float deltaTime)
-{
-	stage1ObjectiveIntroTimer_ += deltaTime;
-	float tutorialAlpha = 1.0f;
-
-	crystalManager_.UpdatePresentationOnly(characters_, deltaTime);
-	crystalManager_.SetFirstAliveCrystalGuideHighlight(
-		stage1TutorialStep_ == TutorialStep::CrystalExplanation ? tutorialAlpha : 0.0f);
-
-	auto* input = K4E::Input::GetInstance();
-	const bool clickedNext = input && (input->TriggerMouse(0) || input->TriggerKey(DIK_RETURN) || input->TriggerKey(DIK_SPACE) || input->TriggerButton(K4E::XButtons.A));
-	if (stage1TutorialStep_ == TutorialStep::CrystalExplanation && clickedNext)
-	{
-		// 目的説明中のクリックは射撃ではなく、チュートリアル進行入力として扱う。
-		AdvanceStage1TutorialStep();
-	}
-
-	ApplyStage1TutorialPlayerRestrictions();
-	if (auto* player = characters_.GetPlayer())
-	{
-		if (stage1TutorialStep_ == TutorialStep::MovePractice)
-		{
-			const K4E::Vector3 before = player->GetCenterPosition();
-			characters_.UpdatePlayerOnly(deltaTime);
-			const K4E::Vector3 after = player->GetCenterPosition();
-			const K4E::Vector3 delta = after - before;
-			const float movedDistance = std::sqrt(delta.x * delta.x + delta.z * delta.z);
-			// 移動操作を実際に行わせ、初心者がWASD移動を覚えてから次へ進める。
-			stage1MoveProgress_ = std::clamp(stage1MoveProgress_ + movedDistance / 4.0f, 0.0f, 1.0f);
-			stage1MovePreviousPlayerPosition_ = after;
-			if (stage1MoveProgress_ >= 1.0f)
-			{
-				AdvanceStage1TutorialStep();
-			}
-		}
-		else if (stage1TutorialStep_ == TutorialStep::MouseLookPractice)
-		{
-			characters_.UpdatePlayerOnly(deltaTime);
-			const float mouseLookAmount = input
-				? (std::fabs(static_cast<float>(input->GetMouseMoveX())) + std::fabs(static_cast<float>(input->GetMouseMoveY())))
-				: 0.0f;
-			// FPS操作に必要な視点移動を覚えさせるため、マウス移動量で進捗を進める。
-			stage1MouseLookProgress_ = std::clamp(stage1MouseLookProgress_ + mouseLookAmount / 600.0f, 0.0f, 1.0f);
-			if (stage1MouseLookProgress_ >= 1.0f)
-			{
-				AdvanceStage1TutorialStep();
-			}
-		}
-		else if (stage1TutorialStep_ == TutorialStep::ItemPickupPractice)
-		{
-			SpawnStage1TutorialItems();
-			characters_.UpdatePlayerOnly(deltaTime);
-			itemManager_.Update(player, deltaTime);
-			// アイテムを2つ実際に拾わせ、取得方法と効果を理解させる。
-			if (itemManager_.ConsumeCollected(ItemType::AmmoSmall))
-			{
-				++stage1TutorialItemsCollected_;
-			}
-			if (itemManager_.ConsumeCollected(ItemType::HealSmall))
-			{
-				++stage1TutorialItemsCollected_;
-			}
-			if (stage1TutorialItemsCollected_ >= 2)
-			{
-				AdvanceStage1TutorialStep();
-			}
-		}
-		else if (stage1TutorialStep_ == TutorialStep::ShootPractice)
-		{
-			const int magazineBefore = player->GetCurrentWeaponMagazineAmmo();
-			characters_.UpdatePlayerOnly(deltaTime);
-			const int magazineAfter = player->GetCurrentWeaponMagazineAmmo();
-			// 説明後の左クリックは射撃入力として扱い、実際に弾が出た回数で練習進捗を進める。
-			if (magazineAfter < magazineBefore)
-			{
-				++stage1ShootCount_;
-				stage1ShootProgress_ = std::clamp(static_cast<float>(stage1ShootCount_) / 3.0f, 0.0f, 1.0f);
-				player->AddReserveAmmo(3);
-			}
-			if (bulletManager_)
-			{
-				bulletManager_->Update(deltaTime);
-			}
-			if (stage1ShootProgress_ >= 1.0f)
-			{
-				AdvanceStage1TutorialStep();
-			}
-		}
-		else if (stage1TutorialStep_ == TutorialStep::ReloadPractice)
-		{
-			characters_.UpdatePlayerOnly(deltaTime);
-			bool isReloading = false;
-			float reloadTimer = 0.0f;
-			float reloadSec = 0.0f;
-			player->GetReloadUI(isReloading, reloadTimer, reloadSec);
-			if (isReloading)
-			{
-				stage1ReloadStarted_ = true;
-			}
-			// リロード操作を確実に覚えさせるため、開始ではなく完了を検知して次へ進める。
-			if (stage1ReloadStarted_ && stage1ReloadWasReloading_ && !isReloading)
-			{
-				AdvanceStage1TutorialStep();
-			}
-			stage1ReloadWasReloading_ = isReloading;
-		}
-		else if (stage1TutorialStep_ == TutorialStep::EnemyPractice)
-		{
-			SpawnStage1TutorialEnemy();
-			characters_.Update(deltaTime);
-			if (bulletManager_)
-			{
-				bulletManager_->Update(deltaTime);
-			}
-			if (collisionManager_)
-			{
-				CollisionUpdate();
-			}
-			if (stage1TutorialEnemy_ && stage1TutorialEnemy_->IsDead())
-			{
-				AdvanceStage1TutorialStep();
-			}
-		}
-		else if (stage1TutorialStep_ == TutorialStep::Completed)
-		{
-			stage1TutorialCompleteTimer_ += deltaTime;
-			tutorialAlpha = 1.0f - std::clamp(stage1TutorialCompleteTimer_ / std::max(0.01f, stage1TutorialCompleteHoldTime_), 0.0f, 1.0f);
-			if (stage1TutorialCompleteTimer_ >= stage1TutorialCompleteHoldTime_)
-			{
-				FinishStage1ObjectiveIntro();
-				return;
-			}
-		}
-	}
-
-	if (skyBox_)
-	{
-		skyBox_->Update();
-		skyBox_->AdvanceCloudLayer(deltaTime);
-	}
-
-	UpdateShadowLightViewProjection();
-	if (stage_)
-	{
-		stage_->UpdateShadowMatrix(shadowLightViewProjection_);
-	}
-	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
-
-	if (hudManager_ && characters_.GetPlayer())
-	{
-		if (auto* camera = characters_.GetPlayer()->GetCamera())
-		{
-			const float width = static_cast<float>(K4E::GameViewportConstants::Width);
-			const float height = static_cast<float>(K4E::GameViewportConstants::Height);
-			crystalManager_.UpdateHpBars(
-				camera->GetViewMatrix(),
-				camera->GetProjectionMatrix(),
-				width,
-				height,
-				deltaTime,
-				stage1TutorialStep_ == TutorialStep::CrystalExplanation ? crystalManager_.GetFirstAliveCrystal() : nullptr,
-				true,
-				0.3f);
-		}
-		hudManager_->SetHP(
-			characters_.GetPlayer()->GetHP(),
-			characters_.GetPlayer()->GetMaxHP());
-		hudManager_->SetBossHP(0.0f, 0.0f, false);
-		hudManager_->SetStage1ObjectiveTutorialAlpha(tutorialAlpha);
-		UpdateStage1TutorialHud(tutorialAlpha);
-		hudManager_->Update(deltaTime);
-	}
-}
-
-void GamePlayWorld::FinishStage1ObjectiveIntro()
-{
-	stage1ObjectiveIntroActive_ = false;
-	stage1TutorialStep_ = TutorialStep::Completed;
-	crystalManager_.SetFirstAliveCrystalGuideHighlight(0.0f);
-	itemManager_.SetEnemyDeathDropEnabled(stage1SavedEnemyDeathDropEnabled_);
-	if (auto* player = characters_.GetPlayer())
-	{
-		player->SetTutorialInputRestrictions(false, true, true, true);
-	}
-	if (hudManager_)
-	{
-		hudManager_->SetStage1ObjectiveTutorialAlpha(0.0f);
-		hudManager_->SetStage1ObjectiveTutorialPage(0);
-		hudManager_->SetStage1ObjectiveTutorialProgress(0.0f);
-		hudManager_->SetStage1TutorialItemMarker(0, false, {}, 0);
-		hudManager_->SetStage1TutorialItemMarker(1, false, {}, 0);
-	}
-	itemManager_.SetConsumeItemWhenFull(false);
-	UpdateStage1ObjectiveGuideHud(false);
-}
-
-void GamePlayWorld::AdvanceStage1TutorialStep()
-{
-	switch (stage1TutorialStep_)
-	{
-	case TutorialStep::CrystalExplanation:
-		stage1TutorialStep_ = TutorialStep::MovePractice;
-		if (auto* player = characters_.GetPlayer())
-		{
-			stage1MovePreviousPlayerPosition_ = player->GetCenterPosition();
-		}
-		break;
-	case TutorialStep::MovePractice:
-		stage1TutorialStep_ = TutorialStep::MouseLookPractice;
-		stage1MouseLookProgress_ = 0.0f;
-		break;
-	case TutorialStep::MouseLookPractice:
-		stage1TutorialStep_ = TutorialStep::ShootPractice;
-		break;
-	case TutorialStep::ShootPractice:
-		stage1TutorialStep_ = TutorialStep::ReloadPractice;
-		stage1ReloadStarted_ = false;
-		stage1ReloadWasReloading_ = false;
-		break;
-	case TutorialStep::ReloadPractice:
-		stage1TutorialStep_ = TutorialStep::EnemyPractice;
-		break;
-	case TutorialStep::EnemyPractice:
-		// 敵撃破練習が終わったら、アイテム練習へ入る前にチュートリアル敵を完全に片付ける。
-		ClearStage1TutorialEnemy();
-		stage1TutorialStep_ = TutorialStep::ItemPickupPractice;
-		stage1TutorialItemsCollected_ = 0;
-		stage1TutorialItemSpawned_ = false;
-		break;
-	case TutorialStep::ItemPickupPractice:
-		stage1TutorialStep_ = TutorialStep::Completed;
-		stage1TutorialCompleteTimer_ = 0.0f;
-		stage1TutorialCompletionNotified_ = true;
-		break;
-	default:
-		break;
-	}
-	stage1ObjectiveIntroTimer_ = 0.0f;
-}
-
-bool GamePlayWorld::IsTutorialPlaying() const
-{
-	return stage1ObjectiveIntroActive_ && stage1TutorialStep_ != TutorialStep::None && stage1TutorialStep_ != TutorialStep::Completed;
-}
-
-bool GamePlayWorld::IsGameplayBlocked() const
-{
-	return stage1ObjectiveIntroActive_ && stage1TutorialStep_ != TutorialStep::Completed;
-}
-
-bool GamePlayWorld::AllowsPlayerMove() const
-{
-	return stage1TutorialStep_ == TutorialStep::ItemPickupPractice ||
-		stage1TutorialStep_ == TutorialStep::MovePractice ||
-		stage1TutorialStep_ == TutorialStep::MouseLookPractice ||
-		stage1TutorialStep_ == TutorialStep::ShootPractice ||
-		stage1TutorialStep_ == TutorialStep::ReloadPractice ||
-		stage1TutorialStep_ == TutorialStep::EnemyPractice;
-}
-
-bool GamePlayWorld::AllowsPlayerShoot() const
-{
-	return stage1TutorialStep_ == TutorialStep::ShootPractice ||
-		stage1TutorialStep_ == TutorialStep::EnemyPractice;
-}
-
-bool GamePlayWorld::AllowsReload() const
-{
-	return stage1TutorialStep_ == TutorialStep::ReloadPractice ||
-		stage1TutorialStep_ == TutorialStep::EnemyPractice;
-}
-
-bool GamePlayWorld::AllowsTutorialEnemyUpdate() const
-{
-	return stage1TutorialStep_ == TutorialStep::EnemyPractice;
-}
-
-void GamePlayWorld::ApplyStage1TutorialPlayerRestrictions()
-{
-	if (auto* player = characters_.GetPlayer())
-	{
-		// チュートリアル中は本番のゲーム進行を止め、現在の練習ステップだけを許可する。
-		player->SetTutorialInputRestrictions(
-			stage1ObjectiveIntroActive_,
-			AllowsPlayerMove(),
-			AllowsPlayerShoot(),
-			AllowsReload());
-	}
-}
-
-void GamePlayWorld::SpawnStage1TutorialEnemy()
-{
-	if (stage1TutorialEnemySpawned_)
-	{
-		return;
-	}
-	auto* player = characters_.GetPlayer();
-	if (!player)
-	{
-		return;
-	}
-	const K4E::Vector3 playerPos = player->GetCenterPosition();
-	const K4E::Vector3 spawnPosition{ playerPos.x, playerPos.y, playerPos.z + 8.0f };
-	// 本番開始前に弱い敵を1体倒させ、射撃とリロードの流れを確認させる。
-	EnemyBase& enemy = characters_.SpawnEnemyAt(spawnPosition, EnemyType::Melee);
-	enemy.SetMaxHp(60);
-	enemy.SetCurrentHp(60);
-	stage1TutorialEnemy_ = &enemy;
-	stage1TutorialEnemySpawned_ = true;
-}
-
-void GamePlayWorld::ClearStage1TutorialEnemy()
-{
-	if (stage1TutorialEnemy_)
-	{
-		// アイテム取得練習では敵を残さず、プレイヤーが拾う対象に集中できるようにする。
-		characters_.RemoveEnemy(stage1TutorialEnemy_);
-	}
-	stage1TutorialEnemy_ = nullptr;
-	stage1TutorialEnemySpawned_ = false;
-}
-
-void GamePlayWorld::SpawnStage1TutorialItems()
-{
-	if (stage1TutorialItemSpawned_)
-	{
-		return;
-	}
-	auto* player = characters_.GetPlayer();
-	if (!player)
-	{
-		return;
-	}
-	const K4E::Vector3 playerPos = player->GetCenterPosition();
-	itemManager_.SetConsumeItemWhenFull(true);
-	// アイテムを2つ実際に拾わせ、取得方法と効果を理解させる。
-	itemManager_.SpawnAmmoSmall({ playerPos.x + 2.2f, playerPos.y, playerPos.z + 4.0f });
-	itemManager_.SpawnHealSmall({ playerPos.x - 2.2f, playerPos.y, playerPos.z + 4.0f });
-	itemManager_.RegisterColliders(collisionManager_.get());
-	stage1TutorialItemSpawned_ = true;
-}
-
-void GamePlayWorld::UpdateStage1TutorialHud(float /*tutorialAlpha*/)
-{
-	if (!hudManager_)
-	{
-		return;
-	}
-
-	int page = 0;
-	float progress = 0.0f;
-	switch (stage1TutorialStep_)
-	{
-	case TutorialStep::CrystalExplanation: page = 0; break;
-	case TutorialStep::MovePractice:
-		page = 1;
-		progress = stage1MoveProgress_;
-		break;
-	case TutorialStep::MouseLookPractice:
-		page = 2;
-		progress = stage1MouseLookProgress_;
-		break;
-	case TutorialStep::ShootPractice:
-		page = 3;
-		progress = stage1ShootProgress_;
-		break;
-	case TutorialStep::ReloadPractice: page = 4; break;
-	case TutorialStep::EnemyPractice: page = 5; break;
-	case TutorialStep::ItemPickupPractice:
-		page = 6;
-		progress = std::clamp(static_cast<float>(stage1TutorialItemsCollected_) / 2.0f, 0.0f, 1.0f);
-		break;
-	case TutorialStep::Completed: page = 7; break;
-	default: break;
-	}
-	hudManager_->SetStage1ObjectiveTutorialPage(page);
-	hudManager_->SetStage1ObjectiveTutorialProgress(progress);
-
-	hudManager_->SetStage1TutorialItemMarker(0, false, {}, 0);
-	hudManager_->SetStage1TutorialItemMarker(1, false, {}, 0);
-	if (stage1TutorialStep_ == TutorialStep::ItemPickupPractice)
-	{
-		auto projectMarker = [this](int markerIndex, ItemType itemType, int markerType)
-		{
-			K4E::Vector3 itemPosition{};
-			if (!itemManager_.TryGetFirstActiveItemPosition(itemType, itemPosition))
-			{
-				return;
-			}
-			if (auto* player = characters_.GetPlayer())
-			{
-				if (auto* camera = player->GetCamera())
-				{
-					const float width = static_cast<float>(K4E::GameViewportConstants::Width);
-					const float height = static_cast<float>(K4E::GameViewportConstants::Height);
-					const K4E::Vector3 markerWorld{ itemPosition.x, itemPosition.y + 0.5f, itemPosition.z };
-					const HpBarProjectResult projected = ProjectWorldToScreen(markerWorld, camera->GetViewMatrix(), camera->GetProjectionMatrix(), width, height);
-					hudManager_->SetStage1TutorialItemMarker(markerIndex, projected.inFront && projected.inScreen, projected.screenPos, markerType);
-				}
-			}
-		};
-		projectMarker(0, ItemType::AmmoSmall, 1);
-		projectMarker(1, ItemType::HealSmall, 0);
-	}
-	UpdateStage1ObjectiveGuideHud(false);
-}
-
-void GamePlayWorld::AlignPlayerViewToFirstCrystal(Player& player)
-{
-	auto* camera = player.GetCamera();
-	if (!camera)
-	{
-		return;
-	}
-
-	K4E::Vector3 crystalPosition{};
-	if (!crystalManager_.TryGetFirstAliveCrystalPosition(crystalPosition))
-	{
-		return;
-	}
-
-	crystalPosition.y += 1.8f;
-	float pitch = 0.0f;
-	float yaw = 0.0f;
-	if (CalcLookAnglesToTarget(camera->GetTranslate(), crystalPosition, pitch, yaw))
-	{
-		player.SetViewLookAngles(pitch, yaw);
-		player.SyncViewToPlayer();
-		camera->Update();
-	}
-}
-
-void GamePlayWorld::UpdateStage1ObjectiveGuideHud(bool bossBattleActive)
-{
-	if (!hudManager_)
-	{
-		return;
-	}
-
-	hudManager_->SetStage1ObjectiveGuide(
-		stage1BeginnerBalanceEnabled_,
-		crystalManager_.GetDestroyedCrystalCount(),
-		crystalManager_.GetCrystalCount(),
-		bossBattleActive || bossSpawned_ || bossIntroController_.HasPlayed(),
-		bossDefeated_,
-		stage1ObjectiveIntroActive_);
-}
-
-void GamePlayWorld::UpdateBossIntroPausedWorld(float deltaTime)
-{
-	crystalManager_.UpdatePresentationOnly(characters_, deltaTime);
-	UpdateBossIntro(deltaTime);
-	if (stage_)
-	{
-		// 演出用カメラと通常カメラを切り替えた後、最低限表示するステージのWVPを現在カメラへ合わせる。
-		stage_->Update();
-	}
-	UpdateBossClearProgress(0.0f);
-	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
-
-	if (skyBox_)
-	{
-		skyBox_->Update();
-		skyBox_->AdvanceCloudLayer(deltaTime);
-	}
-
-	UpdateShadowLightViewProjection();
-	if (stage_)
-	{
-		stage_->UpdateShadowMatrix(shadowLightViewProjection_);
-	}
-	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
-	if (guardianBoss_)
-	{
-		guardianBoss_->UpdateShadowMatrix(shadowLightViewProjection_);
-	}
-}
-
-void GamePlayWorld::SpawnGuardianBoss(bool registerCollider)
-{
-	if (bossSpawned_)
-	{
-		return;
-	}
-
-	guardianBoss_ = std::make_unique<GuardianBoss>();
-	guardianBoss_->Initialize();
-	if (stage1BeginnerBalanceEnabled_)
-	{
-		// ステージ1はプライマリ武器1丁で倒し切れるよう、ボスHPだけを導入ステージ用に下げる。
-		if (auto* status = guardianBoss_->GetStatusComponent())
-		{
-			status->SetMaxHP(kStage1BeginnerBossMaxHP);
-			status->SetHP(kStage1BeginnerBossMaxHP);
-		}
-	}
-
-	if (stage_)
-	{
-		guardianBoss_->SetStageObstacleAABBs(&stage_->GetWallObstacleAABBs());
-
-		K4E::WorldCollisionSettings bossCollisionSettings{};
-		bossCollisionSettings.half = { 1.25f, 1.75f, 1.25f };
-		bossCollisionSettings.centerOffset = { 0.0f, 0.0f, 0.0f };
-		bossCollisionSettings.eps = 0.002f; // ボス本体のColliderサイズに合わせて、障害物との押し戻しサイズを設定する。
-		guardianBoss_->SetWorldCollisionSettings(bossCollisionSettings);
-	}
-
-	guardianBoss_->SetPosition(registerCollider ? bossSpawnPosition_ : bossIntroController_.GetBossStartPosition());
-	guardianBoss_->SetYaw(kPi);
-	if (auto* player = characters_.GetPlayer())
-	{
-		guardianBoss_->SetTargetPosition(player->GetCenterPosition());
-		guardianBoss_->SetTargetPlayer(player);
-	}
-	guardianBoss_->Update(0.0f);
-	bossSpawned_ = true;
-	if (registerCollider)
-	{
-		RegisterGuardianBossCollider();
-	}
-}
-
-void GamePlayWorld::RegisterGuardianBossCollider()
-{
-	if (!guardianBoss_ || !collisionManager_ || bossColliderRegistered_)
-	{
-		return;
-	}
-
-	guardianBoss_->ClearRootParentKeepingWorldPosition();
-	guardianBoss_->SetPosition(bossIntroController_.GetBossAppearPosition());
-	guardianBoss_->SetYaw(kPi);
-	guardianBoss_->ForceSyncWorldTransform();
-	// 登場完了後にボスAI/攻撃/当たり判定を有効化するため、このタイミングでCollider登録する。
-	collisionManager_->AddCollider(guardianBoss_.get());
-	bossColliderRegistered_ = true;
-	Log("[GuardianBoss] Collider registered as kBoss.\n");
-}
-
-void GamePlayWorld::ResetBossIntroForDebug()
-{
-	if (guardianBoss_ && collisionManager_ && bossColliderRegistered_)
-	{
-		collisionManager_->RemoveCollider(guardianBoss_.get());
-	}
-
-	guardianBoss_.reset();
-	bossSpawned_ = false;
-	bossColliderRegistered_ = false;
-	bossDefeated_ = false;
-	bossSpawnConditionMet_ = false;
-	bossIntroController_.Reset();
-}
-
-void GamePlayWorld::UpdateBossClearProgress(float deltaTime)
-{
-	if (guardianBoss_ && guardianBoss_->IsDead() && !bossDefeated_)
-	{
-		// ボス死亡だけでは即クリアにせず、取得アイテムを出すための中間状態にする。
-		bossDefeated_ = true;
-		SetBossDefeated(false);
-	}
-
-	if (bossDefeated_ && !clearItemSpawned_ && guardianBoss_)
-	{
-		// 撃破位置を基準にクリアアイテムを出し、プレイヤーが取りに行く余地を残す。
-		SpawnClearItem(guardianBoss_->GetPosition());
-	}
-
-	if (clearItem_ && !clearItemCollected_)
-	{
-		clearItem_->Update(deltaTime);
-		if (auto* player = characters_.GetPlayer())
-		{
-			if (clearItem_->CheckPickup(*player))
-			{
-				CollectClearItem();
-			}
-		}
-	}
-}
-
-void GamePlayWorld::SpawnClearItem(const K4E::Vector3& bossPosition)
-{
-	if (clearItemSpawned_)
-	{
-		return;
-	}
-
-	K4E::Vector3 spawnPosition = bossPosition;
-	spawnPosition.z -= 2.0f;
-	spawnPosition.y = std::max(spawnPosition.y, 0.75f);
-
-	clearItem_ = std::make_unique<BossClearItem>();
-	clearItem_->Initialize(spawnPosition);
-	if (collisionManager_)
-	{
-		collisionManager_->AddCollider(clearItem_.get());
-	}
-
-	clearItemSpawned_ = true;
-	Log("[GameClear] BossClearItem spawned.\n");
-}
-
-void GamePlayWorld::CollectClearItem()
-{
-	if (clearItemCollected_ || isGameClear_)
-	{
-		return;
-	}
-
-	clearItemCollected_ = true;
-	isGameClear_ = true;
-	if (clearItem_)
-	{
-		clearItem_->MarkCollected();
-		if (collisionManager_)
-		{
-			collisionManager_->RemoveCollider(clearItem_.get());
-		}
-	}
-
-	// ボス撃破後に出現するクリアCubeを取得したらゲームクリアへ進める。
-	SetBossDefeated(true);
-	Log("[GameClear] Clear item collected.\n");
-}
-
 bool GamePlayWorld::IsAllWavesCleared() const
 {
 	return waveManager_ && waveManager_->IsAllWavesCleared();
@@ -1814,7 +950,13 @@ bool GamePlayWorld::IsAllWavesCleared() const
 
 bool GamePlayWorld::IsStageObjectiveCleared() const
 {
-	return isGameClear_ || (stageObjectiveManager_ && stageObjectiveManager_->IsStageObjectiveCleared(IsAllWavesCleared()));
+	if (bossBattleController_.IsGameClearRequested())
+	{
+		// クリアCube取得後はStageObjectiveManagerの目的種別に関係なく、ゲームクリアとして扱う。
+		return true;
+	}
+
+	return stageObjectiveManager_ && stageObjectiveManager_->IsStageObjectiveCleared(IsAllWavesCleared());
 }
 
 bool GamePlayWorld::IsStageObjectiveFailed() const
@@ -1822,17 +964,48 @@ bool GamePlayWorld::IsStageObjectiveFailed() const
 	return stageObjectiveManager_ && stageObjectiveManager_->IsStageObjectiveFailed();
 }
 
-void GamePlayWorld::SetDebugCameraEnabled(bool enabled)
-{
-	if (skyBox_)
-	{
-		skyBox_->SetDebugCamera(enabled);
-	}
 
-	if (auto* player = characters_.GetPlayer())
-	{
-		player->SetDebugCamera(enabled);
-	}
+Stage1TutorialController::Dependencies GamePlayWorld::BuildStage1TutorialDependencies()
+{
+	Stage1TutorialController::Dependencies deps{};
+	deps.characters = &characters_;
+	deps.hudManager = hudManager_.get();
+	deps.crystalManager = &crystalManager_;
+	deps.itemManager = &itemManager_;
+	deps.bulletManager = bulletManager_.get();
+	deps.collisionManager = collisionManager_.get();
+	deps.skyBox = skyBox_.get();
+	deps.stage = stage_.get();
+	deps.shadowLightViewProjection = &shadowLightViewProjection_;
+	deps.collisionUpdate = [this]()
+		{
+			CollisionUpdate();
+		};
+	deps.updateShadowLightViewProjection = [this]()
+		{
+			UpdateShadowLightViewProjection();
+		};
+	return deps;
+}
+
+BossBattleController::Dependencies GamePlayWorld::BuildBossBattleDependencies()
+{
+	BossBattleController::Dependencies deps{};
+	deps.characters = &characters_;
+	deps.hudManager = hudManager_.get();
+	deps.crystalManager = &crystalManager_;
+	deps.collisionManager = collisionManager_.get();
+	deps.stage = stage_.get();
+	deps.shadowLightViewProjection = &shadowLightViewProjection_;
+	deps.setBossDefeated = [this](bool defeated)
+		{
+			SetBossDefeated(defeated);
+		};
+	deps.updateShadowLightViewProjection = [this]()
+		{
+			UpdateShadowLightViewProjection();
+		};
+	return deps;
 }
 
 void GamePlayWorld::SetDefenseTargetDestroyed(bool destroyed)
@@ -2140,7 +1313,7 @@ void GamePlayWorld::DrawGameplayPhysicsTriggerTest()
 		physicsTriggerTargetCollider_.GetAABB(),
 		gameplayPhysicsEventHandler_ && gameplayPhysicsEventHandler_->HasTriggerHit()
 		? K4E::Vector4{ 1.0f, 0.2f, 0.2f, 1.0f }
-		: K4E::Vector4{ 0.2f, 1.0f, 0.3f, 1.0f });
+	: K4E::Vector4{ 0.2f, 1.0f, 0.3f, 1.0f });
 	if (physicsTestBullet_)
 	{
 		K4E::Wireframe::GetInstance()->DrawAABB(
@@ -2221,10 +1394,10 @@ void GamePlayWorld::SyncGameplayPhysicsBulletTriggerTargets()
 		enemy->SetCollisionLayer(kPhysicsLayerEnemy);
 		desiredTargets.push_back(enemy);
 	}
-	if (guardianBoss_ && bossColliderRegistered_ && guardianBoss_->IsAlive())
+	if (auto* boss = bossBattleController_.GetBoss(); boss && bossBattleController_.IsColliderRegistered() && boss->IsAlive())
 	{
-		guardianBoss_->SetCollisionLayer(kPhysicsLayerBoss);
-		desiredTargets.push_back(guardianBoss_.get());
+		boss->SetCollisionLayer(kPhysicsLayerBoss);
+		desiredTargets.push_back(boss);
 	}
 
 	for (K4E::Collider* registered : physicsBulletTargetColliders_)

@@ -1042,6 +1042,8 @@
     <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Effects\WireframeEffectShapes.cpp">
       <Filter>Engine\Graphics\Renderer\Wireframe\Effects</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\Stage1TutorialController.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\BossBattleController.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2196,6 +2198,8 @@
     <ClInclude Include="Engine\Graphics\Renderer\Wireframe\Core\WireframeTypes.h">
       <Filter>Engine\Graphics\Renderer\Wireframe\Core</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\Stage1TutorialController.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\BossBattleController.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
