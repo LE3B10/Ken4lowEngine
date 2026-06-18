@@ -17,6 +17,7 @@
 #include "Stage1TutorialController.h"
 #include "GameplayPhysicsDebugController.h"
 #include "AmmoRecoveryItemSpawner.h"
+#include "WorldDebugView.h"
 
 #include <memory>
 
@@ -153,6 +154,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	bool IsSightBlocked(const K4E::Segment& seg) const;
 	Stage1TutorialController::Dependencies BuildStage1TutorialDependencies();
 	BossBattleController::Dependencies BuildBossBattleDependencies();
+	WorldDebugView::Dependencies BuildWorldDebugDependencies();
 
 
 private: /// ---------- メンバ変数 ---------- ///
@@ -173,6 +175,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	CrystalManager crystalManager_;
 	AimTargetDetector aimTargetDetector_;
 	GameplayPhysicsDebugController gameplayPhysicsDebugController_{}; // Gameplay側PhysicsWorldのDebug/移行テストをWorld本体から分離する。
+	WorldDebugView worldDebugView_{}; // GamePlayWorld周辺のDebug ImGui表示をWorld本体から分離する。
 
 	int prevWaveNumber_ = 0;
 	bool prevWaveInProgress_ = false;

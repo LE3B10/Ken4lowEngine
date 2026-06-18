@@ -1,4 +1,4 @@
-﻿#define NOMINMAX
+#define NOMINMAX
 #include "DirectXCommon.h"
 #include "GamePlayWorld.h"
 #include "GamePlayStageContext.h"
@@ -788,105 +788,18 @@ void GamePlayWorld::DrawImGui()
 
 void GamePlayWorld::DrawGameDebugImGui()
 {
-#ifdef USE_IMGUI
-	// Game DebugにはGamePlayScene全体の簡易ステータスをまとめる。
-	// ステージ目的の進行状態はStageObjectiveManagerから参照して表示する。
-	if (stageObjectiveManager_)
-	{
-		ImGui::Text("Stage Time: %.2f sec", stageObjectiveManager_->GetStageElapsedSec());
-		ImGui::Text("Activated Devices: %d / %d", stageObjectiveManager_->GetActivatedDeviceCount(), stageObjectiveManager_->GetDevicePointCount());
-		ImGui::Text("Defense Targets: %d", stageObjectiveManager_->GetDefenseTargetPointCount());
-		ImGui::Text("Goal Points: %d", stageObjectiveManager_->GetGoalPointCount());
-		ImGui::Text("Boss Spawn Point: %s", stageObjectiveManager_->HasBossSpawnPoint() ? "true" : "false");
-		ImGui::Text("Reached Goal: %s", stageObjectiveManager_->HasReachedGoal() ? "true" : "false");
-		ImGui::Text("Boss Defeated: %s", stageObjectiveManager_->IsBossDefeated() ? "true" : "false");
-		ImGui::Text("Defense Target Destroyed: %s", stageObjectiveManager_->IsDefenseTargetDestroyed() ? "true" : "false");
-	}
-	ImGui::Text("Player Dead: %s", IsPlayerDead() ? "true" : "false");
-	ImGui::Text("Enemies: %d", characters_.GetEnemyCount());
-	gameplayPhysicsDebugController_.DrawImGui(BuildGameplayPhysicsDebugDependencies());
-	bossBattleController_.DrawImGui(BuildBossBattleDependencies(), IsBossIntroPresentationActive());
-	if (auto* player = characters_.GetPlayer())
-	{
-		ImGui::Text("Player HP: %.1f / %.1f", player->GetHP(), player->GetMaxHP());
-	}
-	else
-	{
-		ImGui::Text("Player HP: 0.0 / 0.0");
-	}
-
-	aimTargetDetector_.DrawImGui();
-
-	crystalManager_.DrawImGui();
-	ammoRecoveryItemSpawner_.DrawImGui();
-
-	auto* wireframe = K4E::Wireframe::GetInstance();
-	bool debugDrawEnabled = wireframe->IsDebugDrawEnabled();
-#ifdef _DEBUG
-	if (ImGui::Checkbox("デバッグ描画有効", &debugDrawEnabled))
-	{
-		wireframe->SetDebugDrawEnabled(debugDrawEnabled);
-	}
-#else
-	ImGui::Text("デバッグ描画有効: いいえ");
-#endif
-	ImGui::Text("Release時デバッグ描画無効: %s", K4E::Wireframe::IsDebugDrawSupported() ? "Debugビルド" : "はい");
-
-	const float fps = K4E::GameTimer::GetInstance()->GetFPS();
-	const auto* particleManager = K4E::ParticleManager::GetInstance();
-	const auto* gpuParticleManager = K4E::GpuParticleManager::GetInstance();
-
-	const size_t activeBulletCount = bulletManager_ ? bulletManager_->GetActiveCount() : 0;
-	const size_t totalBulletCount = bulletManager_ ? bulletManager_->GetCount() : 0;
-	const size_t activeParticleCount = particleManager ? particleManager->GetActiveParticleCount() : 0;
-	const size_t totalParticleCount = particleManager ? particleManager->GetTotalParticleCount() : 0;
-	const uint32_t gpuParticleActiveCount = gpuParticleManager ? gpuParticleManager->GetEstimatedActiveParticleCount() : 0;
-	const size_t particleEmitterCount = gpuParticleManager ? gpuParticleManager->GetEmitterCount() : 0;
-	const size_t activeParticleEmitterCount = gpuParticleManager ? gpuParticleManager->GetActiveEmitterCount() : 0;
-	const size_t colliderCount = collisionManager_ ? collisionManager_->GetColliderCount() : 0;
-	const size_t bulletColliderCount = collisionManager_
-		? collisionManager_->GetColliderCountByType(static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
-		: 0;
-	const size_t enemyBulletColliderCount = collisionManager_
-		? collisionManager_->GetColliderCountByType(static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet)) +
-		collisionManager_->GetColliderCountByType(static_cast<uint32_t>(CollisionTypeIdDef::kBossBullet))
-		: 0;
-	const uint32_t drawCallCount = gpuParticleManager ? gpuParticleManager->GetLastDrawCallCount() : 0;
-
-	ImGui::SeparatorText("Performance Counters");
-	ImGui::Text("FPS: %.1f", fps);
-	ImGui::Text("Active Bullet Count: %zu", activeBulletCount);
-	ImGui::Text("Total Bullet Count: %zu", totalBulletCount);
-	ImGui::Text("Active Particle Count: %zu", activeParticleCount);
-	ImGui::Text("Total Particle Count: %zu", totalParticleCount);
-	ImGui::Text("GPU Particle Active Count (estimated): %u", gpuParticleActiveCount);
-	ImGui::Text("Particle Emitter Count: %zu (active: %zu)", particleEmitterCount, activeParticleEmitterCount);
-	ImGui::Text("CollisionManager Collider Count: %zu", colliderCount);
-	ImGui::Text("Bullet Collider Count: %zu (enemy/boss: %zu)", bulletColliderCount, enemyBulletColliderCount);
-	ImGui::Text("Draw Call Count (GPU Particle): %u", drawCallCount);
-	ImGui::SeparatorText("Simple Profile");
-	ImGui::Text("BulletManager::Update: %.3f ms", lastBulletUpdateMs_);
-	ImGui::Text("CollisionManager::CheckAllCollisions: %.3f ms", lastCollisionUpdateMs_);
-#endif
+	// Debug表示の詳細はWorldDebugViewへ委譲し、GamePlayWorld本体を進行管理に集中させる。
+	worldDebugView_.DrawGameDebugImGui(BuildWorldDebugDependencies());
 }
 
 void GamePlayWorld::DrawEnemyDebugImGui()
 {
-#ifdef USE_IMGUI
-	// Enemy DebugにはEnemy HPBar Managerの軽量統計を追加する。
-	if (ImGui::CollapsingHeader("HPBar Debug", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		enemyHpBarManager_.DrawImGuiContent();
-	}
-#endif
+	worldDebugView_.DrawEnemyDebugImGui(BuildWorldDebugDependencies());
 }
 
 void GamePlayWorld::DrawCollisionDebugImGui()
 {
-#ifdef USE_IMGUI
-	// Collision Debugには当たり判定関連の表示切替と補助情報を集約する。
-	if (collisionManager_) { collisionManager_->DrawImGui(); }
-#endif
+	worldDebugView_.DrawCollisionDebugImGui(BuildWorldDebugDependencies());
 }
 
 void GamePlayWorld::SyncAfterPlayerSpawn()
@@ -1018,6 +931,35 @@ BossBattleController::Dependencies GamePlayWorld::BuildBossBattleDependencies()
 	deps.updateShadowLightViewProjection = [this]()
 		{
 			UpdateShadowLightViewProjection();
+		};
+	return deps;
+}
+
+WorldDebugView::Dependencies GamePlayWorld::BuildWorldDebugDependencies()
+{
+	WorldDebugView::Dependencies deps{};
+	deps.stageObjectiveManager = stageObjectiveManager_.get();
+	deps.characters = &characters_;
+	deps.aimTargetDetector = &aimTargetDetector_;
+	deps.crystalManager = &crystalManager_;
+	deps.ammoRecoveryItemSpawner = &ammoRecoveryItemSpawner_;
+	deps.collisionManager = collisionManager_.get();
+	deps.bulletManager = bulletManager_.get();
+	deps.enemyHpBarManager = &enemyHpBarManager_;
+	deps.lastBulletUpdateMs = lastBulletUpdateMs_;
+	deps.lastCollisionUpdateMs = lastCollisionUpdateMs_;
+	deps.isPlayerDead = [this]()
+		{
+			return IsPlayerDead();
+		};
+	deps.drawGameplayPhysicsDebugImGui = [this]()
+		{
+			// Physics Debug側の依存生成は既存Controllerの境界を保つためWorldに残す。
+			gameplayPhysicsDebugController_.DrawImGui(BuildGameplayPhysicsDebugDependencies());
+		};
+	deps.drawBossBattleDebugImGui = [this]()
+		{
+			bossBattleController_.DrawImGui(BuildBossBattleDependencies(), IsBossIntroPresentationActive());
 		};
 	return deps;
 }

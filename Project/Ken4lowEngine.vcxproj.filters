@@ -1050,6 +1050,7 @@
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalParameterController.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalHpBarController.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\Indicator\HUDManager\BossHudUI.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\WorldDebugView.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2212,6 +2213,7 @@
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalParameterController.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalHpBarController.h" />
     <ClInclude Include="ApplicationLayer\UISystem\Indicator\HUDManager\BossHudUI.h" />
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\WorldDebugView.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
