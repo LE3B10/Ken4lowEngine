@@ -1,31 +1,17 @@
 ﻿#define NOMINMAX
 #include "HUDManager.h"
 #include "Player.h"
-#include "ParameterManager.h"
 
 #include <algorithm>
-#include <cmath>
+#include <array>
 #include <string>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif
 
-namespace
-{
-	constexpr const char* kBossHpBarGroup = "BossHpBar";
 
-
-	float Length2D(float x, float y)
-	{
-		return std::sqrt(x * x + y * y);
-	}
-}
-
-HUDManager::~HUDManager()
-{
-	K4E::ParameterManager::GetInstance()->UnregisterParameterApplier(kBossHpBarGroup, this);
-}
+HUDManager::~HUDManager() = default;
 
 /// -------------------------------------------------------------
 ///                    初期化処理
@@ -101,11 +87,8 @@ void HUDManager::Initialize()
 	controlGuideUI_->SetVisible(true);
 	controlGuideUI_->SetAnchorTopLeft({ 1500.0f, 930.0f });
 
-	InitializeBossHpBarSprites();
-	InitializeBossGuideSprites();
+	bossHudUI_.Initialize();
 	stage1ObjectiveGuideUI_.Initialize();
-	RegisterBossHpBarParameters();
-	ApplyBossHpBarParameters();
 }
 
 /// -------------------------------------------------------------
@@ -129,9 +112,7 @@ void HUDManager::Update(float deltaTime)
 
 	if (controlGuideUI_) controlGuideUI_->Update(deltaTime);
 
-	ApplyBossHpBarParameters();
-	UpdateBossHpBarSprites();
-	UpdateBossGuideSprites(deltaTime);
+	bossHudUI_.Update(deltaTime);
 	stage1ObjectiveGuideUI_.Update(deltaTime);
 }
 
@@ -267,8 +248,7 @@ void HUDManager::Draw()
 	if (weaponSlot_) weaponSlot_->Draw();
 	if (waveUI_ && IsWaveUIDrawEnabled()) waveUI_->Draw();
 	stage1ObjectiveGuideUI_.Draw();
-	DrawBossHpBar();
-	DrawBossGuide();
+	bossHudUI_.Draw();
 
 	if (damageIndicatorManager_) damageIndicatorManager_->Draw();
 
@@ -284,13 +264,8 @@ void HUDManager::SetHP(float hp, float maxHp)
 
 void HUDManager::SetBossHP(float hp, float maxHp, bool bossBattleActive)
 {
-	bossBattleActive_ = bossBattleActive;
-	bossHp_ = std::max(0.0f, hp);
-	bossMaxHp_ = std::max(0.0f, maxHp);
-
-	// ボスHP率をUIへ反映する処理。最大HPが0以下なら安全に0扱いにする。
-	bossHpRate_ = (bossMaxHp_ > 0.0f) ? std::clamp(bossHp_ / bossMaxHp_, 0.0f, 1.0f) : 0.0f;
-	bossHpBarRuntimeVisible_ = bossHpBarSettings_.visible && bossBattleActive_ && bossHp_ > 0.0f;
+	// ボス専用HUDの状態管理はBossHudUIへ委譲し、HUDManagerは通知だけを担当する。
+	bossHudUI_.SetBossHP(hp, maxHp, bossBattleActive);
 }
 
 void HUDManager::SetStage1ObjectiveGuide(bool enabled, int destroyedCrystals, int totalCrystals, bool bossBattleActive, bool bossDefeated, bool tutorialActive)
@@ -333,47 +308,12 @@ void HUDManager::SetBossGuide(const K4E::Vector3& playerPos,
 	const K4E::Vector3& cameraForward,
 	bool bossBattleActive)
 {
-	bossGuideBossPosition_ = bossPos;
-	bossGuideActive_ = bossGuideSettings_.visible && bossBattleActive && bossGuideTimer_ > 0.0f;
-	if (!bossGuideActive_)
-	{
-		return;
-	}
-
-	K4E::Vector3 toBoss = bossPos - playerPos;
-	toBoss.y = 0.0f;
-	toBoss = K4E::Vector3::NormalizeXZSafe(toBoss, { 0.0f, 0.0f, 1.0f });
-
-	K4E::Vector3 forward = cameraForward;
-	forward.y = 0.0f;
-	forward = K4E::Vector3::NormalizeXZSafe(forward, { 0.0f, 0.0f, 1.0f });
-	const K4E::Vector3 right = K4E::Vector3::PerpRightXZ(forward);
-
-	const float screenX = K4E::Vector3::Dot(toBoss, right);
-	const float screenY = -K4E::Vector3::Dot(toBoss, forward);
-	const float screenLen = std::max(Length2D(screenX, screenY), 0.0001f);
-	const float dirX = screenX / screenLen;
-	const float dirY = screenY / screenLen;
-
-	const K4E::Vector2 center = bossGuideSettings_.center;
-	bossGuideDotPosition_ = {
-		center.x + dirX * bossGuideSettings_.radius,
-		center.y + dirY * bossGuideSettings_.radius
-	};
-	bossGuideLineCenter_ = {
-		(center.x + bossGuideDotPosition_.x) * 0.5f,
-		(center.y + bossGuideDotPosition_.y) * 0.5f
-	};
-	bossGuideLineLength_ = bossGuideSettings_.radius;
-	bossGuideAngle_ = std::atan2(dirY, dirX);
+	bossHudUI_.SetBossGuide(playerPos, bossPos, cameraForward, bossBattleActive);
 }
 
 void HUDManager::NotifyBossIntroCompleted(const K4E::Vector3& bossPos)
 {
-	// ボス登場演出直後だけ方向ガイドを出し、プレイヤーが復帰後にボス位置を追いやすくする。
-	bossGuideBossPosition_ = bossPos;
-	bossGuideTimer_ = std::max(0.0f, bossGuideSettings_.holdTime);
-	bossGuideActive_ = bossGuideSettings_.visible && bossGuideTimer_ > 0.0f;
+	bossHudUI_.NotifyBossIntroCompleted(bossPos);
 }
 
 void HUDManager::SetWeaponSlotVisibleSlotCount(int count)
@@ -437,7 +377,7 @@ void HUDManager::SetWaveUIVisible(bool v)
 bool HUDManager::IsWaveUIDrawEnabled() const
 {
 	// ボス戦中にWave UIを非表示にする処理。WaveUI自体の状態は破棄せず描画だけ止める。
-	if (bossHpBarSettings_.hideWaveUI && bossBattleActive_)
+	if (bossHudUI_.ShouldHideWaveUI())
 	{
 		return false;
 	}
@@ -463,219 +403,4 @@ void HUDManager::SetCrosshairTargetColors(const K4E::Vector4& normalColor, const
 {
 	if (!crosshair_) return;
 	crosshair_->SetTargetColors(normalColor, targetColor);
-}
-
-void HUDManager::RegisterBossHpBarParameters()
-{
-	auto* parameters = K4E::ParameterManager::GetInstance();
-	parameters->CreateGroup(kBossHpBarGroup);
-	parameters->AddItem(kBossHpBarGroup, "bossHpBarVisible", bossHpBarSettings_.visible);
-	parameters->AddItem(kBossHpBarGroup, "bossHpBarPosition", bossHpBarSettings_.position, K4E::Vector3{ 0.0f, 0.0f, 0.0f }, K4E::Vector3{ 1920.0f, 1080.0f, 0.0f });
-	parameters->AddItem(kBossHpBarGroup, "bossHpBarWidth", bossHpBarSettings_.width, 100.0f, 1600.0f);
-	parameters->AddItem(kBossHpBarGroup, "bossHpBarHeight", bossHpBarSettings_.height, 4.0f, 80.0f);
-	parameters->AddItem(kBossHpBarGroup, "bossHpBarNameOffset", bossHpBarSettings_.nameOffset, K4E::Vector3{ -500.0f, -200.0f, 0.0f }, K4E::Vector3{ 500.0f, 200.0f, 0.0f });
-	parameters->AddStringItem(kBossHpBarGroup, "bossHpBarDisplayName", bossHpBarSettings_.displayName, {});
-	parameters->AddItem(kBossHpBarGroup, "bossHpBarShowAfterIntro", bossHpBarSettings_.showAfterIntro);
-	parameters->AddItem(kBossHpBarGroup, "bossHpBarHideWaveUI", bossHpBarSettings_.hideWaveUI);
-	parameters->SetDisplayName(kBossHpBarGroup, "bossHpBarVisible", "ボスHPバー表示");
-	parameters->SetDisplayName(kBossHpBarGroup, "bossHpBarPosition", "表示位置");
-	parameters->SetDisplayName(kBossHpBarGroup, "bossHpBarWidth", "バー幅");
-	parameters->SetDisplayName(kBossHpBarGroup, "bossHpBarHeight", "バー高さ");
-	parameters->SetDisplayName(kBossHpBarGroup, "bossHpBarNameOffset", "名前表示オフセット");
-	parameters->SetDisplayName(kBossHpBarGroup, "bossHpBarDisplayName", "ボス表示名");
-	parameters->SetDisplayName(kBossHpBarGroup, "bossHpBarShowAfterIntro", "登場後に表示");
-	parameters->SetDisplayName(kBossHpBarGroup, "bossHpBarHideWaveUI", "ボス戦中Wave UI非表示");
-	parameters->RegisterParameterApplier(kBossHpBarGroup, this, [this]() { ApplyBossHpBarParameters(); });
-	parameters->LoadFile(kBossHpBarGroup);
-}
-
-void HUDManager::ApplyBossHpBarParameters()
-{
-	auto* parameters = K4E::ParameterManager::GetInstance();
-	bossHpBarSettings_.visible = parameters->GetValue<bool>(kBossHpBarGroup, "bossHpBarVisible");
-	bossHpBarSettings_.position = parameters->GetValue<K4E::Vector3>(kBossHpBarGroup, "bossHpBarPosition");
-	bossHpBarSettings_.width = std::max(1.0f, parameters->GetValue<float>(kBossHpBarGroup, "bossHpBarWidth"));
-	bossHpBarSettings_.height = std::max(1.0f, parameters->GetValue<float>(kBossHpBarGroup, "bossHpBarHeight"));
-	bossHpBarSettings_.nameOffset = parameters->GetValue<K4E::Vector3>(kBossHpBarGroup, "bossHpBarNameOffset");
-	bossHpBarSettings_.displayName = parameters->GetValue<std::string>(kBossHpBarGroup, "bossHpBarDisplayName");
-	bossHpBarSettings_.showAfterIntro = parameters->GetValue<bool>(kBossHpBarGroup, "bossHpBarShowAfterIntro");
-	bossHpBarSettings_.hideWaveUI = parameters->GetValue<bool>(kBossHpBarGroup, "bossHpBarHideWaveUI");
-	bossHpBarRuntimeVisible_ = bossHpBarSettings_.visible && bossBattleActive_ && bossHp_ > 0.0f;
-}
-
-void HUDManager::InitializeBossHpBarSprites()
-{
-	bossHpFrameSprite_ = std::make_unique<K4E::Sprite>();
-	bossHpFrameSprite_->Initialize("Effects/white.dds");
-	bossHpFrameSprite_->SetAnchorPoint({ 0.5f, 0.5f });
-
-	bossHpBackSprite_ = std::make_unique<K4E::Sprite>();
-	bossHpBackSprite_->Initialize("Effects/white.dds");
-	bossHpBackSprite_->SetAnchorPoint({ 0.5f, 0.5f });
-
-	bossHpDelaySprite_ = std::make_unique<K4E::Sprite>();
-	bossHpDelaySprite_->Initialize("Effects/white.dds");
-	bossHpDelaySprite_->SetAnchorPoint({ 0.0f, 0.5f });
-
-	bossHpFillSprite_ = std::make_unique<K4E::Sprite>();
-	bossHpFillSprite_->Initialize("Effects/white.dds");
-	bossHpFillSprite_->SetAnchorPoint({ 0.0f, 0.5f });
-}
-
-void HUDManager::InitializeBossGuideSprites()
-{
-	bossGuideLineSprite_ = std::make_unique<K4E::Sprite>();
-	bossGuideLineSprite_->Initialize("Effects/white.dds");
-	bossGuideLineSprite_->SetAnchorPoint({ 0.5f, 0.5f });
-
-	bossGuideDotBackSprite_ = std::make_unique<K4E::Sprite>();
-	bossGuideDotBackSprite_->Initialize("Effects/white.dds");
-	bossGuideDotBackSprite_->SetAnchorPoint({ 0.5f, 0.5f });
-
-	bossGuideDotSprite_ = std::make_unique<K4E::Sprite>();
-	bossGuideDotSprite_->Initialize("Effects/white.dds");
-	bossGuideDotSprite_->SetAnchorPoint({ 0.5f, 0.5f });
-}
-
-
-
-void HUDManager::UpdateBossHpBarSprites()
-{
-	const float approachSpeed = 0.9f;
-	bossDelayedHpRate_ += (bossHpRate_ - bossDelayedHpRate_) * approachSpeed * 0.016f;
-	if (std::fabs(bossDelayedHpRate_ - bossHpRate_) < 0.002f)
-	{
-		bossDelayedHpRate_ = bossHpRate_;
-	}
-
-	const K4E::Vector2 center{ bossHpBarSettings_.position.x, bossHpBarSettings_.position.y };
-	const float width = bossHpBarSettings_.width;
-	const float height = bossHpBarSettings_.height;
-	const K4E::Vector2 left{ center.x - width * 0.5f, center.y };
-
-	if (bossHpFrameSprite_)
-	{
-		bossHpFrameSprite_->SetPosition(center);
-		bossHpFrameSprite_->SetSize({ width + 6.0f, height + 6.0f });
-		bossHpFrameSprite_->SetColor({ 0.02f, 0.01f, 0.015f, 0.95f });
-		bossHpFrameSprite_->Update();
-	}
-	if (bossHpBackSprite_)
-	{
-		bossHpBackSprite_->SetPosition(center);
-		bossHpBackSprite_->SetSize({ width, height });
-		bossHpBackSprite_->SetColor({ 0.12f, 0.05f, 0.08f, 0.86f });
-		bossHpBackSprite_->Update();
-	}
-	if (bossHpDelaySprite_)
-	{
-		bossHpDelaySprite_->SetPosition(left);
-		bossHpDelaySprite_->SetSize({ width * std::clamp(bossDelayedHpRate_, 0.0f, 1.0f), height });
-		bossHpDelaySprite_->SetColor({ 1.0f, 0.55f, 0.18f, 0.75f });
-		bossHpDelaySprite_->Update();
-	}
-	if (bossHpFillSprite_)
-	{
-		bossHpFillSprite_->SetPosition(left);
-		bossHpFillSprite_->SetSize({ width * bossHpRate_, height });
-		bossHpFillSprite_->SetColor({ 0.82f, 0.06f, 0.18f, 0.96f });
-		bossHpFillSprite_->Update();
-	}
-}
-
-void HUDManager::UpdateBossGuideSprites(float deltaTime)
-{
-	if (bossGuideTimer_ > 0.0f)
-	{
-		bossGuideTimer_ = std::max(0.0f, bossGuideTimer_ - deltaTime);
-	}
-
-	if (!bossGuideActive_)
-	{
-		return;
-	}
-
-	const float fade = std::clamp(bossGuideTimer_ / std::max(0.01f, bossGuideSettings_.holdTime), 0.0f, 1.0f);
-	const float alpha = std::clamp(fade * 1.4f, 0.0f, 0.88f);
-
-	if (bossGuideLineSprite_)
-	{
-		bossGuideLineSprite_->SetPosition(bossGuideLineCenter_);
-		bossGuideLineSprite_->SetSize({ bossGuideLineLength_, bossGuideSettings_.lineThickness });
-		bossGuideLineSprite_->SetRotation(bossGuideAngle_);
-		bossGuideLineSprite_->SetColor({ 1.0f, 0.72f, 0.18f, alpha });
-		bossGuideLineSprite_->Update();
-	}
-	if (bossGuideDotBackSprite_)
-	{
-		bossGuideDotBackSprite_->SetPosition(bossGuideDotPosition_);
-		bossGuideDotBackSprite_->SetSize({ bossGuideSettings_.dotSize + 12.0f, bossGuideSettings_.dotSize + 12.0f });
-		bossGuideDotBackSprite_->SetRotation(0.0f);
-		bossGuideDotBackSprite_->SetColor({ 0.05f, 0.02f, 0.01f, alpha * 0.65f });
-		bossGuideDotBackSprite_->Update();
-	}
-	if (bossGuideDotSprite_)
-	{
-		bossGuideDotSprite_->SetPosition(bossGuideDotPosition_);
-		bossGuideDotSprite_->SetSize({ bossGuideSettings_.dotSize, bossGuideSettings_.dotSize });
-		bossGuideDotSprite_->SetRotation(0.0f);
-		bossGuideDotSprite_->SetColor({ 1.0f, 0.18f, 0.08f, alpha });
-		bossGuideDotSprite_->Update();
-	}
-}
-
-
-
-void HUDManager::DrawBossHpBar()
-{
-	// ボスHPバーを表示する条件判定。登場演出完了後のボス戦中だけ画面固定UIとして描く。
-	if (!bossHpBarRuntimeVisible_ || !bossHpBarSettings_.showAfterIntro)
-	{
-		return;
-	}
-
-	if (bossHpFrameSprite_) bossHpFrameSprite_->Draw();
-	if (bossHpBackSprite_) bossHpBackSprite_->Draw();
-	if (bossHpDelaySprite_) bossHpDelaySprite_->Draw();
-	if (bossHpFillSprite_) bossHpFillSprite_->Draw();
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void HUDManager::DrawBossGuide()
-{
-	if (!bossGuideActive_ || bossGuideTimer_ <= 0.0f)
-	{
-		return;
-	}
-
-	if (bossGuideLineSprite_) bossGuideLineSprite_->Draw();
-	if (bossGuideDotBackSprite_) bossGuideDotBackSprite_->Draw();
-	if (bossGuideDotSprite_) bossGuideDotSprite_->Draw();
 }

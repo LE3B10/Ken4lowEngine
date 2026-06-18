@@ -8,6 +8,7 @@
 #include "NoAmmoUI.h"
 #include "ControlGuideUI.h"
 #include "Stage1ObjectiveGuideUI.h"
+#include "BossHudUI.h"
 #include "Vector2.h"
 #include "Vector3.h"
 #include "Vector4.h"
@@ -107,42 +108,10 @@ public: /// ---------- ゲッタ ---------- ///
 	HPWidget* GetHPWidget() const { return hpWidget_.get(); }
 	WeaponSlot* GetWeaponSlot() const { return weaponSlot_.get(); }
 	ControlGuideUI* GetControlGuideUI() const { return controlGuideUI_.get(); }
-	bool IsBossHPBarDrawEnabled() const { return bossHpBarRuntimeVisible_; }
+	bool IsBossHPBarDrawEnabled() const { return bossHudUI_.IsHpBarDrawEnabled(); }
 	bool IsWaveUIDrawEnabled() const;
 
 private: /// ---------- メンバ変数 ---------- ///
-	struct BossHpBarSettings
-	{
-		bool visible = true;
-		K4E::Vector3 position{ 960.0f, 54.0f, 0.0f };
-		float width = 760.0f;
-		float height = 22.0f;
-		K4E::Vector3 nameOffset{ 0.0f, -28.0f, 0.0f };
-		std::string displayName = "GUARDIAN";
-		bool showAfterIntro = true;
-		bool hideWaveUI = true;
-	};
-
-	struct BossGuideSettings
-	{
-		bool visible = true;
-		K4E::Vector2 center{ 960.0f, 540.0f };
-		float radius = 155.0f;
-		float holdTime = 8.0f;
-		float lineThickness = 6.0f;
-		float dotSize = 24.0f;
-	};
-
-
-	void RegisterBossHpBarParameters();
-	void ApplyBossHpBarParameters();
-	void InitializeBossHpBarSprites();
-	void UpdateBossHpBarSprites();
-	void DrawBossHpBar();
-	void InitializeBossGuideSprites();
-	void UpdateBossGuideSprites(float deltaTime);
-	void DrawBossGuide();
-
 	// HUD更新を部品単位に分け、Update内で複数責務が混ざらないようにする。
 	bool UpdateReloadCircleFromPlayer();
 	void UpdateCrosshairFromPlayer(bool isReloadingForHUD);
@@ -169,27 +138,6 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	bool reloadTimerIsRemaining_ = true; // リロードタイマーが「残り時間」か「経過時間」かのフラグ
 	bool prevReloading_ = false; // 前フレームのリロード状態（HUDの更新に使う）
-	BossHpBarSettings bossHpBarSettings_{};
-	std::unique_ptr<K4E::Sprite> bossHpFrameSprite_;
-	std::unique_ptr<K4E::Sprite> bossHpBackSprite_;
-	std::unique_ptr<K4E::Sprite> bossHpDelaySprite_;
-	std::unique_ptr<K4E::Sprite> bossHpFillSprite_;
-	bool bossBattleActive_ = false;
-	bool bossHpBarRuntimeVisible_ = false;
-	float bossHp_ = 0.0f;
-	float bossMaxHp_ = 0.0f;
-	float bossHpRate_ = 0.0f;
-	float bossDelayedHpRate_ = 0.0f;
-	BossGuideSettings bossGuideSettings_{};
-	std::unique_ptr<K4E::Sprite> bossGuideLineSprite_;
-	std::unique_ptr<K4E::Sprite> bossGuideDotBackSprite_;
-	std::unique_ptr<K4E::Sprite> bossGuideDotSprite_;
-	bool bossGuideActive_ = false;
-	float bossGuideTimer_ = 0.0f;
-	float bossGuideAngle_ = 0.0f;
-	float bossGuideLineLength_ = 0.0f;
-	K4E::Vector2 bossGuideLineCenter_{};
-	K4E::Vector2 bossGuideDotPosition_{};
-	K4E::Vector3 bossGuideBossPosition_{};
+	BossHudUI bossHudUI_; // ボスHPバーとボス方向ガイドを担当するHUD部品
 	Stage1ObjectiveGuideUI stage1ObjectiveGuideUI_; // ステージ1専用の目的表示とチュートリアル文言を担当するHUD部品
 };
