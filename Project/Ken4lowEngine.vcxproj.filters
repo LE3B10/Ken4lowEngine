@@ -175,9 +175,6 @@
     <ClCompile Include="ApplicationLayer\UISystem\ReloadCircle\ReloadCircle.cpp">
       <Filter>ApplicationLayer\UISystem\ReloadCircle</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\ScoreManager\ScoreManager.cpp">
-      <Filter>ApplicationLayer\ScoreManager</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\EffectLayer\ParticleEmitter.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
@@ -1121,9 +1118,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\Emitter.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\ScoreManager\ScoreManager.h">
-      <Filter>ApplicationLayer\ScoreManager</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\ParticleEmitter.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
@@ -2284,9 +2278,6 @@
     </Filter>
     <Filter Include="ApplicationLayer\SceneManager">
       <UniqueIdentifier>{2c5f873b-2150-4c54-891e-76240279990c}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\ScoreManager">
-      <UniqueIdentifier>{96740e9e-b4e9-45c4-9895-87d816c0dfd6}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shader\ComputeShader">
       <UniqueIdentifier>{fb1e0abe-9c76-4100-adce-67e4769c07b9}</UniqueIdentifier>

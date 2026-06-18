@@ -3,18 +3,20 @@
 #include <vector>
 #include <random>
 
-/// ---------- ドロップエントリの構造体 ---------- ///
-struct DropEntry
-{
-	ItemType itemType; // アイテムの種類
-	int weight;		   // ドロップ確率の重み（合計100を想定）
-};
-
 /// -------------------------------------------------------------
 ///					アイテムドロップテーブルクラス
 /// -------------------------------------------------------------
 class ItemDropTable
 {
+private: /// ---------- 構造体 ---------- ///
+
+	/// ---------- ドロップエントリの構造体 ---------- ///
+	struct DropEntry
+	{
+		ItemType itemType; // アイテムの種類
+		int weight;		   // ドロップ確率の重み（合計100を想定）
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// コンストラクタ
@@ -32,6 +34,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// ロール
 	bool RollForDrop(ItemType& outItemType);
 
+public: /// ---------- セッター ---------- ///
+
+	// ドロップ確率を設定（0-100）
 	void SetDropChance(int chancePercent) { dropChancePercent_ = chancePercent; }
 
 private: /// ---------- メンバ変数 ---------- ///

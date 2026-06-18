@@ -3,16 +3,18 @@
 #include "Player.h"
 #include <CollisionPreset.h>
 #include <CollisionTypeIdDef.h>
+#include <GameTimer.h>
 
 #include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <string>
 
-namespace K4E = ::Ken4lowEngine;
+using namespace Ken4lowEngine;
 
 namespace
 {
+	// アイテムの種類に応じたモデルパスを返す
 	const char* GetModelPath(ItemType type)
 	{
 		switch (type)
@@ -26,6 +28,9 @@ namespace
 	}
 }
 
+/// -------------------------------------------------------------
+///						アイテムの初期化処理
+/// -------------------------------------------------------------
 void Item::Initialize(ItemType type, const K4E::Vector3& pos, int healAmount, int ammoAmount, float pickupRadius)
 {
 	ApplyCollisionPreset(*this, ECollisionPresetId::Item); // Preset適用テストとして、従来のkItem TypeIDと同じ設定を反映する。
@@ -71,6 +76,9 @@ void Item::Initialize(ItemType type, const K4E::Vector3& pos, int healAmount, in
 	}
 }
 
+/// -------------------------------------------------------------
+/// 			アイテムのビジュアルアニメーション設定
+/// -------------------------------------------------------------
 void Item::SetVisualAnimationSettings(float floatHeight, float floatSpeed, float rotationSpeed)
 {
 	floatAmplitude_ = std::max(0.0f, floatHeight);
@@ -78,6 +86,9 @@ void Item::SetVisualAnimationSettings(float floatHeight, float floatSpeed, float
 	rotationSpeed_ = rotationSpeed;
 }
 
+/// -------------------------------------------------------------
+/// 			アイテムのビジュアルカラー設定
+/// -------------------------------------------------------------
 void Item::SetVisualColor(const K4E::Vector4& color)
 {
 	if (object3d_)
@@ -86,9 +97,15 @@ void Item::SetVisualColor(const K4E::Vector4& color)
 	}
 }
 
-void Item::Update(float deltaTime)
+/// -------------------------------------------------------------
+///						アイテムの更新処理
+/// -------------------------------------------------------------
+void Item::Update()
 {
+	// 非アクティブ状態なら更新処理をスキップ
 	if (!active_) return;
+
+	float deltaTime = GameTimer::GetInstance()->GetDeltaTime();
 
 	lifetime_ += deltaTime;
 	floatTimer_ += floatSpeed_ * deltaTime;
@@ -106,6 +123,9 @@ void Item::Update(float deltaTime)
 	K4E::Collider::SetCenterPosition(position_);
 }
 
+/// -------------------------------------------------------------
+///					   アイテムの描画処理
+/// -------------------------------------------------------------
 void Item::Draw()
 {
 	if (active_ && object3d_)
@@ -114,6 +134,9 @@ void Item::Draw()
 	}
 }
 
+/// -------------------------------------------------------------
+///					 プレイヤーとの衝突判定
+/// -------------------------------------------------------------
 bool Item::CheckCollisionWithPlayer(const K4E::Vector3& playerPos) const
 {
 	if (!active_) return false;
@@ -121,6 +144,9 @@ bool Item::CheckCollisionWithPlayer(const K4E::Vector3& playerPos) const
 	return K4E::Vector3::Length(diff) <= pickupRadius_;
 }
 
+/// -------------------------------------------------------------
+///				プレイヤーがアイテムを取得した際の処理
+/// -------------------------------------------------------------
 bool Item::OnPickup(Player& player)
 {
 	if (!active_) return false;
@@ -143,12 +169,18 @@ bool Item::OnPickup(Player& player)
 	return true;
 }
 
+/// -------------------------------------------------------------
+///				アイテムの効果をプレイヤーに適用する
+/// -------------------------------------------------------------
 void Item::ApplyTo(Player* player)
 {
 	if (!player) return;
 	(void)OnPickup(*player);
 }
 
+/// -------------------------------------------------------------
+///					アイテムの衝突判定
+/// -------------------------------------------------------------
 void Item::OnCollision(K4E::Collider* other)
 {
 	if (!other) return;
@@ -160,6 +192,9 @@ void Item::OnCollision(K4E::Collider* other)
 	}
 }
 
+/// -------------------------------------------------------------
+///					アイテムのOverlap開始通知
+/// -------------------------------------------------------------
 void Item::OnOverlapBegin(const K4E::CollisionHit& hit)
 {
 	// ItemはPreset上Overlap扱い。取得効果はItemManager::ApplyItemEffectへ集約し、ここでは通知確認だけに留める。

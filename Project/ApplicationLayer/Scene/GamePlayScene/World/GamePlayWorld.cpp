@@ -403,11 +403,11 @@ void GamePlayWorld::UpdateItemRuntime(float deltaTime)
 			bossBattleController_.IsGameClearRequested();
 		// 弾薬回復Itemの時間スポーンは専用クラスに任せ、World側は進行状態だけを渡す。
 		ammoRecoveryItemSpawner_.Update(deltaTime, player, itemManager_, stage_.get(), suppressAmmoRecoverySpawn);
-		itemManager_.Update(player, deltaTime);
+		itemManager_.Update(player);
 	}
 	else
 	{
-		itemManager_.Update(deltaTime);
+		itemManager_.Update(nullptr);
 	}
 }
 

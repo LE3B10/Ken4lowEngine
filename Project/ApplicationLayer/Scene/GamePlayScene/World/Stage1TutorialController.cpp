@@ -147,7 +147,7 @@ void Stage1TutorialController::Update(const Dependencies& deps, float deltaTime)
 			deps.characters->UpdatePlayerOnly(deltaTime);
 			if (deps.itemManager)
 			{
-				deps.itemManager->Update(player, deltaTime);
+				deps.itemManager->Update(player);
 				// アイテムを2つ実際に拾わせ、取得方法と効果を理解させる。
 				if (deps.itemManager->ConsumeCollected(ItemType::AmmoSmall))
 				{
