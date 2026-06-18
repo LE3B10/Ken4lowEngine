@@ -148,6 +148,9 @@
     <Filter Include="Engine\Physics\DebugDraw">
       <UniqueIdentifier>{c8b8472a-f2d0-4896-b930-54495aebdb87}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ApplicationLayer\UISystem\HUDManager">
+      <UniqueIdentifier>{c6e64e0a-a0d0-48e3-abd0-f830b4001a94}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -313,7 +316,7 @@
     <ClCompile Include="ApplicationLayer\UISystem\HPWidget\HPWidget.cpp">
       <Filter>ApplicationLayer\UISystem\HPWidget</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\UISystem\Indicator\HUDManager\HUDManager.cpp">
+    <ClCompile Include="ApplicationLayer\UISystem\HUDManager\HUDManager.cpp">
       <Filter>ApplicationLayer\UISystem\HUDManager</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerMotorComponent.cpp">
@@ -1042,15 +1045,33 @@
     <ClCompile Include="Engine\Graphics\Renderer\Wireframe\Effects\WireframeEffectShapes.cpp">
       <Filter>Engine\Graphics\Renderer\Wireframe\Effects</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\Stage1TutorialController.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\AmmoRecoveryItemSpawner.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\BossBattleController.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\GameplayPhysicsDebugController.cpp" />
-    <ClCompile Include="ApplicationLayer\UISystem\Indicator\HUDManager\Stage1ObjectiveGuideUI.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalParameterController.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalHpBarController.cpp" />
-    <ClCompile Include="ApplicationLayer\UISystem\Indicator\HUDManager\BossHudUI.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\WorldDebugView.cpp" />
+    <ClCompile Include="ApplicationLayer\UISystem\HUDManager\Stage1ObjectiveGuideUI.cpp">
+      <Filter>ApplicationLayer\UISystem\HUDManager</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\UISystem\HUDManager\BossHudUI.cpp">
+      <Filter>ApplicationLayer\UISystem\HUDManager</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\WorldDebugView.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\Stage1TutorialController.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\GameplayPhysicsDebugController.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalParameterController.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalHpBarController.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\BossBattleController.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\AmmoRecoveryItemSpawner.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1278,7 +1299,7 @@
     <ClInclude Include="ApplicationLayer\UISystem\HPWidget\HPWidget.h">
       <Filter>ApplicationLayer\UISystem\HPWidget</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\UISystem\Indicator\HUDManager\HUDManager.h">
+    <ClInclude Include="ApplicationLayer\UISystem\HUDManager\HUDManager.h">
       <Filter>ApplicationLayer\UISystem\HUDManager</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerMotorComponent.h">
@@ -2205,15 +2226,33 @@
     <ClInclude Include="Engine\Graphics\Renderer\Wireframe\Core\WireframeTypes.h">
       <Filter>Engine\Graphics\Renderer\Wireframe\Core</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\Stage1TutorialController.h" />
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\AmmoRecoveryItemSpawner.h" />
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\BossBattleController.h" />
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\GameplayPhysicsDebugController.h" />
-    <ClInclude Include="ApplicationLayer\UISystem\Indicator\HUDManager\Stage1ObjectiveGuideUI.h" />
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalParameterController.h" />
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalHpBarController.h" />
-    <ClInclude Include="ApplicationLayer\UISystem\Indicator\HUDManager\BossHudUI.h" />
-    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\WorldDebugView.h" />
+    <ClInclude Include="ApplicationLayer\UISystem\HUDManager\Stage1ObjectiveGuideUI.h">
+      <Filter>ApplicationLayer\UISystem\HUDManager</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\UISystem\HUDManager\BossHudUI.h">
+      <Filter>ApplicationLayer\UISystem\HUDManager</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\WorldDebugView.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\Stage1TutorialController.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\GameplayPhysicsDebugController.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalParameterController.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalHpBarController.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\BossBattleController.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\AmmoRecoveryItemSpawner.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
@@ -2320,9 +2359,6 @@
     </Filter>
     <Filter Include="ApplicationLayer\UISystem\ReloadCircle">
       <UniqueIdentifier>{28c95605-c9f2-44e5-94d0-86aca3440279}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\UISystem\HUDManager">
-      <UniqueIdentifier>{c6e64e0a-a0d0-48e3-abd0-f830b4001a94}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\UISystem\HPWidget">
       <UniqueIdentifier>{6408c9d1-410a-459b-9906-aaa87415445b}</UniqueIdentifier>

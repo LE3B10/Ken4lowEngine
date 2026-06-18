@@ -17,17 +17,16 @@ class GamePlayWorld;
 
 class GamePlayIntroDirector
 {
-public:
+public: /// ---------- 型エイリアス ---------- ///
+
 	using IntroCameraPointInfo = GamePlayStageContext::IntroCameraPointInfo;
 	using IntroLookAtPointInfo = GamePlayStageContext::IntroLookAtPointInfo;
 
-public:
+public: /// ---------- メンバ関数 ---------- ///
+
 	void Reset(const GamePlayStageContext& stageContext, float introDuration = 2.5f);
 
-	bool HasIntro() const
-	{
-		return !cameraPoints_.empty();
-	}
+	bool HasIntro() const { return !cameraPoints_.empty(); }
 
 	void Update(
 		float deltaTime,

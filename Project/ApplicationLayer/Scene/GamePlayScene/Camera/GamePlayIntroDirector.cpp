@@ -21,11 +21,7 @@ namespace
 
 	K4E::Vector3 DegToRadVec(const K4E::Vector3& deg)
 	{
-		return {
-			deg.x * kDegToRad,
-			deg.y * kDegToRad,
-			deg.z * kDegToRad
-		};
+		return deg * kDegToRad;
 	}
 
 	K4E::Vector3 LerpVec3(const K4E::Vector3& a, const K4E::Vector3& b, float t)
@@ -54,12 +50,7 @@ namespace
 			);
 	}
 
-	K4E::Vector3 CatmullRomVec3(
-		const K4E::Vector3& p0,
-		const K4E::Vector3& p1,
-		const K4E::Vector3& p2,
-		const K4E::Vector3& p3,
-		float t)
+	K4E::Vector3 CatmullRomVec3(const K4E::Vector3& p0, const K4E::Vector3& p1, const K4E::Vector3& p2, const K4E::Vector3& p3, float t)
 	{
 		return {
 			CatmullRomFloat(p0.x, p1.x, p2.x, p3.x, t),

@@ -34,33 +34,6 @@
 
 using namespace Ken4lowEngine;
 
-namespace
-{
-	static constexpr uint32_t kPhysicsLayerStage = 0u;
-	static constexpr uint32_t kPhysicsLayerTestObject = 1u;
-	static constexpr uint32_t kPhysicsLayerPlayer = 2u;
-	static constexpr uint32_t kPhysicsLayerTestBullet = 3u;
-	static constexpr uint32_t kPhysicsLayerTestTarget = 4u;
-	static constexpr uint32_t kPhysicsLayerPlayerBullet = 5u;
-	static constexpr uint32_t kPhysicsLayerEnemy = 6u;
-	static constexpr uint32_t kPhysicsLayerBoss = 7u;
-
-	const char* ToCollisionResponseName(K4E::CollisionResponseType response)
-	{
-		switch (response)
-		{
-		case K4E::CollisionResponseType::Ignore:
-			return "Ignore";
-		case K4E::CollisionResponseType::Trigger:
-			return "Trigger";
-		case K4E::CollisionResponseType::Block:
-			return "Block";
-		default:
-			return "Unknown";
-		}
-	}
-}
-
 void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
 {
 	const auto stageAssets = stageContext.GetCurrentStageAssets();
