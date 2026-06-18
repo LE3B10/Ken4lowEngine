@@ -12,7 +12,10 @@ class Player;
 class CollisionManager;
 
 /// -------------------------------------------------------------
-///						アイテムマネージャークラス
+/// アイテム生成・更新・取得効果を管理するクラス。
+///
+/// Heal/Ammo/Key などのItem実体を所有し、CollisionManager登録、
+/// プレイヤー取得判定、取得済みItemの安全な削除までを担当する。
 /// -------------------------------------------------------------
 class ItemManager
 {
@@ -47,6 +50,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Spawn(ItemType type, const K4E::Vector3& position);
 	void SpawnHealSmall(const K4E::Vector3& position);
 	void SpawnAmmoSmall(const K4E::Vector3& position);
+	void SpawnAmmoSmall(const K4E::Vector3& position, int ammoAmount);
 	void SetConsumeItemWhenFull(bool enabled) { consumeItemWhenFull_ = enabled; }
 	void SetEnemyDeathDropEnabled(bool enabled) { enemyDeathDropEnabled_ = enabled; }
 	bool TryGetFirstActiveItemPosition(ItemType type, K4E::Vector3& outPosition) const;
@@ -80,7 +84,7 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	void RemoveInactiveItems();
 	void SpawnDropItem(ItemType type, const K4E::Vector3& position);
-	void SpawnConfigured(ItemType type, const K4E::Vector3& position);
+	void SpawnConfigured(ItemType type, const K4E::Vector3& position, int overrideAmmoAmount = -1);
 	void LogDropRollResult(ItemType type, const K4E::Vector3& position) const;
 	void LogItemEffectResult() const;
 	void ApplyVisualSettings(Item& item);

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "ReloadCircle.h"
 #include "Crosshair.h"
 #include "HPWidget.h"
@@ -167,7 +167,28 @@ private: /// ---------- メンバ変数 ---------- ///
 	void DrawBossGuide();
 	void InitializeStage1ObjectiveGuide();
 	void UpdateStage1ObjectiveGuideSprites(float deltaTime);
+
+	// HUD更新を部品単位に分け、Update内で複数責務が混ざらないようにする。
+	bool UpdateReloadCircleFromPlayer();
+	void UpdateCrosshairFromPlayer(bool isReloadingForHUD);
+	void UpdateWeaponSlotFromPlayer();
+	void UpdateNoAmmoFromPlayer(float deltaTime);
+
+	// Stage1目的表示の描画をページ単位に分け、チュートリアル文言の追加・調整を安全にする。
 	void DrawStage1ObjectiveGuide();
+	bool PrepareStage1ObjectiveText();
+	void DrawStage1TutorialPage();
+	void DrawStage1TutorialCrystalPage();
+	void DrawStage1TutorialMovePage();
+	void DrawStage1TutorialMouseLookPage();
+	void DrawStage1TutorialShootPage();
+	void DrawStage1TutorialReloadPage();
+	void DrawStage1TutorialEnemyPage();
+	void DrawStage1TutorialItemPage();
+	void DrawStage1TutorialCompletedPage();
+	void DrawStage1TutorialItemMarkers();
+	void DrawStage1ObjectiveProgress();
+	void DrawStage1BossNotice();
 
 	Player* player_ = nullptr; // プレイヤーへの参照（HUDがゲーム状態を参照するため）
 

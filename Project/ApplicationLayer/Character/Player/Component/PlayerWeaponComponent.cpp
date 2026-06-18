@@ -491,6 +491,13 @@ int PlayerWeaponComponent::GetMagazineAmmo() const
 	return weaponSys_.Weapon().GetMagazineAmmo();
 }
 
+int PlayerWeaponComponent::GetMagazineCapacity() const
+{
+	if (!weaponLoaded_) return 0;
+	// 弾薬回復量を現在武器のマガジン1個分に合わせるため、WeaponParamsの容量を読み出す。
+	return std::max(0, weaponSys_.Weapon().Params().magCapacity);
+}
+
 int PlayerWeaponComponent::GetReserveAmmo() const
 {
 	if (!weaponLoaded_) return 0;

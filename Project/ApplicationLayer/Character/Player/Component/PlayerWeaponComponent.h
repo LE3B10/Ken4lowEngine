@@ -117,6 +117,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	int AddReserveAmmo(int amount);
 	int GetMagazineAmmo() const;
+	int GetMagazineCapacity() const;
 	int GetReserveAmmo() const;
 	int GetMaxReserveAmmo() const;
 	bool AddCurrentWeaponAmmo(int amount);

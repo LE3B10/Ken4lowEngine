@@ -150,6 +150,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Heal(float amount) { damage_.Heal(amount); }
 	int AddReserveAmmo(int amount) { return weapon_.AddReserveAmmo(amount); }
 	int GetCurrentWeaponMagazineAmmo() const { return weapon_.GetMagazineAmmo(); }
+	int GetCurrentWeaponMagazineCapacity() const { return weapon_.GetMagazineCapacity(); }
 	int GetCurrentWeaponReserveAmmo() const { return weapon_.GetReserveAmmo(); }
 	int GetCurrentWeaponMaxReserveAmmo() const { return weapon_.GetMaxReserveAmmo(); }
 	bool AddCurrentWeaponAmmo(int amount) { return weapon_.AddCurrentWeaponAmmo(amount); }

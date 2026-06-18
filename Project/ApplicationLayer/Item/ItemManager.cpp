@@ -110,6 +110,14 @@ void ItemManager::SpawnAmmoSmall(const K4E::Vector3& position)
 	SpawnConfigured(ItemType::AmmoSmall, spawnPosition);
 }
 
+void ItemManager::SpawnAmmoSmall(const K4E::Vector3& position, int ammoAmount)
+{
+	K4E::Vector3 spawnPosition = position;
+	spawnPosition.y += 0.5f;
+	// 弾薬回復スポナー専用に、既存のAmmoSmall見た目と取得処理を使いながら回復量だけ差し替える。
+	SpawnConfigured(ItemType::AmmoSmall, spawnPosition, ammoAmount);
+}
+
 bool ItemManager::TryGetFirstActiveItemPosition(ItemType type, K4E::Vector3& outPosition) const
 {
 	for (const auto& item : items_)
@@ -487,12 +495,14 @@ void ItemManager::SpawnDropItem(ItemType type, const K4E::Vector3& position)
 	SpawnConfigured(type, position);
 }
 
-void ItemManager::SpawnConfigured(ItemType type, const K4E::Vector3& position)
+void ItemManager::SpawnConfigured(ItemType type, const K4E::Vector3& position, int overrideAmmoAmount)
 {
 	if (type == ItemType::None) return;
 
 	auto item = std::make_unique<Item>();
-	item->Initialize(type, position, healAmount_, ammoAmount_, pickupRadius_);
+	// 通常ドロップは既定値、時間スポーン弾薬だけは指定回復量でItemを初期化する。
+	const int ammoAmount = (overrideAmmoAmount >= 0) ? overrideAmmoAmount : ammoAmount_;
+	item->Initialize(type, position, healAmount_, ammoAmount, pickupRadius_);
 	ApplyVisualSettings(*item);
 	itemVisualEffect_.StartIdle(*item);
 	if (registeredCollisionManager_)
