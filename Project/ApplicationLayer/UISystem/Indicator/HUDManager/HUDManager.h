@@ -7,12 +7,11 @@
 #include "DamageIndicatorManager.h"
 #include "NoAmmoUI.h"
 #include "ControlGuideUI.h"
-#include "TextSpriteDrawer.h"
+#include "Stage1ObjectiveGuideUI.h"
 #include "Vector2.h"
 #include "Vector3.h"
 #include "Vector4.h"
 
-#include <array>
 #include <memory>
 #include <string>
 
@@ -134,28 +133,6 @@ private: /// ---------- メンバ変数 ---------- ///
 		float dotSize = 24.0f;
 	};
 
-	struct Stage1ObjectiveGuideSettings
-	{
-		bool visible = true;
-		K4E::Vector2 center{ 250.0f, 94.0f };
-		K4E::Vector2 panelSize{ 380.0f, 54.0f };
-		K4E::Vector2 tutorialCenter{ 960.0f, 270.0f };
-		K4E::Vector2 tutorialPanelSize{ 920.0f, 260.0f };
-		K4E::Vector2 noticeCenter{ 960.0f, 156.0f };
-		float titleScale = 0.92f;
-		float progressScale = 0.58f;
-		float smallScale = 0.54f;
-		float noticeScale = 0.78f;
-		float introHoldTime = 7.0f;
-		float bossNoticeTime = 3.2f;
-	};
-
-	struct Stage1TutorialItemMarker
-	{
-		bool visible = false;
-		K4E::Vector2 screenPosition{};
-		int itemType = 0;
-	};
 
 	void RegisterBossHpBarParameters();
 	void ApplyBossHpBarParameters();
@@ -165,8 +142,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	void InitializeBossGuideSprites();
 	void UpdateBossGuideSprites(float deltaTime);
 	void DrawBossGuide();
-	void InitializeStage1ObjectiveGuide();
-	void UpdateStage1ObjectiveGuideSprites(float deltaTime);
 
 	// HUD更新を部品単位に分け、Update内で複数責務が混ざらないようにする。
 	bool UpdateReloadCircleFromPlayer();
@@ -175,20 +150,6 @@ private: /// ---------- メンバ変数 ---------- ///
 	void UpdateNoAmmoFromPlayer(float deltaTime);
 
 	// Stage1目的表示の描画をページ単位に分け、チュートリアル文言の追加・調整を安全にする。
-	void DrawStage1ObjectiveGuide();
-	bool PrepareStage1ObjectiveText();
-	void DrawStage1TutorialPage();
-	void DrawStage1TutorialCrystalPage();
-	void DrawStage1TutorialMovePage();
-	void DrawStage1TutorialMouseLookPage();
-	void DrawStage1TutorialShootPage();
-	void DrawStage1TutorialReloadPage();
-	void DrawStage1TutorialEnemyPage();
-	void DrawStage1TutorialItemPage();
-	void DrawStage1TutorialCompletedPage();
-	void DrawStage1TutorialItemMarkers();
-	void DrawStage1ObjectiveProgress();
-	void DrawStage1BossNotice();
 
 	Player* player_ = nullptr; // プレイヤーへの参照（HUDがゲーム状態を参照するため）
 
@@ -230,22 +191,5 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Vector2 bossGuideLineCenter_{};
 	K4E::Vector2 bossGuideDotPosition_{};
 	K4E::Vector3 bossGuideBossPosition_{};
-	Stage1ObjectiveGuideSettings stage1ObjectiveGuideSettings_{};
-	std::unique_ptr<K4E::Sprite> stage1ObjectiveGuideBackSprite_;
-	std::unique_ptr<K4E::Sprite> stage1ObjectiveGuideAccentSprite_;
-	std::unique_ptr<K4E::TextSpriteDrawer> stage1ObjectiveTextDrawer_;
-	bool stage1ObjectiveGuideEnabled_ = false;
-	bool stage1ObjectiveTextReady_ = false;
-	int stage1DestroyedCrystals_ = 0;
-	int stage1TotalCrystals_ = 0;
-	bool stage1BossBattleActive_ = false;
-	bool stage1BossDefeated_ = false;
-	bool stage1ObjectiveTutorialActive_ = false;
-	int stage1ObjectiveTutorialPage_ = 0;
-	float stage1ObjectiveTutorialAlpha_ = 0.0f;
-	float stage1ObjectiveTutorialProgress_ = 0.0f;
-	float stage1ObjectiveIntroTimer_ = 0.0f;
-	float stage1ObjectiveGuideAlpha_ = 0.0f;
-	float stage1BossNoticeTimer_ = 0.0f;
-	std::array<Stage1TutorialItemMarker, 2> stage1TutorialItemMarkers_{};
+	Stage1ObjectiveGuideUI stage1ObjectiveGuideUI_; // ステージ1専用の目的表示とチュートリアル文言を担当するHUD部品
 };
