@@ -936,7 +936,7 @@ void HUDManager::DrawStage1ObjectiveGuide()
 		const float noticeAlpha = std::clamp(stage1BossNoticeTimer_ / std::max(0.01f, stage1ObjectiveGuideSettings_.bossNoticeTime), 0.0f, 1.0f);
 		stage1ObjectiveTextDrawer_->SetScale(stage1ObjectiveGuideSettings_.noticeScale);
 		stage1ObjectiveTextDrawer_->SetColor({ 1.0f, 0.78f, 0.22f, noticeAlpha });
-		stage1ObjectiveTextDrawer_->DrawTextCentered("ボスが出現した！", stage1ObjectiveGuideSettings_.noticeCenter);
+		stage1ObjectiveTextDrawer_->DrawTextCentered("ボスが出現した!", stage1ObjectiveGuideSettings_.noticeCenter);
 	}
 }
 
