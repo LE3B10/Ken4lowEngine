@@ -10,6 +10,9 @@
 
 namespace Ken4lowEngine
 {
+	// Ladderを通常Stageとは別のPhysicsWorld Responseへ割り当てる共有レイヤー。
+	inline constexpr uint32_t kLadderPhysicsLayer = 8u;
+
 	struct StageCollisionBuildResult
 	{
 		std::vector<AABB> worldAABBs; // Stage全体のBroadPhase・簡易範囲判定用AABB。
@@ -20,6 +23,9 @@ namespace Ken4lowEngine
 		std::vector<OBB> wallObstacleOBBs; // 斜め障害物の最終判定・横押し戻し用OBB。
 		std::vector<uint8_t> wallObstacleWalkable; // 将来のLevel設定へ拡張できるObstacle上面歩行可否。
 		std::vector<OBB> navigationObstacleOBBs;
+		std::vector<Collider*> ladderColliders; // worldColliders所有のStatic Triggerを参照する梯子専用一覧。
+		std::vector<AABB> ladderAABBs; // 毎フレームのPlayer Trigger問い合わせに使う梯子包み込みAABB。
+		std::vector<OBB> ladderOBBs; // 梯子Triggerの判定・専用デバッグ描画に使う回転OBB。
 	};
 
 	/*

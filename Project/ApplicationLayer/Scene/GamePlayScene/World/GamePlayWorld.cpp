@@ -386,11 +386,26 @@ bool GamePlayWorld::UpdateBlockingBossIntro(float deltaTime)
 
 void GamePlayWorld::UpdateGameplayActors(float deltaTime)
 {
+	// Character更新前に現在位置のLadder Trigger状態を渡し、同じフレームのMotor昇降へ反映する。
+	UpdatePlayerLadderOverlap();
 	// 先にキャラクターとクリスタルを更新し、敵残数とクリスタル破壊状態からボス出現条件を評価する。
 	characters_.Update(deltaTime);
 	crystalManager_.Update(characters_, deltaTime);
 	bossBattleController_.UpdateSpawnProgress(BuildBossBattleDependencies());
 	bossBattleController_.UpdateIntro(BuildBossBattleDependencies(), deltaTime);
+}
+
+void GamePlayWorld::UpdatePlayerLadderOverlap()
+{
+	Player* player = characters_.GetPlayer();
+	if (!player)
+	{
+		return;
+	}
+
+	// Stage未生成時も前フレームの梯子状態を残さず、通常移動へ戻す。
+	const bool inLadderArea = stage_ && stage_->CheckLadderOverlap(player->GetLadderDetectionAABB());
+	player->SetInLadderArea(inLadderArea);
 }
 
 void GamePlayWorld::UpdateBossRuntime(float deltaTime)

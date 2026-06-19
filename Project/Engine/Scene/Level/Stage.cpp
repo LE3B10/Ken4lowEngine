@@ -1,6 +1,7 @@
 #include "Stage.h"
 
 #include "CollisionManager.h"
+#include "CollisionUtility.h"
 #include "LevelLoader.h"
 #include "StageAssetLoader.h"
 #include "StageCollisionBuilder.h"
@@ -33,6 +34,9 @@ namespace Ken4lowEngine
 		wallObstacleOBBs_ = std::move(collisionResult.wallObstacleOBBs);
 		wallObstacleWalkable_ = std::move(collisionResult.wallObstacleWalkable);
 		navigationObstacleOBBs_ = std::move(collisionResult.navigationObstacleOBBs);
+		ladderColliders_ = std::move(collisionResult.ladderColliders);
+		ladderAABBs_ = std::move(collisionResult.ladderAABBs);
+		ladderOBBs_ = std::move(collisionResult.ladderOBBs);
 		occlusionCullingSystem_.BuildAutoOccludersFromWorldAABBs(worldAABBs_);
 	}
 
@@ -50,6 +54,9 @@ namespace Ken4lowEngine
 		wallObstacleOBBs_.clear();
 		wallObstacleWalkable_.clear();
 		navigationObstacleOBBs_.clear();
+		ladderColliders_.clear();
+		ladderAABBs_.clear();
+		ladderOBBs_.clear();
 	}
 
 	void Stage::Update()
@@ -186,6 +193,19 @@ namespace Ken4lowEngine
 		{
 			collisionManager->AddCollider(collider.get());
 		}
+	}
+
+	bool Stage::CheckLadderOverlap(const AABB& playerAABB) const
+	{
+		// Triggerイベント配送に依存せず、専用AABB群との交差だけで梯子エリア滞在を判定する。
+		for (const AABB& ladderAABB : ladderAABBs_)
+		{
+			if (CollisionUtility::IsCollision(playerAABB, ladderAABB))
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 
 	std::vector<Collider*> Stage::GetWorldColliderPointers() const

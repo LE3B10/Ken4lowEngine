@@ -98,6 +98,26 @@ void PlayerMotorComponent::PreprocessInput(InputSnapshot& in, float dt)
 	// blink cooldown
 	blinkCooldownTimer_ = std::max(0.0f, blinkCooldownTimer_ - dt);
 
+	// Ladder内ではShift/Ctrlを下降入力として保持し、Blink開始入力には渡さない。
+	ladderDescendHeld_ = isInLadderArea_ && (in.sprintHeld || in.blinkPressed);
+	if (isInLadderArea_)
+	{
+		in.blinkPressed = false;
+		blinkTimer_ = 0.0f;
+	}
+
+	if (isInLadderArea_ && in.jumpPressed)
+	{
+		// Space押下は梯子を再取得しないロック付き離脱ジャンプとして、通常重力へ即座に戻す。
+		isInLadderArea_ = false;
+		isClimbingLadder_ = false;
+		ladderDetachLocked_ = true;
+		verticalVel_ = jumpSpeed_;
+		grounded_ = false;
+		in.jumpPressed = false;
+		in.jumpHeld = false;
+	}
+
 	// クールタイム中はダッシュ入力を無効化
 	if (blinkCooldownTimer_ > 0.0f || blinkTimer_ > 0.0f)
 	{
@@ -153,8 +173,28 @@ void PlayerMotorComponent::Jump()
 	}
 }
 
+void PlayerMotorComponent::SetLadderState(bool inLadderArea)
+{
+	// Trigger退出時だけ離脱ロックを解除し、範囲内Stayで即再捕捉されるのを防ぐ。
+	if (!inLadderArea)
+	{
+		isInLadderArea_ = false;
+		isClimbingLadder_ = false;
+		ladderDetachLocked_ = false;
+		return;
+	}
+
+	if (!ladderDetachLocked_)
+	{
+		isInLadderArea_ = true;
+	}
+}
+
 void PlayerMotorComponent::StartBlink(float cameraYawRad, bool isAds)
 {
+	// 梯子Trigger内では昇降入力とBlinkが競合しないよう開始を拒否する。
+	if (isInLadderArea_) return;
+
 	// ADS中はダッシュしない
 	if (isAds) return;
 
@@ -247,12 +287,18 @@ void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId,
 	// ここを locoId 依存ではなく blinkTimer_ 依存にするのが重要
 	// → Jump/Fall 中でもダッシュジャンプの勢いを維持できる
 	// ------------------------------------------------------------
-	const bool blinkActive = (!isAds && blinkTimer_ > 0.0f);
+	const bool blinkActive = (!isInLadderArea_ && !isAds && blinkTimer_ > 0.0f);
 
 	// ------------------------------------------------------------
 	// 水平速度
 	// ------------------------------------------------------------
-	if (blinkActive)
+	if (isInLadderArea_)
+	{
+		// 梯子中は水平移動を止め、W/SまたはShift/Ctrlを純粋な上下入力として扱う。
+		velX_ = 0.0f;
+		velZ_ = 0.0f;
+	}
+	else if (blinkActive)
 	{
 		blinkTimer_ = std::max(0.0f, blinkTimer_ - dt);
 
@@ -334,7 +380,24 @@ void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId,
 	// ------------------------------------------------------------
 	// 縦移動
 	// ------------------------------------------------------------
-	verticalVel_ -= gravity_ * dt;
+	if (isInLadderArea_)
+	{
+		// 無入力時はY速度を0にしてその場へ留まり、入力時だけ調整可能速度で昇降する。
+		float climbInput = moveZ_;
+		if (ladderDescendHeld_)
+		{
+			climbInput = -1.0f;
+		}
+		verticalVel_ = std::clamp(climbInput, -1.0f, 1.0f) * ladderClimbSpeed_;
+		isClimbingLadder_ = std::abs(climbInput) > 0.01f;
+		grounded_ = false;
+	}
+	else
+	{
+		// 梯子外では既存の重力積分をそのまま使用する。
+		verticalVel_ -= gravity_ * dt;
+		isClimbingLadder_ = false;
+	}
 	tr_->translate_.y += verticalVel_ * dt;
 
 	// ------------------------------------------------------------
@@ -383,7 +446,7 @@ void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId,
 		(tr_->translate_.y <= groundY_ + groundSnapEpsilon_) &&
 		(verticalVel_ <= 0.0f);
 
-	if (insideStage && (resolvedGrounded || queryGrounded))
+	if (!isInLadderArea_ && insideStage && (resolvedGrounded || queryGrounded))
 	{
 		if (tr_->translate_.y < groundY_)
 		{

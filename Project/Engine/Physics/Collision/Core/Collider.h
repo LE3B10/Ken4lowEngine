@@ -357,6 +357,12 @@ namespace Ken4lowEngine
 		void SetTrigger(bool trigger) { filterData_.trigger = trigger; }
 		bool IsTrigger() const { return filterData_.trigger; }
 
+		// Level由来Colliderの用途と名前を、Trigger通知側で安全に識別できる軽量メタデータとして保持する。
+		void SetCollisionTag(std::string_view tag) { collisionTag_ = tag; }
+		std::string_view GetCollisionTag() const { return collisionTag_; }
+		void SetDebugName(std::string_view name) { debugName_ = name; }
+		std::string_view GetDebugName() const { return debugName_; }
+
 		// Owner状態による除外条件。既存World Collider互換のため、Owner必須は明示設定時だけ有効にする。
 		void SetRequireOwner(bool required) { filterData_.requireOwner = required; }
 		bool RequiresOwner() const { return filterData_.requireOwner; }
@@ -428,6 +434,10 @@ namespace Ken4lowEngine
 
 		// Debug表示用のOwner型名。所有権は持たず、SetOwner<T>時だけ更新する。
 		std::string ownerDebugName_{};
+
+		// Triggerのゲーム用途とLevelオブジェクト名を、OwnerなしStatic Colliderでも参照できるよう保持する。
+		std::string collisionTag_{};
+		std::string debugName_{};
 
 		// 物理応答用Rigidbody参照。所有権は持たず、未設定Colliderは従来通り静的扱いにできる。
 		Rigidbody* rigidbody_ = nullptr;

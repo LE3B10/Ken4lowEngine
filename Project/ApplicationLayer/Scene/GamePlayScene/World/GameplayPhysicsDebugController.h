@@ -133,6 +133,7 @@ private:
 	bool enableGameplayPhysicsDebugDraw_ = false; // Gameplay側PhysicsWorldのDebug可視化を行うか
 	bool drawStageAABBs_ = false; // Stage Obstacleの包み込みBroadPhase AABBを比較表示するか
 	bool drawStageOBBs_ = false; // Stage Obstacleの正式な回転OBBを比較表示するか
+	bool drawLadderTriggers_ = false; // Ladder Triggerを通常Stage Colliderと別色で表示するか
 	bool usePhysicsForPlayerStage_ = false; // Player vs StageをPhysicsWorld側へ寄せる段階移行フラグ
 	bool usePhysicsForPlayerGround_ = false; // Player床判定をPhysicsWorld側へ寄せる段階移行フラグ
 	bool usePhysicsGroundedForPlayerMotor_ = false; // Physics接地をPlayerMotor/FSMへOR追加する明示切替

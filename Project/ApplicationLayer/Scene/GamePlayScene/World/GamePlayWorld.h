@@ -136,6 +136,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	bool UpdateBlockingStage1Intro(float deltaTime);
 	bool UpdateBlockingBossIntro(float deltaTime);
 	void UpdateGameplayActors(float deltaTime);
+	void UpdatePlayerLadderOverlap();
 	void UpdateBossRuntime(float deltaTime);
 	void UpdateItemRuntime(float deltaTime);
 	void UpdateShadowRuntime();

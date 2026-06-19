@@ -98,6 +98,11 @@ namespace Ken4lowEngine
 		const std::vector<OBB>& GetWallObstacleOBBs() const { return wallObstacleOBBs_; }
 		const std::vector<uint8_t>& GetWallObstacleWalkable() const { return wallObstacleWalkable_; }
 		const std::vector<OBB>& GetNavigationObstacleOBBs() const { return navigationObstacleOBBs_; }
+		const std::vector<Collider*>& GetLadderColliders() const { return ladderColliders_; }
+		const std::vector<AABB>& GetLadderAABBs() const { return ladderAABBs_; }
+		const std::vector<OBB>& GetLadderOBBs() const { return ladderOBBs_; }
+		// Playerの問い合わせAABBがいずれかのStatic Ladder Triggerへ入っているかを返す。
+		bool CheckLadderOverlap(const AABB& playerAABB) const;
 
 		/// <summary>
 		/// 保持しているワールドコライダーを CollisionManager に登録する
@@ -120,6 +125,9 @@ namespace Ken4lowEngine
 		std::vector<OBB> wallObstacleOBBs_;                  // Player最終横押し戻し用の壁/障害物OBB
 		std::vector<uint8_t> wallObstacleWalkable_;          // Obstacle上面を床として扱えるかの拡張用フラグ
 		std::vector<OBB> navigationObstacleOBBs_;            // デバッグ表示用のNavigation障害物OBB
+		std::vector<Collider*> ladderColliders_;             // worldColliders_所有のStatic Triggerを参照する梯子一覧
+		std::vector<AABB> ladderAABBs_;                      // Playerとの直接Overlap問い合わせに使う梯子AABB
+		std::vector<OBB> ladderOBBs_;                        // 通常壁と別色表示する梯子Trigger OBB
 		Vector3 offset_ = { 0.0f, 0.0f, 0.0f };               // ステージ全体オフセット
 	};
 } // namespace Ken4lowEngine

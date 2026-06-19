@@ -28,6 +28,7 @@
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace K4E = ::Ken4lowEngine;
@@ -113,6 +114,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	void OnCollision(K4E::Collider* other) override;
 	void OnCollisionEnter(const K4E::CollisionHit& hit) override;
 	void OnOverlapBegin(const K4E::CollisionHit& hit) override;
+	void OnOverlapStay(const K4E::CollisionHit& hit) override;
+	void OnOverlapEnd(const K4E::CollisionHit& hit) override;
 
 	K4E::WorldTransformEx* GetWorldTransform() { return &body_.transform; }
 
@@ -199,6 +202,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	K4E::StageHitShape GetLastStageHitShape() const { return motor_.GetLastStageHitShape(); }
 	K4E::StageCorrectionAxis GetLastStageCorrectionAxis() const { return motor_.GetLastStageCorrectionAxis(); }
 	bool WasLastGroundedByStageTop() const { return motor_.WasLastGroundedByStageTop(); }
+	// GamePlayWorldの直接AABB問い合わせ結果をMotorへ渡し、イベント配送なしでも梯子状態を更新する。
+	void SetInLadderArea(bool inLadderArea);
+	bool IsInLadderArea() const { return isInLadderArea_; }
+	bool IsClimbingLadder() const { return isClimbingLadder_; }
+	float GetLadderClimbSpeed() const { return motor_.GetLadderClimbSpeed(); }
+	float& LadderClimbSpeed() { return motor_.LadderClimbSpeed(); }
+	const std::string& GetLastLadderColliderName() const { return lastLadderColliderName_; }
+	K4E::AABB GetLadderDetectionAABB() const;
 
 	// PhysicsWorld側の床判定を保持し、PlayerMotorの段階移行用入力にも同期する。
 	void SetGroundedByPhysics(bool isGrounded);
@@ -314,6 +325,8 @@ private: /// ---------- 内部構造体 ---------- ///
 private: /// ---------- メンバ関数 ---------- ///
 
 	void SyncDamageCollider();
+	// Ladder Triggerの接触集合を更新し、複数梯子が重なる場合も最後のExitまで状態を維持する。
+	bool UpdateLadderOverlap(K4E::Collider* other, bool entering);
 
 	void ApplyFallDamage(float deltaTime);
 	// 即死ラインを下回ったPlayerを既存の死亡シーケンスへ移す。
@@ -384,6 +397,10 @@ private: /// ----------メンバ変数 ---------- ///
 	bool enableFallDeath_ = true; // Stage外落下時の即死判定を有効にするか。
 	float fallDeathY_ = -30.0f; // スポーン地点から十分離した調整可能な即死Yライン。
 	bool isGroundedByPhysics_ = false; // PhysicsWorld由来の床判定。現段階ではDebug比較専用。
+	bool isInLadderArea_ = false; // CollisionManagerのLadder Trigger内にいるかをPlayer側でも保持する。
+	bool isClimbingLadder_ = false; // Motorが当該フレームに上下入力を処理したかをDebug用に保持する。
+	std::unordered_set<uint32_t> activeLadderColliderIds_{}; // 複数TriggerのEnter/Exit順に影響されない接触集合。
+	std::string lastLadderColliderName_ = "None"; // 最後に接触したLevel梯子名。
 	K4E::Rigidbody physicsRigidbody_{}; // PhysicsWorld登録用のPlayer所有Kinematic Rigidbody。
 	K4E::Collider physicsCollider_{}; // PhysicsWorld登録用のPlayer所有AABB Collider。
 	K4E::Vector3 physicsColliderHalfSize_{ 0.5f, 1.0f, 0.5f }; // 既存Player衝突設定と揃えるAABB半サイズ。

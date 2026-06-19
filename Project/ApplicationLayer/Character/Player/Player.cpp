@@ -79,6 +79,12 @@ namespace
 void Player::Initialize()
 {
 	BaseCharacter::Initialize();
+	// 再初期化時に前SceneのTrigger接触や離脱ロックを持ち越さないよう梯子状態を明示リセットする。
+	activeLadderColliderIds_.clear();
+	isInLadderArea_ = false;
+	isClimbingLadder_ = false;
+	lastLadderColliderName_ = "None";
+	motor_.SetLadderState(false);
 
 	{
 		auto* tr = GetWorldTransform();
@@ -239,7 +245,11 @@ void Player::Update(float deltaTime)
 	UpdateBrain(deltaTime);
 	UpdateMovementAndView(deltaTime);
 	UpdatePresentation(deltaTime);
-	ApplyFallDamage(deltaTime);
+	if (!isInLadderArea_)
+	{
+		// 梯子保持中は通常落下として蓄積せず、Trigger退出後だけ既存落下ダメージへ戻す。
+		ApplyFallDamage(deltaTime);
+	}
 	CheckFallDeath();
 }
 
@@ -405,6 +415,25 @@ void Player::UpdateMovementAndView(float deltaTime)
 	BaseCharacter::Update(deltaTime);
 }
 
+void Player::SetInLadderArea(bool inLadderArea)
+{
+	// Stageの直接Trigger判定をMotorへ反映し、範囲外では通常重力へ確実に復帰させる。
+	motor_.SetInLadderArea(inLadderArea);
+	isInLadderArea_ = motor_.IsInLadderArea();
+	isClimbingLadder_ = motor_.IsClimbingLadder();
+	if (!inLadderArea)
+	{
+		activeLadderColliderIds_.clear();
+	}
+}
+
+K4E::AABB Player::GetLadderDetectionAABB() const
+{
+	// PhysicsWorldの登録状態に依存せず、既存Player寸法と現在TransformからTrigger問い合わせAABBを作る。
+	const K4E::Vector3 center = body_.transform.translate_ + physicsColliderCenterOffset_;
+	return { center - physicsColliderHalfSize_, center + physicsColliderHalfSize_ };
+}
+
 Player::MovementContext Player::BuildMovementContext() const
 {
 	MovementContext ctx{};
@@ -499,6 +528,9 @@ void Player::SimulateMovement(const MovementContext& ctx, float deltaTime)
 		ctx.cur,
 		ctx.isAds,
 		ctx.isReloading);
+	// Motorの離脱ジャンプを含む最終状態をPlayer Debugと落下死判定へ同期する。
+	isInLadderArea_ = motor_.IsInLadderArea();
+	isClimbingLadder_ = motor_.IsClimbingLadder();
 
 	view_.UpdateMovementFov(
 		deltaTime,
@@ -562,6 +594,12 @@ void Player::DrawPlayerDebugImGui()
 	ImGui::Text("Is Outside Stage: %s", IsOutsideStage() ? "true" : "false");
 	ImGui::Text("Motor Grounded: %s", motor_.IsGrounded() ? "true" : "false");
 	ImGui::Text("Physics Grounded: %s", IsGroundedByPhysics() ? "true" : "false");
+	ImGui::SeparatorText("Ladder");
+	ImGui::Text("Player In Ladder Area: %s", isInLadderArea_ ? "true" : "false");
+	ImGui::Text("Player Is Climbing Ladder: %s", isClimbingLadder_ ? "true" : "false");
+	ImGui::DragFloat("Ladder Climb Speed", &motor_.LadderClimbSpeed(), 0.1f, 0.1f, 20.0f, "%.2f");
+	ImGui::Text("Last Ladder Collider Name: %s", lastLadderColliderName_.c_str());
+	ImGui::Text("Player Vertical Velocity: %.3f", motor_.VerticalVelocity());
 	view_.DrawImGui();
 	combat_.DrawImGui();
 	damageCollider_.DrawImGui();
@@ -606,8 +644,61 @@ void Player::OnCollisionEnter(const K4E::CollisionHit& hit)
 
 void Player::OnOverlapBegin(const K4E::CollisionHit& hit)
 {
+	if (UpdateLadderOverlap(hit.other, true))
+	{
+		return;
+	}
 	// Enemy/ItemなどOverlap系も互換入口へ通す。Item効果はItemManager側の既存処理が担当する。
 	OnCollision(hit.other);
+}
+
+void Player::OnOverlapStay(const K4E::CollisionHit& hit)
+{
+	if (UpdateLadderOverlap(hit.other, true))
+	{
+		return;
+	}
+	// Ladder以外のOverlap Stayは既存互換通知へそのまま戻す。
+	K4E::Collider::OnOverlapStay(hit);
+}
+
+void Player::OnOverlapEnd(const K4E::CollisionHit& hit)
+{
+	if (UpdateLadderOverlap(hit.other, false))
+	{
+		return;
+	}
+	// Ladder以外のOverlap Endは基底の既存Exit通知へ委譲する。
+	K4E::Collider::OnOverlapEnd(hit);
+}
+
+bool Player::UpdateLadderOverlap(K4E::Collider* other, bool entering)
+{
+	if (!other || other->GetCollisionTag() != "Ladder")
+	{
+		return false;
+	}
+
+	if (entering)
+	{
+		// Ladder Begin/Stayは接触IDを追加し、静的Trigger名を最後の接触情報として保存する。
+		activeLadderColliderIds_.insert(other->GetUniqueID());
+		lastLadderColliderName_ = other->GetDebugName().empty() ? "Unnamed Ladder" : std::string(other->GetDebugName());
+		motor_.SetLadderState(true);
+	}
+	else
+	{
+		// 対応Triggerだけを除き、すべての梯子から出た時点で通常重力へ復帰する。
+		activeLadderColliderIds_.erase(other->GetUniqueID());
+		if (activeLadderColliderIds_.empty())
+		{
+			motor_.SetLadderState(false);
+		}
+	}
+
+	isInLadderArea_ = motor_.IsInLadderArea();
+	isClimbingLadder_ = motor_.IsClimbingLadder();
+	return true;
 }
 
 void Player::OnHitByEnemyBullet(K4E::Collider* bullet, PlayerHitPart part, float mul)
@@ -910,8 +1001,9 @@ void Player::ApplyFallDamage(float deltaTime)
 void Player::CheckFallDeath()
 {
 	// 無効時・死亡中・Transform未接続時は落下死を二重発火させない。
-	if (!enableFallDeath_ || death_.IsActive())
+	if (!enableFallDeath_ || death_.IsActive() || isInLadderArea_)
 	{
+		// 梯子Trigger内は通常落下状態ではないため、Yラインだけで落下死を発火しない。
 		return;
 	}
 

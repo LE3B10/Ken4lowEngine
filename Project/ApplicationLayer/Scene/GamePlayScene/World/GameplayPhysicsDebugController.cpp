@@ -9,6 +9,7 @@
 #include "PhysicsTestBullet.h"
 #include "Player.h"
 #include "Stage.h"
+#include "StageCollisionBuilder.h"
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "Wireframe.h"
 
@@ -125,6 +126,10 @@ void GameplayPhysicsDebugController::InitializeGameplayPhysicsTest()
 	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerStage, kPhysicsLayerStage, K4E::CollisionResponseType::Ignore);
 	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerStage, kPhysicsLayerTestObject, K4E::CollisionResponseType::Block);
 	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerStage, kPhysicsLayerPlayer, K4E::CollisionResponseType::Block);
+	// Ladder専用レイヤーはPlayerだけTrigger応答にし、通常StageのBlock設定を変えない。
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(K4E::kLadderPhysicsLayer, kPhysicsLayerPlayer, K4E::CollisionResponseType::Trigger);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(K4E::kLadderPhysicsLayer, kPhysicsLayerStage, K4E::CollisionResponseType::Ignore);
+	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(K4E::kLadderPhysicsLayer, K4E::kLadderPhysicsLayer, K4E::CollisionResponseType::Ignore);
 	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerTestObject, kPhysicsLayerPlayer, K4E::CollisionResponseType::Ignore);
 	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerTestBullet, kPhysicsLayerStage, K4E::CollisionResponseType::Ignore);
 	gameplayPhysicsWorld_.GetResponseMatrix().SetResponse(kPhysicsLayerTestBullet, kPhysicsLayerTestObject, K4E::CollisionResponseType::Ignore);
@@ -550,7 +555,7 @@ void GameplayPhysicsDebugController::DrawGameplayPhysicsTest()
 {
 #ifdef _DEBUG
 	// テスト有効時だけ本編ステージ上のPhysicsTestObjectとColliderを可視化する。
-	if (!enableGameplayPhysicsTest_ && !enableGameplayPhysicsTriggerTest_ && !enableGameplayPhysicsDebugDraw_ && !drawStageAABBs_ && !drawStageOBBs_)
+	if (!enableGameplayPhysicsTest_ && !enableGameplayPhysicsTriggerTest_ && !enableGameplayPhysicsDebugDraw_ && !drawStageAABBs_ && !drawStageOBBs_ && !drawLadderTriggers_)
 	{
 		return;
 	}
@@ -586,6 +591,14 @@ void GameplayPhysicsDebugController::DrawGameplayPhysicsTest()
 		for (const K4E::OBB& obb : deps_.stage->GetWallObstacleOBBs())
 		{
 			K4E::Wireframe::GetInstance()->DrawOBB(obb, { 0.15f, 0.9f, 1.0f, 1.0f });
+		}
+	}
+	if (deps_.stage && drawLadderTriggers_)
+	{
+		// マゼンタの細長いOBBで、押し戻しを持たないLadder Triggerだけを識別表示する。
+		for (const K4E::OBB& obb : deps_.stage->GetLadderOBBs())
+		{
+			K4E::Wireframe::GetInstance()->DrawOBB(obb, { 1.0f, 0.2f, 0.85f, 1.0f });
 		}
 	}
 #endif
@@ -716,9 +729,11 @@ void GameplayPhysicsDebugController::DrawGameplayPhysicsTestImGui()
 	ImGui::Text("Stage AABB Count: %zu", deps_.stage ? deps_.stage->GetWorldAABBs().size() : size_t{ 0 });
 	ImGui::Text("Stage Obstacle BroadPhase AABB Count: %zu", deps_.stage ? deps_.stage->GetWallObstacleAABBs().size() : size_t{ 0 });
 	ImGui::Text("Stage OBB Count: %zu", deps_.stage ? deps_.stage->GetWallObstacleOBBs().size() : size_t{ 0 });
+	ImGui::Text("Ladder Collider Count: %zu", deps_.stage ? deps_.stage->GetLadderColliders().size() : size_t{ 0 });
 	// AABB BroadPhaseと回転OBB NarrowPhaseを個別表示し、斜め形状の差を目視比較する。
 	ImGui::Checkbox("Draw Stage AABB", &drawStageAABBs_);
 	ImGui::Checkbox("Draw Stage OBB", &drawStageOBBs_);
+	ImGui::Checkbox("Draw Ladder Trigger", &drawLadderTriggers_);
 	ImGui::Text("PhysicsWorld Collider Count: %zu", gameplayPhysicsWorld_.GetColliderCount());
 	ImGui::Text("Contact Count: %zu", gameplayPhysicsWorld_.GetContacts().size());
 	ImGui::Text("IsGrounded: %s", physicsTestRigidbody_.IsGrounded() ? "true" : "false");
@@ -740,6 +755,14 @@ void GameplayPhysicsDebugController::DrawGameplayPhysicsTestImGui()
 	ImGui::Text("Last Grounded By Stage Top: %s", player && player->WasLastGroundedByStageTop() ? "true" : "false");
 	ImGui::Text("Last Correction Axis: %s", player ? K4E::ToString(player->GetLastStageCorrectionAxis()) : "None");
 	ImGui::Text("Player Vertical Velocity: %.3f", player ? player->FSM_VerticalVelocity() : 0.0f);
+	ImGui::Text("Player In Ladder Area: %s", player && player->IsInLadderArea() ? "true" : "false");
+	ImGui::Text("Player Is Climbing Ladder: %s", player && player->IsClimbingLadder() ? "true" : "false");
+	if (player)
+	{
+		// Physics Debug側からも同じMotor速度を調整し、梯子Trigger表示と操作感を一画面で確認する。
+		ImGui::DragFloat("Ladder Climb Speed", &player->LadderClimbSpeed(), 0.1f, 0.1f, 20.0f, "%.2f");
+		ImGui::Text("Last Ladder Collider Name: %s", player->GetLastLadderColliderName().c_str());
+	}
 	ImGui::Text("Grounded: %s", player && player->FSM_IsGrounded() ? "true" : "false");
 	ImGui::Text("Registered Player Collider: %s", playerPhysicsBodyRegistered_ ? "true" : "false");
 	ImGui::SeparatorText("Gameplay Physics Bullet Trigger");
@@ -909,6 +932,11 @@ bool GameplayPhysicsDebugController::EvaluatePlayerPhysicsGrounded()
 	constexpr float kGroundNormalThreshold = 0.5f;
 	for (const K4E::Contact& contact : gameplayPhysicsWorld_.GetContacts())
 	{
+		// LadderなどのTrigger Contactは接地数・接地法線へ混ぜず、通常床判定を維持する。
+		if (contact.isTrigger)
+		{
+			continue;
+		}
 		const bool playerIsA = contact.colliderA == playerCollider;
 		const bool playerIsB = contact.colliderB == playerCollider;
 		if (!playerIsA && !playerIsB)

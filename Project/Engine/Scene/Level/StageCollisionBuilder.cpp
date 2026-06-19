@@ -2,6 +2,8 @@
 #include "CollisionPreset.h"
 #include "CollisionTypeIdDef.h"
 #include "Matrix4x4.h"
+#include <algorithm>
+#include <cctype>
 #include <limits>
 
 namespace Ken4lowEngine
@@ -39,6 +41,14 @@ namespace Ken4lowEngine
 			}
 			return aabb;
 		}
+
+		bool ContainsLadderName(const std::string& name)
+		{
+			// 既存Levelデータ向けに大文字小文字を無視してObject名のLadderを暫定識別する。
+			std::string lowered = name;
+			std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+			return lowered.find("ladder") != std::string::npos;
+		}
 	}
 
 	StageCollisionBuildResult StageCollisionBuilder::Build(const LevelData& levelData, const Vector3& offset)
@@ -53,6 +63,9 @@ namespace Ken4lowEngine
 		result.wallObstacleOBBs.reserve(levelData.objects.size());
 		result.wallObstacleWalkable.reserve(levelData.objects.size());
 		result.navigationObstacleOBBs.reserve(levelData.objects.size());
+		result.ladderColliders.reserve(levelData.objects.size());
+		result.ladderAABBs.reserve(levelData.objects.size());
+		result.ladderOBBs.reserve(levelData.objects.size());
 
 		for (const ObjectData& data : levelData.objects)
 		{
@@ -88,19 +101,32 @@ namespace Ken4lowEngine
 				data.rotation.z + data.collider.rotation.z,
 			};
 			collider->SetOrientation(colliderRotation);
+			collider->SetDebugName(data.name);
 			// 正式形状はColliderの回転OBBとし、包み込みAABBはBroadPhase・簡易判定用に併存させる。
 			const AABB aabb = BuildAABBFromRotatedOBB(centerW, halfW, colliderRotation);
-			result.worldAABBs.push_back(aabb);
 			const OBB colliderObb = collider->GetOBB();
 			const std::string& collisionType = data.collider.collisionType;
-			if (collisionType == "Floor")
+			const bool isLadder = collisionType == "Ladder" || ContainsLadderName(data.name);
+			if (isLadder)
+			{
+				// Ladderは静的Triggerとして専用配列へ分離し、床・壁・Navigationの押し戻し経路へ混ぜない。
+				collider->SetTrigger(true);
+				collider->SetCollisionTag("Ladder");
+				collider->SetCollisionLayer(kLadderPhysicsLayer);
+				result.ladderColliders.push_back(collider.get());
+				result.ladderAABBs.push_back(aabb);
+				result.ladderOBBs.push_back(colliderObb);
+			}
+			else if (collisionType == "Floor")
 			{
 				// Floorは接地・スポーン補正向けに分け、壁押し戻しやNavigation障害物とは混ぜない。
+				result.worldAABBs.push_back(aabb);
 				result.floorAABBs.push_back(aabb);
 			}
 			else if (collisionType == "Obstacle" || collisionType == "Pillar" || collisionType == "Fence" || collisionType == "Tree")
 			{
 				// Obstacle系AABBはBroadPhase用、OBBは見た目に沿う最終横押し戻し用として対で保持する。
+				result.worldAABBs.push_back(aabb);
 				result.wallObstacleAABBs.push_back(aabb);
 				result.navigationObstacleAABBs.push_back(aabb);
 				// NarrowPhaseとOBB表示にはCollider::GetOBB()由来の姿勢をそのまま使う。
@@ -108,6 +134,11 @@ namespace Ken4lowEngine
 				// 現段階ではObstacle上面を歩行可能とし、将来JSONのwalkable指定へ差し替えられる配列を併設する。
 				result.wallObstacleWalkable.push_back(1u);
 				result.navigationObstacleOBBs.push_back(colliderObb);
+			}
+			else
+			{
+				// 未分類Colliderは従来どおりStage汎用AABBへ残し、既存Levelの衝突挙動を維持する。
+				result.worldAABBs.push_back(aabb);
 			}
 
 			result.worldColliders.push_back(std::move(collider));

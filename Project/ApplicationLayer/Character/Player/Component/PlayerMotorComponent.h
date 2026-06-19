@@ -48,14 +48,19 @@ public: /// ---------- パブリックメンバ関数 ---------- ///
 	bool IsUsingPhysicsGrounded() const;
 	bool IsSprinting() const { return sprint_; }
 	float VerticalVelocity() const { return verticalVel_; }
-	bool CanStartBlink() const { return (blinkCooldownTimer_ <= 0.0f) && (blinkTimer_ <= 0.0f); }
+	bool CanStartBlink() const { return !isInLadderArea_ && (blinkCooldownTimer_ <= 0.0f) && (blinkTimer_ <= 0.0f); }
 	bool IsBlinkFinished() const { return blinkTimer_ <= 0.0f; }
+	bool IsInLadderArea() const { return isInLadderArea_; }
+	bool IsClimbingLadder() const { return isClimbingLadder_; }
 
 	// ===== Commands (from FSM via PlayerAPI) =====
 	void SetMoveInput(float x, float z) { moveX_ = x; moveZ_ = z; }
 	void SetSprint(bool on) { sprint_ = on; }
 	void Jump();
 	void StartBlink(float cameraYawRad, bool isAds);
+	// Trigger接触状態だけを受け取り、Rigidbodyへ移行せずMotor内のY積分を梯子用へ切り替える。
+	void SetLadderState(bool inLadderArea);
+	void SetInLadderArea(bool enabled) { SetLadderState(enabled); }
 
 	// ===== Parameters (ImGui で触るなら getter/setter 生やす) =====
 	float& WalkSpeed() { return walkSpeed_; }
@@ -63,6 +68,8 @@ public: /// ---------- パブリックメンバ関数 ---------- ///
 	float& blinkSpeed() { return blinkSpeed_; }
 	float& JumpSpeed() { return jumpSpeed_; }
 	float& Gravity() { return gravity_; }
+	float& LadderClimbSpeed() { return ladderClimbSpeed_; }
+	float GetLadderClimbSpeed() const { return ladderClimbSpeed_; }
 
 	float GetSpeedXZ_Debug() const { return dbgSpeedXZ_; }
 	float GetSpeedY_Debug()  const { return dbgSpeedY_; }
@@ -152,6 +159,13 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	float blinkSpeed_ = 20.0f;
 	float jumpSpeed_ = 9.4f;
 	float gravity_ = 24.0f;
+	float ladderClimbSpeed_ = 3.0f;
+
+	// ---- Ladder ----
+	bool isInLadderArea_ = false;
+	bool isClimbingLadder_ = false;
+	bool ladderDetachLocked_ = false;
+	bool ladderDescendHeld_ = false;
 
 	// ---- Debug speed ----
 	K4E::Vector3 prevPos_{ 0,0,0 };
