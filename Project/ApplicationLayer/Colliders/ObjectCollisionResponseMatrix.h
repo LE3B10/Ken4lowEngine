@@ -5,12 +5,12 @@
 #include "CollisionTypes.h"
 
 /// ObjectChannel同士のIgnore/Overlap/Blockを保持し、既存TypeID判定からUE風Responseへ移るための表。
-class CollisionResponseMatrix
+class ObjectCollisionResponseMatrix
 {
 public:
 	static constexpr uint32_t kMaxChannels = static_cast<uint32_t>(EObjectChannel::Count);
 
-	CollisionResponseMatrix()
+	ObjectCollisionResponseMatrix()
 	{
 		SetAll(ECollisionResponse::Ignore);
 	}

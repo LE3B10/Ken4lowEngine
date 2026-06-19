@@ -2,7 +2,7 @@
 #include "CollisionBroadPhase.h"
 #include "CollisionHitResult.h"
 #include "CollisionPresetLibrary.h"
-#include "CollisionResponseMatrix.h"
+#include "ObjectCollisionResponseMatrix.h"
 #include "TraceResponseMatrix.h"
 
 #include <array>
@@ -150,7 +150,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	}
 
 	// ResponseMatrixの内容確認・移行作業用に読み取り専用で公開する。
-	const CollisionResponseMatrix& GetResponseMatrix() const { return responseMatrix_; }
+	const ObjectCollisionResponseMatrix& GetResponseMatrix() const { return responseMatrix_; }
 
 	// TraceChannelとObjectChannelの問い合わせ反応を確認する入口。
 	ECollisionResponse GetTraceResponse(ETraceChannel traceChannel, uint32_t objectTypeId) const
@@ -291,7 +291,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::map<std::pair<uint32_t, uint32_t>, CollisionFunc> collisionTable_;
 
 	// UE風ResponseMatrixを保持し、現段階ではIgnore判定だけに使用する。
-	CollisionResponseMatrix responseMatrix_{};
+	ObjectCollisionResponseMatrix responseMatrix_{};
 
 	// UE風TraceChannel設定を保持し、現段階では新規Trace入口だけで使用する。
 	TraceResponseMatrix traceResponseMatrix_{};
