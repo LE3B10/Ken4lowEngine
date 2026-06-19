@@ -187,9 +187,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetStageWorldAABBs(const std::vector<K4E::AABB>* aabbs) { motor_.SetWorldAABBs(aabbs); }
 	void SetWorldCollisionSettings(const K4E::WorldCollisionSettings& s) { motor_.SetWorldCollisionSettings(s); }
 
-	// PhysicsWorld側で取得した床判定をDebug比較用に保持する。既存移動/ジャンプ処理はまだ置き換えない。
-	void SetGroundedByPhysics(bool isGrounded) { isGroundedByPhysics_ = isGrounded; }
+	// PhysicsWorld側の床判定を保持し、PlayerMotorの段階移行用入力にも同期する。
+	void SetGroundedByPhysics(bool isGrounded);
 	bool IsGroundedByPhysics() const { return isGroundedByPhysics_; }
+	// Physics接地をPlayerMotor/FSMの既存接地判定へ追加するか切り替える。
+	void SetUsePhysicsGroundedForMotor(bool enabled);
+	// PlayerMotorがPhysics接地を併用中かDebug表示用に取得する。
+	bool IsUsingPhysicsGroundedForMotor() const { return motor_.IsUsingPhysicsGrounded(); }
 
 	// Player自身をPhysicsWorldへ登録できるKinematic物理ボディとして初期化する。
 	void InitializePhysicsBody(uint32_t physicsLayer);

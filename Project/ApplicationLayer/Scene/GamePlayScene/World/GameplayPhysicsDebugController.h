@@ -133,6 +133,7 @@ private:
 	bool enableGameplayPhysicsDebugDraw_ = false; // Gameplay側PhysicsWorldのDebug可視化を行うか
 	bool usePhysicsForPlayerStage_ = false; // Player vs StageをPhysicsWorld側へ寄せる段階移行フラグ
 	bool usePhysicsForPlayerGround_ = false; // Player床判定をPhysicsWorld側へ寄せる段階移行フラグ
+	bool usePhysicsGroundedForPlayerMotor_ = false; // Physics接地をPlayerMotor/FSMへOR追加する明示切替
 	bool usePhysicsForPlayerDepenetration_ = false; // Player押し戻しをPhysicsWorld側へ寄せる段階移行フラグ
 	bool usePhysicsForTriggerTest_ = false; // テストTriggerをPhysicsWorld側イベントで扱う段階移行フラグ
 	bool usePhysicsForBulletTrigger_ = false; // 既存Bullet Trigger移行予定を明示する段階移行フラグ

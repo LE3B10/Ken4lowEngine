@@ -786,6 +786,19 @@ void Player::SyncViewToPlayer()
 	view_.SyncViewModeToFirstPersonFlag();
 }
 
+void Player::SetGroundedByPhysics(bool isGrounded)
+{
+	// Physics接地の表示値とMotor入力を同時更新し、両者の状態ずれを防ぐ。
+	isGroundedByPhysics_ = isGrounded;
+	motor_.SetPhysicsGrounded(isGrounded);
+}
+
+void Player::SetUsePhysicsGroundedForMotor(bool enabled)
+{
+	// 既存Motor接地へPhysics接地をOR追加する段階移行フラグだけを渡す。
+	motor_.SetUsePhysicsGrounded(enabled);
+}
+
 void Player::InitializePhysicsBody(uint32_t physicsLayer)
 {
 	// 既存Motorを位置の正本に保つため、Player物理ボディは重力・SleepなしのKinematicとして準備する。

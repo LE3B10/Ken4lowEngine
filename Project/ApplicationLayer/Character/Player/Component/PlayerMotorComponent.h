@@ -36,6 +36,12 @@ public: /// ---------- パブリックメンバ関数 ---------- ///
 
 	// ===== Queries (for FSM) =====
 	bool IsGrounded() const;
+	// PhysicsWorld由来の接地判定を既存判定へ追加するか切り替える。
+	void SetUsePhysicsGrounded(bool enabled);
+	// PhysicsWorldが評価した最新のPlayer接地状態を受け取る。
+	void SetPhysicsGrounded(bool grounded);
+	// Physics接地の段階移行フラグが有効か取得する。
+	bool IsUsingPhysicsGrounded() const;
 	bool IsSprinting() const { return sprint_; }
 	float VerticalVelocity() const { return verticalVel_; }
 	bool CanStartBlink() const { return (blinkCooldownTimer_ <= 0.0f) && (blinkTimer_ <= 0.0f); }
@@ -74,6 +80,8 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 
 	// ---- Ground ----
 	bool grounded_ = false;
+	bool usePhysicsGrounded_ = false; // Physics接地を既存判定へ追加する段階移行フラグ。
+	bool physicsGrounded_ = false; // PhysicsWorldから受け取った最新の接地状態。
 	float groundY_ = 0.0f;
 	K4E::Vector3 groundNormal_{ 0,1,0 };
 	float groundSnapEpsilon_ = 0.05f;

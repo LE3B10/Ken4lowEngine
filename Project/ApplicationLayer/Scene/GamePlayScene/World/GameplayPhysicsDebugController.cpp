@@ -65,6 +65,11 @@ void GameplayPhysicsDebugController::Finalize()
 {
 	UnregisterGameplayPhysicsBulletTriggerTargets();
 	UnregisterPlayerPhysicsGroundCheck();
+	if (Player* player = GetPlayer())
+	{
+		// Scene終了後にPhysics接地の使用フラグを残さず、次回初期化を既存挙動から始める。
+		player->SetUsePhysicsGroundedForMotor(false);
+	}
 	UnregisterGameplayPhysicsTriggerTest();
 	gameplayPhysicsParameterBridge_.Finalize(this);
 	UnbindGameplayPhysicsStageColliders();
@@ -535,8 +540,9 @@ void GameplayPhysicsDebugController::UpdateGameplayPhysicsTest(float deltaTime)
 		{
 			ApplyPlayerPhysicsCorrection(*player);
 		}
-		// PhysicsWorld側の接地状態をPlayerへ反映する。既存の移動/ジャンプ判定にはまだ使わない。
-		player->SetGroundedByPhysics(enablePlayerPhysicsGroundCheck_ && playerPhysicsGrounded_);
+		// PhysicsWorld接地と使用フラグを別々に渡し、Motor/FSMへの反映を明示ON時だけに限定する。
+		player->SetGroundedByPhysics(playerPhysicsGrounded_);
+		player->SetUsePhysicsGroundedForMotor(usePhysicsGroundedForPlayerMotor_);
 	}
 }
 
@@ -617,6 +623,14 @@ void GameplayPhysicsDebugController::DrawGameplayPhysicsTestImGui()
 		}
 		UpdateCollisionSystemPolicyFromGameplayFlags();
 	}
+	if (ImGui::Checkbox("Use Physics Grounded For Player Motor", &usePhysicsGroundedForPlayerMotor_))
+	{
+		// Debug切替を即時反映し、PhysicsWorld更新を待たずにMotorの使用状態を確認できるようにする。
+		if (Player* player = GetPlayer())
+		{
+			player->SetUsePhysicsGroundedForMotor(usePhysicsGroundedForPlayerMotor_);
+		}
+	}
 	bool enablePlayerDepenetration = enablePlayerPhysicsDepenetration_;
 	if (ImGui::Checkbox("Enable Player Physics Depenetration", &enablePlayerDepenetration))
 	{
@@ -689,8 +703,9 @@ void GameplayPhysicsDebugController::DrawGameplayPhysicsTestImGui()
 	ImGui::Text("Position: %.3f, %.3f, %.3f", physicsTestPosition_.x, physicsTestPosition_.y, physicsTestPosition_.z);
 	ImGui::Text("Velocity: %.3f, %.3f, %.3f", velocity.x, velocity.y, velocity.z);
 	ImGui::SeparatorText("Player Physics Ground Check");
-	ImGui::Text("Existing Grounded: %s", player ? (player->FSM_IsGrounded() ? "true" : "false") : "N/A");
+	ImGui::Text("FSM IsGrounded: %s", player ? (player->FSM_IsGrounded() ? "true" : "false") : "N/A");
 	ImGui::Text("Physics Grounded: %s", player ? (player->IsGroundedByPhysics() ? "true" : "false") : "N/A");
+	ImGui::Text("Motor Uses Physics Grounded: %s", player ? (player->IsUsingPhysicsGroundedForMotor() ? "true" : "false") : "N/A");
 	ImGui::Text("Player Position: %.3f, %.3f, %.3f", playerPosition.x, playerPosition.y, playerPosition.z);
 	ImGui::Text("Player Position Before Physics: %.3f, %.3f, %.3f", playerPositionBeforePhysics_.x, playerPositionBeforePhysics_.y, playerPositionBeforePhysics_.z);
 	ImGui::Text("Player Position After Physics: %.3f, %.3f, %.3f", playerPositionAfterPhysics_.x, playerPositionAfterPhysics_.y, playerPositionAfterPhysics_.z);

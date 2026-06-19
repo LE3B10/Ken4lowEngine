@@ -15,7 +15,26 @@ bool PlayerMotorComponent::IsGrounded() const
 		&& (tr_->translate_.y <= groundY_ + groundSnapEpsilon_)
 		&& (verticalVel_ <= 0.05f);
 
-	return grounded_ || byQuery;
+	// Physics接地は有効時だけOR追加し、falseでも既存の接地判定を打ち消さない。
+	return grounded_ || byQuery || (usePhysicsGrounded_ && physicsGrounded_);
+}
+
+void PlayerMotorComponent::SetUsePhysicsGrounded(bool enabled)
+{
+	// OFF時はIsGroundedの結果が完全に既存経路だけで決まるよう、使用フラグのみ切り替える。
+	usePhysicsGrounded_ = enabled;
+}
+
+void PlayerMotorComponent::SetPhysicsGrounded(bool grounded)
+{
+	// PhysicsWorldの評価値を保持し、使用可否とは分離してDebug比較できるようにする。
+	physicsGrounded_ = grounded;
+}
+
+bool PlayerMotorComponent::IsUsingPhysicsGrounded() const
+{
+	// FSMがPhysics接地を併用中かDebug表示から確認できるようにする。
+	return usePhysicsGrounded_;
 }
 
 void PlayerMotorComponent::UpdateGroundFromQuery()
