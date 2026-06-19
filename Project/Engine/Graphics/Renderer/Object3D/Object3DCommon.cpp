@@ -21,6 +21,7 @@ namespace Ken4lowEngine
 		cullingCameraMode_ = CullingCameraMode::MainCamera;
 
 		pipelineSet_.Initialize(dxCommon_->GetPipelineFactory(), dxCommon_->GetDXCCompilerManager(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_D24_UNORM_S8_UINT);
+		instancedPipelineSet_.Initialize(dxCommon_->GetPipelineFactory(), dxCommon_->GetDXCCompilerManager(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_D24_UNORM_S8_UINT);
 
 		LightManager::GetInstance()->Initialize(dxCommon_);
 	}
@@ -29,6 +30,7 @@ namespace Ken4lowEngine
 	{
 		LightManager::GetInstance()->Finalize();
 		pipelineSet_.Finalize();
+		instancedPipelineSet_.Finalize();
 		cullingCameraMode_ = CullingCameraMode::MainCamera;
 		dxCommon_ = nullptr;
 	}
@@ -75,6 +77,19 @@ namespace Ken4lowEngine
 	{
 		auto* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 		const PipelineBundle& pipeline = pipelineSet_.GetDefault();
+
+		commandList->SetGraphicsRootSignature(pipeline.rootSignature.Get());
+		commandList->SetPipelineState(pipeline.pipelineState.Get());
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		LightManager::GetInstance()->BindPunctualLights(5, 6);
+		LightManager::GetInstance()->BindLightingSettings(11);
+	}
+
+	void Object3DCommon::SetInstancedRenderSetting()
+	{
+		auto* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		const PipelineBundle& pipeline = instancedPipelineSet_.GetDefault();
 
 		commandList->SetGraphicsRootSignature(pipeline.rootSignature.Get());
 		commandList->SetPipelineState(pipeline.pipelineState.Get());

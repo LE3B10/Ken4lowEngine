@@ -11,6 +11,7 @@ namespace Ken4lowEngine
 {
 	class DirectXCommon;
 	class Input;
+	class InstancedObject3DRenderer;
 }
 
 namespace K4E = ::Ken4lowEngine;
@@ -60,4 +61,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突管理マネージャー
 
 	std::unique_ptr<PhysicsDebugController> physicsDebugController_; // DebugScene専用の物理確認コントローラ
+
+	// 3万個のObject3Dを生成せず、専用GPUインスタンシング経路をON/OFFして負荷確認する。
+	std::unique_ptr<K4E::InstancedObject3DRenderer> instancingTestRenderer_;
+	bool isInstancingTestEnabled_ = false;
 };

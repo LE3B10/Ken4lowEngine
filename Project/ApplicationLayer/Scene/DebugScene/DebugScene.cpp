@@ -8,6 +8,10 @@
 #include "Wireframe.h"
 #include <LightManager.h>
 #include <GameTimer.h>
+#include <InstancedObject3DRenderer.h>
+#include <Matrix4x4.h>
+
+#include <vector>
 
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
@@ -34,6 +38,27 @@ void DebugScene::Initialize()
 	// 物理確認処理は専用コントローラへ委譲し、DebugSceneは呼び出し役に留める。
 	physicsDebugController_ = std::make_unique<PhysicsDebugController>();
 	physicsDebugController_->Initialize();
+
+	// 静的な3万行列を一度だけ用意し、毎フレームのObject3D生成・更新コストを発生させない。
+	instancingTestRenderer_ = std::make_unique<InstancedObject3DRenderer>();
+	instancingTestRenderer_->Initialize("Test/cube.gltf", 30000);
+	std::vector<Matrix4x4> worlds;
+	worlds.reserve(30000);
+	constexpr int kColumns = 200;
+	constexpr int kRows = 150;
+	for (int z = 0; z < kRows; ++z)
+	{
+		for (int x = 0; x < kColumns; ++x)
+		{
+			const Vector3 position{
+				(static_cast<float>(x) - kColumns * 0.5f) * 2.0f,
+				0.0f,
+				(static_cast<float>(z) - kRows * 0.5f) * 2.0f
+			};
+			worlds.push_back(Matrix4x4::MakeAffineMatrix({ 0.35f, 0.35f, 0.35f }, {}, position));
+		}
+	}
+	instancingTestRenderer_->SetWorldMatrices(worlds, { 0.35f, 0.8f, 1.0f, 1.0f });
 }
 
 /// -------------------------------------------------------------
@@ -62,6 +87,10 @@ void DebugScene::Update()
 /// -------------------------------------------------------------
 void DebugScene::Draw3DObjects()
 {
+	if (isInstancingTestEnabled_ && instancingTestRenderer_)
+	{
+		instancingTestRenderer_->Draw();
+	}
 
 
 #ifdef _DEBUG
@@ -119,6 +148,7 @@ void DebugScene::Finalize()
 
 	collisionManager_.reset();
 	physicsDebugController_.reset();
+	instancingTestRenderer_.reset();
 
 	input_ = nullptr;
 	dxCommon_ = nullptr;
@@ -138,6 +168,15 @@ void DebugScene::DrawImGui()
 	if (physicsDebugController_)
 	{
 		physicsDebugController_->DrawImGui();
+	}
+
+	ImGui::SeparatorText("GPU Instancing Test");
+	ImGui::Checkbox("Draw 30,000 static cubes", &isInstancingTestEnabled_);
+	if (instancingTestRenderer_)
+	{
+		ImGui::Text("Instances: %zu / %zu",
+			instancingTestRenderer_->GetInstanceCount(),
+			instancingTestRenderer_->GetMaxInstanceCount());
 	}
 
 #endif // USE_IMGUI

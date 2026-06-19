@@ -28,6 +28,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void Draw();
 
+	/// <summary>
+	/// 同じメッシュを指定数まとめてインスタンシング描画します。
+	/// </summary>
+	void DrawInstanced(UINT instanceCount);
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	// 頂点バッファ

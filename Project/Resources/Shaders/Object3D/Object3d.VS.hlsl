@@ -29,6 +29,7 @@ VertexShaderOutput main(VertexShaderInput input)
     output.normal = normalize(mul(input.normal, (float3x3) gTransformationMatrix.WorldInverseTranspose));
     output.worldPosition = worldPosition.xyz;
     output.shadowPosition = mul(worldPosition, gShadowParameter.lightViewProjection);
+	output.instanceColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
 
     return output;
 }

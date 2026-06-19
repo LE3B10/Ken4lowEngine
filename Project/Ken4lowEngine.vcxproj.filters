@@ -40,6 +40,9 @@
     <FxCompile Include="Resources\Shaders\Object3D\Object3d.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\Object3D\Object3dInstancing.VS.hlsl">
+      <Filter>Shader\VertexShader</Filter>
+    </FxCompile>
     <FxCompile Include="Resources\Shaders\Particle\Particle.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
@@ -875,6 +878,12 @@
       <Filter>Engine\Graphics\Renderer\Object3D</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3DCommon.cpp">
+      <Filter>Engine\Graphics\Renderer\Object3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Object3D\InstancedObject3DRenderer.cpp">
+      <Filter>Engine\Graphics\Renderer\Object3D</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Object3D\InstancedObject3DPipelineSet.cpp">
       <Filter>Engine\Graphics\Renderer\Object3D</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\SkyBox\CloudLayer.cpp">
@@ -1978,6 +1987,12 @@
       <Filter>Engine\Graphics\Renderer\Object3D</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\Object3D\Object3DCommon.h">
+      <Filter>Engine\Graphics\Renderer\Object3D</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Object3D\InstancedObject3DRenderer.h">
+      <Filter>Engine\Graphics\Renderer\Object3D</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Object3D\InstancedObject3DPipelineSet.h">
       <Filter>Engine\Graphics\Renderer\Object3D</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\SkyBox\CloudLayer.h">

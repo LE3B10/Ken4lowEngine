@@ -396,6 +396,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Renderer\GpuParticleRenderer.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3D.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3DCommon.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Object3D\InstancedObject3DRenderer.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Object3D\InstancedObject3DPipelineSet.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Particle\Core\ParticleFactory.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Particle\Manager\ParticleManager.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\SkyBox\CloudLayer.cpp" />
@@ -631,6 +633,12 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\Object3D\Object3d.VS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\Object3D\Object3dInstancing.VS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
@@ -1100,6 +1108,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Renderer\GpuParticleRenderer.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Object3D\Object3D.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Object3D\Object3DCommon.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Object3D\InstancedObject3DRenderer.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Object3D\InstancedObject3DPipelineSet.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Particle\Core\ParticleEffectType.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Particle\Core\ParticleFactory.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Particle\Manager\ParticleManager.h" />

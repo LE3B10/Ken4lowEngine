@@ -120,7 +120,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         gShadowSampler,
         gLightingSettings);
         
-    float3 baseColor = gMaterial.color.rgb * textureColor.rgb;
+    float3 baseColor = gMaterial.color.rgb * textureColor.rgb * input.instanceColor.rgb;
 
     // 環境反射
     float3 reflectionDir = reflect(-viewDir, normal);
@@ -153,7 +153,7 @@ PixelShaderOutput main(VertexShaderOutput input)
     shadedColor = ApplyContrast(shadedColor, gLightingSettings);
 
     output.color.rgb = shadedColor;
-    output.color.a = gMaterial.color.a * textureColor.a;
+    output.color.a = gMaterial.color.a * textureColor.a * input.instanceColor.a;
 
     if (output.color.a < kAlphaDiscardThreshold)
     {

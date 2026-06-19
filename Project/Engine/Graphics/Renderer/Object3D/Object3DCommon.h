@@ -3,6 +3,7 @@
 #include "LightManager.h"
 #include "Camera.h"
 #include "Object3DPipelineSet.h"
+#include "InstancedObject3DPipelineSet.h"
 #include "Engine/Graphics/Culling/FrustumCullingSystem.h"
 
 namespace Ken4lowEngine
@@ -31,6 +32,7 @@ namespace Ken4lowEngine
 	public: /// ---------- 描画設定関数 ---------- ///
 
 		void SetRenderSetting();
+		void SetInstancedRenderSetting();
 		void SetShadowMapRenderSetting();
 		bool ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds, bool isStageObject = false);
 		bool ShouldDrawMesh(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds);
@@ -73,6 +75,7 @@ namespace Ken4lowEngine
 		DirectXCommon* dxCommon_ = nullptr;
 
 		Object3DPipelineSet pipelineSet_{};
+		InstancedObject3DPipelineSet instancedPipelineSet_{};
 
 		FrustumCullingSystem frustumCullingSystem_{};
 		CullingCameraMode cullingCameraMode_ = CullingCameraMode::MainCamera;
