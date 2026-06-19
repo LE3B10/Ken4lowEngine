@@ -628,6 +628,9 @@
     <ClCompile Include="Engine\Scene\Level\StageChunkManager.cpp">
       <Filter>Engine\Scene\Level</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Level\StageInstancingManager.cpp">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Math\Vector\Vector3.cpp">
       <Filter>Engine\Math\Vector</Filter>
     </ClCompile>
@@ -1630,6 +1633,9 @@
       <Filter>Engine\Scene\Level</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Level\StageChunkManager.h">
+      <Filter>Engine\Scene\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Level\StageInstancingManager.h">
       <Filter>Engine\Scene\Level</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Level\Stage.h">

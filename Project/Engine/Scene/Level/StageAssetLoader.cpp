@@ -9,23 +9,17 @@ namespace Ken4lowEngine
 			return type == "StaticMesh" || type == "MESH";
 		}
 
-		std::string FindStageModelName(const LevelData& levelData, const std::string& defaultModelName)
+	}
+
+	std::string StageAssetLoader::ResolveStageModelName(const LevelData& levelData, const std::string& defaultModelName)
+	{
+		// GamePlayから渡された一体型ステージを優先し、個別配置modelPathで誤って置き換えない。
+		if (!defaultModelName.empty()) { return defaultModelName; }
+		for (const ObjectData& data : levelData.objects)
 		{
-			for (const ObjectData& data : levelData.objects)
-			{
-				if (!IsStageMeshType(data.type))
-				{
-					continue;
-				}
-
-				if (!data.modelName.empty())
-				{
-					return data.modelName;
-				}
-			}
-
-			return defaultModelName;
+			if (IsStageMeshType(data.type) && !data.modelName.empty()) { return data.modelName; }
 		}
+		return {};
 	}
 
 	std::unique_ptr<Object3D> StageAssetLoader::BuildStageModel(
@@ -33,7 +27,7 @@ namespace Ken4lowEngine
 		const std::string& defaultModelName,
 		const Vector3& offset)
 	{
-		const std::string modelName = FindStageModelName(levelData, defaultModelName);
+		const std::string modelName = ResolveStageModelName(levelData, defaultModelName);
 
 		auto stageModel = std::make_unique<Object3D>();
 		stageModel->Initialize(modelName);

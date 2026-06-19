@@ -9,7 +9,6 @@ class PhysicsDebugController;
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine
 {
-	class DirectXCommon;
 	class Input;
 	class InstancedObject3DRenderer;
 }
@@ -51,10 +50,11 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// デバッグカメラの更新
 	void UpdateDebug();
+	// ImGui設定から大量配置データを再構築する。
+	void RebuildInstancingTest();
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	K4E::DirectXCommon* dxCommon_ = nullptr; // DirectXCommonのポインタ
 	K4E::Input* input_ = nullptr; // Inputのポインタ
 	bool isDebugCamera_ = false; // デバッグカメラ使用フラグ
 
@@ -65,4 +65,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	// 3万個のObject3Dを生成せず、専用GPUインスタンシング経路をON/OFFして負荷確認する。
 	std::unique_ptr<K4E::InstancedObject3DRenderer> instancingTestRenderer_;
 	bool isInstancingTestEnabled_ = false;
+	int instancingTestCount_ = 30000;
+	float instancingTestSpacing_ = 2.0f;
+	bool instancingRandomScale_ = false;
+	bool instancingRandomRotation_ = false;
+	bool instancingRandomColor_ = false;
+	bool instancingFrustumCulling_ = false;
 };

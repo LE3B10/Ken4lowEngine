@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "InstancedObject3DRenderer.h"
 #include "Object3DCommon.h"
 #include "DirectXCommon.h"
@@ -7,8 +8,10 @@
 #include "Model.h"
 #include "ModelManager.h"
 #include "CameraManager.h"
+#include "Frustum.h"
 
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 namespace Ken4lowEngine
@@ -93,6 +96,9 @@ namespace Ken4lowEngine
 		materialUsePointSampling_.clear();
 		maxInstanceCount_ = 0;
 		instanceCount_ = 0;
+		sourceInstances_.clear();
+		instanceBufferDirty_ = false;
+		frustumCullingEnabled_ = false;
 		dxCommon_ = nullptr;
 		initialized_ = false;
 	}
@@ -100,29 +106,101 @@ namespace Ken4lowEngine
 	bool InstancedObject3DRenderer::SetInstances(const std::vector<InstanceData>& instances)
 	{
 		if (!initialized_ || instances.size() > maxInstanceCount_) { return false; }
-		std::copy(instances.begin(), instances.end(), mappedInstances_);
-		instanceCount_ = instances.size();
+		sourceInstances_ = instances;
+		instanceBufferDirty_ = true;
+		if (frustumCullingEnabled_) { instanceCount_ = 0; }
+		if (!frustumCullingEnabled_)
+		{
+			std::copy(sourceInstances_.begin(), sourceInstances_.end(), mappedInstances_);
+			instanceCount_ = sourceInstances_.size();
+			instanceBufferDirty_ = false;
+		}
 		return true;
 	}
 
 	bool InstancedObject3DRenderer::SetWorldMatrices(const std::vector<Matrix4x4>& worldMatrices, const Vector4& color)
 	{
 		if (!initialized_ || worldMatrices.size() > maxInstanceCount_) { return false; }
+		std::vector<InstanceData> instances(worldMatrices.size());
 		for (size_t i = 0; i < worldMatrices.size(); ++i)
 		{
-			mappedInstances_[i].world = worldMatrices[i];
-			mappedInstances_[i].worldInverseTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrices[i]));
-			mappedInstances_[i].color = color;
+			instances[i].world = worldMatrices[i];
+			instances[i].worldInverseTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrices[i]));
+			instances[i].color = color;
 		}
-		instanceCount_ = worldMatrices.size();
-		return true;
+		return SetInstances(instances);
+	}
+
+	bool InstancedObject3DRenderer::SetTransforms(const std::vector<InstanceTransform>& transforms)
+	{
+		if (!initialized_ || transforms.size() > maxInstanceCount_) { return false; }
+		std::vector<InstanceData> instances;
+		instances.reserve(transforms.size());
+		for (const auto& transform : transforms)
+		{
+			InstanceData instance{};
+			instance.world = Matrix4x4::MakeAffineMatrix(transform.scale, transform.rotation, transform.position);
+			instance.worldInverseTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(instance.world));
+			instance.color = transform.color;
+			instances.push_back(instance);
+		}
+		return SetInstances(instances);
+	}
+
+	void InstancedObject3DRenderer::SetFrustumCullingEnabled(bool enabled)
+	{
+		if (frustumCullingEnabled_ == enabled) { return; }
+		frustumCullingEnabled_ = enabled;
+		instanceBufferDirty_ = true;
+	}
+
+	void InstancedObject3DRenderer::UpdateVisibleInstances(const Matrix4x4& viewProjection)
+	{
+		if (!frustumCullingEnabled_)
+		{
+			if (instanceBufferDirty_)
+			{
+				std::copy(sourceInstances_.begin(), sourceInstances_.end(), mappedInstances_);
+				instanceCount_ = sourceInstances_.size();
+				instanceBufferDirty_ = false;
+			}
+			return;
+		}
+
+		Frustum frustum;
+		frustum.BuildFromViewProjection(viewProjection);
+		instanceCount_ = 0;
+		const bool hasBounds = model_ && model_->HasLocalBounds();
+		const BoundingSphere localBounds = hasBounds ? model_->GetLocalBounds() : BoundingSphere{};
+		for (const auto& instance : sourceInstances_)
+		{
+			bool visible = true;
+			if (hasBounds)
+			{
+				BoundingSphere worldBounds{};
+				worldBounds.center = Vector3::Transform(localBounds.center, instance.world);
+				const float scaleX = std::sqrt(instance.world.m[0][0] * instance.world.m[0][0] + instance.world.m[0][1] * instance.world.m[0][1] + instance.world.m[0][2] * instance.world.m[0][2]);
+				const float scaleY = std::sqrt(instance.world.m[1][0] * instance.world.m[1][0] + instance.world.m[1][1] * instance.world.m[1][1] + instance.world.m[1][2] * instance.world.m[1][2]);
+				const float scaleZ = std::sqrt(instance.world.m[2][0] * instance.world.m[2][0] + instance.world.m[2][1] * instance.world.m[2][1] + instance.world.m[2][2] * instance.world.m[2][2]);
+				worldBounds.radius = localBounds.radius * std::max({ scaleX, scaleY, scaleZ });
+				visible = frustum.Intersects(worldBounds);
+			}
+			if (visible)
+			{
+				mappedInstances_[instanceCount_++] = instance;
+			}
+		}
+		instanceBufferDirty_ = false;
 	}
 
 	void InstancedObject3DRenderer::Draw()
 	{
-		if (!initialized_ || !model_ || instanceCount_ == 0) { return; }
+		if (!initialized_ || !model_ || sourceInstances_.empty()) { return; }
 
 		perViewData_->viewProjection = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
+		// CPU側でObject3Dを大量生成せず、可視なInstanceDataだけをGPUへ詰めてまとめて描画する。
+		UpdateVisibleInstances(perViewData_->viewProjection);
+		if (instanceCount_ == 0) { return; }
 		const Vector3 cameraPosition = CameraManager::GetInstance()->GetActiveCameraPosition();
 		cameraData_->x = cameraPosition.x;
 		cameraData_->y = cameraPosition.y;

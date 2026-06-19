@@ -89,6 +89,26 @@ void StageChunkDebugController::DrawImGuiContent(K4E::Stage* stage)
 	}
 	ImGui::TextWrapped("可視Chunkは緑、カリングChunkは赤、Object Boundsは青、Chunk Culling対象外Boundsは黄で表示します。");
 	ImGui::TextWrapped("床や壁など大きいBoundsは複数Chunk登録または安全側でChunk Culling対象外にし、見えているObjectを消さないようにDraw側だけを制御します。");
+
+	ImGui::SeparatorText("Stage Instancing");
+	bool stageInstancingEnabled = stage->IsStageInstancingEnabled();
+	bool useNormalStageDraw = stage->IsUseNormalStageDraw();
+	bool useInstancedStageDraw = stage->IsUseInstancedStageDraw();
+	if (ImGui::Checkbox("Stage Instancing Enabled", &stageInstancingEnabled))
+	{
+		stage->SetStageInstancingEnabled(stageInstancingEnabled);
+	}
+	ImGui::Text("Stage Instance Batch Count: %zu", stage->GetStageInstanceBatchCount());
+	ImGui::Text("Stage Instance Total Count: %zu", stage->GetStageInstanceTotalCount());
+	if (ImGui::Checkbox("Use Normal Stage Draw", &useNormalStageDraw))
+	{
+		stage->SetUseNormalStageDraw(useNormalStageDraw);
+	}
+	if (ImGui::Checkbox("Use Instanced Stage Draw", &useInstancedStageDraw))
+	{
+		stage->SetUseInstancedStageDraw(useInstancedStageDraw);
+	}
+	ImGui::TextWrapped("個別modelPathが明示された静的配置だけを対象にし、一体型ステージとColliderは既存経路へ残します。");
 #else
 	(void)stage;
 #endif

@@ -13,6 +13,9 @@ namespace Ken4lowEngine
 	class StageAssetLoader
 	{
 	public:
+		/// <summary>一体型ステージとして使うモデルを解決します。既定モデルを最優先します。</summary>
+		static std::string ResolveStageModelName(const LevelData& levelData, const std::string& defaultModelName);
+
 		/// <summary>
 		/// LevelData からステージ用描画モデルを構築する
 		/// </summary>

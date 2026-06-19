@@ -1,7 +1,6 @@
 #define NOMINMAX
 #include "DebugScene.h"
 #include "PhysicsDebugController.h"
-#include <DirectXCommon.h>
 #include <Input.h>
 #include <SpriteManager.h>
 #include "CameraManager.h"
@@ -9,12 +8,14 @@
 #include <LightManager.h>
 #include <GameTimer.h>
 #include <InstancedObject3DRenderer.h>
-#include <Matrix4x4.h>
 
+#include <algorithm>
+#include <cmath>
+#include <numbers>
+#include <random>
 #include <vector>
 
 #ifdef USE_IMGUI
-#include <ImGuiManager.h>
 #include <imgui.h>
 #endif // USE_IMGUI
 
@@ -28,7 +29,6 @@ DebugScene::~DebugScene() = default;
 /// -------------------------------------------------------------
 void DebugScene::Initialize()
 {
-	dxCommon_ = DirectXCommon::GetInstance();
 	input_ = Input::GetInstance();
 
 	// 衝突判定マネージャーの初期化
@@ -42,23 +42,7 @@ void DebugScene::Initialize()
 	// 静的な3万行列を一度だけ用意し、毎フレームのObject3D生成・更新コストを発生させない。
 	instancingTestRenderer_ = std::make_unique<InstancedObject3DRenderer>();
 	instancingTestRenderer_->Initialize("Test/cube.gltf", 30000);
-	std::vector<Matrix4x4> worlds;
-	worlds.reserve(30000);
-	constexpr int kColumns = 200;
-	constexpr int kRows = 150;
-	for (int z = 0; z < kRows; ++z)
-	{
-		for (int x = 0; x < kColumns; ++x)
-		{
-			const Vector3 position{
-				(static_cast<float>(x) - kColumns * 0.5f) * 2.0f,
-				0.0f,
-				(static_cast<float>(z) - kRows * 0.5f) * 2.0f
-			};
-			worlds.push_back(Matrix4x4::MakeAffineMatrix({ 0.35f, 0.35f, 0.35f }, {}, position));
-		}
-	}
-	instancingTestRenderer_->SetWorldMatrices(worlds, { 0.35f, 0.8f, 1.0f, 1.0f });
+	RebuildInstancingTest();
 }
 
 /// -------------------------------------------------------------
@@ -151,7 +135,6 @@ void DebugScene::Finalize()
 	instancingTestRenderer_.reset();
 
 	input_ = nullptr;
-	dxCommon_ = nullptr;
 }
 
 /// -------------------------------------------------------------
@@ -171,15 +154,65 @@ void DebugScene::DrawImGui()
 	}
 
 	ImGui::SeparatorText("GPU Instancing Test");
-	ImGui::Checkbox("Draw 30,000 static cubes", &isInstancingTestEnabled_);
+	ImGui::Checkbox("Draw Instanced Objects", &isInstancingTestEnabled_);
+	ImGui::SliderInt("Instance Count", &instancingTestCount_, 1, 30000);
+	ImGui::DragFloat("Spacing", &instancingTestSpacing_, 0.05f, 0.1f, 20.0f, "%.2f");
+	ImGui::Checkbox("Random Scale", &instancingRandomScale_);
+	ImGui::Checkbox("Random Rotation", &instancingRandomRotation_);
+	ImGui::Checkbox("Random Color", &instancingRandomColor_);
+	if (ImGui::Checkbox("Frustum Culling", &instancingFrustumCulling_) && instancingTestRenderer_)
+	{
+		instancingTestRenderer_->SetFrustumCullingEnabled(instancingFrustumCulling_);
+	}
+	if (ImGui::Button("Rebuild Instances"))
+	{
+		RebuildInstancingTest();
+	}
 	if (instancingTestRenderer_)
 	{
-		ImGui::Text("Instances: %zu / %zu",
+		ImGui::Text("Visible: %zu / Total: %zu / Capacity: %zu",
+			instancingTestRenderer_->GetVisibleInstanceCount(),
 			instancingTestRenderer_->GetInstanceCount(),
 			instancingTestRenderer_->GetMaxInstanceCount());
 	}
 
 #endif // USE_IMGUI
+}
+
+void DebugScene::RebuildInstancingTest()
+{
+	if (!instancingTestRenderer_) { return; }
+
+	const int count = std::clamp(instancingTestCount_, 1, 30000);
+	const int columns = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(count))));
+	std::mt19937 random(0x4B3445u); // 同じ設定なら同じ配置になる固定seed。
+	std::uniform_real_distribution<float> scaleDistribution(0.55f, 1.45f);
+	std::uniform_real_distribution<float> rotationDistribution(0.0f, std::numbers::pi_v<float> * 2.0f);
+	std::uniform_real_distribution<float> colorDistribution(0.25f, 1.0f);
+
+	std::vector<InstancedObject3DRenderer::InstanceTransform> transforms;
+	transforms.reserve(static_cast<size_t>(count));
+	for (int i = 0; i < count; ++i)
+	{
+		const int x = i % columns;
+		const int z = i / columns;
+		InstancedObject3DRenderer::InstanceTransform transform{};
+		transform.position = {
+			(static_cast<float>(x) - columns * 0.5f) * instancingTestSpacing_,
+			0.0f,
+			(static_cast<float>(z) - columns * 0.5f) * instancingTestSpacing_
+		};
+		const float randomScale = instancingRandomScale_ ? scaleDistribution(random) : 1.0f;
+		transform.scale = { 0.35f * randomScale, 0.35f * randomScale, 0.35f * randomScale };
+		if (instancingRandomRotation_) { transform.rotation.y = rotationDistribution(random); }
+		transform.color = instancingRandomColor_
+			? Vector4{ colorDistribution(random), colorDistribution(random), colorDistribution(random), 1.0f }
+			: Vector4{ 0.35f, 0.8f, 1.0f, 1.0f };
+		transforms.push_back(transform);
+	}
+
+	instancingTestRenderer_->SetFrustumCullingEnabled(instancingFrustumCulling_);
+	instancingTestRenderer_->SetTransforms(transforms);
 }
 
 /// -------------------------------------------------------------

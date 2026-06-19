@@ -19,9 +19,11 @@ namespace Ken4lowEngine
 			return;
 		}
 
+		const std::string primaryStageModelPath = StageAssetLoader::ResolveStageModelName(*levelData_, defaultModelName);
 		stageModel_ = StageAssetLoader::BuildStageModel(*levelData_, defaultModelName, offset_);
 		stageModel_->Update();
 		RebuildStageChunks();
+		stageInstancingManager_.Build(*levelData_, primaryStageModelPath, offset_);
 
 		StageCollisionBuildResult collisionResult =
 			StageCollisionBuilder::Build(*levelData_, offset_);
@@ -44,6 +46,7 @@ namespace Ken4lowEngine
 	{
 		levelData_.reset();
 		stageModel_.reset();
+		stageInstancingManager_.Clear();
 		stageChunkManager_.Clear();
 		occlusionCullingSystem_.ClearOccluders();
 		worldAABBs_.clear();
@@ -69,28 +72,40 @@ namespace Ken4lowEngine
 
 	void Stage::Draw()
 	{
-		if (!stageModel_)
-		{
-			return;
-		}
-
-		if (stageChunkManager_.NeedsRebuild())
+		if (useNormalStageDraw_ && stageModel_ && stageChunkManager_.NeedsRebuild())
 		{
 			RebuildStageChunks();
 		}
 
-		if (stageChunkManager_.IsEnabled() && !stageChunkManager_.GetChunks().empty())
+		if (useNormalStageDraw_ && stageModel_)
 		{
-			stageChunkManager_.UpdateVisibility(true);
-			stageChunkManager_.ApplyOcclusionCulling(
-				occlusionCullingSystem_,
-				Object3DCommon::GetInstance()->GetFrustumCullingSystem().GetViewProjectionMatrix());
-			stageChunkManager_.DrawVisibleChunks();
-			return;
+			if (stageChunkManager_.IsEnabled() && !stageChunkManager_.GetChunks().empty())
+			{
+				stageChunkManager_.UpdateVisibility(true);
+				stageChunkManager_.ApplyOcclusionCulling(
+					occlusionCullingSystem_,
+					Object3DCommon::GetInstance()->GetFrustumCullingSystem().GetViewProjectionMatrix());
+				stageChunkManager_.DrawVisibleChunks();
+			}
+			else
+			{
+				stageChunkManager_.UpdateVisibility(false);
+				stageModel_->Draw();
+			}
 		}
 
-		stageChunkManager_.UpdateVisibility(false);
-		stageModel_->Draw();
+		if (useNormalStageDraw_)
+		{
+			stageInstancingManager_.DrawUniqueObjects();
+			if (!stageInstancingEnabled_ || !useInstancedStageDraw_)
+			{
+				stageInstancingManager_.DrawBatchSourcesNormally();
+			}
+		}
+		if (stageInstancingEnabled_ && useInstancedStageDraw_)
+		{
+			stageInstancingManager_.DrawInstancedBatches();
+		}
 	}
 
 	void Stage::DrawChunkDebug()

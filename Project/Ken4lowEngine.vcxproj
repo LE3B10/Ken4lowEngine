@@ -452,6 +452,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Scene\Level\Stage.cpp" />
     <ClCompile Include="Engine\Scene\Level\StageChunk.cpp" />
     <ClCompile Include="Engine\Scene\Level\StageChunkManager.cpp" />
+    <ClCompile Include="Engine\Scene\Level\StageInstancingManager.cpp" />
     <ClCompile Include="Engine\Scene\Level\StageAssetLoader.cpp" />
     <ClCompile Include="Engine\Scene\Level\StageCollisionBuilder.cpp" />
     <ClCompile Include="Engine\System\Audio\Manager\AudioManager.cpp" />
@@ -1191,6 +1192,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Scene\Level\StageCollisionBuilder.h" />
     <ClInclude Include="Engine\Scene\Level\StageChunk.h" />
     <ClInclude Include="Engine\Scene\Level\StageChunkManager.h" />
+    <ClInclude Include="Engine\Scene\Level\StageInstancingManager.h" />
     <ClInclude Include="Engine\System\Audio\Data\AudioCategory.h" />
     <ClInclude Include="Engine\System\Audio\Data\AudioStructs.h" />
     <ClInclude Include="Engine\System\Audio\Manager\AudioManager.h" />

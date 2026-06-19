@@ -6,6 +6,7 @@
 #include "LevelData.h"
 #include "OcclusionCullingSystem.h"
 #include "StageChunkManager.h"
+#include "StageInstancingManager.h"
 
 #include <cstdint>
 #include <memory>
@@ -81,6 +82,14 @@ namespace Ken4lowEngine
 		void SetStageChunkSize(float chunkSize);
 		float GetStageChunkSize() const;
 		void RebuildStageChunks();
+		void SetStageInstancingEnabled(bool enabled) { stageInstancingEnabled_ = enabled; }
+		bool IsStageInstancingEnabled() const { return stageInstancingEnabled_; }
+		void SetUseNormalStageDraw(bool enabled) { useNormalStageDraw_ = enabled; }
+		bool IsUseNormalStageDraw() const { return useNormalStageDraw_; }
+		void SetUseInstancedStageDraw(bool enabled) { useInstancedStageDraw_ = enabled; }
+		bool IsUseInstancedStageDraw() const { return useInstancedStageDraw_; }
+		size_t GetStageInstanceBatchCount() const { return stageInstancingManager_.GetBatchCount(); }
+		size_t GetStageInstanceTotalCount() const { return stageInstancingManager_.GetTotalInstanceCount(); }
 		StageChunkManager& GetStageChunkManager() { return stageChunkManager_; }
 		const StageChunkManager& GetStageChunkManager() const { return stageChunkManager_; }
 		OcclusionCullingSystem& GetOcclusionCullingSystem() { return occlusionCullingSystem_; }
@@ -116,6 +125,7 @@ namespace Ken4lowEngine
 		std::unique_ptr<LevelData> levelData_;
 		std::unique_ptr<Object3D> stageModel_;                 // ステージ描画モデル
 		StageChunkManager stageChunkManager_;                 // 静的ステージを Chunk 単位で Draw スキップする管理クラス
+		StageInstancingManager stageInstancingManager_;       // 明示的な同一modelPath配置だけをまとめる管理クラス
 		OcclusionCullingSystem occlusionCullingSystem_;          // Lv4: 遮蔽物裏の StageChunk Draw を安全側で止める管理クラス
 		std::vector<AABB> worldAABBs_;                         // BroadPhase・簡易範囲判定向けのStage AABB群
 		std::vector<AABB> floorAABBs_;                         // 接地・スポーン補正向けFloor AABB
@@ -129,5 +139,8 @@ namespace Ken4lowEngine
 		std::vector<AABB> ladderAABBs_;                      // Playerとの直接Overlap問い合わせに使う梯子AABB
 		std::vector<OBB> ladderOBBs_;                        // 通常壁と別色表示する梯子Trigger OBB
 		Vector3 offset_ = { 0.0f, 0.0f, 0.0f };               // ステージ全体オフセット
+		bool stageInstancingEnabled_ = true;
+		bool useNormalStageDraw_ = true;
+		bool useInstancedStageDraw_ = true;
 	};
 } // namespace Ken4lowEngine

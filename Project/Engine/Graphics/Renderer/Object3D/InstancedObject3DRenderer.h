@@ -3,6 +3,7 @@
 #include "Material.h"
 #include "Matrix4x4.h"
 #include "Vector4.h"
+#include "Vector3.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -28,6 +29,15 @@ namespace Ken4lowEngine
 			Vector4 color;
 		};
 
+		/// <summary>JSONなどの配置データへ移しやすい、インスタンス単位のTransformと色です。</summary>
+		struct InstanceTransform
+		{
+			Vector3 position{};
+			Vector3 rotation{};
+			Vector3 scale{ 1.0f, 1.0f, 1.0f };
+			Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		};
+
 		InstancedObject3DRenderer() = default;
 		~InstancedObject3DRenderer();
 		InstancedObject3DRenderer(const InstancedObject3DRenderer&) = delete;
@@ -43,12 +53,18 @@ namespace Ken4lowEngine
 		/// <summary>World行列列から逆転置行列を生成して一括登録します。</summary>
 		bool SetWorldMatrices(const std::vector<Matrix4x4>& worldMatrices, const Vector4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
 
+		/// <summary>位置・回転・スケール・色からGPU用InstanceDataを構築します。</summary>
+		bool SetTransforms(const std::vector<InstanceTransform>& transforms);
+
 		/// <summary>サブメッシュごとに1回、DrawIndexedInstancedを発行します。</summary>
 		void Draw();
 
-		size_t GetInstanceCount() const { return instanceCount_; }
+		size_t GetInstanceCount() const { return sourceInstances_.size(); }
+		size_t GetVisibleInstanceCount() const { return instanceCount_; }
 		size_t GetMaxInstanceCount() const { return maxInstanceCount_; }
 		void SetMaterialColor(const Vector4& color) { material_.SetColor(color); }
+		void SetFrustumCullingEnabled(bool enabled);
+		bool IsFrustumCullingEnabled() const { return frustumCullingEnabled_; }
 
 	private:
 		struct PerViewData { Matrix4x4 viewProjection; };
@@ -95,5 +111,11 @@ namespace Ken4lowEngine
 		D3D12_GPU_DESCRIPTOR_HANDLE environmentMapHandle_{};
 		D3D12_GPU_DESCRIPTOR_HANDLE dissolveMaskHandle_{};
 		bool initialized_ = false;
+		std::vector<InstanceData> sourceInstances_{};
+		bool instanceBufferDirty_ = false;
+		bool frustumCullingEnabled_ = false;
+
+		/// <summary>カリング設定に応じ、描画対象だけをGPUバッファの先頭へ詰め直します。</summary>
+		void UpdateVisibleInstances(const Matrix4x4& viewProjection);
 	};
 }
