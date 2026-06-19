@@ -212,6 +212,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	void ApplyPhysicsCorrectedPosition(const K4E::Vector3& worldPosition);
 
 	void SetFallDamageSettings(const FallDamageSettings& s) { fallDamageSettings_ = s; }
+	// PlayerMotorが現在のXZ位置をStage範囲外と判定しているか取得する。
+	bool IsOutsideStage() const { return motor_.IsOutsideStage(); }
 
 	// Stage Editor等で編集された武器マスタを、現在実行中の武器コンポーネントへ即時反映する。
 	void ApplyEditedWeaponDataFromEditor(int32_t weaponID, const FWeaponMasterData& data);
@@ -301,6 +303,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	void SyncDamageCollider();
 
 	void ApplyFallDamage(float deltaTime);
+	// 即死ラインを下回ったPlayerを既存の死亡シーケンスへ移す。
+	void CheckFallDeath();
 
 	void UpdateInputAndWeapon(float deltaTime);
 	void UpdateBrain(float deltaTime);
@@ -364,6 +368,8 @@ private: /// ----------メンバ変数 ---------- ///
 	K4E::Vector3 spawnOffset_{ 0,0,0 };
 
 	FallDamageSettings fallDamageSettings_{};
+	bool enableFallDeath_ = true; // Stage外落下時の即死判定を有効にするか。
+	float fallDeathY_ = -30.0f; // スポーン地点から十分離した調整可能な即死Yライン。
 	bool isGroundedByPhysics_ = false; // PhysicsWorld由来の床判定。現段階ではDebug比較専用。
 	K4E::Rigidbody physicsRigidbody_{}; // PhysicsWorld登録用のPlayer所有Kinematic Rigidbody。
 	K4E::Collider physicsCollider_{}; // PhysicsWorld登録用のPlayer所有AABB Collider。

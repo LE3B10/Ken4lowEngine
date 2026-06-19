@@ -240,6 +240,7 @@ void Player::Update(float deltaTime)
 	UpdateMovementAndView(deltaTime);
 	UpdatePresentation(deltaTime);
 	ApplyFallDamage(deltaTime);
+	CheckFallDeath();
 }
 
 void Player::UpdateInputAndWeapon(float deltaTime)
@@ -552,6 +553,15 @@ void Player::DrawPlayerDebugImGui()
 #ifdef USE_IMGUI
 	// Player Debugには腕・照準・被弾判定・HP系の調整を集約する。
 	ImGui::Text("HP: %.1f", GetHP());
+	ImGui::SeparatorText("Fall Death");
+	// 落下死の有効状態と閾値を実行中に比較調整できるようにする。
+	ImGui::Checkbox("Enable Fall Death", &enableFallDeath_);
+	ImGui::DragFloat("Fall Death Y", &fallDeathY_, 0.5f, -500.0f, 50.0f, "%.1f");
+	const K4E::WorldTransformEx* transform = GetWorldTransform();
+	ImGui::Text("Player Y: %.3f", transform ? transform->translate_.y : 0.0f);
+	ImGui::Text("Is Outside Stage: %s", IsOutsideStage() ? "true" : "false");
+	ImGui::Text("Motor Grounded: %s", motor_.IsGrounded() ? "true" : "false");
+	ImGui::Text("Physics Grounded: %s", IsGroundedByPhysics() ? "true" : "false");
 	view_.DrawImGui();
 	combat_.DrawImGui();
 	damageCollider_.DrawImGui();
@@ -895,6 +905,29 @@ void Player::ApplyFallDamage(float deltaTime)
 		audio_.onDeath);
 
 	ApplyDamageFeedback(fb);
+}
+
+void Player::CheckFallDeath()
+{
+	// 無効時・死亡中・Transform未接続時は落下死を二重発火させない。
+	if (!enableFallDeath_ || death_.IsActive())
+	{
+		return;
+	}
+
+	const K4E::WorldTransformEx* transform = GetWorldTransform();
+	if (!transform || transform->translate_.y > fallDeathY_)
+	{
+		return;
+	}
+
+	// 即死ダメージを既存HP/SE/死亡演出経路へ渡し、通常死亡と同じ後処理を再利用する。
+	ApplyDamage(damage_.GetMaxHP());
+	if (!death_.IsActive())
+	{
+		// HPが既に0など例外状態でも、落下死ライン以下なら安全な上向き方向で死亡演出を開始する。
+		StartDeath({ 0.0f, 1.0f, 0.0f });
+	}
 }
 
 void Player::StartDeath(const K4E::Vector3& launchDirWorld)

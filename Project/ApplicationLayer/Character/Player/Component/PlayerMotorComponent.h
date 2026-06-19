@@ -36,6 +36,10 @@ public: /// ---------- パブリックメンバ関数 ---------- ///
 
 	// ===== Queries (for FSM) =====
 	bool IsGrounded() const;
+	// 指定位置のXZが余白込みでいずれかのStage AABB内にあるか判定する。
+	bool IsInsideStageXZ(const K4E::Vector3& position) const;
+	// 現在のPlayer位置がStage AABB群のXZ範囲外か取得する。
+	bool IsOutsideStage() const;
 	// PhysicsWorld由来の接地判定を既存判定へ追加するか切り替える。
 	void SetUsePhysicsGrounded(bool enabled);
 	// PhysicsWorldが評価した最新のPlayer接地状態を受け取る。
@@ -87,6 +91,7 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	float groundSnapEpsilon_ = 0.05f;
 	float groundProbeDistance_ = 3.0f;
 	float stepSnapHeight_ = 0.30f;
+	float stageBoundsMargin_ = 0.3f; // 床端で接地が早く切れすぎないようXZ判定へ加える余白。
 
 	// ---- Input from FSM ----
 	float moveX_ = 0.0f;

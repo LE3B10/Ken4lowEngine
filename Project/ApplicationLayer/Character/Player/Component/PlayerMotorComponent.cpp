@@ -9,6 +9,7 @@ using namespace Ken4lowEngine;
 bool PlayerMotorComponent::IsGrounded() const
 {
 	if (!tr_) return true;
+	if (IsOutsideStage()) return false;
 
 	// groundQuery を使う場合だけ groundY_ 判定も有効
 	const bool byQuery = (bool)groundQuery_
@@ -17,6 +18,34 @@ bool PlayerMotorComponent::IsGrounded() const
 
 	// Physics接地は有効時だけOR追加し、falseでも既存の接地判定を打ち消さない。
 	return grounded_ || byQuery || (usePhysicsGrounded_ && physicsGrounded_);
+}
+
+bool PlayerMotorComponent::IsInsideStageXZ(const K4E::Vector3& position) const
+{
+	// Stage情報が未接続の場面では従来挙動を維持し、範囲外として扱わない。
+	if (!worldAABBs_ || worldAABBs_->empty())
+	{
+		return true;
+	}
+
+	const float margin = std::max(stageBoundsMargin_, 0.0f);
+	for (const K4E::AABB& stageAABB : *worldAABBs_)
+	{
+		// Player足元のXZ点がどれか一つのStage領域内なら、床端の余白を含めてStage上とみなす。
+		if (position.x >= stageAABB.min.x - margin && position.x <= stageAABB.max.x + margin &&
+			position.z >= stageAABB.min.z - margin && position.z <= stageAABB.max.z + margin)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool PlayerMotorComponent::IsOutsideStage() const
+{
+	// Transform未接続時は判定不能なので、既存処理を止めないようStage内として扱う。
+	return tr_ && !IsInsideStageXZ(tr_->translate_);
 }
 
 void PlayerMotorComponent::SetUsePhysicsGrounded(bool enabled)
@@ -39,7 +68,8 @@ bool PlayerMotorComponent::IsUsingPhysicsGrounded() const
 
 void PlayerMotorComponent::UpdateGroundFromQuery()
 {
-	if (!tr_ || !groundQuery_) return;
+	// Stage外では過去のgroundYへスナップせず、重力積分による落下を優先する。
+	if (!tr_ || !groundQuery_ || IsOutsideStage()) return;
 
 	float gy = groundY_;
 	K4E::Vector3 n = groundNormal_;
@@ -305,8 +335,9 @@ void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId,
 	// ------------------------------------------------------------
 	// ワールド衝突解決
 	// ------------------------------------------------------------
-	if (worldAABBs_ && !worldAABBs_->empty())
+	if (worldAABBs_ && !worldAABBs_->empty() && !IsOutsideStage())
 	{
+		// Stage外ではResolverの接地・位置補正を通さず、そのまま下方向へ落下させる。
 		float vy = verticalVel_;
 
 		const K4E::WorldCollisionResult r =
@@ -333,11 +364,12 @@ void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId,
 	// grounded 判定
 	// Resolve の grounded を優先的に活かす
 	// ------------------------------------------------------------
-	const bool queryGrounded =
+	const bool insideStage = !IsOutsideStage();
+	const bool queryGrounded = insideStage &&
 		(tr_->translate_.y <= groundY_ + groundSnapEpsilon_) &&
 		(verticalVel_ <= 0.0f);
 
-	if (resolvedGrounded || queryGrounded)
+	if (insideStage && (resolvedGrounded || queryGrounded))
 	{
 		if (tr_->translate_.y < groundY_)
 		{
