@@ -916,27 +916,6 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Navigation</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverSelector.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatController.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatDecisionMemory.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyAimController.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverController.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyStuckController.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyEvadeController.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\DebugTools\StageChunk\StageChunkDebugController.cpp">
       <Filter>ApplicationLayer\DebugTools</Filter>
     </ClCompile>
@@ -945,12 +924,6 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.cpp">
       <Filter>ApplicationLayer\DebugTools</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalDebugPointBuilder.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalPointDebugDrawer.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClCompile>
     <ClCompile Include="Engine\System\JsonAssets\DataAssetPresets.cpp">
       <Filter>Engine\System\JsonAssets</Filter>
@@ -2058,30 +2031,6 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.h">
       <Filter>ApplicationLayer\Character\Enemy\Navigation</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverSelector.h">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatController.h">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatDecisionMemory.h">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyAimController.h">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverController.h">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyStuckController.h">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyEvadeController.h">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTraitProfile.h">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Math\GeometryTypes.h">
       <Filter>Engine\Math</Filter>
     </ClInclude>
@@ -2099,15 +2048,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\DebugTools\FrustumCulling\FrustumCullingDebugController.h">
       <Filter>ApplicationLayer\DebugTools</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalDebugPoint.h">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalDebugPointBuilder.h">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalPointDebugDrawer.h">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClInclude>
     <ClInclude Include="Engine\System\JsonAssets\DataAssetPresets.h">
       <Filter>Engine\System\JsonAssets</Filter>
@@ -2692,9 +2632,6 @@
     </Filter>
     <Filter Include="ApplicationLayer\UISystem\ControlGuideUI">
       <UniqueIdentifier>{e3047797-8f02-4860-be31-91fd1bcb3eb6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\Enemy\State">
-      <UniqueIdentifier>{8d1a8281-ee11-4e60-ad42-ca8175aa8881}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Character\Enemy\AI">
       <UniqueIdentifier>{fbfb788f-ed0f-4c82-b4ff-bbe45e366213}</UniqueIdentifier>

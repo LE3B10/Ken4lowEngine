@@ -101,7 +101,7 @@ void CharacterWorld::InjectEnemyDeps(EnemyBase& e)
 
 	if (auto* meleeEnemy = dynamic_cast<MeleeEnemy*>(&e))
 	{
-		// 最新MeleeEnemyへPlayerターゲットだけを注入し、旧Enemy専用依存は持ち込まない。
+		// MeleeEnemyへ必要なPlayerターゲットだけを注入し、派生固有の依存を限定する。
 		if (player_) { meleeEnemy->SetTarget(player_.get()); }
 	}
 	else if (auto* midRangeEnemy = dynamic_cast<MidRangeEnemy*>(&e))
@@ -343,7 +343,7 @@ void CharacterWorld::DrawEnemyDebugImGui()
 	ImGui::Text("近接雑魚敵数: %d", spawnedEnemyCounts_[ToEnemyTypeIndex(EnemyType::Melee)]);
 	ImGui::Text("中距離雑魚敵数: %d", spawnedEnemyCounts_[ToEnemyTypeIndex(EnemyType::MidRange)]);
 
-	// Debug生成も有効な2種類だけを選択し、旧Enemyへ到達するUI経路を残さない。
+	// Debug生成も有効なMelee/MidRangeの2種類だけを選択できるようにする。
 	constexpr const char* kEnemyTypeLabels[] = { "近接雑魚敵", "中距離雑魚敵" };
 	int debugSpawnEnemyTypeIndex = static_cast<int>(debugSpawnEnemyType_);
 	if (ImGui::Combo("敵種別", &debugSpawnEnemyTypeIndex, kEnemyTypeLabels, IM_ARRAYSIZE(kEnemyTypeLabels)))

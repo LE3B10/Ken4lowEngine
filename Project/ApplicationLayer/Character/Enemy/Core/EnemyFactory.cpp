@@ -12,7 +12,7 @@ std::unique_ptr<EnemyBase> EnemyFactory::Create(EnemyType enemyType)
 	case EnemyType::MidRange:
 		return std::make_unique<MidRangeEnemy>();
 	default:
-		// 不正なenum値でも旧Enemyへ戻さず、通常ゲームの既定であるMeleeEnemyを生成する。
+		// 不正なenum値でも通常ゲームの既定であるMeleeEnemyを安全に生成する。
 		return std::make_unique<MeleeEnemy>();
 	}
 }

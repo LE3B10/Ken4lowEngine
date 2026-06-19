@@ -310,15 +310,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\UISystem\NoAmmoUI\NoAmmoUI.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverSelector.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatController.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatDecisionMemory.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyAimController.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverController.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyStuckController.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyEvadeController.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalDebugPointBuilder.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalPointDebugDrawer.cpp" />
     <ClCompile Include="Engine\Graphics\Camera\Manager\CameraManager.cpp" />
     <ClCompile Include="Engine\Core\Application\Framework.cpp" />
     <ClCompile Include="Engine\Core\Application\GameApplication.cpp" />
@@ -731,7 +722,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalDebugPoint.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Effects\EnemyParticleEffectSystem.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossFactory.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossStatusComponent.h" />
@@ -1006,16 +996,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\UISystem\NoAmmoUI\NoAmmoUI.h" />
     <ClInclude Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverSelector.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatController.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatDecisionMemory.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyAimController.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverController.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyStuckController.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyEvadeController.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTraitProfile.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalDebugPointBuilder.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyTacticalPointDebugDrawer.h" />
     <ClInclude Include="Engine\Graphics\Camera\Manager\CameraManager.h" />
     <ClInclude Include="Engine\Platform\Windows\GameViewportConstants.h" />
     <ClInclude Include="Engine\Core\Application\Framework.h" />
