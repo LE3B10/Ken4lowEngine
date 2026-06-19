@@ -160,6 +160,7 @@ void GameplayPhysicsDebugController::InitializeGameplayPhysicsTest()
 
 	playerGroundRigidbody_.SetBodyType(K4E::BodyType::Kinematic);
 	playerGroundRigidbody_.SetUseGravity(false);
+	playerGroundRigidbody_.SetSleepEnabled(false);
 	playerGroundCollider_.SetRigidbody(&playerGroundRigidbody_);
 	playerGroundCollider_.SetCollisionLayer(kPhysicsLayerPlayer);
 
@@ -526,9 +527,10 @@ void GameplayPhysicsDebugController::UpdateGameplayPhysicsTest(float deltaTime)
 	}
 
 	playerPhysicsGrounded_ = EvaluatePlayerPhysicsGrounded();
-	playerGroundRigidbody_.SetGrounded(playerPhysicsGrounded_);
 	if (auto* player = GetPlayer())
 	{
+		// 接地結果はPlayer所有Rigidbodyへ保存し、Debug表示と将来のMotor移行から参照できるようにする。
+		player->GetPhysicsRigidbody()->SetGrounded(playerPhysicsGrounded_);
 		if (enablePlayerPhysicsDepenetration_)
 		{
 			ApplyPlayerPhysicsCorrection(*player);
@@ -695,7 +697,7 @@ void GameplayPhysicsDebugController::DrawGameplayPhysicsTestImGui()
 	ImGui::Text("Correction Delta: %.3f, %.3f, %.3f", playerPhysicsCorrectionDelta_.x, playerPhysicsCorrectionDelta_.y, playerPhysicsCorrectionDelta_.z);
 	ImGui::Text("Player Collider Position: %.3f, %.3f, %.3f", playerGroundColliderPosition_.x, playerGroundColliderPosition_.y, playerGroundColliderPosition_.z);
 	ImGui::Text("Player vs Stage Contact Count: %zu", playerStageContactCount_);
-	ImGui::Text("Registered Player Collider: %s", playerGroundColliderRegistered_ ? "true" : "false");
+	ImGui::Text("Registered Player Collider: %s", playerPhysicsBodyRegistered_ ? "true" : "false");
 	ImGui::SeparatorText("Gameplay Physics Bullet Trigger");
 	ImGui::Text("Physics Trigger Bullet Count: %zu", deps_.bulletManager ? deps_.bulletManager->GetPhysicsTriggerBulletCount() : 0);
 	ImGui::Text("Physics Trigger Bullet Hit Count: %d", deps_.bulletManager ? deps_.bulletManager->GetPhysicsTriggerHitCount() : 0);
@@ -746,35 +748,47 @@ void GameplayPhysicsDebugController::UnbindGameplayPhysicsStageColliders()
 
 void GameplayPhysicsDebugController::RegisterPlayerPhysicsGroundCheck()
 {
-	// Player床判定用ColliderをPhysicsWorldへ登録する。二重登録を避け、ON時だけ参照を持たせる。
-	if (playerGroundColliderRegistered_)
+	// Player自身の物理ボディを登録し、Controller所有の旧仮Colliderから段階的に移行する。
+	Player* player = GetPlayer();
+	if (!player)
 	{
 		return;
 	}
+	if (playerPhysicsBodyRegistered_ && registeredPlayerPhysicsBody_ == player)
+	{
+		return;
+	}
+	if (playerPhysicsBodyRegistered_)
+	{
+		UnregisterPlayerPhysicsGroundCheck();
+	}
 
-	gameplayPhysicsWorld_.RegisterRigidbody(&playerGroundRigidbody_);
-	gameplayPhysicsWorld_.RegisterCollider(&playerGroundCollider_);
-	playerGroundColliderRegistered_ = true;
+	player->InitializePhysicsBody(kPhysicsLayerPlayer);
+	gameplayPhysicsWorld_.RegisterRigidbody(player->GetPhysicsRigidbody());
+	gameplayPhysicsWorld_.RegisterCollider(player->GetPhysicsCollider());
+	registeredPlayerPhysicsBody_ = player;
+	playerPhysicsBodyRegistered_ = true;
 }
 
 void GameplayPhysicsDebugController::UnregisterPlayerPhysicsGroundCheck()
 {
-	// Scene終了時に破棄済みCollider参照を残さないよう、Player床判定用Colliderを解除する。
-	if (!playerGroundColliderRegistered_)
+	// Scene終了時や機能OFF時に、登録したPlayer自身のCollider/Rigidbodyを必ず両方解除する。
+	if (!playerPhysicsBodyRegistered_)
 	{
 		return;
 	}
 
-	gameplayPhysicsWorld_.UnregisterCollider(&playerGroundCollider_);
-	gameplayPhysicsWorld_.UnregisterRigidbody(&playerGroundRigidbody_);
-	playerGroundColliderRegistered_ = false;
+	if (registeredPlayerPhysicsBody_)
+	{
+		gameplayPhysicsWorld_.UnregisterCollider(registeredPlayerPhysicsBody_->GetPhysicsCollider());
+		gameplayPhysicsWorld_.UnregisterRigidbody(registeredPlayerPhysicsBody_->GetPhysicsRigidbody());
+		registeredPlayerPhysicsBody_->GetPhysicsRigidbody()->SetGrounded(false);
+		registeredPlayerPhysicsBody_->SetGroundedByPhysics(false);
+	}
+	registeredPlayerPhysicsBody_ = nullptr;
+	playerPhysicsBodyRegistered_ = false;
 	playerStageContactCount_ = 0;
 	playerPhysicsGrounded_ = false;
-	playerGroundRigidbody_.SetGrounded(false);
-	if (auto* player = GetPlayer())
-	{
-		player->SetGroundedByPhysics(false);
-	}
 }
 
 void GameplayPhysicsDebugController::UpdatePlayerPhysicsGroundCheck()
@@ -785,12 +799,10 @@ void GameplayPhysicsDebugController::UpdatePlayerPhysicsGroundCheck()
 		return;
 	}
 
-	if (!playerGroundColliderRegistered_)
-	{
-		RegisterPlayerPhysicsGroundCheck();
-	}
+	// Player実体が差し替わった場合も、旧実体を解除して現在のPlayerへ登録し直す。
+	RegisterPlayerPhysicsGroundCheck();
 
-	if (Player* player = GetPlayer())
+	if (Player* player = GetPlayer(); player && registeredPlayerPhysicsBody_ == player)
 	{
 		SyncPlayerPhysicsGroundCollider(*player);
 	}
@@ -798,21 +810,19 @@ void GameplayPhysicsDebugController::UpdatePlayerPhysicsGroundCheck()
 
 void GameplayPhysicsDebugController::SyncPlayerPhysicsGroundCollider(Player& player)
 {
-	// 既存のPlayer移動結果をPhysicsWorldへ渡し、めり込み補正だけを受け取る。
+	// 既存のPlayer移動結果をPlayer自身のPhysicsWorld用Colliderへ同期する。
 	playerPositionBeforePhysics_ = player.GetCenterPosition();
 	playerPositionAfterPhysics_ = playerPositionBeforePhysics_;
 	playerPhysicsCorrectionDelta_ = {};
-	playerGroundColliderPosition_ = playerPositionBeforePhysics_ + playerGroundColliderOffset_;
-	playerGroundCollider_.SetAABB({
-		playerGroundColliderPosition_ - playerGroundColliderHalfSize_,
-		playerGroundColliderPosition_ + playerGroundColliderHalfSize_,
-		});
+	player.SyncPhysicsColliderFromTransform();
+	playerGroundColliderPosition_ = player.GetPhysicsCollider()->GetCenterPosition();
 }
 
 void GameplayPhysicsDebugController::ApplyPlayerPhysicsCorrection(Player& player)
 {
-	// PhysicsWorldで補正された位置をPlayerへ戻し、壁へのめり込みを解消する。
-	const K4E::Vector3 correctedColliderPosition = playerGroundCollider_.GetCenterPosition();
+	// 既存の軸制限とクランプを維持した補正中心を、Player自身の反映APIへ渡す。
+	K4E::Collider* playerCollider = player.GetPhysicsCollider();
+	const K4E::Vector3 correctedColliderPosition = playerCollider->GetCenterPosition();
 	K4E::Vector3 rawDelta = correctedColliderPosition - playerGroundColliderPosition_;
 	const float maxCorrectionPerFrame = std::max(playerCorrectionClamp_, 0.0f);
 	rawDelta.x = std::clamp(rawDelta.x, -maxCorrectionPerFrame, maxCorrectionPerFrame);
@@ -834,7 +844,8 @@ void GameplayPhysicsDebugController::ApplyPlayerPhysicsCorrection(Player& player
 	playerPositionAfterPhysics_ = playerPositionBeforePhysics_ + appliedDelta;
 	if (K4E::Vector3::LengthSquared(appliedDelta) > 0.0f)
 	{
-		player.ApplyPhysicsCorrectedPosition(playerPositionAfterPhysics_);
+		playerCollider->SetCenterPosition(playerGroundColliderPosition_ + appliedDelta);
+		player.ApplyPhysicsBodyResult();
 		SyncPlayerPhysicsGroundCollider(player);
 	}
 }
@@ -843,12 +854,19 @@ bool GameplayPhysicsDebugController::EvaluatePlayerPhysicsGrounded()
 {
 	// PhysicsWorldのContact normalから、Player ColliderがStage上面に接しているかだけを評価する。
 	playerStageContactCount_ = 0;
+	const K4E::Collider* playerCollider = registeredPlayerPhysicsBody_
+		? registeredPlayerPhysicsBody_->GetPhysicsCollider()
+		: nullptr;
+	if (!playerCollider)
+	{
+		return false;
+	}
 	bool grounded = false;
 	constexpr float kGroundNormalThreshold = 0.5f;
 	for (const K4E::Contact& contact : gameplayPhysicsWorld_.GetContacts())
 	{
-		const bool playerIsA = contact.colliderA == &playerGroundCollider_;
-		const bool playerIsB = contact.colliderB == &playerGroundCollider_;
+		const bool playerIsA = contact.colliderA == playerCollider;
+		const bool playerIsB = contact.colliderB == playerCollider;
 		if (!playerIsA && !playerIsB)
 		{
 			continue;

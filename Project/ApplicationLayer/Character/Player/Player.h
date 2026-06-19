@@ -1,6 +1,8 @@
 #pragma once
 #include <BaseCharacter.h>
 #include <Object3D.h>
+#include "Engine/Physics/Collision/Core/Collider.h"
+#include "Engine/Physics/Core/Rigidbody.h"
 #include "ContactRecord.h"
 #include "PlayerDamageCollider.h"
 #include "PlayerDeathComponent.h"
@@ -189,6 +191,19 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetGroundedByPhysics(bool isGrounded) { isGroundedByPhysics_ = isGrounded; }
 	bool IsGroundedByPhysics() const { return isGroundedByPhysics_; }
 
+	// Player自身をPhysicsWorldへ登録できるKinematic物理ボディとして初期化する。
+	void InitializePhysicsBody(uint32_t physicsLayer);
+	// PlayerMotorComponentが更新した現在位置をPhysicsWorld用AABBへ同期する。
+	void SyncPhysicsColliderFromTransform();
+	// PhysicsWorldが補正したCollider中心をPlayerの描画原点へ戻して反映する。
+	void ApplyPhysicsBodyResult();
+	// PhysicsWorldへ登録するPlayer所有Rigidbodyを取得する。
+	K4E::Rigidbody* GetPhysicsRigidbody() { return &physicsRigidbody_; }
+	const K4E::Rigidbody* GetPhysicsRigidbody() const { return &physicsRigidbody_; }
+	// PhysicsWorldへ登録するPlayer所有Colliderを取得する。
+	K4E::Collider* GetPhysicsCollider() { return &physicsCollider_; }
+	const K4E::Collider* GetPhysicsCollider() const { return &physicsCollider_; }
+
 	// PhysicsWorldで補正された位置をPlayerへ戻す。既存移動/ジャンプ処理はまだ置き換えない。
 	void ApplyPhysicsCorrectedPosition(const K4E::Vector3& worldPosition);
 
@@ -346,6 +361,10 @@ private: /// ----------メンバ変数 ---------- ///
 
 	FallDamageSettings fallDamageSettings_{};
 	bool isGroundedByPhysics_ = false; // PhysicsWorld由来の床判定。現段階ではDebug比較専用。
+	K4E::Rigidbody physicsRigidbody_{}; // PhysicsWorld登録用のPlayer所有Kinematic Rigidbody。
+	K4E::Collider physicsCollider_{}; // PhysicsWorld登録用のPlayer所有AABB Collider。
+	K4E::Vector3 physicsColliderHalfSize_{ 0.5f, 1.0f, 0.5f }; // 既存Player衝突設定と揃えるAABB半サイズ。
+	K4E::Vector3 physicsColliderCenterOffset_{ 0.0f, 1.0f, 0.0f }; // 描画原点からCollider中心までのオフセット。
 	std::function<void()> onDamageTaken_{};
 	bool tutorialInputRestricted_ = false;
 	bool tutorialAllowsMove_ = true;

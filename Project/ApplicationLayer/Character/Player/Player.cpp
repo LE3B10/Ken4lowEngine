@@ -786,6 +786,43 @@ void Player::SyncViewToPlayer()
 	view_.SyncViewModeToFirstPersonFlag();
 }
 
+void Player::InitializePhysicsBody(uint32_t physicsLayer)
+{
+	// 既存Motorを位置の正本に保つため、Player物理ボディは重力・SleepなしのKinematicとして準備する。
+	physicsRigidbody_.SetBodyType(K4E::BodyType::Kinematic);
+	physicsRigidbody_.SetUseGravity(false);
+	physicsRigidbody_.SetSleepEnabled(false);
+	physicsRigidbody_.SetVelocity({});
+	physicsRigidbody_.ClearForces();
+	physicsRigidbody_.ClearFrameState();
+	physicsCollider_.SetRigidbody(&physicsRigidbody_);
+	physicsCollider_.SetCollisionLayer(physicsLayer);
+	physicsCollider_.SetOwner<Player>(this);
+	SyncPhysicsColliderFromTransform();
+}
+
+void Player::SyncPhysicsColliderFromTransform()
+{
+	// PlayerMotorComponentの移動結果を、中心オフセット付きAABBとしてPhysicsWorldへ渡す。
+	const K4E::WorldTransformEx* transform = GetWorldTransform();
+	if (!transform)
+	{
+		return;
+	}
+
+	const K4E::Vector3 colliderCenter = transform->translate_ + physicsColliderCenterOffset_;
+	physicsCollider_.SetAABB({
+		colliderCenter - physicsColliderHalfSize_,
+		colliderCenter + physicsColliderHalfSize_,
+		});
+}
+
+void Player::ApplyPhysicsBodyResult()
+{
+	// 補正済みCollider中心から描画原点を復元し、既存の位置反映経路へ集約する。
+	ApplyPhysicsCorrectedPosition(physicsCollider_.GetCenterPosition() - physicsColliderCenterOffset_);
+}
+
 void Player::ApplyPhysicsCorrectedPosition(const K4E::Vector3& worldPosition)
 {
 	// PhysicsWorldで補正された位置をPlayerへ戻し、壁へのめり込みを解消する。

@@ -109,8 +109,8 @@ private:
 	K4E::StagePhysicsBinder gameplayStagePhysicsBinder_{}; // StageCollider登録確認用Binder
 	K4E::Rigidbody physicsTestRigidbody_{}; // PhysicsTestObject用Rigidbody
 	K4E::Collider physicsTestCollider_{}; // PhysicsTestObject用Collider
-	K4E::Rigidbody playerGroundRigidbody_{}; // Player床判定確認用Kinematic Rigidbody
-	K4E::Collider playerGroundCollider_{}; // Player床判定確認用Collider
+	K4E::Rigidbody playerGroundRigidbody_{}; // 段階移行中の比較用に残す旧Player床判定Rigidbody
+	K4E::Collider playerGroundCollider_{}; // 段階移行中の比較用に残す旧Player床判定Collider（登録には使わない）
 	K4E::Rigidbody physicsTriggerTargetRigidbody_{}; // TriggerEvent確認用ターゲットRigidbody
 	K4E::Collider physicsTriggerTargetCollider_{}; // TriggerEvent確認用ターゲットCollider
 	K4E::Vector3 physicsTestPosition_{}; // PhysicsTestObjectの現在位置
@@ -140,7 +140,8 @@ private:
 	bool applyPlayerPhysicsCorrectionXZ_ = true; // Player補正のXZ成分を反映するか
 	bool applyPlayerPhysicsCorrectionY_ = false; // Player補正のY成分を反映するか
 	bool gameplayPhysicsStageBound_ = false; // StageColliderをPhysicsWorldへ登録済みか
-	bool playerGroundColliderRegistered_ = false; // Player床判定用ColliderをPhysicsWorldへ登録済みか
+	bool playerPhysicsBodyRegistered_ = false; // Player自身のCollider/RigidbodyをPhysicsWorldへ登録済みか
+	Player* registeredPlayerPhysicsBody_ = nullptr; // 登録解除時に同じPlayer実体を確実に参照するための非所有ポインタ
 	bool gameplayPhysicsTriggerTestRegistered_ = false; // TriggerEvent確認用ColliderをPhysicsWorldへ登録済みか
 	bool gameplayPhysicsEventListenerRegistered_ = false; // TriggerEvent確認用ListenerをPhysicsWorldへ登録済みか
 	std::vector<K4E::Collider*> physicsBulletTargetColliders_{}; // 実Bullet Trigger確認用にPhysicsWorldへ登録中のEnemy/Boss Collider
