@@ -35,7 +35,7 @@ private: /// ---------- 構造体 ---------- ///
 		K4E::Vector3 position = {};
 		float yawRad = 0.0f;
 		float maxHp = 240.0f;
-		EnemyType enemyType = EnemyType::Legacy;
+		EnemyType enemyType = EnemyType::Melee;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -65,7 +65,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 生成
 	EnemyBase& SpawnEnemy(const EnemySpawnRequest& request);
-	EnemyBase& SpawnEnemyAt(const K4E::Vector3& position, EnemyType enemyType = EnemyType::Legacy);
+	EnemyBase& SpawnEnemyAt(const K4E::Vector3& position, EnemyType enemyType = EnemyType::Melee);
 
 	// 全消し
 	void ClearEnemies();
@@ -96,11 +96,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	EnemyParticleEffectSystem enemyParticleEffectSystem_;
 	std::function<void(const K4E::Vector3&)> onEnemyKilled_{};
 	std::unordered_set<const EnemyBase*> notifiedKilledEnemies_;
-	std::array<int, 3> spawnedEnemyCounts_{}; // 通常ゲーム中に生成した敵種別ごとの累計
+	std::array<int, 2> spawnedEnemyCounts_{}; // Melee/MidRangeの通常ゲーム生成数だけを保持する。
 
 private: /// ---------- デバッグ用 ---------- ///
 
 	bool isDebug_ = false;
-	EnemyType debugSpawnEnemyType_ = EnemyType::Legacy;
+	EnemyType debugSpawnEnemyType_ = EnemyType::Melee;
 
 };

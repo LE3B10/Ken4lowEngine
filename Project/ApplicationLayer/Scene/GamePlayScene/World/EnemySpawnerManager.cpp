@@ -22,10 +22,8 @@ namespace
 	const std::vector<std::string>& EnemyTypeOptions()
 	{
 		static const std::vector<std::string> options = {
-			"Legacy",
 			"Melee",
-			"MidRange",
-			"GuardianBoss"
+			"MidRange"
 		};
 		return options;
 	}
@@ -307,7 +305,7 @@ void EnemySpawnerManager::SpawnByPattern(RuntimeSpawner& spawner, CharacterWorld
 
 bool EnemySpawnerManager::SpawnOne(RuntimeSpawner& spawner, CharacterWorld& characters)
 {
-	EnemyType enemyType = EnemyType::Legacy;
+	EnemyType enemyType = EnemyType::Melee;
 	if (!TryResolveEnemyType(spawner.data.enemyType, enemyType))
 	{
 		if (!spawner.unsupportedEnemyTypeReported)

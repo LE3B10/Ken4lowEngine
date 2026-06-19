@@ -17,10 +17,8 @@ namespace
 	const std::vector<std::string>& CrystalEnemyTypeOptions()
 	{
 		static const std::vector<std::string> options = {
-			"Legacy",
 			"Melee",
-			"MidRange",
-			"GuardianBoss"
+			"MidRange"
 		};
 		return options;
 	}
@@ -253,9 +251,8 @@ const char* CrystalParameterController::ToEnemyTypeName(EnemyType enemyType) con
 		return "Melee";
 	case EnemyType::MidRange:
 		return "MidRange";
-	case EnemyType::Legacy:
 	default:
-		return "Legacy";
+		return "Melee";
 	}
 }
 
@@ -263,8 +260,8 @@ EnemyType CrystalParameterController::ParseCrystalEnemyType(const std::string& e
 {
 	if (enemyTypeName == "GuardianBoss")
 	{
-		// 今回はボス生成へ接続せず、将来のBossCrystal用指定としてLegacyへフォールバックする。
-		return EnemyType::Legacy;
+		// 旧保存値や未接続Boss指定も通常雑魚生成では安全なMeleeへ正規化する。
+		return EnemyType::Melee;
 	}
 	return ParseEnemyType(enemyTypeName);
 }

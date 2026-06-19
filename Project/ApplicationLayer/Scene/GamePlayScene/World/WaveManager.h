@@ -13,7 +13,7 @@ class CharacterWorld;
 struct WaveSpawnEntry
 {
 	K4E::Vector3 position = { 0.0f, 0.0f, 0.0f }; // スポーン位置
-	EnemyType enemyType = EnemyType::Legacy; // 未指定の既存ステージは従来Enemyを生成
+	EnemyType enemyType = EnemyType::Melee; // 未指定の既存ステージは最新の近接雑魚敵へ寄せる。
 };
 
 /// ---------- 1ウェーブ分の定義 ---------- ///

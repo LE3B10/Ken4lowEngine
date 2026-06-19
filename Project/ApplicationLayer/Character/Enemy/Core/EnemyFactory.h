@@ -6,7 +6,7 @@
 
 class EnemyBase;
 
-/// 通常ゲーム用の雑魚敵を生成し、Legacy Enemyの置き換え境界を集約する。
+/// 通常ゲーム用のMelee/MidRange雑魚敵だけを生成する境界を集約する。
 class EnemyFactory
 {
 public:

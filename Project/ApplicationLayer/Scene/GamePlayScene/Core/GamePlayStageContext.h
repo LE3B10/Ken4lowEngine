@@ -49,7 +49,7 @@ public: /// ---------- 構造体 ---------- ///
 		int wave = 1;
 		int group = 0;
 		int count = 1;
-		EnemyType enemyType = EnemyType::Legacy;
+		EnemyType enemyType = EnemyType::Melee;
 	};
 
 	struct IntroCameraPointInfo

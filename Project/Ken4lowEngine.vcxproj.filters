@@ -472,9 +472,6 @@
     <ClCompile Include="ApplicationLayer\Character\Player\PlayerFsmApi.cpp">
       <Filter>ApplicationLayer\Character\Player</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Core\Enemy.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\EnemyFactory.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClCompile>
@@ -915,21 +912,6 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.cpp">
       <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyCombatMoveState.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyDeadState.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyIdleState.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemySearchState.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyShootState.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Navigation</Filter>
@@ -1481,9 +1463,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerFsmApi.h">
       <Filter>ApplicationLayer\Character\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\Enemy.h">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyFactory.h">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
@@ -2075,24 +2054,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.h">
       <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyCombatMoveState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyDeadState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyIdleState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemySearchState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyShootState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\IEnemyState.h">
-      <Filter>ApplicationLayer\Character\Enemy\State</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.h">
       <Filter>ApplicationLayer\Character\Enemy\Navigation</Filter>

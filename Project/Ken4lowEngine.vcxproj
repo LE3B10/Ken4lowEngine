@@ -149,7 +149,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\UISystem\Indicator\DamageIndicatorManager.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Bullet\Bullet.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Bullet\BulletManager.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Core\Enemy.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\EnemyFactory.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.cpp" />
@@ -310,11 +309,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Player\PlayerFsmApi.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\NoAmmoUI\NoAmmoUI.cpp" />
     <ClCompile Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyCombatMoveState.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyDeadState.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyIdleState.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemySearchState.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Enemy\State\EnemyShootState.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverSelector.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatController.cpp" />
@@ -774,7 +768,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\UISystem\Indicator\DamageIndicatorManager.h" />
     <ClInclude Include="ApplicationLayer\Character\Bullet\Bullet.h" />
     <ClInclude Include="ApplicationLayer\Character\Bullet\BulletManager.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\Enemy.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyFactory.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyType.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.h" />
@@ -1012,11 +1005,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerFsmApi.h" />
     <ClInclude Include="ApplicationLayer\UISystem\NoAmmoUI\NoAmmoUI.h" />
     <ClInclude Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyCombatMoveState.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyDeadState.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyIdleState.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemySearchState.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\EnemyShootState.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyCoverSelector.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\EnemyRetreatController.h" />
@@ -1227,7 +1215,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\Renderer\Sprite\Utility\FontAtlasLoader.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Sprite\Utility\TextSpriteDrawer.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.h" />
-    <ClInclude Include="ApplicationLayer\Character\Enemy\State\IEnemyState.h" />
     <ClInclude Include="Engine\Math\GeometryTypes.h" />
     <ClInclude Include="Engine\Math\Ken4lowMath.h" />
     <ClInclude Include="Engine\Math\MathTypes.h" />

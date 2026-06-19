@@ -2,7 +2,6 @@
 #include "CollisionManager.h"
 #include "BulletManager.h"
 #include "EnemyFactory.h"
-#include "Enemy.h"
 #include "MeleeEnemy.h"
 #include "MidRangeEnemy.h"
 #include <algorithm>
@@ -22,9 +21,8 @@ namespace
 	{
 		switch (enemyType)
 		{
-		case EnemyType::Melee: return 1;
-		case EnemyType::MidRange: return 2;
-		case EnemyType::Legacy:
+		case EnemyType::MidRange: return 1;
+		case EnemyType::Melee:
 		default: return 0;
 		}
 	}
@@ -101,14 +99,9 @@ void CharacterWorld::InjectEnemyDeps(EnemyBase& e)
 		e.SetParticleEffectSystem(&enemyParticleEffectSystem_);
 	}
 
-	if (auto* legacyEnemy = dynamic_cast<Enemy*>(&e))
+	if (auto* meleeEnemy = dynamic_cast<MeleeEnemy*>(&e))
 	{
-		legacyEnemy->SetCollisionManager(ctx_.collisionManager_);
-		legacyEnemy->SetBulletManager(ctx_.bulletManager_);
-		if (player_) { legacyEnemy->SetTarget(player_.get()); }
-	}
-	else if (auto* meleeEnemy = dynamic_cast<MeleeEnemy*>(&e))
-	{
+		// 最新MeleeEnemyへPlayerターゲットだけを注入し、旧Enemy専用依存は持ち込まない。
 		if (player_) { meleeEnemy->SetTarget(player_.get()); }
 	}
 	else if (auto* midRangeEnemy = dynamic_cast<MidRangeEnemy*>(&e))
@@ -328,8 +321,8 @@ void CharacterWorld::DrawEnemyDebugImGui()
 		const Vector3 pos = enemies_.front()->GetCenterPosition();
 		ImGui::Text("敵の現在座標: (%.2f, %.2f, %.2f)", pos.x, pos.y, pos.z);
 	}
-	// 旧Enemyを段階的に置き換えるため、通常ゲーム上の敵種別ごとの生成数を確認する。
-	std::array<int, 3> liveEnemyCounts{};
+	// 通常ゲームで有効なMelee/MidRangeだけを種類別に集計する。
+	std::array<int, 2> liveEnemyCounts{};
 	for (const auto& enemy : enemies_)
 	{
 		if (dynamic_cast<const MeleeEnemy*>(enemy.get()))
@@ -340,24 +333,18 @@ void CharacterWorld::DrawEnemyDebugImGui()
 		{
 			++liveEnemyCounts[ToEnemyTypeIndex(EnemyType::MidRange)];
 		}
-		else
-		{
-			++liveEnemyCounts[ToEnemyTypeIndex(EnemyType::Legacy)];
-		}
 	}
 
 	ImGui::Text("現在の敵数: %d", static_cast<int>(enemies_.size()));
-	ImGui::Text("現在の旧Enemy数: %d", liveEnemyCounts[ToEnemyTypeIndex(EnemyType::Legacy)]);
 	ImGui::Text("現在の近接雑魚敵数: %d", liveEnemyCounts[ToEnemyTypeIndex(EnemyType::Melee)]);
 	ImGui::Text("現在の中距離雑魚敵数: %d", liveEnemyCounts[ToEnemyTypeIndex(EnemyType::MidRange)]);
 	ImGui::Separator();
-	ImGui::Text("生成済み敵数: %d", spawnedEnemyCounts_[0] + spawnedEnemyCounts_[1] + spawnedEnemyCounts_[2]);
-	ImGui::Text("旧Enemy数: %d", spawnedEnemyCounts_[ToEnemyTypeIndex(EnemyType::Legacy)]);
+	ImGui::Text("生成済み敵数: %d", spawnedEnemyCounts_[0] + spawnedEnemyCounts_[1]);
 	ImGui::Text("近接雑魚敵数: %d", spawnedEnemyCounts_[ToEnemyTypeIndex(EnemyType::Melee)]);
 	ImGui::Text("中距離雑魚敵数: %d", spawnedEnemyCounts_[ToEnemyTypeIndex(EnemyType::MidRange)]);
 
-	// 通常ゲーム側でもFactory接続を確認できるよう、生成する雑魚敵派生を一時的に切り替える。
-	constexpr const char* kEnemyTypeLabels[] = { "旧Enemy", "近接雑魚敵", "中距離雑魚敵" };
+	// Debug生成も有効な2種類だけを選択し、旧Enemyへ到達するUI経路を残さない。
+	constexpr const char* kEnemyTypeLabels[] = { "近接雑魚敵", "中距離雑魚敵" };
 	int debugSpawnEnemyTypeIndex = static_cast<int>(debugSpawnEnemyType_);
 	if (ImGui::Combo("敵種別", &debugSpawnEnemyTypeIndex, kEnemyTypeLabels, IM_ARRAYSIZE(kEnemyTypeLabels)))
 	{

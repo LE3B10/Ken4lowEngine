@@ -36,7 +36,7 @@ namespace Ken4lowEngine
 		std::string archetype;
 		bool hasArchetype = false;
 
-		std::string enemyType; // 通常ゲーム用の敵種別（Legacy / Melee / MidRange）
+		std::string enemyType; // 通常ゲーム用の敵種別（Melee / MidRange、旧Legacyは読込時Melee互換）
 		bool hasEnemyType = false;
 	};
 

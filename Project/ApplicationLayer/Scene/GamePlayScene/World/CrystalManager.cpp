@@ -645,7 +645,8 @@ void CrystalManager::DrawImGui()
 		crystal->SetInfiniteSpawnEnabled(enableInfiniteSpawn);
 	}
 
-	constexpr const char* enemyTypeLabels[] = { "旧Enemy", "近接雑魚敵", "中距離雑魚敵" };
+	// クリスタルのDebug生成も現行の近接・中距離だけを選べるようにする。
+	constexpr const char* enemyTypeLabels[] = { "近接雑魚敵", "中距離雑魚敵" };
 	int enemyTypeIndex = static_cast<int>(crystal->GetSpawnEnemyType());
 	if (ImGui::Combo("出現敵タイプ", &enemyTypeIndex, enemyTypeLabels, IM_ARRAYSIZE(enemyTypeLabels)))
 	{
