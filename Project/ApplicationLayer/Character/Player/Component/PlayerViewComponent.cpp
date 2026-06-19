@@ -433,9 +433,18 @@ void PlayerViewComponent::DrawImGui()
 		ImGui::DragFloat3("Aim Right Rot", &aimRightRot_.x, 0.01f, -6.28f, 6.28f, "%.2f");
 		ImGui::Separator();
 		ImGui::Text("Pitch ViewModel Offset");
+		// 実行中にカメラPitchと見た目用Pitchの差を比較調整できるようにする。
+		ImGui::Checkbox("ViewModel Pitch Follow Enabled", &viewModelPitchFollowEnabled_);
+		ImGui::Text("Camera Pitch Deg: %.2f", RadToDeg(camPitch_));
+		ImGui::Text("ViewModel Pitch Deg: %.2f", RadToDeg(currentViewModelPitch_));
+		ImGui::DragFloat("ViewModel Pitch Follow Scale", &viewModelPitchFollowScale_, 0.01f, 0.0f, 1.5f, "%.2f");
+		ImGui::DragFloat("ViewModel Pitch Limit Deg", &viewModelPitchLimitDeg_, 0.5f, 0.0f, 89.0f, "%.1f");
+		ImGui::DragFloat("ViewModel Pitch ADS Scale", &viewModelPitchAdsScale_, 0.01f, 0.0f, 1.5f, "%.2f");
+		ImGui::DragFloat("ViewModel Pitch Hip Scale", &viewModelPitchHipScale_, 0.01f, 0.0f, 1.5f, "%.2f");
 		ImGui::DragFloat("Pitch Offset Max Deg", &viewModelPitchOffsetMaxDeg_, 1.0f, 10.0f, 89.0f, "%.1f");
-		ImGui::DragFloat("Pitch Rotation Follow", &armPitchFollow_, 0.01f, 0.0f, 1.0f, "%.2f");
-		ImGui::DragFloat("Pitch Rotation Limit Deg", &armPitchRotationLimitDeg_, 0.5f, 0.0f, 30.0f, "%.1f");
+		ImGui::DragFloat("Arm Pitch Fine Tune Follow", &armPitchFollow_, 0.01f, 0.0f, 1.0f, "%.2f");
+		ImGui::DragFloat("Arm Pitch Rotation Limit Deg", &armPitchRotationLimitDeg_, 0.5f, 0.0f, 30.0f, "%.1f");
+		ImGui::Text("Pitch Up/Down Arm Offset");
 		ImGui::DragFloat3("Pitch Up Left Offset", &pitchUpLeftArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
 		ImGui::DragFloat3("Pitch Down Left Offset", &pitchDownLeftArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
 		ImGui::DragFloat3("Pitch Up Right Offset", &pitchUpRightArmOffset_.x, 0.01f, -3.0f, 3.0f, "%.2f");
@@ -608,9 +617,23 @@ void PlayerViewComponent::UpdateFirstPersonArmPose(float dt)
 	K4E::Vector3 lrot = Lerp(baseLeftRot_, aimLeftRot_, t);
 	K4E::Vector3 rrot = Lerp(baseRightRot_, aimRightRot_, t);
 
-	// 腕回転がカメラPitchに強く追従すると上下視点で武器角度が崩れるため、回転追従は小さく制限する。
+	// カメラPitchを見た目用に制限し、ADSでは中央のサイト位置を守るため追従量を弱める。
+	const float viewModelPitchLimit = DegToRad(std::max(0.0f, viewModelPitchLimitDeg_));
+	const float clampedPitch = std::clamp(camPitch_, -viewModelPitchLimit, viewModelPitchLimit);
+	const float viewModelPitchStateScale = Lerp(viewModelPitchHipScale_, viewModelPitchAdsScale_, t);
+	currentViewModelPitch_ = viewModelPitchFollowEnabled_
+		? clampedPitch * viewModelPitchStateScale * viewModelPitchFollowScale_
+		: 0.0f;
+
+	// 左右腕を同じViewModel Pitchへ追従させ、右手に同期する武器の構えも一体で回す。
+	lrot.x += currentViewModelPitch_ * 0.75f;
+	rrot.x += currentViewModelPitch_;
+
+	// 既存の腕Pitch補正は、新しいViewModel Pitchに重ねる小さな微調整として残す。
 	const float pitchRotationLimit = DegToRad(std::max(0.0f, armPitchRotationLimitDeg_));
-	const float pitchRotation = std::clamp(camPitch_ * armPitchFollow_, -pitchRotationLimit, pitchRotationLimit);
+	const float pitchRotation = viewModelPitchFollowEnabled_
+		? std::clamp(camPitch_ * armPitchFollow_, -pitchRotationLimit, pitchRotationLimit)
+		: 0.0f;
 	const float adsRotationScale = 1.0f - t * 0.55f;
 	lrot.x += pitchRotation * 0.35f * adsRotationScale;
 	rrot.x += pitchRotation * 0.45f * adsRotationScale;

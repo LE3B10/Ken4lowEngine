@@ -122,6 +122,19 @@ namespace
 
 		return K4E::Vector3::Normalize(forward);
 	}
+
+	bool IsFiniteMatrix(const K4E::Matrix4x4& matrix)
+	{
+		// デバッグ表示で未初期化値やNaNを有効な武器行列として扱わないよう全要素を検査する。
+		for (int row = 0; row < 4; ++row)
+		{
+			for (int column = 0; column < 4; ++column)
+			{
+				if (!std::isfinite(matrix.m[row][column])) return false;
+			}
+		}
+		return true;
+	}
 }
 
 void PlayerWeaponVisualComponent::Initialize()
@@ -183,6 +196,14 @@ void PlayerWeaponVisualComponent::DrawImGui()
 		ImGui::DragFloat3("Hip Offset", &hipLocalOffset_.x, 0.01f, -5.0f, 5.0f, "%.2f");
 		ImGui::DragFloat3("ADS Offset", &adsLocalOffset_.x, 0.01f, -5.0f, 5.0f, "%.2f");
 		ImGui::DragFloat3("Muzzle Offset", &muzzleLocalOffset_.x, 0.01f, -5.0f, 5.0f, "%.2f");
+		ImGui::SeparatorText("Pitch Follow Debug");
+		// 武器へ別Pitchを加えず、右手追従後の銃口方向と行列だけを可視化する。
+		const bool weaponWorldMatrixValid = hasWeaponWorldMatrix_ && IsFiniteMatrix(weaponWorldMatrix_);
+		const K4E::Vector3 muzzleForward = weaponWorldMatrixValid
+			? ExtractForwardFromMatrix(weaponWorldMatrix_)
+			: K4E::Vector3{ 0.0f, 0.0f, 0.0f };
+		ImGui::Text("Muzzle Forward: (%.3f, %.3f, %.3f)", muzzleForward.x, muzzleForward.y, muzzleForward.z);
+		ImGui::Text("Weapon World Matrix valid: %s", weaponWorldMatrixValid ? "true" : "false");
 
 		ImGui::Separator();
 		ImGui::Checkbox("Use Quaternion Rotation", &useQuaternionRotation_);

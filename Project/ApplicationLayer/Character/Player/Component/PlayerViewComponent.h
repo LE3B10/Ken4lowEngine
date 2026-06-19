@@ -149,7 +149,15 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	float camPitch_ = 0.0f;
 
-	// 腕回転はカメラPitchへ強く追従させず、崩れ防止のため小さくクランプする。
+	// 一人称ViewModelだけを制限付きPitchで追従させ、体やゲームプレイ方向から分離する。
+	bool viewModelPitchFollowEnabled_ = true;
+	float viewModelPitchFollowScale_ = 0.85f;
+	float viewModelPitchLimitDeg_ = 70.0f;
+	float viewModelPitchAdsScale_ = 0.65f;
+	float viewModelPitchHipScale_ = 0.85f;
+	float currentViewModelPitch_ = 0.0f;
+
+	// ViewModel Pitch追従後の腕角度を整える微調整だけを小さくクランプする。
 	float armPitchFollow_ = 0.16f;
 	float armPitchRotationLimitDeg_ = 8.0f;
 
