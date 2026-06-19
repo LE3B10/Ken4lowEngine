@@ -66,10 +66,17 @@ public: /// ---------- パブリックメンバ関数 ---------- ///
 
 	float GetSpeedXZ_Debug() const { return dbgSpeedXZ_; }
 	float GetSpeedY_Debug()  const { return dbgSpeedY_; }
+	size_t GetStageOBBHitCount() const { return stageOBBHitCount_; }
 
 	void SetAdsMoveMultiplier(float mul) { adsMoveMul_ = (mul < 0.0f) ? 0.0f : mul; }
 
 	void SetWorldAABBs(const std::vector<K4E::AABB>* aabbs) { worldAABBs_ = aabbs; }
+	// Obstacle系のBroadPhase AABBと正式な回転OBBを対応付けて受け取る。
+	void SetStageObstacleColliders(const std::vector<K4E::AABB>* broadPhaseAABBs, const std::vector<K4E::OBB>* obbs)
+	{
+		wallObstacleAABBs_ = broadPhaseAABBs;
+		wallObstacleOBBs_ = obbs;
+	}
 	void SetWorldCollisionSettings(const K4E::WorldCollisionSettings& s) { worldCollisionSettings_ = s; }
 
 private: /// ---------- プライベートメンバ関数 ---------- ///
@@ -145,6 +152,9 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	float dbgSpeedY_ = 0.0f;
 
 	const std::vector<K4E::AABB>* worldAABBs_ = nullptr;
+	const std::vector<K4E::AABB>* wallObstacleAABBs_ = nullptr; // OBB NarrowPhase前のObstacle包み込み範囲。
+	const std::vector<K4E::OBB>* wallObstacleOBBs_ = nullptr; // Player横押し戻しに使う正式な回転障害物形状。
+	size_t stageOBBHitCount_ = 0; // 直近フレームにPlayerを押し戻したStage OBB数。
 	K4E::WorldCollisionSettings worldCollisionSettings_{};
 };
 

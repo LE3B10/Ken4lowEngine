@@ -195,6 +195,7 @@ void PlayerMotorComponent::StartBlink(float cameraYawRad, bool isAds)
 void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId, bool isAds, bool isReloading)
 {
 	if (!tr_) return;
+	stageOBBHitCount_ = 0;
 
 	// デバッグ用
 	const Vector3 oldPosition = tr_->translate_;
@@ -347,12 +348,16 @@ void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId,
 				oldPosition,
 				tr_->translate_,
 				true,
-				&vy);
+				&vy,
+				wallObstacleAABBs_,
+				wallObstacleOBBs_);
 
 		// fixedCenter は物理中心なので描画座標へ戻す
 		tr_->translate_ = r.fixedCenter + worldCollisionSettings_.centerOffset;
 		verticalVel_ = vy;
 		resolvedGrounded = r.grounded;
+		// Debug表示へ渡すため、OBB NarrowPhaseで実際に押し戻した障害物数を保存する。
+		stageOBBHitCount_ = r.obbHitCount;
 	}
 
 	// ------------------------------------------------------------

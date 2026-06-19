@@ -11,18 +11,18 @@ namespace Ken4lowEngine
 {
 	struct StageCollisionBuildResult
 	{
-		std::vector<AABB> worldAABBs;
-		std::vector<AABB> floorAABBs;
-		std::vector<AABB> wallObstacleAABBs;
+		std::vector<AABB> worldAABBs; // Stage全体のBroadPhase・簡易範囲判定用AABB。
+		std::vector<AABB> floorAABBs; // 接地とY押し戻しを維持するFloor AABB。
+		std::vector<AABB> wallObstacleAABBs; // Obstacle OBBを絞り込む包み込みBroadPhase AABB。
 		std::vector<AABB> navigationObstacleAABBs;
-		std::vector<std::unique_ptr<Collider>> worldColliders;
-		std::vector<OBB> wallObstacleOBBs;
+		std::vector<std::unique_ptr<Collider>> worldColliders; // PhysicsWorld/DebugDrawへ渡す正式なStatic Stage Collider。
+		std::vector<OBB> wallObstacleOBBs; // 斜め障害物の最終判定・横押し戻し用OBB。
 		std::vector<OBB> navigationObstacleOBBs;
 	};
 
 	/*
 	StageCollisionBuilder責務メモ:
-	- LevelDataのBOX colliderから、移動解決用AABB、Navigation用AABB、デバッグ表示用OBB、汎用CollisionManager登録用Colliderを生成する。
+	- LevelDataのBOX colliderから、BroadPhase用AABB、障害物NarrowPhase用OBB、正式なStatic Colliderを生成する。
 	- Mesh/Polygonを直接衝突判定には使わず、ステージ衝突は単純Primitiveへ変換して扱う。
 	- 将来は生成結果をStageCollisionSystemへ分けられるが、現段階ではStageが用途別配列を保持して既存挙動を保つ。
 	*/

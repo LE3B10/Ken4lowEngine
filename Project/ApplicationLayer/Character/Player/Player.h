@@ -185,7 +185,13 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SyncViewToPlayer();
 
 	void SetStageWorldAABBs(const std::vector<K4E::AABB>* aabbs) { motor_.SetWorldAABBs(aabbs); }
+	// Player横押し戻しへObstacleのBroadPhase AABBと正式な回転OBBを渡す。
+	void SetStageObstacleColliders(const std::vector<K4E::AABB>* broadPhaseAABBs, const std::vector<K4E::OBB>* obbs)
+	{
+		motor_.SetStageObstacleColliders(broadPhaseAABBs, obbs);
+	}
 	void SetWorldCollisionSettings(const K4E::WorldCollisionSettings& s) { motor_.SetWorldCollisionSettings(s); }
+	size_t GetStageOBBHitCount() const { return motor_.GetStageOBBHitCount(); }
 
 	// PhysicsWorld側の床判定を保持し、PlayerMotorの段階移行用入力にも同期する。
 	void SetGroundedByPhysics(bool isGrounded);

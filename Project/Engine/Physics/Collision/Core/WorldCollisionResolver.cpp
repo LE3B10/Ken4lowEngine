@@ -5,8 +5,147 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		bool IsSameAABB(const AABB& lhs, const AABB& rhs)
+		{
+			constexpr float kEpsilon = 0.0001f;
+			return std::fabs(lhs.min.x - rhs.min.x) <= kEpsilon &&
+				std::fabs(lhs.min.y - rhs.min.y) <= kEpsilon &&
+				std::fabs(lhs.min.z - rhs.min.z) <= kEpsilon &&
+				std::fabs(lhs.max.x - rhs.max.x) <= kEpsilon &&
+				std::fabs(lhs.max.y - rhs.max.y) <= kEpsilon &&
+				std::fabs(lhs.max.z - rhs.max.z) <= kEpsilon;
+		}
 
-	WorldCollisionResult WorldCollisionResolver::Resolve(const std::vector<AABB>& worldAABBs, const WorldCollisionSettings& s, const Vector3& oldTranslate, const Vector3& newTranslate, bool useGrounded, float* inoutJumpVelocity)
+		bool IsObstacleBroadPhaseAABB(const AABB& candidate, const std::vector<AABB>* obstacleAABBs)
+		{
+			// Obstacleの包み込みAABBは最終押し戻しから除外し、対応するOBBへNarrowPhaseを任せる。
+			if (!obstacleAABBs)
+			{
+				return false;
+			}
+			for (const AABB& obstacleAABB : *obstacleAABBs)
+			{
+				if (IsSameAABB(candidate, obstacleAABB))
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		size_t ResolveObstacleOBBsXZ(
+			const std::vector<AABB>* obstacleBroadPhaseAABBs,
+			const std::vector<OBB>* obstacleOBBs,
+			const WorldCollisionSettings& settings,
+			float targetCenterY,
+			Vector3& fixedCenter)
+		{
+			if (!obstacleOBBs)
+			{
+				return 0;
+			}
+
+			size_t hitCount = 0;
+			for (size_t obstacleIndex = 0; obstacleIndex < obstacleOBBs->size(); ++obstacleIndex)
+			{
+				const OBB& obstacle = (*obstacleOBBs)[obstacleIndex];
+				if (obstacleBroadPhaseAABBs && obstacleIndex < obstacleBroadPhaseAABBs->size())
+				{
+					const Vector3 playerCenter{ fixedCenter.x, targetCenterY, fixedCenter.z };
+					const AABB playerAABB{ playerCenter - settings.half, playerCenter + settings.half };
+					const AABB& obstacleBroadPhase = (*obstacleBroadPhaseAABBs)[obstacleIndex];
+					// 包み込みAABBで候補を絞り、重なる障害物だけ回転OBBのXZ SATへ進める。
+					if (playerAABB.max.x < obstacleBroadPhase.min.x || playerAABB.min.x > obstacleBroadPhase.max.x ||
+						playerAABB.max.y < obstacleBroadPhase.min.y || playerAABB.min.y > obstacleBroadPhase.max.y ||
+						playerAABB.max.z < obstacleBroadPhase.min.z || playerAABB.min.z > obstacleBroadPhase.max.z)
+					{
+						continue;
+					}
+				}
+
+				const float obstacleYExtent =
+					std::fabs(obstacle.orientations[0].y) * obstacle.size.x +
+					std::fabs(obstacle.orientations[1].y) * obstacle.size.y +
+					std::fabs(obstacle.orientations[2].y) * obstacle.size.z;
+				if (targetCenterY + settings.half.y < obstacle.center.y - obstacleYExtent ||
+					targetCenterY - settings.half.y > obstacle.center.y + obstacleYExtent)
+				{
+					continue;
+				}
+
+				Vector3 candidateAxes[5] = {
+					{ 1.0f, 0.0f, 0.0f },
+					{ 0.0f, 0.0f, 1.0f },
+					{}, {}, {},
+				};
+				for (int i = 0; i < 3; ++i)
+				{
+					const Vector3 projectedAxis{ obstacle.orientations[i].x, 0.0f, obstacle.orientations[i].z };
+					if (Vector3::LengthSquared(projectedAxis) > 0.000001f)
+					{
+						// 投影されたOBB辺の法線をXZ分離軸に加え、斜め壁の向きに沿った押し戻しを求める。
+						candidateAxes[i + 2] = Vector3::Normalize({ -projectedAxis.z, 0.0f, projectedAxis.x });
+					}
+				}
+
+				bool overlaps = true;
+				float minimumPenetration = FLT_MAX;
+				Vector3 minimumAxis{};
+				float minimumDistance = 0.0f;
+				for (const Vector3& rawAxis : candidateAxes)
+				{
+					if (Vector3::LengthSquared(rawAxis) <= 0.000001f)
+					{
+						continue;
+					}
+
+					const Vector3 axis = Vector3::Normalize(rawAxis);
+					const float obstacleRadius =
+						std::fabs(Vector3::Dot(obstacle.orientations[0] * obstacle.size.x, axis)) +
+						std::fabs(Vector3::Dot(obstacle.orientations[1] * obstacle.size.y, axis)) +
+						std::fabs(Vector3::Dot(obstacle.orientations[2] * obstacle.size.z, axis));
+					const float playerRadius = std::fabs(axis.x) * settings.half.x + std::fabs(axis.z) * settings.half.z;
+					const float distance = Vector3::Dot(fixedCenter - obstacle.center, axis);
+					const float penetration = obstacleRadius + playerRadius - std::fabs(distance);
+					if (penetration <= 0.0f)
+					{
+						overlaps = false;
+						break;
+					}
+					if (penetration < minimumPenetration)
+					{
+						minimumPenetration = penetration;
+						minimumAxis = axis;
+						minimumDistance = distance;
+					}
+				}
+
+				if (!overlaps || minimumPenetration == FLT_MAX)
+				{
+					continue;
+				}
+
+				const float direction = minimumDistance >= 0.0f ? 1.0f : -1.0f;
+				// OBBとの最小XZ侵入量だけを戻し、床のY解決は既存AABB処理へ残す。
+				fixedCenter += minimumAxis * ((minimumPenetration + settings.eps) * direction);
+				++hitCount;
+			}
+
+			return hitCount;
+		}
+	}
+
+	WorldCollisionResult WorldCollisionResolver::Resolve(
+		const std::vector<AABB>& worldAABBs,
+		const WorldCollisionSettings& s,
+		const Vector3& oldTranslate,
+		const Vector3& newTranslate,
+		bool useGrounded,
+		float* inoutJumpVelocity,
+		const std::vector<AABB>* obstacleBroadPhaseAABBs,
+		const std::vector<OBB>* obstacleOBBs)
 	{
 		WorldCollisionResult r{};
 
@@ -36,6 +175,10 @@ namespace Ken4lowEngine
 
 				for (const auto& w : worldAABBs)
 				{
+					if (IsObstacleBroadPhaseAABB(w, obstacleBroadPhaseAABBs))
+					{
+						continue;
+					}
 					// 移動体AABBと静的ステージAABBの重なりだけを見る。ObjectChannel/Responseはここでは扱わない。
 					if (!(p.min.x <= w.max.x && p.max.x >= w.min.x &&
 						p.min.y <= w.max.y && p.max.y >= w.min.y &&
@@ -125,6 +268,8 @@ namespace Ken4lowEngine
 		// Boss/Enemyと同じ順でもOK（Playerに合わせて X,Z,Y の順が安定）
 		resolveAxis(0, newCenter.x - oldCenter.x);
 		resolveAxis(2, newCenter.z - oldCenter.z);
+		// Obstacle系だけは包み込みAABBではなく回転OBBで最終的なXZ押し戻しを行う。
+		r.obbHitCount = ResolveObstacleOBBsXZ(obstacleBroadPhaseAABBs, obstacleOBBs, s, newCenter.y, fixedCenter);
 		resolveAxis(1, newCenter.y - oldCenter.y);
 
 		r.fixedCenter = fixedCenter;

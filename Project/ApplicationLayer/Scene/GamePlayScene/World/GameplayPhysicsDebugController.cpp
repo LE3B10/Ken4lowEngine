@@ -550,7 +550,7 @@ void GameplayPhysicsDebugController::DrawGameplayPhysicsTest()
 {
 #ifdef _DEBUG
 	// テスト有効時だけ本編ステージ上のPhysicsTestObjectとColliderを可視化する。
-	if (!enableGameplayPhysicsTest_ && !enableGameplayPhysicsTriggerTest_ && !enableGameplayPhysicsDebugDraw_)
+	if (!enableGameplayPhysicsTest_ && !enableGameplayPhysicsTriggerTest_ && !enableGameplayPhysicsDebugDraw_ && !drawStageAABBs_ && !drawStageOBBs_)
 	{
 		return;
 	}
@@ -571,6 +571,22 @@ void GameplayPhysicsDebugController::DrawGameplayPhysicsTest()
 	{
 		// Gameplay側でも共通Debug描画を使い、Player床判定/押し戻し/TriggerEventの調査に使う。
 		gameplayPhysicsDebugDraw_.Draw(gameplayPhysicsWorld_);
+	}
+	if (deps_.stage && drawStageAABBs_)
+	{
+		// オレンジの包み込みAABBで、OBB NarrowPhase前のBroadPhase範囲を比較表示する。
+		for (const K4E::AABB& aabb : deps_.stage->GetWallObstacleAABBs())
+		{
+			K4E::Wireframe::GetInstance()->DrawAABB(aabb, { 1.0f, 0.55f, 0.15f, 0.65f });
+		}
+	}
+	if (deps_.stage && drawStageOBBs_)
+	{
+		// シアンの回転OBBで、斜め障害物の見た目に沿う正式なNarrowPhase形状を表示する。
+		for (const K4E::OBB& obb : deps_.stage->GetWallObstacleOBBs())
+		{
+			K4E::Wireframe::GetInstance()->DrawOBB(obb, { 0.15f, 0.9f, 1.0f, 1.0f });
+		}
 	}
 #endif
 }
@@ -697,6 +713,12 @@ void GameplayPhysicsDebugController::DrawGameplayPhysicsTestImGui()
 	const K4E::Vector3 playerPosition = player ? player->GetCenterPosition() : K4E::Vector3{};
 	ImGui::Text("Stage Binder Bound: %s", gameplayStagePhysicsBinder_.IsBound() ? "true" : "false");
 	ImGui::Text("Bound Stage Collider Count: %zu", gameplayStagePhysicsBinder_.GetBoundColliderCount());
+	ImGui::Text("Stage AABB Count: %zu", deps_.stage ? deps_.stage->GetWorldAABBs().size() : size_t{ 0 });
+	ImGui::Text("Stage Obstacle BroadPhase AABB Count: %zu", deps_.stage ? deps_.stage->GetWallObstacleAABBs().size() : size_t{ 0 });
+	ImGui::Text("Stage OBB Count: %zu", deps_.stage ? deps_.stage->GetWallObstacleOBBs().size() : size_t{ 0 });
+	// AABB BroadPhaseと回転OBB NarrowPhaseを個別表示し、斜め形状の差を目視比較する。
+	ImGui::Checkbox("Draw Stage AABB", &drawStageAABBs_);
+	ImGui::Checkbox("Draw Stage OBB", &drawStageOBBs_);
 	ImGui::Text("PhysicsWorld Collider Count: %zu", gameplayPhysicsWorld_.GetColliderCount());
 	ImGui::Text("Contact Count: %zu", gameplayPhysicsWorld_.GetContacts().size());
 	ImGui::Text("IsGrounded: %s", physicsTestRigidbody_.IsGrounded() ? "true" : "false");
@@ -712,6 +734,7 @@ void GameplayPhysicsDebugController::DrawGameplayPhysicsTestImGui()
 	ImGui::Text("Correction Delta: %.3f, %.3f, %.3f", playerPhysicsCorrectionDelta_.x, playerPhysicsCorrectionDelta_.y, playerPhysicsCorrectionDelta_.z);
 	ImGui::Text("Player Collider Position: %.3f, %.3f, %.3f", playerGroundColliderPosition_.x, playerGroundColliderPosition_.y, playerGroundColliderPosition_.z);
 	ImGui::Text("Player vs Stage Contact Count: %zu", playerStageContactCount_);
+	ImGui::Text("Player vs Stage OBB Hit Count: %zu", player ? player->GetStageOBBHitCount() : size_t{ 0 });
 	ImGui::Text("Registered Player Collider: %s", playerPhysicsBodyRegistered_ ? "true" : "false");
 	ImGui::SeparatorText("Gameplay Physics Bullet Trigger");
 	ImGui::Text("Physics Trigger Bullet Count: %zu", deps_.bulletManager ? deps_.bulletManager->GetPhysicsTriggerBulletCount() : 0);

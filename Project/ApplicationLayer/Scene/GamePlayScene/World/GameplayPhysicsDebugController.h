@@ -131,6 +131,8 @@ private:
 	bool enablePlayerPhysicsDepenetration_ = false; // Player壁押し戻しだけをPhysicsWorldから受け取るか
 	bool enableGameplayPhysicsTriggerTest_ = false; // TriggerEventを本編側で受け取る入口テストを実行するか
 	bool enableGameplayPhysicsDebugDraw_ = false; // Gameplay側PhysicsWorldのDebug可視化を行うか
+	bool drawStageAABBs_ = false; // Stage Obstacleの包み込みBroadPhase AABBを比較表示するか
+	bool drawStageOBBs_ = false; // Stage Obstacleの正式な回転OBBを比較表示するか
 	bool usePhysicsForPlayerStage_ = false; // Player vs StageをPhysicsWorld側へ寄せる段階移行フラグ
 	bool usePhysicsForPlayerGround_ = false; // Player床判定をPhysicsWorld側へ寄せる段階移行フラグ
 	bool usePhysicsGroundedForPlayerMotor_ = false; // Physics接地をPlayerMotor/FSMへOR追加する明示切替

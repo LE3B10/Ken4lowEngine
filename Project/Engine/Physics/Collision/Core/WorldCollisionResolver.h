@@ -1,7 +1,9 @@
 #pragma once
+#include <cstddef>
 #include <vector>
 #include "Vector3.h"
 #include "AABB.h"
+#include "OBB.h"
 
 namespace Ken4lowEngine
 {
@@ -13,6 +15,7 @@ namespace Ken4lowEngine
 	{
 		Vector3 fixedCenter{};
 		bool grounded = false;   // Player用（Boss/Enemyは無視でOK）
+		size_t obbHitCount = 0; // 障害物OBBによるXZ押し戻し回数。
 	};
 
 	/// -------------------------------------------------------------
@@ -49,6 +52,8 @@ namespace Ken4lowEngine
 		/// <param name="newTranslate">描画座標での移動後の位置。（現在の body_.transform.translate_ を渡す）</param>
 		/// <param name="useGrounded">着地判定を考慮するかどうか。プレイヤーでは true を指定することが想定される。</param>
 		/// <param name="inoutJumpVelocity">（オプション）プレイヤー用の入出力ジャンプ速度へのポインタ。衝突解決によりジャンプ速度を修正する場合に値が書き換えられる。Boss/Enemy 等では nullptr を渡す。デフォルトは nullptr。</param>
+		/// <param name="obstacleBroadPhaseAABBs">最終AABB押し戻しから除外し、OBB候補絞り込みに使う障害物AABB。</param>
+		/// <param name="obstacleOBBs">斜め障害物のXZ NarrowPhaseと最小押し戻しに使うOBB。</param>
 		/// <returns>WorldCollisionResult 型。衝突の有無や補正後の位置・法線、着地状態など、衝突解決の結果を含む。</returns>
 		static WorldCollisionResult Resolve(
 			const std::vector<AABB>& worldAABBs,
@@ -56,7 +61,9 @@ namespace Ken4lowEngine
 			const Vector3& oldTranslate,      // 描画座標（今まで通り oldPos を渡す）
 			const Vector3& newTranslate,      // 描画座標（今の body_.transform.translate_）
 			bool useGrounded,                 // Playerだけ true
-			float* inoutJumpVelocity = nullptr // Playerだけ渡す（Boss/Enemyはnullptr）
+			float* inoutJumpVelocity = nullptr, // Playerだけ渡す（Boss/Enemyはnullptr）
+			const std::vector<AABB>* obstacleBroadPhaseAABBs = nullptr,
+			const std::vector<OBB>* obstacleOBBs = nullptr
 		);
 	};
 

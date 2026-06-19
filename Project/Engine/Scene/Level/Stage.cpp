@@ -174,7 +174,7 @@ namespace Ken4lowEngine
 
 	void Stage::RegisterColliders(CollisionManager* collisionManager)
 	{
-		// 汎用CollisionSystem向け登録。StageCollisionの移動押し戻しはAABB配列側が担当する。
+		// Rigidbodyなしの回転OBB ColliderをStatic Stage形状として汎用CollisionSystemへ登録する。
 		if (!collisionManager)
 		{
 			return;

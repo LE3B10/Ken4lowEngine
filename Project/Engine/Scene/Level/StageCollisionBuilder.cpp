@@ -87,7 +87,7 @@ namespace Ken4lowEngine
 				data.rotation.z + data.collider.rotation.z,
 			};
 			collider->SetOrientation(colliderRotation);
-			// OBB表示とNavigation/Wall用AABBの生成元を揃え、見た目と判定の向き不一致を解消する
+			// 正式形状はColliderの回転OBBとし、包み込みAABBはBroadPhase・簡易判定用に併存させる。
 			const AABB aabb = BuildAABBFromRotatedOBB(centerW, halfW, colliderRotation);
 			result.worldAABBs.push_back(aabb);
 			const OBB colliderObb = collider->GetOBB();
@@ -99,10 +99,10 @@ namespace Ken4lowEngine
 			}
 			else if (collisionType == "Obstacle" || collisionType == "Pillar" || collisionType == "Fence" || collisionType == "Tree")
 			{
-				// Obstacle系は横押し戻しとNavigation回避に使うため、Floorとは別のAABB群へ分類する。
+				// Obstacle系AABBはBroadPhase用、OBBは見た目に沿う最終横押し戻し用として対で保持する。
 				result.wallObstacleAABBs.push_back(aabb);
 				result.navigationObstacleAABBs.push_back(aabb);
-				// 表示用ワイヤーはAABBではなくCollider::GetOBB()由来の姿勢をそのまま使う。
+				// NarrowPhaseとOBB表示にはCollider::GetOBB()由来の姿勢をそのまま使う。
 				result.wallObstacleOBBs.push_back(colliderObb);
 				result.navigationObstacleOBBs.push_back(colliderObb);
 			}

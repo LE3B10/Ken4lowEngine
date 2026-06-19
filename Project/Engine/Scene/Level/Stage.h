@@ -110,12 +110,12 @@ namespace Ken4lowEngine
 		std::unique_ptr<Object3D> stageModel_;                 // ステージ描画モデル
 		StageChunkManager stageChunkManager_;                 // 静的ステージを Chunk 単位で Draw スキップする管理クラス
 		OcclusionCullingSystem occlusionCullingSystem_;          // Lv4: 遮蔽物裏の StageChunk Draw を安全側で止める管理クラス
-		std::vector<AABB> worldAABBs_;                         // WorldCollisionResolver向けの静的AABB群
+		std::vector<AABB> worldAABBs_;                         // BroadPhase・簡易範囲判定向けのStage AABB群
 		std::vector<AABB> floorAABBs_;                         // 接地・スポーン補正向けFloor AABB
-		std::vector<AABB> wallObstacleAABBs_;                  // 横押し出し用Obstacle AABB
+		std::vector<AABB> wallObstacleAABBs_;                  // Obstacle OBBを絞るBroadPhase AABB
 		std::vector<AABB> navigationObstacleAABBs_;            // Navigation向け障害物AABB(Floor除外)
-		std::vector<std::unique_ptr<Collider>> worldColliders_; // 汎用CollisionManager通知用のWorld Collider
-		std::vector<OBB> wallObstacleOBBs_;                  // デバッグ表示用の壁/障害物OBB
+		std::vector<std::unique_ptr<Collider>> worldColliders_; // PhysicsWorld/DebugDraw用の正式なStatic World Collider
+		std::vector<OBB> wallObstacleOBBs_;                  // Player最終横押し戻し用の壁/障害物OBB
 		std::vector<OBB> navigationObstacleOBBs_;            // デバッグ表示用のNavigation障害物OBB
 		Vector3 offset_ = { 0.0f, 0.0f, 0.0f };               // ステージ全体オフセット
 	};
