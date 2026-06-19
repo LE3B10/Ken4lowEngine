@@ -51,6 +51,7 @@ namespace Ken4lowEngine
 		result.navigationObstacleAABBs.reserve(levelData.objects.size());
 		result.worldColliders.reserve(levelData.objects.size());
 		result.wallObstacleOBBs.reserve(levelData.objects.size());
+		result.wallObstacleWalkable.reserve(levelData.objects.size());
 		result.navigationObstacleOBBs.reserve(levelData.objects.size());
 
 		for (const ObjectData& data : levelData.objects)
@@ -104,6 +105,8 @@ namespace Ken4lowEngine
 				result.navigationObstacleAABBs.push_back(aabb);
 				// NarrowPhaseとOBB表示にはCollider::GetOBB()由来の姿勢をそのまま使う。
 				result.wallObstacleOBBs.push_back(colliderObb);
+				// 現段階ではObstacle上面を歩行可能とし、将来JSONのwalkable指定へ差し替えられる配列を併設する。
+				result.wallObstacleWalkable.push_back(1u);
 				result.navigationObstacleOBBs.push_back(colliderObb);
 			}
 

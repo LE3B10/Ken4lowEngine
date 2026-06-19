@@ -139,7 +139,10 @@ void GamePlayWorld::InitializeStageAndPhysics(const GamePlayStageContext::StageA
 	{
 		player->SetStageWorldAABBs(&stage_->GetWorldAABBs());
 		// 床は従来AABB、Obstacle系の横押し戻しは回転OBBを使う段階構成でPlayerへ接続する。
-		player->SetStageObstacleColliders(&stage_->GetWallObstacleAABBs(), &stage_->GetWallObstacleOBBs());
+		player->SetStageObstacleColliders(
+			&stage_->GetWallObstacleAABBs(),
+			&stage_->GetWallObstacleOBBs(),
+			&stage_->GetWallObstacleWalkable());
 
 		WorldCollisionSettings playerCollisionSettings{};
 		playerCollisionSettings.half = { 0.5f, 1.0f, 0.5f };

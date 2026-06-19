@@ -196,6 +196,10 @@ void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId,
 {
 	if (!tr_) return;
 	stageOBBHitCount_ = 0;
+	lastStageHitType_ = K4E::StageHitType::None;
+	lastStageHitShape_ = K4E::StageHitShape::None;
+	lastStageCorrectionAxis_ = K4E::StageCorrectionAxis::None;
+	lastGroundedByStageTop_ = false;
 
 	// デバッグ用
 	const Vector3 oldPosition = tr_->translate_;
@@ -350,7 +354,8 @@ void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId,
 				true,
 				&vy,
 				wallObstacleAABBs_,
-				wallObstacleOBBs_);
+				wallObstacleOBBs_,
+				wallObstacleWalkable_);
 
 		// fixedCenter は物理中心なので描画座標へ戻す
 		tr_->translate_ = r.fixedCenter + worldCollisionSettings_.centerOffset;
@@ -358,6 +363,10 @@ void PlayerMotorComponent::Simulate(float dt, float cameraYawRad, LocoId locoId,
 		resolvedGrounded = r.grounded;
 		// Debug表示へ渡すため、OBB NarrowPhaseで実際に押し戻した障害物数を保存する。
 		stageOBBHitCount_ = r.obbHitCount;
+		lastStageHitType_ = r.lastHitType;
+		lastStageHitShape_ = r.lastHitShape;
+		lastStageCorrectionAxis_ = r.lastCorrectionAxis;
+		lastGroundedByStageTop_ = r.groundedByStageTop;
 	}
 
 	// ------------------------------------------------------------

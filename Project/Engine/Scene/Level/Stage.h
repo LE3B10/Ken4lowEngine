@@ -7,6 +7,7 @@
 #include "OcclusionCullingSystem.h"
 #include "StageChunkManager.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
@@ -95,6 +96,7 @@ namespace Ken4lowEngine
 		const std::vector<std::unique_ptr<Collider>>& GetWorldColliders() const { return worldColliders_; }
 		std::vector<Collider*> GetWorldColliderPointers() const;
 		const std::vector<OBB>& GetWallObstacleOBBs() const { return wallObstacleOBBs_; }
+		const std::vector<uint8_t>& GetWallObstacleWalkable() const { return wallObstacleWalkable_; }
 		const std::vector<OBB>& GetNavigationObstacleOBBs() const { return navigationObstacleOBBs_; }
 
 		/// <summary>
@@ -116,6 +118,7 @@ namespace Ken4lowEngine
 		std::vector<AABB> navigationObstacleAABBs_;            // Navigation向け障害物AABB(Floor除外)
 		std::vector<std::unique_ptr<Collider>> worldColliders_; // PhysicsWorld/DebugDraw用の正式なStatic World Collider
 		std::vector<OBB> wallObstacleOBBs_;                  // Player最終横押し戻し用の壁/障害物OBB
+		std::vector<uint8_t> wallObstacleWalkable_;          // Obstacle上面を床として扱えるかの拡張用フラグ
 		std::vector<OBB> navigationObstacleOBBs_;            // デバッグ表示用のNavigation障害物OBB
 		Vector3 offset_ = { 0.0f, 0.0f, 0.0f };               // ステージ全体オフセット
 	};

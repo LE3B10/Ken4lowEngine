@@ -4,6 +4,7 @@
 #include "OBB.h"
 #include "LevelData.h"
 
+#include <cstdint>
 #include <memory>
 #include <vector>
 
@@ -17,6 +18,7 @@ namespace Ken4lowEngine
 		std::vector<AABB> navigationObstacleAABBs;
 		std::vector<std::unique_ptr<Collider>> worldColliders; // PhysicsWorld/DebugDrawへ渡す正式なStatic Stage Collider。
 		std::vector<OBB> wallObstacleOBBs; // 斜め障害物の最終判定・横押し戻し用OBB。
+		std::vector<uint8_t> wallObstacleWalkable; // 将来のLevel設定へ拡張できるObstacle上面歩行可否。
 		std::vector<OBB> navigationObstacleOBBs;
 	};
 

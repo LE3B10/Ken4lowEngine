@@ -1,5 +1,6 @@
 #pragma once
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 #include "Vector3.h"
 #include "AABB.h"
@@ -7,6 +8,33 @@
 
 namespace Ken4lowEngine
 {
+	enum class StageHitType : uint8_t
+	{
+		None,
+		Floor,
+		Wall,
+		Ceiling,
+	};
+
+	enum class StageHitShape : uint8_t
+	{
+		None,
+		AABB,
+		OBB,
+	};
+
+	enum class StageCorrectionAxis : uint8_t
+	{
+		None,
+		X,
+		Y,
+		Z,
+		OBBNormal,
+	};
+
+	const char* ToString(StageHitType hitType);
+	const char* ToString(StageHitShape hitShape);
+	const char* ToString(StageCorrectionAxis correctionAxis);
 
 	/// -------------------------------------------------------------
 	///				　		ワールド衝突結果構造体
@@ -16,6 +44,10 @@ namespace Ken4lowEngine
 		Vector3 fixedCenter{};
 		bool grounded = false;   // Player用（Boss/Enemyは無視でOK）
 		size_t obbHitCount = 0; // 障害物OBBによるXZ押し戻し回数。
+		StageHitType lastHitType = StageHitType::None;
+		StageHitShape lastHitShape = StageHitShape::None;
+		StageCorrectionAxis lastCorrectionAxis = StageCorrectionAxis::None;
+		bool groundedByStageTop = false;
 	};
 
 	/// -------------------------------------------------------------
@@ -26,6 +58,7 @@ namespace Ken4lowEngine
 		Vector3 half{ 0.8f, 2.0f, 0.8f };
 		Vector3 centerOffset{ 0.0f, 0.0f, 0.0f }; // 見た目座標→物理中心の差
 		float eps = 0.002f;
+		float topContactTolerance = 0.08f; // 上面交差を取りこぼさないための着地許容幅。
 	};
 
 	/// -------------------------------------------------------------
@@ -63,7 +96,8 @@ namespace Ken4lowEngine
 			bool useGrounded,                 // Playerだけ true
 			float* inoutJumpVelocity = nullptr, // Playerだけ渡す（Boss/Enemyはnullptr）
 			const std::vector<AABB>* obstacleBroadPhaseAABBs = nullptr,
-			const std::vector<OBB>* obstacleOBBs = nullptr
+			const std::vector<OBB>* obstacleOBBs = nullptr,
+			const std::vector<uint8_t>* obstacleWalkable = nullptr
 		);
 	};
 

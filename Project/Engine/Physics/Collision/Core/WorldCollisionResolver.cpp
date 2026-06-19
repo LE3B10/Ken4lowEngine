@@ -5,8 +5,51 @@
 
 namespace Ken4lowEngine
 {
+	const char* ToString(StageHitType hitType)
+	{
+		switch (hitType)
+		{
+		case StageHitType::Floor: return "Floor";
+		case StageHitType::Wall: return "Wall";
+		case StageHitType::Ceiling: return "Ceiling";
+		default: return "None";
+		}
+	}
+
+	const char* ToString(StageHitShape hitShape)
+	{
+		switch (hitShape)
+		{
+		case StageHitShape::AABB: return "AABB";
+		case StageHitShape::OBB: return "OBB";
+		default: return "None";
+		}
+	}
+
+	const char* ToString(StageCorrectionAxis correctionAxis)
+	{
+		switch (correctionAxis)
+		{
+		case StageCorrectionAxis::X: return "X";
+		case StageCorrectionAxis::Y: return "Y";
+		case StageCorrectionAxis::Z: return "Z";
+		case StageCorrectionAxis::OBBNormal: return "OBBNormal";
+		default: return "None";
+		}
+	}
+
 	namespace
 	{
+		struct VerticalContactCandidate
+		{
+			bool valid = false;
+			StageHitType hitType = StageHitType::None;
+			StageHitShape hitShape = StageHitShape::None;
+			size_t shapeIndex = 0;
+			float correctedCenterY = 0.0f;
+			float surfaceY = 0.0f;
+		};
+
 		bool IsSameAABB(const AABB& lhs, const AABB& rhs)
 		{
 			constexpr float kEpsilon = 0.0001f;
@@ -35,12 +78,119 @@ namespace Ken4lowEngine
 			return false;
 		}
 
+		bool OverlapsAABBXZ(const Vector3& center, const Vector3& half, const AABB& aabb)
+		{
+			return center.x + half.x >= aabb.min.x && center.x - half.x <= aabb.max.x &&
+				center.z + half.z >= aabb.min.z && center.z - half.z <= aabb.max.z;
+		}
+
+		bool OverlapsOBBXZ(const Vector3& center, const Vector3& half, const OBB& obb)
+		{
+			const Vector3 fromOBB = center - obb.center;
+			const Vector3 axisX = obb.orientations[0];
+			const Vector3 axisZ = obb.orientations[2];
+			const float localX = Vector3::Dot(fromOBB, axisX);
+			const float localZ = Vector3::Dot(fromOBB, axisZ);
+			const float playerRadiusX = std::fabs(axisX.x) * half.x + std::fabs(axisX.z) * half.z;
+			const float playerRadiusZ = std::fabs(axisZ.x) * half.x + std::fabs(axisZ.z) * half.z;
+			// OBBローカルXZへPlayer幅を投影し、斜め上面とPlayer足元の重なりを判定する。
+			return std::fabs(localX) <= obb.size.x + playerRadiusX &&
+				std::fabs(localZ) <= obb.size.z + playerRadiusZ;
+		}
+
+		VerticalContactCandidate FindPriorityVerticalContact(
+			const std::vector<AABB>& worldAABBs,
+			const std::vector<AABB>* obstacleBroadPhaseAABBs,
+			const std::vector<OBB>* obstacleOBBs,
+			const std::vector<uint8_t>* obstacleWalkable,
+			const WorldCollisionSettings& settings,
+			const Vector3& oldCenter,
+			const Vector3& newCenter)
+		{
+			VerticalContactCandidate best{};
+			const float deltaY = newCenter.y - oldCenter.y;
+			const bool movingDown = deltaY <= 0.0f;
+			const bool movingUp = deltaY > 0.0f;
+			const float oldFoot = oldCenter.y - settings.half.y;
+			const float newFoot = newCenter.y - settings.half.y;
+			const float oldHead = oldCenter.y + settings.half.y;
+			const float newHead = newCenter.y + settings.half.y;
+
+			for (size_t i = 0; i < worldAABBs.size(); ++i)
+			{
+				const AABB& aabb = worldAABBs[i];
+				if (IsObstacleBroadPhaseAABB(aabb, obstacleBroadPhaseAABBs) || !OverlapsAABBXZ(newCenter, settings.half, aabb))
+				{
+					continue;
+				}
+
+				if (movingDown && oldFoot >= aabb.max.y - settings.topContactTolerance && newFoot <= aabb.max.y + settings.topContactTolerance)
+				{
+					if (!best.valid || best.hitType != StageHitType::Floor || aabb.max.y > best.surfaceY)
+					{
+						// 下降中に上面を跨いだAABBは、横押し戻しより先に床候補として記録する。
+						best = { true, StageHitType::Floor, StageHitShape::AABB, i, aabb.max.y + settings.half.y + settings.eps, aabb.max.y };
+					}
+				}
+				else if (movingUp && oldHead <= aabb.min.y + settings.topContactTolerance && newHead >= aabb.min.y - settings.topContactTolerance)
+				{
+					if (!best.valid || best.hitType != StageHitType::Ceiling || aabb.min.y < best.surfaceY)
+					{
+						// 上昇中に下面を跨いだAABBは天井候補とし、同じ形状からの横押し戻しを避ける。
+						best = { true, StageHitType::Ceiling, StageHitShape::AABB, i, aabb.min.y - settings.half.y - settings.eps, aabb.min.y };
+					}
+				}
+			}
+
+			if (!obstacleOBBs)
+			{
+				return best;
+			}
+
+			for (size_t i = 0; i < obstacleOBBs->size(); ++i)
+			{
+				const OBB& obb = (*obstacleOBBs)[i];
+				if (!OverlapsOBBXZ(newCenter, settings.half, obb))
+				{
+					continue;
+				}
+				const float yExtent =
+					std::fabs(obb.orientations[0].y) * obb.size.x +
+					std::fabs(obb.orientations[1].y) * obb.size.y +
+					std::fabs(obb.orientations[2].y) * obb.size.z;
+				const float topY = obb.center.y + yExtent;
+				const float bottomY = obb.center.y - yExtent;
+				const bool walkable = !obstacleWalkable || i >= obstacleWalkable->size() || (*obstacleWalkable)[i] != 0u;
+
+				if (movingDown && walkable && oldFoot >= topY - settings.topContactTolerance && newFoot <= topY + settings.topContactTolerance)
+				{
+					if (!best.valid || best.hitType != StageHitType::Floor || topY > best.surfaceY)
+					{
+						// 歩行可能OBBの上面交差は最優先の床候補とし、同フレームのOBB横反発を抑える。
+						best = { true, StageHitType::Floor, StageHitShape::OBB, i, topY + settings.half.y + settings.eps, topY };
+					}
+				}
+				else if (movingUp && oldHead <= bottomY + settings.topContactTolerance && newHead >= bottomY - settings.topContactTolerance)
+				{
+					if (!best.valid || best.hitType != StageHitType::Ceiling || bottomY < best.surfaceY)
+					{
+						best = { true, StageHitType::Ceiling, StageHitShape::OBB, i, bottomY - settings.half.y - settings.eps, bottomY };
+					}
+				}
+			}
+
+			return best;
+		}
+
 		size_t ResolveObstacleOBBsXZ(
 			const std::vector<AABB>* obstacleBroadPhaseAABBs,
 			const std::vector<OBB>* obstacleOBBs,
 			const WorldCollisionSettings& settings,
 			float targetCenterY,
-			Vector3& fixedCenter)
+			Vector3& fixedCenter,
+			size_t skippedObstacleIndex,
+			bool skipObstacle,
+			WorldCollisionResult& result)
 		{
 			if (!obstacleOBBs)
 			{
@@ -50,6 +200,10 @@ namespace Ken4lowEngine
 			size_t hitCount = 0;
 			for (size_t obstacleIndex = 0; obstacleIndex < obstacleOBBs->size(); ++obstacleIndex)
 			{
+				if (skipObstacle && obstacleIndex == skippedObstacleIndex)
+				{
+					continue;
+				}
 				const OBB& obstacle = (*obstacleOBBs)[obstacleIndex];
 				if (obstacleBroadPhaseAABBs && obstacleIndex < obstacleBroadPhaseAABBs->size())
 				{
@@ -130,6 +284,12 @@ namespace Ken4lowEngine
 				const float direction = minimumDistance >= 0.0f ? 1.0f : -1.0f;
 				// OBBとの最小XZ侵入量だけを戻し、床のY解決は既存AABB処理へ残す。
 				fixedCenter += minimumAxis * ((minimumPenetration + settings.eps) * direction);
+				if (!result.groundedByStageTop)
+				{
+					result.lastHitType = StageHitType::Wall;
+					result.lastHitShape = StageHitShape::OBB;
+					result.lastCorrectionAxis = StageCorrectionAxis::OBBNormal;
+				}
 				++hitCount;
 			}
 
@@ -145,7 +305,8 @@ namespace Ken4lowEngine
 		bool useGrounded,
 		float* inoutJumpVelocity,
 		const std::vector<AABB>* obstacleBroadPhaseAABBs,
-		const std::vector<OBB>* obstacleOBBs)
+		const std::vector<OBB>* obstacleOBBs,
+		const std::vector<uint8_t>* obstacleWalkable)
 	{
 		WorldCollisionResult r{};
 
@@ -158,6 +319,14 @@ namespace Ken4lowEngine
 		auto buildMovingBodyAABB = [&](const Vector3& c) { return AABB{ c - s.half, c + s.half }; };
 
 		Vector3 fixedCenter = oldCenter;
+		const VerticalContactCandidate priorityVerticalContact = FindPriorityVerticalContact(
+			worldAABBs,
+			obstacleBroadPhaseAABBs,
+			obstacleOBBs,
+			obstacleWalkable,
+			s,
+			oldCenter,
+			newCenter);
 
 		auto resolveAxis = [&](int axis, float delta)
 			{
@@ -173,8 +342,15 @@ namespace Ken4lowEngine
 				float bestFix = 0.0f;
 				float bestDist = FLT_MAX;
 
-				for (const auto& w : worldAABBs)
+				for (size_t worldAABBIndex = 0; worldAABBIndex < worldAABBs.size(); ++worldAABBIndex)
 				{
+					const AABB& w = worldAABBs[worldAABBIndex];
+					if (priorityVerticalContact.valid &&
+						priorityVerticalContact.hitShape == StageHitShape::AABB &&
+						priorityVerticalContact.shapeIndex == worldAABBIndex)
+					{
+						continue;
+					}
 					if (IsObstacleBroadPhaseAABB(w, obstacleBroadPhaseAABBs))
 					{
 						continue;
@@ -249,11 +425,26 @@ namespace Ken4lowEngine
 				if (hit)
 				{
 					// 押し戻しは軸ごとに最も近い補正位置だけを採用し、既存の移動安定性を保つ。
-					if (axis == 0) fixedCenter.x = bestFix;
-					if (axis == 2) fixedCenter.z = bestFix;
+					if (axis == 0)
+					{
+						fixedCenter.x = bestFix;
+						r.lastHitType = StageHitType::Wall;
+						r.lastHitShape = StageHitShape::AABB;
+						r.lastCorrectionAxis = StageCorrectionAxis::X;
+					}
+					if (axis == 2)
+					{
+						fixedCenter.z = bestFix;
+						r.lastHitType = StageHitType::Wall;
+						r.lastHitShape = StageHitShape::AABB;
+						r.lastCorrectionAxis = StageCorrectionAxis::Z;
+					}
 					if (axis == 1)
 					{
 						fixedCenter.y = bestFix;
+						r.lastHitType = delta < 0.0f ? StageHitType::Floor : StageHitType::Ceiling;
+						r.lastHitShape = StageHitShape::AABB;
+						r.lastCorrectionAxis = StageCorrectionAxis::Y;
 
 						// Player向け：床に落ちたら grounded / 上向き衝突なら上向き速度を0
 						if (useGrounded && inoutJumpVelocity)
@@ -269,8 +460,41 @@ namespace Ken4lowEngine
 		resolveAxis(0, newCenter.x - oldCenter.x);
 		resolveAxis(2, newCenter.z - oldCenter.z);
 		// Obstacle系だけは包み込みAABBではなく回転OBBで最終的なXZ押し戻しを行う。
-		r.obbHitCount = ResolveObstacleOBBsXZ(obstacleBroadPhaseAABBs, obstacleOBBs, s, newCenter.y, fixedCenter);
-		resolveAxis(1, newCenter.y - oldCenter.y);
+		r.obbHitCount = ResolveObstacleOBBsXZ(
+			obstacleBroadPhaseAABBs,
+			obstacleOBBs,
+			s,
+			newCenter.y,
+			fixedCenter,
+			priorityVerticalContact.shapeIndex,
+			priorityVerticalContact.valid && priorityVerticalContact.hitShape == StageHitShape::OBB,
+			r);
+
+		if (priorityVerticalContact.valid)
+		{
+			// 上面・下面を跨いだ形状はY補正を優先し、そのフレームの同一形状からの横反発を発生させない。
+			fixedCenter.y = priorityVerticalContact.correctedCenterY;
+			r.lastHitType = priorityVerticalContact.hitType;
+			r.lastHitShape = priorityVerticalContact.hitShape;
+			r.lastCorrectionAxis = StageCorrectionAxis::Y;
+			r.groundedByStageTop = priorityVerticalContact.hitType == StageHitType::Floor;
+			if (priorityVerticalContact.hitType == StageHitType::Floor)
+			{
+				r.grounded = true;
+				if (useGrounded && inoutJumpVelocity)
+				{
+					*inoutJumpVelocity = 0.0f;
+				}
+			}
+			else if (priorityVerticalContact.hitType == StageHitType::Ceiling && inoutJumpVelocity && *inoutJumpVelocity > 0.0f)
+			{
+				*inoutJumpVelocity = 0.0f;
+			}
+		}
+		else
+		{
+			resolveAxis(1, newCenter.y - oldCenter.y);
+		}
 
 		r.fixedCenter = fixedCenter;
 		return r;

@@ -186,12 +186,19 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SetStageWorldAABBs(const std::vector<K4E::AABB>* aabbs) { motor_.SetWorldAABBs(aabbs); }
 	// Player横押し戻しへObstacleのBroadPhase AABBと正式な回転OBBを渡す。
-	void SetStageObstacleColliders(const std::vector<K4E::AABB>* broadPhaseAABBs, const std::vector<K4E::OBB>* obbs)
+	void SetStageObstacleColliders(
+		const std::vector<K4E::AABB>* broadPhaseAABBs,
+		const std::vector<K4E::OBB>* obbs,
+		const std::vector<uint8_t>* walkable)
 	{
-		motor_.SetStageObstacleColliders(broadPhaseAABBs, obbs);
+		motor_.SetStageObstacleColliders(broadPhaseAABBs, obbs, walkable);
 	}
 	void SetWorldCollisionSettings(const K4E::WorldCollisionSettings& s) { motor_.SetWorldCollisionSettings(s); }
 	size_t GetStageOBBHitCount() const { return motor_.GetStageOBBHitCount(); }
+	K4E::StageHitType GetLastStageHitType() const { return motor_.GetLastStageHitType(); }
+	K4E::StageHitShape GetLastStageHitShape() const { return motor_.GetLastStageHitShape(); }
+	K4E::StageCorrectionAxis GetLastStageCorrectionAxis() const { return motor_.GetLastStageCorrectionAxis(); }
+	bool WasLastGroundedByStageTop() const { return motor_.WasLastGroundedByStageTop(); }
 
 	// PhysicsWorld側の床判定を保持し、PlayerMotorの段階移行用入力にも同期する。
 	void SetGroundedByPhysics(bool isGrounded);

@@ -735,6 +735,12 @@ void GameplayPhysicsDebugController::DrawGameplayPhysicsTestImGui()
 	ImGui::Text("Player Collider Position: %.3f, %.3f, %.3f", playerGroundColliderPosition_.x, playerGroundColliderPosition_.y, playerGroundColliderPosition_.z);
 	ImGui::Text("Player vs Stage Contact Count: %zu", playerStageContactCount_);
 	ImGui::Text("Player vs Stage OBB Hit Count: %zu", player ? player->GetStageOBBHitCount() : size_t{ 0 });
+	ImGui::Text("Last Stage Hit Type: %s", player ? K4E::ToString(player->GetLastStageHitType()) : "None");
+	ImGui::Text("Last Stage Hit Shape: %s", player ? K4E::ToString(player->GetLastStageHitShape()) : "None");
+	ImGui::Text("Last Grounded By Stage Top: %s", player && player->WasLastGroundedByStageTop() ? "true" : "false");
+	ImGui::Text("Last Correction Axis: %s", player ? K4E::ToString(player->GetLastStageCorrectionAxis()) : "None");
+	ImGui::Text("Player Vertical Velocity: %.3f", player ? player->FSM_VerticalVelocity() : 0.0f);
+	ImGui::Text("Grounded: %s", player && player->FSM_IsGrounded() ? "true" : "false");
 	ImGui::Text("Registered Player Collider: %s", playerPhysicsBodyRegistered_ ? "true" : "false");
 	ImGui::SeparatorText("Gameplay Physics Bullet Trigger");
 	ImGui::Text("Physics Trigger Bullet Count: %zu", deps_.bulletManager ? deps_.bulletManager->GetPhysicsTriggerBulletCount() : 0);
