@@ -38,6 +38,7 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 	b->Initialize(startPos, dirNormalized * speed, damage, lifeTimeSec, shooterPosition, shooterColliderId, typeId);
 	b->SetModelDrawEnabled(drawModel);
 	b->SetCollisionManager(collisionManager_);
+	b->SetWorldImpactCallback(worldImpactCallback_);
 	b->ConfigureSplashDamage(splashRadius, splashDamage, splashCanDamageSelf);
 	b->SetWeaponMetadata(weaponID, weaponCategory, deathType, deathPower, deathUpPower, deathExplosionRadius, deathImpulseScale);
 	b->SetUsePhysicsTrigger(usePhysicsTriggerForNormalBullets_);
@@ -56,6 +57,19 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 	Bullet* raw = b.get();
 	bullets_.push_back(std::move(b));
 	return raw;
+}
+
+void BulletManager::SetWorldImpactCallback(std::function<void(const Vector3&, const Vector3&)> callback)
+{
+	worldImpactCallback_ = std::move(callback);
+	// すでに飛翔中の弾にも新しい通知先を反映し、Scene再接続時の古い参照を残さない。
+	for (auto& bullet : bullets_)
+	{
+		if (bullet)
+		{
+			bullet->SetWorldImpactCallback(worldImpactCallback_);
+		}
+	}
 }
 
 void BulletManager::Update(float dt)

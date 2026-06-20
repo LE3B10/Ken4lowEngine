@@ -8,6 +8,7 @@
 #include "GamePlayDebugTools.h"
 #include "UI/GamePlayUIController.h"
 #include "Effects/GamePlayEffectController.h"
+#include "Effects/BulletDecalManager.h"
 #include "DebugTools/GamePlayDebugWindow.h"
 #include "FadeManager.h"
 #include "FrustumCullingDebugController.h"
@@ -100,6 +101,10 @@ private: /// ---------- 初期化 / 終了系 ---------- ///
 	// 演出Controllerを初期化してPlayer被弾通知などを接続する
 	void InitializeEffectController();
 
+	// Worldの弾着弾通知とApplicationLayerの簡易銃痕描画を接続する。
+	void InitializeBulletDecals();
+	void FinalizeBulletDecals();
+
 	// 生成済みオブジェクトの破棄
 	void ReleaseGameplayObjects();
 
@@ -172,6 +177,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<FadeManager> fadeManager_;
 	std::unique_ptr<GamePlayUIController> uiController_;
 	std::unique_ptr<GamePlayEffectController> effectController_;
+	std::unique_ptr<BulletDecalManager> bulletDecalManager_;
 	std::unique_ptr<GamePlayDebugWindow> debugWindow_;
 
 	// リトライ遷移制御

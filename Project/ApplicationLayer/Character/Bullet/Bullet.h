@@ -7,6 +7,7 @@
 #include <Vector4.h>
 
 #include <memory>
+#include <functional>
 #include "WeaponMasterData.h"
 
 namespace K4E = ::Ken4lowEngine;
@@ -62,6 +63,12 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void SetCollisionManager(CollisionManager* collisionManager) { collisionManager_ = collisionManager; }
 
+	// プレイヤー弾がWorldへ命中した際の着弾位置・法線通知を設定する。
+	void SetWorldImpactCallback(std::function<void(const K4E::Vector3&, const K4E::Vector3&)> callback)
+	{
+		worldImpactCallback_ = std::move(callback);
+	}
+
 	// 弾のObject3D描画だけを制御する。
 	// 当たり判定・移動・寿命には影響させない。
 	void SetModelDrawEnabled(bool enabled) { drawModel_ = enabled; }
@@ -98,6 +105,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	uint32_t shooterColliderId_ = 0u;
 
 	CollisionManager* collisionManager_ = nullptr;
+	std::function<void(const K4E::Vector3&, const K4E::Vector3&)> worldImpactCallback_{};
 	float splashRadius_ = 0.0f;
 	int splashDamage_ = 0;
 	bool splashCanDamageSelf_ = false;

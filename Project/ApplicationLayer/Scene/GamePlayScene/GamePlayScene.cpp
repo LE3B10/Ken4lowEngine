@@ -50,6 +50,7 @@ void GamePlayScene::Initialize()
 	frustumCullingDebug_.reset();
 	uiController_.reset();
 	debugWindow_.reset();
+	bulletDecalManager_.reset();
 	if (effectController_)
 	{
 		effectController_->Finalize(world_.get());
@@ -101,6 +102,7 @@ void GamePlayScene::InitializeGameplayObjects()
 
 	world_ = std::make_unique<GamePlayWorld>();
 	world_->Initialize(*stageContext_);
+	InitializeBulletDecals();
 
 	introDirector_ = std::make_unique<GamePlayIntroDirector>();
 
@@ -126,6 +128,43 @@ void GamePlayScene::InitializeEffectController()
 {
 	effectController_ = std::make_unique<GamePlayEffectController>();
 	effectController_->Initialize(world_.get());
+}
+
+void GamePlayScene::InitializeBulletDecals()
+{
+	FinalizeBulletDecals();
+	bulletDecalManager_ = std::make_unique<BulletDecalManager>();
+	if (!bulletDecalManager_->Initialize())
+	{
+		// 描画リソースを作れない環境でも射撃処理を止めず、銃痕だけを無効化する。
+		bulletDecalManager_.reset();
+		return;
+	}
+
+	if (world_ && world_->GetBulletManager())
+	{
+		world_->GetBulletManager()->SetWorldImpactCallback([this](const K4E::Vector3& position, const K4E::Vector3& normal)
+			{
+				if (bulletDecalManager_)
+				{
+					bulletDecalManager_->AddDecal(position, normal);
+				}
+			});
+	}
+}
+
+void GamePlayScene::FinalizeBulletDecals()
+{
+	if (world_ && world_->GetBulletManager())
+	{
+		// Worldより先に通知を解除し、破棄済みManagerへのコールバックを残さない。
+		world_->GetBulletManager()->SetWorldImpactCallback({});
+	}
+	if (bulletDecalManager_)
+	{
+		bulletDecalManager_->Finalize();
+		bulletDecalManager_.reset();
+	}
 }
 
 /// -------------------------------------------------------------
@@ -439,6 +478,10 @@ void GamePlayScene::UpdateWorld(float deltaTime)
 	{
 		effectController_->Update(deltaTime, world_.get());
 	}
+	if (bulletDecalManager_)
+	{
+		bulletDecalManager_->Update(deltaTime);
+	}
 }
 
 /// -------------------------------------------------------------
@@ -492,6 +535,11 @@ void GamePlayScene::Draw3DObjects()
 
 		// 演出終了後は通常ゲーム描画へ戻す。
 		world_->Draw3D(ShouldHideCharactersDuringIntro());
+	}
+
+	if (bulletDecalManager_)
+	{
+		bulletDecalManager_->Draw();
 	}
 
 	if (frustumCullingDebug_
@@ -611,6 +659,7 @@ void GamePlayScene::ReleaseGameplayObjects()
 		effectController_->Finalize(world_.get());
 		effectController_.reset();
 	}
+	FinalizeBulletDecals();
 
 	introDirector_.reset();
 
@@ -637,6 +686,10 @@ void GamePlayScene::DrawImGui()
 	if (debugWindow_)
 	{
 		debugWindow_->DrawImGui(world_.get(), debugTools_.get(), frustumCullingDebug_.get(), effectController_.get());
+	}
+	if (bulletDecalManager_)
+	{
+		bulletDecalManager_->DrawImGui();
 	}
 }
 
@@ -668,6 +721,7 @@ void GamePlayScene::UpdateLoad()
 		// World生成はステージ、衝突、キャラクターなど重い初期化を含むため単独ステップにする。
 		world_ = std::make_unique<GamePlayWorld>();
 		world_->Initialize(*stageContext_);
+		InitializeBulletDecals();
 		++loadStep_;
 		break;
 
@@ -732,6 +786,7 @@ void GamePlayScene::UpdateUnload()
 			effectController_->Finalize(world_.get());
 			effectController_.reset();
 		}
+		FinalizeBulletDecals();
 		++unloadStep_;
 		break;
 

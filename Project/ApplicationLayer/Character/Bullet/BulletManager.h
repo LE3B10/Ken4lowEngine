@@ -3,6 +3,7 @@
 
 #include <memory>
 #include <vector>
+#include <functional>
 
 /// ---------- 前方宣言 ---------- ///
 class CollisionManager;
@@ -53,6 +54,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	// クリア処理
 	void Clear();
 
+	// プレイヤー弾のWorld着弾演出をGamePlayScene側へ通知する。
+	void SetWorldImpactCallback(std::function<void(const Ken4lowEngine::Vector3&, const Ken4lowEngine::Vector3&)> callback);
+
 	// 通常弾だけをPhysicsWorld Triggerへ段階移行するため、登録先Worldとレイヤーを設定する。
 	void SetPhysicsTriggerWorld(Ken4lowEngine::PhysicsWorld* physicsWorld, uint32_t playerBulletLayer);
 	void SetUsePhysicsTriggerForNormalBullets(bool enabled);
@@ -73,6 +77,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	uint32_t playerBulletLayer_ = 0u;
 	bool usePhysicsTriggerForNormalBullets_ = false;
 	int physicsTriggerHitCount_ = 0;
+	std::function<void(const Ken4lowEngine::Vector3&, const Ken4lowEngine::Vector3&)> worldImpactCallback_{};
 
 	// 弾リスト
 	std::vector<std::unique_ptr<Bullet>> bullets_;

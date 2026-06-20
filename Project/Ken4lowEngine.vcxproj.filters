@@ -58,6 +58,12 @@
     <FxCompile Include="Resources\Shaders\Wireframe\WireframeAABBInstanced.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\BulletDecal\BulletDecal.VS.hlsl">
+      <Filter>Shader\VertexShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\BulletDecal\BulletDecal.PS.hlsl">
+      <Filter>Shader\PixelShader</Filter>
+    </FxCompile>
     <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
@@ -185,6 +191,9 @@
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\GamePlayScene.cpp">
+      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Effects\BulletDecalManager.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\PostEffect\PlayerHealthPostEffectController.cpp">
@@ -1099,6 +1108,9 @@
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\GamePlayScene.h">
+      <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Effects\BulletDecalManager.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\PostEffect\PlayerHealthPostEffectController.h">

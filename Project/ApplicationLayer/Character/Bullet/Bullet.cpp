@@ -60,12 +60,14 @@ namespace
 		return { base.x + diff.x * t, base.y + diff.y * t, base.z + diff.z * t };
 	}
 
-	bool TryComputeSegmentObbImpactPoint(const K4E::Segment& seg, const K4E::OBB& obb, K4E::Vector3& outPoint)
+	bool TryComputeSegmentObbImpact(const K4E::Segment& seg, const K4E::OBB& obb, K4E::Vector3& outPoint, K4E::Vector3& outNormal)
 	{
 		constexpr float kEpsilon = 1.0e-6f;
 
 		float tMin = 0.0f;
 		float tMax = 1.0f;
+		K4E::Vector3 enterNormal{};
+		K4E::Vector3 exitNormal{};
 
 		const K4E::Vector3 p = seg.origin - obb.center;
 		const float halfSizes[3] = { obb.size.x, obb.size.y, obb.size.z };
@@ -88,13 +90,24 @@ namespace
 
 			float t1 = (-half - originOnAxis) / diffOnAxis;
 			float t2 = (half - originOnAxis) / diffOnAxis;
+			K4E::Vector3 normal1 = axis * -1.0f;
+			K4E::Vector3 normal2 = axis;
 			if (t1 > t2)
 			{
 				std::swap(t1, t2);
+				std::swap(normal1, normal2);
 			}
 
-			tMin = std::max(tMin, t1);
-			tMax = std::min(tMax, t2);
+			if (t1 > tMin)
+			{
+				tMin = t1;
+				enterNormal = normal1;
+			}
+			if (t2 < tMax)
+			{
+				tMax = t2;
+				exitNormal = normal2;
+			}
 
 			if (tMin > tMax)
 			{
@@ -103,8 +116,10 @@ namespace
 		}
 
 		// 外から入った場合は tMin、すでに内部から始まっていた場合は tMax を使う。
-		const float t = std::clamp((tMin > 0.0f) ? tMin : tMax, 0.0f, 1.0f);
+		const bool enteredFromOutside = tMin > 0.0f;
+		const float t = std::clamp(enteredFromOutside ? tMin : tMax, 0.0f, 1.0f);
 		outPoint = AddScaled(seg.origin, seg.diff, t);
+		outNormal = NormalizeSafe(enteredFromOutside ? enterNormal : exitNormal, NormalizeSafe(seg.diff * -1.0f));
 		return true;
 	}
 
@@ -116,8 +131,9 @@ namespace
 		}
 
 		K4E::Vector3 impactPoint{};
+		K4E::Vector3 impactNormal{};
 		const K4E::Segment bulletSegment = bullet.GetSegment();
-		if (TryComputeSegmentObbImpactPoint(bulletSegment, other->GetOBB(), impactPoint))
+		if (TryComputeSegmentObbImpact(bulletSegment, other->GetOBB(), impactPoint, impactNormal))
 		{
 			return impactPoint;
 		}
@@ -525,6 +541,16 @@ void Bullet::ProcessHit(K4E::Collider* other, bool fromPhysicsTrigger)
 	{
 		const K4E::Vector3 impactPoint = ResolveBulletImpactPoint(*this, other);
 		TriggerSplashDamageAt(impactPoint);
+	}
+
+	if (selfType == static_cast<uint32_t>(CollisionTypeIdDef::kBullet) && otherType == kWorld &&
+		!HasSplashDamage() && worldImpactCallback_)
+	{
+		K4E::Vector3 impactPoint = GetCenterPosition();
+		K4E::Vector3 impactNormal = NormalizeSafe(moveVelocity_ * -1.0f, { 0.0f, 1.0f, 0.0f });
+		// ステージOBBとの交点と面法線を求め、敵ヒットとは分離したWorld着弾演出だけを通知する。
+		TryComputeSegmentObbImpact(GetSegment(), other->GetOBB(), impactPoint, impactNormal);
+		worldImpactCallback_(impactPoint, impactNormal);
 	}
 
 	KillAndMoveFar();
