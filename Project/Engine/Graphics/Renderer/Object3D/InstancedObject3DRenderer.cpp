@@ -99,8 +99,15 @@ namespace Ken4lowEngine
 		sourceInstances_.clear();
 		instanceBufferDirty_ = false;
 		frustumCullingEnabled_ = false;
+		estimatedDrawIndexCount_ = 0;
+		drawSkippedByBudget_ = false;
 		dxCommon_ = nullptr;
 		initialized_ = false;
+	}
+
+	uint64_t InstancedObject3DRenderer::GetModelTotalIndexCount() const
+	{
+		return model_ ? model_->GetTotalIndexCount() : 0ull;
 	}
 
 	bool InstancedObject3DRenderer::SetInstances(const std::vector<InstanceData>& instances)
@@ -200,7 +207,26 @@ namespace Ken4lowEngine
 		perViewData_->viewProjection = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
 		// CPU側でObject3Dを大量生成せず、可視なInstanceDataだけをGPUへ詰めてまとめて描画する。
 		UpdateVisibleInstances(perViewData_->viewProjection);
-		if (instanceCount_ == 0) { return; }
+
+		if (instanceCount_ == 0)
+		{
+			estimatedDrawIndexCount_ = 0;
+			drawSkippedByBudget_ = false;
+			return;
+		}
+
+		const uint64_t modelIndexCount = model_->GetTotalIndexCount();
+		estimatedDrawIndexCount_ = modelIndexCount * static_cast<uint64_t>(instanceCount_);
+
+		// 高ポリゴンモデルを大量インスタンス描画してGPUがTDRで停止しないようにする。
+		if (debugIndexBudget_ > 0 && estimatedDrawIndexCount_ > debugIndexBudget_)
+		{
+			drawSkippedByBudget_ = true;
+			return;
+		}
+
+		drawSkippedByBudget_ = false;
+
 		const Vector3 cameraPosition = CameraManager::GetInstance()->GetActiveCameraPosition();
 		cameraData_->x = cameraPosition.x;
 		cameraData_->y = cameraPosition.y;

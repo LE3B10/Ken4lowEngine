@@ -2,6 +2,7 @@
 #include "BaseScene.h"
 #include "CollisionManager.h"
 
+#include <cstdint>
 #include <memory>
 
 class PhysicsDebugController;
@@ -71,6 +72,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool isInstancingTestEnabled_ = false;
 	int instancingTestCount_ = 30000;
 	float instancingTestSpacing_ = 2.0f;
+	int instancingSafeCount_ = 30000;
+	uint64_t instancingIndexBudget_ = 50'000'000ull;
+	bool instancingAutoClamp_ = true;
+
 	bool instancingRandomScale_ = false;
 	bool instancingRandomRotation_ = false;
 	bool instancingRandomColor_ = false;

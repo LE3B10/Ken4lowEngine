@@ -47,6 +47,9 @@ namespace Ken4lowEngine
 		void Initialize(const std::string& modelPath, size_t maxInstanceCount = 30000);
 		void Finalize();
 
+		/// <summary>モデルの総インデックス数を取得します。</summary>
+		uint64_t GetModelTotalIndexCount() const;
+
 		/// <summary>描画する静的インスタンスをGPU可視バッファへ一括転送します。</summary>
 		bool SetInstances(const std::vector<InstanceData>& instances);
 
@@ -59,14 +62,22 @@ namespace Ken4lowEngine
 		/// <summary>サブメッシュごとに1回、DrawIndexedInstancedを発行します。</summary>
 		void Draw();
 
+	public: /// ---------- アクセサ ---------- ///
+
 		size_t GetInstanceCount() const { return sourceInstances_.size(); }
 		size_t GetVisibleInstanceCount() const { return instanceCount_; }
 		size_t GetMaxInstanceCount() const { return maxInstanceCount_; }
+
+		void SetDebugIndexBudget(uint64_t budget) { debugIndexBudget_ = budget; }
+		uint64_t GetEstimatedDrawIndexCount() const { return estimatedDrawIndexCount_; }
+		bool WasDrawSkippedByBudget() const { return drawSkippedByBudget_; }
+
 		void SetMaterialColor(const Vector4& color) { material_.SetColor(color); }
 		void SetFrustumCullingEnabled(bool enabled);
 		bool IsFrustumCullingEnabled() const { return frustumCullingEnabled_; }
 
-	private:
+	private: /// ---------- メンバ変数 ---------- ///
+
 		struct PerViewData { Matrix4x4 viewProjection; };
 		struct CameraForGPU { float x, y, z, padding; };
 		struct DissolveSetting
@@ -114,6 +125,9 @@ namespace Ken4lowEngine
 		std::vector<InstanceData> sourceInstances_{};
 		bool instanceBufferDirty_ = false;
 		bool frustumCullingEnabled_ = false;
+		uint64_t debugIndexBudget_ = 50'000'000ull;
+		uint64_t estimatedDrawIndexCount_ = 0;
+		bool drawSkippedByBudget_ = false;
 
 		/// <summary>カリング設定に応じ、描画対象だけをGPUバッファの先頭へ詰め直します。</summary>
 		void UpdateVisibleInstances(const Matrix4x4& viewProjection);

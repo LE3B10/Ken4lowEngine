@@ -7,70 +7,70 @@ namespace Ken4lowEngine
 {
 
 
-/// -------------------------------------------------------------
-///				　		 初期化処理
-/// -------------------------------------------------------------
-void Mesh::Initialize(const std::vector<VertexData>& modelVertices, const std::vector<uint32_t>& modelIndices)
-{
-	vertices = modelVertices;
-	indices = modelIndices;
+	/// -------------------------------------------------------------
+	///				　		 初期化処理
+	/// -------------------------------------------------------------
+	void Mesh::Initialize(const std::vector<VertexData>& modelVertices, const std::vector<uint32_t>& modelIndices)
+	{
+		vertices = modelVertices;
+		indices = modelIndices;
 
-	auto* device = DirectXCommon::GetInstance()->GetDevice();
+		auto* device = DirectXCommon::GetInstance()->GetDevice();
 
-	// 頂点バッファビューを作成する
-	vertexResource = ResourceManager::CreateBufferResource(device, sizeof(VertexData) * vertices.size());
-	vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress(); // リソースの先頭のアドレスから使う
-	vertexBufferView.SizeInBytes = UINT(sizeof(VertexData) * vertices.size()); // 使用するリソースのサイズ
-	vertexBufferView.StrideInBytes = sizeof(VertexData); // 1頂点あたりのサイズ
+		// 頂点バッファビューを作成する
+		vertexResource = ResourceManager::CreateBufferResource(device, sizeof(VertexData) * vertices.size());
+		vertexBufferView.BufferLocation = vertexResource->GetGPUVirtualAddress(); // リソースの先頭のアドレスから使う
+		vertexBufferView.SizeInBytes = UINT(sizeof(VertexData) * vertices.size()); // 使用するリソースのサイズ
+		vertexBufferView.StrideInBytes = sizeof(VertexData); // 1頂点あたりのサイズ
 
-	// 書き込むためのアドレスを取得
-	VertexData* vertexDataRaw = nullptr;
-	vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexDataRaw));
-	vertexResource->SetName(L"Mesh::VertexBuffer");
+		// 書き込むためのアドレスを取得
+		VertexData* vertexDataRaw = nullptr;
+		vertexResource->Map(0, nullptr, reinterpret_cast<void**>(&vertexDataRaw));
+		vertexResource->SetName(L"Mesh::VertexBuffer");
 
-	// GPU側の書き込み先をspanで安全に囲む
-	std::span<VertexData> vertexSpan{ vertexDataRaw, vertices.size() };
+		// GPU側の書き込み先をspanで安全に囲む
+		std::span<VertexData> vertexSpan{ vertexDataRaw, vertices.size() };
 
-	// modelDataの中身をGPUバッファへコピー
-	std::copy(vertices.begin(), vertices.end(), vertexSpan.begin());
+		// modelDataの中身をGPUバッファへコピー
+		std::copy(vertices.begin(), vertices.end(), vertexSpan.begin());
 
-	// インデックスバッファビューを作成する
-	indexResource = ResourceManager::CreateBufferResource(device, sizeof(uint32_t) * indices.size());
-	indexBufferView.BufferLocation = indexResource->GetGPUVirtualAddress(); // リソースの先頭のアドレスから使う
-	indexBufferView.SizeInBytes = UINT(sizeof(uint32_t) * indices.size()); // 使用するリソースのサイズ
-	indexBufferView.Format = DXGI_FORMAT_R32_UINT; // インデックスのフォーマット
+		// インデックスバッファビューを作成する
+		indexResource = ResourceManager::CreateBufferResource(device, sizeof(uint32_t) * indices.size());
+		indexBufferView.BufferLocation = indexResource->GetGPUVirtualAddress(); // リソースの先頭のアドレスから使う
+		indexBufferView.SizeInBytes = UINT(sizeof(uint32_t) * indices.size()); // 使用するリソースのサイズ
+		indexBufferView.Format = DXGI_FORMAT_R32_UINT; // インデックスのフォーマット
 
-	// 書き込むためのアドレスを取得
-	uint32_t* indexDataRaw = nullptr;
-	indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexDataRaw));
-	indexResource->SetName(L"Mesh::IndexBuffer");
+		// 書き込むためのアドレスを取得
+		uint32_t* indexDataRaw = nullptr;
+		indexResource->Map(0, nullptr, reinterpret_cast<void**>(&indexDataRaw));
+		indexResource->SetName(L"Mesh::IndexBuffer");
 
-	// GPU側の書き込み先をspanで安全に囲む
-	std::span<uint32_t> indexSpan{ indexDataRaw, indices.size() };
+		// GPU側の書き込み先をspanで安全に囲む
+		std::span<uint32_t> indexSpan{ indexDataRaw, indices.size() };
 
-	// modelDataの中身をGPUバッファへコピー
-	std::copy(indices.begin(), indices.end(), indexSpan.begin());
-}
+		// modelDataの中身をGPUバッファへコピー
+		std::copy(indices.begin(), indices.end(), indexSpan.begin());
+	}
 
 
-/// -------------------------------------------------------------
-///				　			描画処理
-/// -------------------------------------------------------------
-void Mesh::Draw()
-{
-	DrawInstanced(1);
-}
+	/// -------------------------------------------------------------
+	///				　			描画処理
+	/// -------------------------------------------------------------
+	void Mesh::Draw()
+	{
+		DrawInstanced(1);
+	}
 
-void Mesh::DrawInstanced(UINT instanceCount)
-{
-	if (instanceCount == 0) { return; }
+	void Mesh::DrawInstanced(UINT instanceCount)
+	{
+		if (instanceCount == 0) { return; }
 
-	ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
+		ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
 
-	commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // 頂点バッファをセット
-	commandList->IASetIndexBuffer(&indexBufferView);		  // インデックスバッファをセット
-	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // プリミティブ形状を設定
-	commandList->DrawIndexedInstanced(static_cast<UINT>(indices.size()), instanceCount, 0, 0, 0); // インデックス描画
-}
+		commandList->IASetVertexBuffers(0, 1, &vertexBufferView); // 頂点バッファをセット
+		commandList->IASetIndexBuffer(&indexBufferView);		  // インデックスバッファをセット
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // プリミティブ形状を設定
+		commandList->DrawIndexedInstanced(static_cast<UINT>(indices.size()), instanceCount, 0, 0, 0); // インデックス描画
+	}
 
 } // namespace Ken4lowEngine

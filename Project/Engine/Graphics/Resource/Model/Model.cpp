@@ -16,12 +16,12 @@ namespace Ken4lowEngine
 			std::string lowered = texturePath;
 			std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 			return lowered.find("face") != std::string::npos ||
-			lowered.find("pixel") != std::string::npos ||
-			lowered.find("dot") != std::string::npos ||
-			lowered.find("nearest") != std::string::npos ||
-			lowered.find("nomip") != std::string::npos ||
-			lowered.find("pixelart/") != std::string::npos ||
-			lowered.find("pixelart\\") != std::string::npos;
+				lowered.find("pixel") != std::string::npos ||
+				lowered.find("dot") != std::string::npos ||
+				lowered.find("nearest") != std::string::npos ||
+				lowered.find("nomip") != std::string::npos ||
+				lowered.find("pixelart/") != std::string::npos ||
+				lowered.find("pixelart\\") != std::string::npos;
 		}
 	}
 
@@ -142,4 +142,28 @@ namespace Ken4lowEngine
 		}
 	}
 
+	uint64_t Model::GetTotalIndexCount() const
+	{
+		uint64_t total = 0;
+
+		// 高ポリゴンモデルの大量インスタンシング描画を制限するため、全メッシュのインデックス数を合計する。
+		for (const auto& mesh : meshes_)
+		{
+			total += mesh.GetIndexCount();
+		}
+
+		return total;
+	}
+	uint64_t Model::GetTotalVertexCount() const
+	{
+		uint64_t total = 0;
+
+		// デバッグ表示や描画負荷の見積もりに使うため、全メッシュの頂点数を合計する。
+		for (const auto& mesh : meshes_)
+		{
+			total += mesh.GetVertexCount();
+		}
+
+		return total;
+	}
 }

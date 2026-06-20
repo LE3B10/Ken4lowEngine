@@ -46,7 +46,11 @@ void DebugScene::Initialize()
 
 	// 静的な3万行列を一度だけ用意し、毎フレームのObject3D生成・更新コストを発生させない。
 	instancingTestRenderer_ = std::make_unique<InstancedObject3DRenderer>();
-	instancingTestRenderer_->Initialize("Sample/cube.gltf", 30000);
+	instancingTestRenderer_->Initialize("Sample/stanford-bunny.gltf", 30000);
+
+	// 高ポリゴンモデルを大量描画してTDRを起こさないよう、Debug用の描画予算を設定する。
+	instancingTestRenderer_->SetDebugIndexBudget(instancingIndexBudget_);
+	
 	RebuildInstancingTest();
 }
 
@@ -187,6 +191,8 @@ void DebugScene::DrawImGui()
 
 	ImGui::SeparatorText("GPU Instancing Test");
 	ImGui::Checkbox("Draw Instanced Objects", &isInstancingTestEnabled_);
+	ImGui::Checkbox("Auto Clamp Heavy Model", &instancingAutoClamp_);
+
 	ImGui::SliderInt("Instance Count", &instancingTestCount_, 1, 30000);
 	ImGui::DragFloat("Spacing", &instancingTestSpacing_, 0.05f, 0.1f, 20.0f, "%.2f");
 	ImGui::Checkbox("Random Scale", &instancingRandomScale_);
@@ -202,6 +208,26 @@ void DebugScene::DrawImGui()
 	}
 	if (instancingTestRenderer_)
 	{
+		const uint64_t modelIndexCount = instancingTestRenderer_->GetModelTotalIndexCount();
+		const uint64_t safeCount = modelIndexCount > 0
+			? std::max<uint64_t>(1ull, instancingIndexBudget_ / modelIndexCount)
+			: 30000ull;
+
+		instancingSafeCount_ = static_cast<int>(std::min<uint64_t>(safeCount, 30000ull));
+
+		ImGui::Text("Model Indices: %llu", static_cast<unsigned long long>(modelIndexCount));
+		ImGui::Text("Safe Instance Count: %d", instancingSafeCount_);
+		ImGui::Text("Estimated Draw Indices: %llu",
+			static_cast<unsigned long long>(instancingTestRenderer_->GetEstimatedDrawIndexCount()));
+
+		if (instancingTestRenderer_->WasDrawSkippedByBudget())
+		{
+			ImGui::TextColored(
+				ImVec4(1.0f, 0.25f, 0.2f, 1.0f),
+				"Draw skipped: estimated indices exceeded budget."
+			);
+		}
+
 		ImGui::Text("Visible: %zu / Total: %zu / Capacity: %zu",
 			instancingTestRenderer_->GetVisibleInstanceCount(),
 			instancingTestRenderer_->GetInstanceCount(),
@@ -215,7 +241,17 @@ void DebugScene::RebuildInstancingTest()
 {
 	if (!instancingTestRenderer_) { return; }
 
-	const int count = std::clamp(instancingTestCount_, 1, 30000);
+	int count = std::clamp(instancingTestCount_, 1, 30000);
+
+	if (instancingAutoClamp_ && instancingTestRenderer_)
+	{
+		const uint64_t modelIndexCount = instancingTestRenderer_->GetModelTotalIndexCount();
+		if (modelIndexCount > 0)
+		{
+			const uint64_t safeCount = std::max<uint64_t>(1ull, instancingIndexBudget_ / modelIndexCount);
+			count = std::min<int>(count, static_cast<int>(std::min<uint64_t>(safeCount, 30000ull)));
+		}
+	}
 	const int columns = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(count))));
 	std::mt19937 random(0x4B3445u); // 同じ設定なら同じ配置になる固定seed。
 	std::uniform_real_distribution<float> scaleDistribution(0.55f, 1.45f);
