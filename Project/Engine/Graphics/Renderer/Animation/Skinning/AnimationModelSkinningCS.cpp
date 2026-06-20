@@ -25,7 +25,7 @@ namespace Ken4lowEngine
 		runtimeEnabled_ = true;
 	}
 
-	void AnimationModelSkinningCS::Dispatch(DirectXCommon* dxCommon, SkinCluster* skinCluster, D3D12_GPU_DESCRIPTOR_HANDLE inputVerticesSrv, D3D12_GPU_DESCRIPTOR_HANDLE influenceSrv, D3D12_GPU_DESCRIPTOR_HANDLE outputUav, uint32_t vertexCount, ID3D12Resource* skinnedVB, D3D12_RESOURCE_STATES& skinnedState)
+	void AnimationModelSkinningCS::Dispatch(DirectXCommon* dxCommon, SkinCluster* skinCluster, D3D12_GPU_DESCRIPTOR_HANDLE inputVerticesSrv, D3D12_GPU_DESCRIPTOR_HANDLE influenceSrv, D3D12_GPU_DESCRIPTOR_HANDLE outputUav, uint32_t vertexCount, ID3D12Resource* skinnedVB, D3D12_RESOURCE_STATES& skinnedState, D3D12_GPU_DESCRIPTOR_HANDLE externalPaletteSrv)
 	{
 		if (!dxCommon || !mapped_ || !mapped_->isSkinning) { return; }
 		if (!runtimeEnabled_) { return; }
@@ -44,7 +44,11 @@ namespace Ken4lowEngine
 		}
 
 		// ルート：t0/t1/t2/u0/b0
-		cl->SetComputeRootDescriptorTable(0, skinCluster->GetPaletteSrvOnUAVHeap());
+		// DebugSceneの共有姿勢検証ではt0だけ代表Paletteへ差し替え、その他の入出力は個体ごとに維持する。
+		const D3D12_GPU_DESCRIPTOR_HANDLE paletteSrv = externalPaletteSrv.ptr != 0
+			? externalPaletteSrv
+			: skinCluster->GetPaletteSrvOnUAVHeap();
+		cl->SetComputeRootDescriptorTable(0, paletteSrv);
 		cl->SetComputeRootDescriptorTable(1, inputVerticesSrv);
 		cl->SetComputeRootDescriptorTable(2, influenceSrv);
 		cl->SetComputeRootDescriptorTable(3, outputUav);

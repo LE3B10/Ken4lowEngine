@@ -20,6 +20,13 @@ namespace Ken4lowEngine
 	class SkeletonAnimator final
 	{
 	public:
+		/// <summary>DebugSceneの負荷検証で、骨更新とパレット転送を分けて計測するための結果です。</summary>
+		struct UpdateTimings
+		{
+			float skeletonMilliseconds = 0.0f;
+			float paletteMilliseconds = 0.0f;
+		};
+
 		/// <summary>
 		/// animation/time から Skeleton を更新し、必要なら SkinCluster のパレットも更新します。
 		/// </summary>
@@ -27,6 +34,7 @@ namespace Ken4lowEngine
 		/// <param name="animation">アニメーション</param>
 		/// <param name="timeSeconds">アニメーション時刻（秒）</param>
 		/// <param name="skinCluster">パレット更新したい場合のみ渡す（nullptr 可）</param>
-		void Update(Skeleton& skeleton, const Animation& animation, float timeSeconds, SkinCluster* skinCluster = nullptr) const;
+		void Update(Skeleton& skeleton, const Animation& animation, float timeSeconds, SkinCluster* skinCluster = nullptr,
+			UpdateTimings* timings = nullptr) const;
 	};
 }

@@ -1,9 +1,13 @@
 #include "SkeletonAnimator.h"
 
+#include <chrono>
+
 namespace Ken4lowEngine
 {
-	void SkeletonAnimator::Update(Skeleton& skeleton, const Animation& animation, float timeSeconds, SkinCluster* skinCluster) const
+	void SkeletonAnimator::Update(Skeleton& skeleton, const Animation& animation, float timeSeconds, SkinCluster* skinCluster,
+		UpdateTimings* timings) const
 	{
+		const auto skeletonBegin = std::chrono::steady_clock::now();
 		auto& joints = skeleton.GetJoints();
 		if (joints.empty())
 		{
@@ -47,11 +51,22 @@ namespace Ken4lowEngine
 
 		// スケルトン更新
 		skeleton.UpdateSkeleton();
+		if (timings)
+		{
+			timings->skeletonMilliseconds =
+				std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - skeletonBegin).count();
+		}
 
 		// パレット更新（必要なときだけ）
 		if (skinCluster)
 		{
+			const auto paletteBegin = std::chrono::steady_clock::now();
 			skinCluster->UpdatePaletteMatrix(skeleton);
+			if (timings)
+			{
+				timings->paletteMilliseconds =
+					std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - paletteBegin).count();
+			}
 		}
 	}
 }

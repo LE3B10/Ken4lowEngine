@@ -36,7 +36,8 @@ namespace Ken4lowEngine
 			D3D12_GPU_DESCRIPTOR_HANDLE outputUav,
 			uint32_t vertexCount,
 			ID3D12Resource* skinnedVB,
-			D3D12_RESOURCE_STATES& skinnedState);
+			D3D12_RESOURCE_STATES& skinnedState,
+			D3D12_GPU_DESCRIPTOR_HANDLE externalPaletteSrv = {});
 
 	private:
 		Microsoft::WRL::ComPtr<ID3D12Resource> csCB_;                     // b0

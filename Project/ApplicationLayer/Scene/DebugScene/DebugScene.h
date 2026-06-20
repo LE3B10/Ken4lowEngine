@@ -5,6 +5,7 @@
 #include <memory>
 
 class PhysicsDebugController;
+class AnimationModelBatchTest;
 
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine
@@ -30,6 +31,8 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 仮想更新処理
 	void Update() override;
+	// Editor停止中もDebugScene専用負荷検証だけは更新する。
+	void UpdateEditor(float deltaTime) override;
 
 	// 仮想3D描画処理
 	void Draw3DObjects() override;
@@ -61,6 +64,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<CollisionManager> collisionManager_; // 衝突管理マネージャー
 
 	std::unique_ptr<PhysicsDebugController> physicsDebugController_; // DebugScene専用の物理確認コントローラ
+	std::unique_ptr<AnimationModelBatchTest> animationModelBatchTest_; // AnimationModel大量描画のDebugScene専用テスト
 
 	// 3万個のObject3Dを生成せず、専用GPUインスタンシング経路をON/OFFして負荷確認する。
 	std::unique_ptr<K4E::InstancedObject3DRenderer> instancingTestRenderer_;

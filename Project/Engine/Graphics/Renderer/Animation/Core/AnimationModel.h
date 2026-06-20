@@ -106,6 +106,18 @@ namespace Ken4lowEngine
 		/// <param name="models">描画対象の AnimationModel の配列。</param>
 		static void DrawBatched(const std::vector<std::unique_ptr<AnimationModel>>& models);
 
+		/// <summary>DebugScene専用テストでCompute Skinningだけをまとめて実行し、実Dispatch数を返します。</summary>
+		static size_t DispatchSkinningBatchedForDebugTest(const std::vector<std::unique_ptr<AnimationModel>>& models);
+		struct DebugSharedPaletteDispatchStats
+		{
+			size_t sharedPaletteDispatchCount = 0;
+			size_t fallbackDispatchCount = 0;
+			bool sharedPaletteValid = false;
+		};
+		/// <summary>DebugScene専用テストで、代表Paletteを使って各モデルのCompute Skinningを実行します。</summary>
+		static DebugSharedPaletteDispatchStats DispatchSkinningBatchedWithSharedPaletteForDebugTest(
+			const std::vector<std::unique_ptr<AnimationModel>>& models, const AnimationModel* representative);
+
 		/// <summary>
 		/// AnimationModel の生ポインタ配列版を一括で描画します。
 		/// </summary>
@@ -301,6 +313,39 @@ namespace Ken4lowEngine
 
 		bool IsComputeSkinningEnabled() const { return useComputeSkinning_; }
 		void SetComputeSkinningEnabled(bool v) { useComputeSkinning_ = v; }
+		/// <summary>Debug検証などからアニメーション再生／停止だけを切り替えます。</summary>
+		void SetAnimationPlaying(bool playing) { animationPlayer_.SetPlaying(playing); }
+		bool IsAnimationPlaying() const { return animationPlayer_.IsPlaying(); }
+		/// <summary>Debug検証時だけ、スキニングWVPへProjectionまで含めます。既定OFFのため実ゲーム挙動は変えません。</summary>
+		void SetUseDebugSkinningViewProjection(bool enabled) { useDebugSkinningViewProjection_ = enabled; }
+
+		/// <summary>DebugScene専用の更新区間別CPU時間です。通常のUpdate経路では使用しません。</summary>
+		struct DebugBatchUpdateTimings
+		{
+			float worldTransformMilliseconds = 0.0f;
+			float animationTimeMilliseconds = 0.0f;
+			float skeletonMilliseconds = 0.0f;
+			float paletteMilliseconds = 0.0f;
+			float playAnimationTimeSeconds = 0.0f;
+			bool poseUpdated = false;
+		};
+
+		/// <summary>DebugScene専用負荷検証として、時刻変化または強制指定がある場合だけ姿勢を更新します。</summary>
+		DebugBatchUpdateTimings UpdateForDebugBatchTest(bool playAnimation, bool forcePoseUpdate, float deltaTime);
+		/// <summary>DebugSceneの検証UIへ、読み込んだアニメーション長を公開します。</summary>
+		float GetAnimationDurationForDebugBatchTest() const { return animation.duration; }
+		/// <summary>DebugSceneの検証UIで、アニメーションデータの読み込み成否を確認します。</summary>
+		bool HasAnimationForDebugBatchTest() const { return animation.duration > 0.0f && !animation.nodeAnimations.empty(); }
+		/// <summary>DebugScene専用テストで、論理モデルパスに対応するSources側アニメーションを再読込します。</summary>
+		bool ReloadAnimationForDebugBatchTest();
+		/// <summary>現在LODのPalette SRVをDebugSceneの共有姿勢検証へ公開します。</summary>
+		D3D12_GPU_DESCRIPTOR_HANDLE GetCurrentPaletteSrvForDebugBatchTest() const;
+		/// <summary>モデルファイルとLODが一致し、代表Paletteを安全に共有できるか確認します。</summary>
+		bool CanSharePaletteWithForDebugBatchTest(const AnimationModel& representative) const;
+		/// <summary>LOD不一致時の個別フォールバック用に、代表モデルの再生時刻へ同期します。</summary>
+		void SetAnimationTimeForDebugBatchTest(float timeSeconds) { animationPlayer_.SetTime(timeSeconds); }
+		/// <summary>DebugScene専用に、外部Paletteを使ってこのモデル固有の頂点バッファへスキニングします。</summary>
+		bool DispatchSkinningCSWithExternalPaletteForDebugBatchTest(D3D12_GPU_DESCRIPTOR_HANDLE sharedPaletteSrv);
 
 		bool IsForceLOD() const { return lodController_.IsForceLOD(); }
 
@@ -409,6 +454,7 @@ namespace Ken4lowEngine
 
 		AnimationModelSkinningCS skinningCS_;
 		bool useComputeSkinning_ = true; // UIでON/OFFするなら残す（Freeze用途）
+		bool useDebugSkinningViewProjection_ = false; // DebugScene専用表示補正。実ゲームでは既定OFF。
 
 		// LOD制御（距離LOD + 距離カリング + 更新間引き）
 		AnimationModelLODController lodController_{};

@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "DebugScene.h"
 #include "PhysicsDebugController.h"
+#include "AnimationModelBatchTest.h"
 #include <Input.h>
 #include <SpriteManager.h>
 #include "CameraManager.h"
@@ -39,9 +40,13 @@ void DebugScene::Initialize()
 	physicsDebugController_ = std::make_unique<PhysicsDebugController>();
 	physicsDebugController_->Initialize();
 
+	// この検証はDebugScene内だけで所有し、実ゲームの敵・プレイヤー・ボスへ接続しない。
+	animationModelBatchTest_ = std::make_unique<AnimationModelBatchTest>();
+	animationModelBatchTest_->Initialize();
+
 	// 静的な3万行列を一度だけ用意し、毎フレームのObject3D生成・更新コストを発生させない。
 	instancingTestRenderer_ = std::make_unique<InstancedObject3DRenderer>();
-	instancingTestRenderer_->Initialize("Test/cube.gltf", 30000);
+	instancingTestRenderer_->Initialize("Sample/cube.gltf", 30000);
 	RebuildInstancingTest();
 }
 
@@ -61,9 +66,22 @@ void DebugScene::Update()
 	{
 		physicsDebugController_->Update(deltaTime);
 	}
+	if (animationModelBatchTest_)
+	{
+		animationModelBatchTest_->Update(deltaTime);
+	}
 
 	collisionManager_->CheckAllCollisions();
 	collisionManager_->Update();
+}
+
+void DebugScene::UpdateEditor(float deltaTime)
+{
+	// DebugScene専用のAnimationModel大量描画負荷検証は、EditorのPlay停止中も更新して比較できるようにする。
+	if (animationModelBatchTest_)
+	{
+		animationModelBatchTest_->Update(deltaTime);
+	}
 }
 
 /// -------------------------------------------------------------
@@ -71,6 +89,11 @@ void DebugScene::Update()
 /// -------------------------------------------------------------
 void DebugScene::Draw3DObjects()
 {
+	if (animationModelBatchTest_)
+	{
+		animationModelBatchTest_->Draw();
+	}
+
 	if (isInstancingTestEnabled_ && instancingTestRenderer_)
 	{
 		instancingTestRenderer_->Draw();
@@ -132,6 +155,11 @@ void DebugScene::Finalize()
 
 	collisionManager_.reset();
 	physicsDebugController_.reset();
+	if (animationModelBatchTest_)
+	{
+		animationModelBatchTest_->Finalize();
+		animationModelBatchTest_.reset();
+	}
 	instancingTestRenderer_.reset();
 
 	input_ = nullptr;
@@ -151,6 +179,10 @@ void DebugScene::DrawImGui()
 	if (physicsDebugController_)
 	{
 		physicsDebugController_->DrawImGui();
+	}
+	if (animationModelBatchTest_)
+	{
+		animationModelBatchTest_->DrawImGui();
 	}
 
 	ImGui::SeparatorText("GPU Instancing Test");

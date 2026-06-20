@@ -11,6 +11,7 @@
 #include <UAVManager.h>
 #include <GameTimer.h>
 #include <LightManager.h>
+#include <chrono>
 
 #include "AnimationLoader.h"
 #include "AnimationSampler.h"
@@ -318,6 +319,98 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
+	/// 			DebugScene専用の区間別更新処理
+	/// -------------------------------------------------------------
+	AnimationModel::DebugBatchUpdateTimings AnimationModel::UpdateForDebugBatchTest(bool playAnimation, bool forcePoseUpdate, float deltaTime)
+	{
+		DebugBatchUpdateTimings timings{};
+
+		// 可視判定に必要なLODだけは、再生停止中も現在のカメラ距離へ追従させる。
+		const float distSq = CalcDistanceSqToCamera();
+		const int previousLod = lodController_.GetLODIndex();
+		const bool lodChanged = lodController_.UpdateByDistanceSq(distSq, static_cast<int>(lods_.size()));
+		const int lodIndex = lodController_.GetLODIndex();
+		if (lodChanged && lodIndex != previousLod && 0 <= lodIndex && lodIndex < static_cast<int>(lods_.size()))
+		{
+			skinningCS_.SetVertexCount(lods_[lodIndex].vertexCount);
+		}
+
+		animationPlayer_.SetPlaying(playAnimation);
+		if (!lodController_.IsCulled() && playAnimation && animation.duration > 0.0f)
+		{
+			const auto animationBegin = std::chrono::steady_clock::now();
+			// Editor停止中もDebugSceneから渡された実フレーム時間で、AnimationPlayerを確実に進める。
+			animationPlayer_.Update(std::max(deltaTime, 0.0f), animation.duration);
+			timings.animationTimeMilliseconds =
+				std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - animationBegin).count();
+		}
+		timings.playAnimationTimeSeconds = animationPlayer_.GetTime();
+
+		// Play Animation中は姿勢が毎フレーム変化するため、DebugScene専用テストでもposeDirtyを立てて骨更新とPalette更新を実行する。
+		// LOD切替時も参照するSkinClusterが変わるので、新しいPaletteを一度だけ初期化する。
+		const bool shouldUpdatePose = playAnimation || forcePoseUpdate || lodChanged;
+		if (!lodController_.IsCulled() && shouldUpdatePose)
+		{
+			if (skinningCS_.IsSkinningModel() && skeleton_ && !lods_.empty())
+			{
+				SkinCluster* skinCluster = nullptr;
+				if (0 <= lodIndex && lodIndex < static_cast<int>(skinClusterLOD_.size()))
+				{
+					skinCluster = skinClusterLOD_[lodIndex].get();
+				}
+				SkeletonAnimator::UpdateTimings skeletonTimings{};
+				skeletonAnimator_.Update(*skeleton_, animation, animationPlayer_.GetTime(), skinCluster, &skeletonTimings);
+				timings.skeletonMilliseconds = skeletonTimings.skeletonMilliseconds;
+				timings.paletteMilliseconds = skeletonTimings.paletteMilliseconds;
+				timings.poseUpdated = true;
+			}
+		}
+
+		// 姿勢が変わらないフレームではSkinClusterのPalette更新を省略し、DebugSceneのAnimationModel大量描画テストで更新コストを分離する。
+		const auto worldBegin = std::chrono::steady_clock::now();
+		if (!lodController_.IsCulled())
+		{
+			UpdateAnimation();
+			UpdateShadowParameters();
+		}
+		timings.worldTransformMilliseconds =
+			std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - worldBegin).count();
+		return timings;
+	}
+
+	/// -------------------------------------------------------------
+	/// 		DebugScene専用アニメーション再読込
+	/// -------------------------------------------------------------
+	bool AnimationModel::ReloadAnimationForDebugBatchTest()
+	{
+		// 通常のAnimationModelロード規約は変えず、DebugSceneテストだけSourcesの論理パスを明示する。
+		AnimationLoader::Settings settings{};
+		settings.animationFilePath = "Resources/Models/Sources/";
+		animation = AnimationLoader::LoadByIndexAnimation(fileName_, 0, settings);
+		animationPlayer_.Reset();
+		return HasAnimationForDebugBatchTest();
+	}
+
+	D3D12_GPU_DESCRIPTOR_HANDLE AnimationModel::GetCurrentPaletteSrvForDebugBatchTest() const
+	{
+		const int lodIndex = lodController_.GetLODIndex();
+		if (lodIndex < 0 || lodIndex >= static_cast<int>(skinClusterLOD_.size()) || !skinClusterLOD_[lodIndex])
+		{
+			return {};
+		}
+		return skinClusterLOD_[lodIndex]->GetPaletteSrvOnUAVHeap();
+	}
+
+	bool AnimationModel::CanSharePaletteWithForDebugBatchTest(const AnimationModel& representative) const
+	{
+		// DebugScene内でもモデルファイルまたはLODが違う個体へ、互換性のないPaletteを渡さない。
+		return fileName_ == representative.fileName_
+			&& lodController_.GetLODIndex() == representative.lodController_.GetLODIndex()
+			&& GetCurrentPaletteSrvForDebugBatchTest().ptr != 0
+			&& representative.GetCurrentPaletteSrvForDebugBatchTest().ptr != 0;
+	}
+
+	/// -------------------------------------------------------------
 	///				　			描画処理
 	/// -------------------------------------------------------------
 	void AnimationModel::Draw()
@@ -369,6 +462,61 @@ namespace Ken4lowEngine
 			if (!m) continue;
 			if (m->IsVisible()) m->DrawSkinned();
 		}
+	}
+
+	/// -------------------------------------------------------------
+	/// 		DebugScene専用のCompute Skinning一括実行
+	/// -------------------------------------------------------------
+	size_t AnimationModel::DispatchSkinningBatchedForDebugTest(const std::vector<std::unique_ptr<AnimationModel>>& models)
+	{
+		UAVManager::GetInstance()->PreDispatch();
+		AnimationPipelineBuilder::GetInstance()->SetComputeSetting();
+
+		size_t dispatchCount = 0;
+		for (const auto& model : models)
+		{
+			if (!model || !model->IsVisible() || !model->IsComputeSkinningEnabled()) { continue; }
+			model->DispatchSkinningCS();
+			++dispatchCount;
+		}
+		return dispatchCount;
+	}
+
+	/// -------------------------------------------------------------
+	/// 	DebugScene専用の代表Palette共有Compute Skinning
+	/// -------------------------------------------------------------
+	AnimationModel::DebugSharedPaletteDispatchStats AnimationModel::DispatchSkinningBatchedWithSharedPaletteForDebugTest(
+		const std::vector<std::unique_ptr<AnimationModel>>& models, const AnimationModel* representative)
+	{
+		DebugSharedPaletteDispatchStats stats{};
+		if (!representative) { return stats; }
+		const D3D12_GPU_DESCRIPTOR_HANDLE sharedPaletteSrv = representative->GetCurrentPaletteSrvForDebugBatchTest();
+		stats.sharedPaletteValid = sharedPaletteSrv.ptr != 0;
+
+		UAVManager::GetInstance()->PreDispatch();
+		AnimationPipelineBuilder::GetInstance()->SetComputeSetting();
+		for (const auto& model : models)
+		{
+			if (!model || !model->IsVisible() || !model->IsComputeSkinningEnabled()) { continue; }
+			if (stats.sharedPaletteValid && model->CanSharePaletteWithForDebugBatchTest(*representative))
+			{
+				if (model->DispatchSkinningCSWithExternalPaletteForDebugBatchTest(sharedPaletteSrv))
+				{
+					++stats.sharedPaletteDispatchCount;
+				}
+				else
+				{
+					model->DispatchSkinningCS();
+					++stats.fallbackDispatchCount;
+				}
+			}
+			else
+			{
+				model->DispatchSkinningCS();
+				++stats.fallbackDispatchCount;
+			}
+		}
+		return stats;
 	}
 
 	/// -------------------------------------------------------------
@@ -502,7 +650,9 @@ namespace Ken4lowEngine
 			if (camera_)
 			{
 				// カメラ行列取得
-				const Matrix4x4& viewProjectionMatrix = CameraManager::GetInstance()->GetActiveViewMatrix();
+				const Matrix4x4 viewProjectionMatrix = useDebugSkinningViewProjection_
+					? CameraManager::GetInstance()->GetActiveViewProjectionMatrix()
+					: CameraManager::GetInstance()->GetActiveViewMatrix();
 
 				// ワールドビュー射影行列計算
 				worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);
@@ -625,6 +775,28 @@ namespace Ken4lowEngine
 		const D3D12_GPU_DESCRIPTOR_HANDLE outputUav = UAVManager::GetInstance()->GetGPUDescriptorHandle(L.uavIndex);
 
 		skinningCS_.Dispatch(dxCommon_, skinClusterLOD_[lodIndex].get(), inputSrv, influenceSrv, outputUav, L.vertexCount, L.skinnedVB.Get(), L.skinnedState);
+	}
+
+	bool AnimationModel::DispatchSkinningCSWithExternalPaletteForDebugBatchTest(D3D12_GPU_DESCRIPTOR_HANDLE sharedPaletteSrv)
+	{
+		if (sharedPaletteSrv.ptr == 0 || lodController_.IsCulled() || !useComputeSkinning_ || !dxCommon_ || !skinningCS_.IsSkinningModel())
+		{
+			return false;
+		}
+		const int lodIndex = lodController_.GetLODIndex();
+		if (lodIndex < 0 || lodIndex >= static_cast<int>(lods_.size())
+			|| lodIndex >= static_cast<int>(skinClusterLOD_.size()) || !skinClusterLOD_[lodIndex])
+		{
+			return false;
+		}
+
+		auto& lod = lods_[lodIndex];
+		const D3D12_GPU_DESCRIPTOR_HANDLE inputSrv = UAVManager::GetInstance()->GetGPUDescriptorHandle(lod.srvInputVerticesOnUavHeap);
+		const D3D12_GPU_DESCRIPTOR_HANDLE outputUav = UAVManager::GetInstance()->GetGPUDescriptorHandle(lod.uavIndex);
+		// 同じモデル・同じアニメーション時間のDebug用モデル群では、代表モデルのPaletteを共有して各モデルを同じ姿勢でスキニングする。
+		skinningCS_.Dispatch(dxCommon_, skinClusterLOD_[lodIndex].get(), inputSrv, lod.influenceSrvGpuOnUavHeap,
+			outputUav, lod.vertexCount, lod.skinnedVB.Get(), lod.skinnedState, sharedPaletteSrv);
+		return true;
 	}
 
 	/// -------------------------------------------------------------
