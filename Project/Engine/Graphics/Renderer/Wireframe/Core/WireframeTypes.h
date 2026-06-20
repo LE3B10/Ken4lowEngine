@@ -71,6 +71,33 @@ namespace Ken4lowEngine
 		D3D12_VERTEX_BUFFER_VIEW instanceBufferView{};
 	};
 
+	// Capsule共有ワイヤーメッシュの頂点データ。形状配置と色はインスタンス側から受け取る。
+	struct WireframeCapsuleVertexData
+	{
+		Vector3 position;
+	};
+
+	// Capsule 1個分のインスタンスデータ。Y軸基準の単位Capsuleをworld行列で配置する。
+	struct WireframeCapsuleInstanceData
+	{
+		Matrix4x4 world;
+		Vector4 color;
+	};
+
+	// Capsule共有メッシュと、毎フレーム更新するインスタンスバッファを管理する。
+	struct WireframeCapsuleInstancedData
+	{
+		WireframeCapsuleVertexData* baseVertexData = nullptr;
+		uint32_t* indexData = nullptr;
+		WireframeCapsuleInstanceData* instanceData = nullptr;
+		Microsoft::WRL::ComPtr<ID3D12Resource> baseVertexBuffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource> indexBuffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource> instanceBuffer;
+		D3D12_VERTEX_BUFFER_VIEW baseVertexBufferView{};
+		D3D12_INDEX_BUFFER_VIEW indexBufferView{};
+		D3D12_VERTEX_BUFFER_VIEW instanceBufferView{};
+	};
+
 	// ワイヤー描画用の座標変換行列。
 	struct WireframeTransformationMatrix
 	{

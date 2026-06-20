@@ -26,4 +26,17 @@ namespace Ken4lowEngine
 	inline constexpr uint32_t kWireframeSphereBaseVertexCount = kWireframeSphereRingSegmentCount * kWireframeSphereRingCount;
 	inline constexpr uint32_t kWireframeSphereIndexCount = kWireframeSphereRingSegmentCount * 2 * kWireframeSphereRingCount;
 	inline constexpr uint32_t kWireframeSphereMaxInstanceCount = 2048;
+
+	// CapsuleはY軸基準・半径1・円柱半分高さ1の軽量共有メッシュを使う。
+	inline constexpr uint32_t kWireframeCapsuleSegmentCount = 16;
+	inline constexpr uint32_t kWireframeCapsuleArchCount = 4;
+	inline constexpr uint32_t kWireframeCapsuleHemisphereSegmentCount = kWireframeCapsuleSegmentCount / 4;
+	inline constexpr uint32_t kWireframeCapsuleBaseVertexCount =
+		kWireframeCapsuleSegmentCount * 2 +
+		kWireframeCapsuleArchCount * (kWireframeCapsuleHemisphereSegmentCount + 1) * 2;
+	inline constexpr uint32_t kWireframeCapsuleIndexCount =
+		kWireframeCapsuleSegmentCount * 2 * 2 +
+		kWireframeCapsuleSegmentCount * 2 +
+		kWireframeCapsuleArchCount * kWireframeCapsuleHemisphereSegmentCount * 2 * 2;
+	inline constexpr uint32_t kWireframeCapsuleMaxInstanceCount = 2048;
 }

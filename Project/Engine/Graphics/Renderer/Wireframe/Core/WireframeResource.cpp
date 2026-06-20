@@ -167,4 +167,92 @@ namespace Ken4lowEngine
 		sphereData->instanceBuffer->Map(0, nullptr, reinterpret_cast<void**>(&sphereData->instanceData));
 	}
 
+	void Wireframe::CreateCapsuleInstancedData(WireframeCapsuleInstancedData* capsuleData)
+	{
+		// Capsuleの基本ワイヤーメッシュを初期化時に1回だけ作り、各Capsuleはインスタンスデータで描画する。
+		const UINT baseVertexBufferSize = sizeof(WireframeCapsuleVertexData) * kWireframeCapsuleBaseVertexCount;
+		const UINT indexBufferSize = sizeof(uint32_t) * kWireframeCapsuleIndexCount;
+		const UINT instanceBufferSize = sizeof(WireframeCapsuleInstanceData) * kWireframeCapsuleMaxInstanceCount;
+
+		capsuleData->baseVertexBuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), baseVertexBufferSize);
+		capsuleData->baseVertexBufferView = {
+			capsuleData->baseVertexBuffer->GetGPUVirtualAddress(), baseVertexBufferSize, sizeof(WireframeCapsuleVertexData)
+		};
+		// Y軸基準Capsuleの共有頂点バッファをMapして、上下リングと半球アーチを書き込む。
+		capsuleData->baseVertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&capsuleData->baseVertexData));
+
+		const float twoPi = 2.0f * std::numbers::pi_v<float>;
+		for (uint32_t segment = 0; segment < kWireframeCapsuleSegmentCount; ++segment)
+		{
+			const float angle = twoPi * static_cast<float>(segment) / static_cast<float>(kWireframeCapsuleSegmentCount);
+			const float x = std::cos(angle);
+			const float z = std::sin(angle);
+			capsuleData->baseVertexData[segment].position = { x, -1.0f, z };
+			capsuleData->baseVertexData[kWireframeCapsuleSegmentCount + segment].position = { x, 1.0f, z };
+		}
+
+		uint32_t vertexCursor = kWireframeCapsuleSegmentCount * 2;
+		for (uint32_t hemisphere = 0; hemisphere < 2; ++hemisphere)
+		{
+			const float hemisphereSign = hemisphere == 0 ? 1.0f : -1.0f;
+			for (uint32_t arch = 0; arch < kWireframeCapsuleArchCount; ++arch)
+			{
+				const float azimuth = twoPi * static_cast<float>(arch) / static_cast<float>(kWireframeCapsuleArchCount);
+				for (uint32_t step = 0; step <= kWireframeCapsuleHemisphereSegmentCount; ++step)
+				{
+					const float elevation = (std::numbers::pi_v<float> * 0.5f) *
+						static_cast<float>(step) / static_cast<float>(kWireframeCapsuleHemisphereSegmentCount);
+					const float ringRadius = std::cos(elevation);
+					capsuleData->baseVertexData[vertexCursor++].position = {
+						std::cos(azimuth) * ringRadius,
+						hemisphereSign * (1.0f + std::sin(elevation)),
+						std::sin(azimuth) * ringRadius
+					};
+				}
+			}
+		}
+		assert(vertexCursor == kWireframeCapsuleBaseVertexCount);
+
+		capsuleData->indexBuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), indexBufferSize);
+		capsuleData->indexBufferView.BufferLocation = capsuleData->indexBuffer->GetGPUVirtualAddress();
+		capsuleData->indexBufferView.SizeInBytes = indexBufferSize;
+		capsuleData->indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+		// Capsuleのリング・縦線・半球アーチをLINELISTで結ぶ共有indexバッファをMapする。
+		capsuleData->indexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&capsuleData->indexData));
+
+		uint32_t indexCursor = 0;
+		for (uint32_t segment = 0; segment < kWireframeCapsuleSegmentCount; ++segment)
+		{
+			const uint32_t next = (segment + 1) % kWireframeCapsuleSegmentCount;
+			capsuleData->indexData[indexCursor++] = segment;
+			capsuleData->indexData[indexCursor++] = next;
+			capsuleData->indexData[indexCursor++] = kWireframeCapsuleSegmentCount + segment;
+			capsuleData->indexData[indexCursor++] = kWireframeCapsuleSegmentCount + next;
+			capsuleData->indexData[indexCursor++] = segment;
+			capsuleData->indexData[indexCursor++] = kWireframeCapsuleSegmentCount + segment;
+		}
+
+		uint32_t archVertexOffset = kWireframeCapsuleSegmentCount * 2;
+		for (uint32_t hemisphere = 0; hemisphere < 2; ++hemisphere)
+		{
+			for (uint32_t arch = 0; arch < kWireframeCapsuleArchCount; ++arch)
+			{
+				for (uint32_t step = 0; step < kWireframeCapsuleHemisphereSegmentCount; ++step)
+				{
+					capsuleData->indexData[indexCursor++] = archVertexOffset + step;
+					capsuleData->indexData[indexCursor++] = archVertexOffset + step + 1;
+				}
+				archVertexOffset += kWireframeCapsuleHemisphereSegmentCount + 1;
+			}
+		}
+		assert(indexCursor == kWireframeCapsuleIndexCount);
+
+		capsuleData->instanceBuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), instanceBufferSize);
+		capsuleData->instanceBufferView = {
+			capsuleData->instanceBuffer->GetGPUVirtualAddress(), instanceBufferSize, sizeof(WireframeCapsuleInstanceData)
+		};
+		// Capsuleごとのworld行列と色を毎フレーム追記するインスタンスバッファを永続Mapする。
+		capsuleData->instanceBuffer->Map(0, nullptr, reinterpret_cast<void**>(&capsuleData->instanceData));
+	}
+
 } // namespace Ken4lowEngine

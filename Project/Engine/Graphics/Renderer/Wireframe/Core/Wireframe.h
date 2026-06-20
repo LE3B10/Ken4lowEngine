@@ -261,6 +261,10 @@ namespace Ken4lowEngine
 		uint32_t GetSphereInstanceCount() const { return sphereInstanceCount_; }
 		static constexpr uint32_t GetSphereMaxInstanceCount() { return kWireframeSphereMaxInstanceCount; }
 
+		// 現在フレームに蓄積されたCapsuleインスタンス数を返す。
+		uint32_t GetCapsuleInstanceCount() const { return capsuleInstanceCount_; }
+		static constexpr uint32_t GetCapsuleMaxInstanceCount() { return kWireframeCapsuleMaxInstanceCount; }
+
 	private: /// ---------- メンバ関数 ---------- ///
 
 		// Pipeline生成: DirectX の描画パイプライン構築だけを担当する内部処理。
@@ -279,12 +283,16 @@ namespace Ken4lowEngine
 		void CreateBoxWireInstancedData(WireframeBoxInstancedData* boxWireData);
 		// Sphereの基本リングメッシュを1回だけ作り、各Sphereはインスタンスデータで描画する。
 		void CreateSphereInstancedData(WireframeSphereInstancedData* sphereData);
+		// Capsuleの基本ワイヤーメッシュを1回だけ作り、各Capsuleはインスタンスデータで描画する。
+		void CreateCapsuleInstancedData(WireframeCapsuleInstancedData* capsuleData);
 		void CreateTransformationMatrix();
 
 		// AABB / OBBの単位キューブ線メッシュを共有し、World行列と色だけをインスタンスとして登録する。
 		void AddBoxWireInstance(const Matrix4x4& world, const Vector4& color);
 		// Sphereごとの差分となるworld行列と色だけをインスタンスとして登録する。
 		void AddSphereWireInstance(const Matrix4x4& world, const Vector4& color);
+		// Capsuleごとの差分となるworld行列と色だけをインスタンスとして登録する。
+		void AddCapsuleWireInstance(const Matrix4x4& world, const Vector4& color);
 
 	private: /// ---------- メンバ変数 ---------- ///
 
@@ -326,6 +334,9 @@ namespace Ken4lowEngine
 		// Sphereの3リング共有メッシュとインスタンスデータ。
 		std::unique_ptr<WireframeSphereInstancedData> sphereInstancedData_;
 
+		// Capsuleの共有ワイヤーメッシュとインスタンスデータ。
+		std::unique_ptr<WireframeCapsuleInstancedData> capsuleInstancedData_;
+
 	private: /// ---------- メンバ変数 ---------- ///
 
 		// デバッグカメラの有無
@@ -351,6 +362,9 @@ namespace Ken4lowEngine
 
 		// 現在フレームに蓄積されたSphereインスタンス数。
 		uint32_t sphereInstanceCount_ = 0;
+
+		// 現在フレームに蓄積されたCapsuleインスタンス数。
+		uint32_t capsuleInstanceCount_ = 0;
 
 		// マトリックス
 		Matrix4x4 projectionMatrix_{};

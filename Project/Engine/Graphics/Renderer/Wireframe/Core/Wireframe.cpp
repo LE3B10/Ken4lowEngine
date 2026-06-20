@@ -45,6 +45,9 @@ namespace Ken4lowEngine
 		// Sphere用の共有3リングメッシュとインスタンスバッファを生成
 		sphereInstancedData_ = std::make_unique<WireframeSphereInstancedData>();
 		CreateSphereInstancedData(sphereInstancedData_.get());
+		// Capsule用の共有ワイヤーメッシュとインスタンスバッファを生成
+		capsuleInstancedData_ = std::make_unique<WireframeCapsuleInstancedData>();
+		CreateCapsuleInstancedData(capsuleInstancedData_.get());
 		// 名前の設定
 		trianglePipelineState_->SetName(L"Wireframe_Triangle_PSO");
 		triangleRootSignature_->SetName(L"Wireframe_Triangle_RootSignature");
@@ -99,6 +102,13 @@ namespace Ken4lowEngine
 			UnmapAndResetVB(sphereInstancedData_->indexBuffer, sphereInstancedData_->indexData);
 			UnmapAndResetVB(sphereInstancedData_->instanceBuffer, sphereInstancedData_->instanceData);
 			sphereInstancedData_.reset();
+		}
+		if (capsuleInstancedData_) {
+			// Capsule共有頂点・index・インスタンスの各Mapを解除してからGPUリソースを破棄する。
+			UnmapAndResetVB(capsuleInstancedData_->baseVertexBuffer, capsuleInstancedData_->baseVertexData);
+			UnmapAndResetVB(capsuleInstancedData_->indexBuffer, capsuleInstancedData_->indexData);
+			UnmapAndResetVB(capsuleInstancedData_->instanceBuffer, capsuleInstancedData_->instanceData);
+			capsuleInstancedData_.reset();
 		}
 		// ---- PSO / RootSignature を解放 ----
 		trianglePipelineState_.Reset();
@@ -189,6 +199,23 @@ namespace Ken4lowEngine
 			commandList->DrawIndexedInstanced(kWireframeSphereIndexCount, sphereInstanceCount_, 0, 0, 0);
 		}
 #pragma endregion -------------------------------------------
+#pragma region ---------- Capsuleインスタンシング描画 ----------
+		if (capsuleInstanceCount_ > 0 && capsuleInstancedData_)
+		{
+			commandList->SetGraphicsRootSignature(instancedWireRootSignature_.Get());
+			commandList->SetPipelineState(instancedWirePipelineState_.Get());
+			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+			const D3D12_VERTEX_BUFFER_VIEW vertexBufferViews[] = {
+				capsuleInstancedData_->baseVertexBufferView,
+				capsuleInstancedData_->instanceBufferView
+			};
+			commandList->IASetVertexBuffers(0, _countof(vertexBufferViews), vertexBufferViews);
+			commandList->IASetIndexBuffer(&capsuleInstancedData_->indexBufferView);
+			commandList->SetGraphicsRootConstantBufferView(0, transformationMatrixBuffer_->GetGPUVirtualAddress());
+			// 共有する単位Capsuleを、蓄積した全Capsuleについて1回のDrawCallで描画する。
+			commandList->DrawIndexedInstanced(kWireframeCapsuleIndexCount, capsuleInstanceCount_, 0, 0, 0);
+		}
+#pragma endregion -------------------------------------------
 		// リセット処理
 		Reset();
 	}
@@ -201,6 +228,7 @@ namespace Ken4lowEngine
 		lineIndex_ = 0;
 		boxWireInstanceCount_ = 0;
 		sphereInstanceCount_ = 0;
+		capsuleInstanceCount_ = 0;
 	}
 
 	void Wireframe::AddBoxWireInstance(const Matrix4x4& world, const Vector4& color)
@@ -213,6 +241,20 @@ namespace Ken4lowEngine
 		}
 
 		WireframeBoxInstanceData& instance = boxWireInstancedData_->instanceData[boxWireInstanceCount_++];
+		instance.world = world;
+		instance.color = color;
+	}
+
+	void Wireframe::AddCapsuleWireInstance(const Matrix4x4& world, const Vector4& color)
+	{
+		// 共有単位Capsuleに対し、Capsuleごとの差分となるworld行列と色だけを登録する。
+		if (!capsuleInstancedData_ || !capsuleInstancedData_->instanceData ||
+			capsuleInstanceCount_ >= kWireframeCapsuleMaxInstanceCount)
+		{
+			return;
+		}
+
+		WireframeCapsuleInstanceData& instance = capsuleInstancedData_->instanceData[capsuleInstanceCount_++];
 		instance.world = world;
 		instance.color = color;
 	}

@@ -66,106 +66,42 @@ namespace Ken4lowEngine
 
 	void Wireframe::DrawCapsule(const Vector3& center, float radius, float height, const Vector3& axis, uint32_t segments, const Vector4& color)
 	{
-		constexpr float PI = std::numbers::pi_v<float>;
-		float angleStep = (2.0f * PI) / float(segments);
-		// 軸ベクトル
-		Vector3 up = Vector3::Normalize(axis);
-		Vector3 right = Vector3(1.0f, 0.0f, 0.0f);
-		if (std::fabs(Vector3::Dot(up, right)) > 0.99f) {
-			right = Vector3(0.0f, 1.0f, 0.0f);
+		const float axisLength = Vector3::Length(axis);
+		if (radius <= 0.0f || height <= 0.0f || axisLength <= 0.000001f)
+		{
+			return;
 		}
-		Vector3 forward = Vector3::Normalize(Vector3::Cross(up, right));
-		right = Vector3::Normalize(Vector3::Cross(forward, up));
-		// カプセル全体の高さから Cylinder の高さを求める
-		float cylinderHeight = height - 2.0f * radius;
-		if (cylinderHeight < 0.0f) cylinderHeight = 0.0f; // 異常入力対策
-		// Cylinder の Bottom / Top 中心位置
-		Vector3 cylinderBottom = Vector3::Add(center, Vector3::Multiply(-0.5f * cylinderHeight, up));
-		Vector3 cylinderTop = Vector3::Add(center, Vector3::Multiply(0.5f * cylinderHeight, up));
-		// Sphere の中心位置（※ ここが重要！）
-		Vector3 bottomSphereCenter = Vector3::Add(center, Vector3::Multiply(-0.5f * cylinderHeight, up));
-		Vector3 topSphereCenter = Vector3::Add(center, Vector3::Multiply(0.5f * cylinderHeight, up));
-		// Cylinder 円周の頂点
-		std::vector<Vector3> bottomVertices(segments);
-		std::vector<Vector3> topVertices(segments);
-		for (uint32_t i = 0; i < segments; i++) {
-			float angle = angleStep * i;
-			Vector3 offset = Vector3::Add(
-				Vector3::Multiply(radius * cosf(angle), right),
-				Vector3::Multiply(radius * sinf(angle), forward));
-			bottomVertices[i] = Vector3::Add(cylinderBottom, offset);
-			topVertices[i] = Vector3::Add(cylinderTop, offset);
-		}
-		// Cylinder 円周と側面
-		for (uint32_t i = 0; i < segments; i++) {
-			DrawLine(bottomVertices[i], bottomVertices[(i + 1) % segments], color);
-			DrawLine(topVertices[i], topVertices[(i + 1) % segments], color);
-			DrawLine(bottomVertices[i], topVertices[i], color);
-		}
-		// 半球の縦方向線
-		float hemisphereStep = (PI / 2.0f) / float(segments / 2);
-		for (uint32_t i = 0; i <= segments / 2; ++i) {
-			float vAngle0 = hemisphereStep * float(i);
-			float vAngle1 = hemisphereStep * float(i + 1);
-			float z0 = radius * sinf(vAngle0);
-			float r0 = radius * cosf(vAngle0);
-			float z1 = radius * sinf(vAngle1);
-			float r1 = radius * cosf(vAngle1);
-			for (uint32_t j = 0; j <= segments; ++j) {
-				float hAngle = angleStep * j;
-				Vector3 offset0 = Vector3::Add(
-					Vector3::Multiply(r0 * cosf(hAngle), right),
-					Vector3::Multiply(r0 * sinf(hAngle), forward));
-				Vector3 offset1 = Vector3::Add(
-					Vector3::Multiply(r1 * cosf(hAngle), right),
-					Vector3::Multiply(r1 * sinf(hAngle), forward));
-				// Bottom hemisphere
-				Vector3 p0 = Vector3::Add(bottomSphereCenter, offset0);
-				p0 = Vector3::Add(p0, Vector3::Multiply(-z0, up));
-				Vector3 p1 = Vector3::Add(bottomSphereCenter, offset1);
-				p1 = Vector3::Add(p1, Vector3::Multiply(-z1, up));
-				DrawLine(p0, p1, color);
-				// Top hemisphere
-				Vector3 t0 = Vector3::Add(topSphereCenter, offset0);
-				t0 = Vector3::Add(t0, Vector3::Multiply(z0, up));
-				Vector3 t1 = Vector3::Add(topSphereCenter, offset1);
-				t1 = Vector3::Add(t1, Vector3::Multiply(z1, up));
-				DrawLine(t0, t1, color);
-			}
-		}
-		// 半球 横リング
-		for (uint32_t i = 1; i < segments / 2; ++i) {
-			float vAngle = hemisphereStep * float(i);
-			float z = radius * sinf(vAngle);
-			float r = radius * cosf(vAngle);
-			std::vector<Vector3> ringVertices(segments + 1);
-			for (uint32_t j = 0; j <= segments; ++j) {
-				float hAngle = angleStep * j;
-				Vector3 offset = Vector3::Add(
-					Vector3::Multiply(r * cosf(hAngle), right),
-					Vector3::Multiply(r * sinf(hAngle), forward));
-				// Bottom
-				Vector3 p = Vector3::Add(bottomSphereCenter, offset);
-				p = Vector3::Add(p, Vector3::Multiply(-z, up));
-				ringVertices[j] = p;
-			}
-			for (uint32_t j = 0; j < segments; ++j) {
-				DrawLine(ringVertices[j], ringVertices[j + 1], color);
-			}
-			for (uint32_t j = 0; j <= segments; ++j) {
-				float hAngle = angleStep * j;
-				Vector3 offset = Vector3::Add(
-					Vector3::Multiply(r * cosf(hAngle), right),
-					Vector3::Multiply(r * sinf(hAngle), forward));
-				// Top
-				Vector3 t = Vector3::Add(topSphereCenter, offset);
-				t = Vector3::Add(t, Vector3::Multiply(z, up));
-				ringVertices[j] = t;
-			}
-			for (uint32_t j = 0; j < segments; ++j) {
-				DrawLine(ringVertices[j], ringVertices[j + 1], color);
-			}
-		}
+
+		// 共有メッシュは固定16分割のため、呼び出し側のsegmentsは互換性維持のためだけに受け取る。
+		(void)segments;
+		const Vector3 up = Vector3::Multiply(1.0f / axisLength, axis);
+		const Vector3 reference = std::fabs(up.z) < 0.999f ? Vector3(0.0f, 0.0f, 1.0f) : Vector3(1.0f, 0.0f, 0.0f);
+		const Vector3 right = Vector3::Normalize(Vector3::Cross(up, reference));
+		const Vector3 forward = Vector3::Normalize(Vector3::Cross(right, up));
+
+		const float cylinderHeight = height > radius * 2.0f ? height - radius * 2.0f : 0.0f;
+		const float halfCylinderHeight = cylinderHeight * 0.5f;
+		// 単一のworld行列だけで描くため、Yは全高を保つ簡易スケールとし、X/Z半径は正確に維持する。
+		const float yScale = (halfCylinderHeight + radius) * 0.5f;
+
+		// Y軸基準の単位Capsuleをaxis方向へ向ける直交基底を、エンジンの行ベクトル規約で組み立てる。
+		Matrix4x4 world = Matrix4x4::MakeIdentity();
+		world.m[0][0] = right.x * radius;
+		world.m[0][1] = right.y * radius;
+		world.m[0][2] = right.z * radius;
+		world.m[1][0] = up.x * yScale;
+		world.m[1][1] = up.y * yScale;
+		world.m[1][2] = up.z * yScale;
+		world.m[2][0] = forward.x * radius;
+		world.m[2][1] = forward.y * radius;
+		world.m[2][2] = forward.z * radius;
+		world.m[3][0] = center.x;
+		world.m[3][1] = center.y;
+		world.m[3][2] = center.z;
+		world.m[3][3] = 1.0f;
+
+		// 既存のDrawLine大量呼び出しをやめ、world行列と色だけをインスタンシング経路へ送る。
+		AddCapsuleWireInstance(world, color);
 	}
 
 	void Wireframe::DrawCapsule(const Capsule& capsule, const Vector4& color)
