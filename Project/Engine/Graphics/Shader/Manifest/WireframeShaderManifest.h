@@ -8,6 +8,7 @@ namespace Ken4lowEngine
 	enum class WireframeShaderId : uint32_t
 	{
 		WireframeVS,
+		WireframeAABBInstancedVS,
 		WireframePS,
 	};
 
@@ -38,6 +39,18 @@ namespace Ken4lowEngine
 					L"main",
 					L"ps_6_0",
 					ShaderStage::Pixel,
+					RootSignatureType::Object3D
+				};
+				return desc;
+			}
+			case WireframeShaderId::WireframeAABBInstancedVS:
+			{
+				static const ShaderDescriptor desc{
+					L"WireframeAABBInstancedVS",
+					L"Resources/Shaders/Wireframe/WireframeAABBInstanced.VS.hlsl",
+					L"main",
+					L"vs_6_0",
+					ShaderStage::Vertex,
 					RootSignatureType::Object3D
 				};
 				return desc;

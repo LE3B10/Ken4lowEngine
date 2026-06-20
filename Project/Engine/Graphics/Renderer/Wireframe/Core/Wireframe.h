@@ -247,6 +247,12 @@ namespace Ken4lowEngine
 		const Matrix4x4& GetProjectionMatrix() { return projectionMatrix_; }
 		bool GetDebugCamera() const { return isDebugCamera_; }
 
+		// 現在フレームに蓄積されたAABBインスタンス数を返す。
+		uint32_t GetAABBInstanceCount() const { return aabbInstanceCount_; }
+
+		// AABBインスタンスバッファへ蓄積できる最大数を返す。
+		static constexpr uint32_t GetAABBMaxInstanceCount() { return kWireframeAABBMaxInstanceCount; }
+
 	private: /// ---------- メンバ関数 ---------- ///
 
 		// Pipeline生成: DirectX の描画パイプライン構築だけを担当する内部処理。
@@ -254,11 +260,15 @@ namespace Ken4lowEngine
 		void CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType,
 			ComPtr<ID3D12RootSignature>& rootSignature,
 			ComPtr<ID3D12PipelineState>& pipelineState);
+		// AABBインスタンシング専用の入力レイアウトとPSOを生成する。
+		void CreateAABBInstancedPSO();
 
 		// Buffer生成: Wireframe が蓄積する頂点・インデックス・定数バッファを作る内部処理。
 		void CreateTriangleVertexData(WireframeTriangleData* triangleData);
 		void CreateBoxVertexData(WireframeBoxData* boxData);
 		void CreateLineVertexData(WireframeLineData* lineData);
+		// 単位キューブ共有メッシュとAABBインスタンスバッファを生成する。
+		void CreateAABBInstancedData(WireframeAABBInstancedData* aabbData);
 		void CreateTransformationMatrix();
 
 		// 事前計算: 実行時の描画負荷を抑えるための形状データを準備する。
@@ -276,10 +286,12 @@ namespace Ken4lowEngine
 		// ルートシグネチャ
 		ComPtr<ID3D12RootSignature> triangleRootSignature_;
 		ComPtr<ID3D12RootSignature> lineRootSignature_;
+		ComPtr<ID3D12RootSignature> aabbInstancedRootSignature_;
 
 		// パイプラインステート
 		ComPtr<ID3D12PipelineState> trianglePipelineState_;
 		ComPtr<ID3D12PipelineState> linePipelineState_;
+		ComPtr<ID3D12PipelineState> aabbInstancedPipelineState_;
 
 		// 座標変換行列バッファ
 		ComPtr<ID3D12Resource> transformationMatrixBuffer_;
@@ -295,6 +307,9 @@ namespace Ken4lowEngine
 
 		// 線データ
 		std::unique_ptr<WireframeLineData> lineData_;
+
+		// AABBの単位キューブ線メッシュを共有し、world行列と色だけをインスタンスごとに送る。
+		std::unique_ptr<WireframeAABBInstancedData> aabbInstancedData_;
 
 		// 球のデータ
 		std::vector<Vector3> spheres_;
@@ -318,6 +333,9 @@ namespace Ken4lowEngine
 
 		// 線分
 		uint32_t lineIndex_ = 0;
+
+		// 現在フレームに蓄積されたAABBインスタンス数。
+		uint32_t aabbInstanceCount_ = 0;
 
 		// マトリックス
 		Matrix4x4 projectionMatrix_{};

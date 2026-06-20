@@ -93,4 +93,53 @@ namespace Ken4lowEngine
 		assert(SUCCEEDED(hr));
 	}
 
+	void Wireframe::CreateAABBInstancedPSO()
+	{
+		CreateRootSignature(aabbInstancedRootSignature_);
+
+		// Slot 0は共有単位キューブ、Slot 1はAABBごとのworld行列と色を受け取る。
+		const D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
+			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,   0 },
+			{ "WORLD",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,  0, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+			{ "WORLD",    1, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 16, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+			{ "WORLD",    2, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 32, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+			{ "WORLD",    3, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 48, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+			{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1, 64, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
+		};
+
+		const ShaderDescriptor& vsDesc = WireframeShaderManifest::Get(WireframeShaderId::WireframeAABBInstancedVS);
+		const ShaderDescriptor& psDesc = WireframeShaderManifest::Get(WireframeShaderId::WireframePS);
+		ComPtr<IDxcBlob> vertexShaderBlob = ShaderCompiler::CompileShader(vsDesc, dxCommon_->GetDXCCompilerManager());
+		ComPtr<IDxcBlob> pixelShaderBlob = ShaderCompiler::CompileShader(psDesc, dxCommon_->GetDXCCompilerManager());
+		assert(vertexShaderBlob != nullptr);
+		assert(pixelShaderBlob != nullptr);
+
+		D3D12_RASTERIZER_DESC rasterizerDesc{};
+		rasterizerDesc.FillMode = D3D12_FILL_MODE_SOLID;
+		rasterizerDesc.CullMode = D3D12_CULL_MODE_NONE;
+		D3D12_DEPTH_STENCIL_DESC depthStencilDesc{};
+		depthStencilDesc.DepthEnable = TRUE;
+		depthStencilDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+
+		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
+		desc.pRootSignature = aabbInstancedRootSignature_.Get();
+		desc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
+		desc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };
+		desc.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };
+		desc.BlendState.RenderTarget[0] = BlendStateFactory::GetInstance()->GetBlendDesc(blendMode_);
+		desc.RasterizerState = rasterizerDesc;
+		desc.DepthStencilState = depthStencilDesc;
+		desc.SampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+		desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+		desc.NumRenderTargets = 1;
+		desc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+		desc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+		desc.SampleDesc.Count = 1;
+
+		const HRESULT hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(
+			&desc, IID_PPV_ARGS(aabbInstancedPipelineState_.GetAddressOf()));
+		assert(SUCCEEDED(hr));
+	}
+
 } // namespace Ken4lowEngine

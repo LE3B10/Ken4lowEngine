@@ -55,6 +55,9 @@
     <FxCompile Include="Resources\Shaders\Sprite\Sprite.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\Wireframe\WireframeAABBInstanced.VS.hlsl">
+      <Filter>Shader\VertexShader</Filter>
+    </FxCompile>
     <FxCompile Include="Resources\Shaders\Wireframe\Wireframe.VS.hlsl">
       <Filter>Shader\VertexShader</Filter>
     </FxCompile>

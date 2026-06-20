@@ -17,6 +17,33 @@ namespace Ken4lowEngine
 		Vector4 color;
 	};
 
+	// AABB共有線メッシュの頂点データ。色と変換はインスタンス側から受け取る。
+	struct WireframeAABBVertexData
+	{
+		Vector3 position;
+	};
+
+	// AABB 1個分のインスタンスデータ。単位キューブをworld行列で各AABBへ変換する。
+	struct WireframeAABBInstanceData
+	{
+		Matrix4x4 world;
+		Vector4 color;
+	};
+
+	// AABBの共有メッシュと、毎フレーム更新するインスタンスバッファを管理する。
+	struct WireframeAABBInstancedData
+	{
+		WireframeAABBVertexData* baseVertexData = nullptr;
+		uint32_t* indexData = nullptr;
+		WireframeAABBInstanceData* instanceData = nullptr;
+		Microsoft::WRL::ComPtr<ID3D12Resource> baseVertexBuffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource> indexBuffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource> instanceBuffer;
+		D3D12_VERTEX_BUFFER_VIEW baseVertexBufferView{};
+		D3D12_INDEX_BUFFER_VIEW indexBufferView{};
+		D3D12_VERTEX_BUFFER_VIEW instanceBufferView{};
+	};
+
 	// ワイヤー描画用の座標変換行列。
 	struct WireframeTransformationMatrix
 	{

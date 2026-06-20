@@ -2,6 +2,7 @@
 #include "Wireframe.h"
 #include "DirectXCommon.h"
 #include "ResourceManager.h"
+#include <array>
 #include <cmath>
 #include <numbers>
 
@@ -54,6 +55,57 @@ namespace Ken4lowEngine
 		lineData_->vertexBufferView.StrideInBytes = sizeof(WireframeVertexData);
 		// 頂点リソースをマップ
 		lineData_->vertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&lineData_->vertexData));
+	}
+
+	void Wireframe::CreateAABBInstancedData(WireframeAABBInstancedData* aabbData)
+	{
+		// [-0.5, 0.5] の単位キューブを全AABBで共有し、各AABB固有の情報はinstanceBufferだけへ書く。
+		const std::array<WireframeAABBVertexData, kWireframeAABBVertexCount> kVertices = {
+			WireframeAABBVertexData{ { -0.5f, -0.5f, -0.5f } },
+			WireframeAABBVertexData{ {  0.5f, -0.5f, -0.5f } },
+			WireframeAABBVertexData{ {  0.5f,  0.5f, -0.5f } },
+			WireframeAABBVertexData{ { -0.5f,  0.5f, -0.5f } },
+			WireframeAABBVertexData{ { -0.5f, -0.5f,  0.5f } },
+			WireframeAABBVertexData{ {  0.5f, -0.5f,  0.5f } },
+			WireframeAABBVertexData{ {  0.5f,  0.5f,  0.5f } },
+			WireframeAABBVertexData{ { -0.5f,  0.5f,  0.5f } },
+		};
+		constexpr std::array<uint32_t, kWireframeAABBIndexCount> kIndices = {
+			0, 1, 1, 2, 2, 3, 3, 0,
+			4, 5, 5, 6, 6, 7, 7, 4,
+			0, 4, 1, 5, 2, 6, 3, 7,
+		};
+
+		const UINT baseVertexBufferSize = sizeof(WireframeAABBVertexData) * kWireframeAABBVertexCount;
+		const UINT indexBufferSize = sizeof(uint32_t) * kWireframeAABBIndexCount;
+		const UINT instanceBufferSize = sizeof(WireframeAABBInstanceData) * kWireframeAABBMaxInstanceCount;
+
+		aabbData->baseVertexBuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), baseVertexBufferSize);
+		aabbData->baseVertexBufferView = {
+			aabbData->baseVertexBuffer->GetGPUVirtualAddress(), baseVertexBufferSize, sizeof(WireframeAABBVertexData)
+		};
+		// AABB共有単位キューブの頂点バッファをMapして初期データを書き込む。
+		aabbData->baseVertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&aabbData->baseVertexData));
+		for (uint32_t i = 0; i < kWireframeAABBVertexCount; ++i) {
+			aabbData->baseVertexData[i] = kVertices[i];
+		}
+
+		aabbData->indexBuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), indexBufferSize);
+		aabbData->indexBufferView.BufferLocation = aabbData->indexBuffer->GetGPUVirtualAddress();
+		aabbData->indexBufferView.SizeInBytes = indexBufferSize;
+		aabbData->indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+		// AABBの12辺を表す24 indexの共有バッファをMapして初期データを書き込む。
+		aabbData->indexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&aabbData->indexData));
+		for (uint32_t i = 0; i < kWireframeAABBIndexCount; ++i) {
+			aabbData->indexData[i] = kIndices[i];
+		}
+
+		aabbData->instanceBuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), instanceBufferSize);
+		aabbData->instanceBufferView = {
+			aabbData->instanceBuffer->GetGPUVirtualAddress(), instanceBufferSize, sizeof(WireframeAABBInstanceData)
+		};
+		// AABBごとのworld行列と色を毎フレーム追記するインスタンスバッファを永続Mapする。
+		aabbData->instanceBuffer->Map(0, nullptr, reinterpret_cast<void**>(&aabbData->instanceData));
 	}
 
 	void Wireframe::CreateTransformationMatrix()
