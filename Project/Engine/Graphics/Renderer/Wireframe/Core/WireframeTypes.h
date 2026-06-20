@@ -17,25 +17,25 @@ namespace Ken4lowEngine
 		Vector4 color;
 	};
 
-	// AABB共有線メッシュの頂点データ。色と変換はインスタンス側から受け取る。
-	struct WireframeAABBVertexData
+	// AABB / OBB共有線メッシュの頂点データ。色と変換はインスタンス側から受け取る。
+	struct WireframeBoxVertexData
 	{
 		Vector3 position;
 	};
 
-	// AABB 1個分のインスタンスデータ。単位キューブをworld行列で各AABBへ変換する。
-	struct WireframeAABBInstanceData
+	// AABB / OBB 1個分のインスタンスデータ。単位キューブをworld行列で各Boxへ変換する。
+	struct WireframeBoxInstanceData
 	{
 		Matrix4x4 world;
 		Vector4 color;
 	};
 
-	// AABBの共有メッシュと、毎フレーム更新するインスタンスバッファを管理する。
-	struct WireframeAABBInstancedData
+	// AABB / OBB共通の共有メッシュと、毎フレーム更新するインスタンスバッファを管理する。
+	struct WireframeBoxInstancedData
 	{
-		WireframeAABBVertexData* baseVertexData = nullptr;
+		WireframeBoxVertexData* baseVertexData = nullptr;
 		uint32_t* indexData = nullptr;
-		WireframeAABBInstanceData* instanceData = nullptr;
+		WireframeBoxInstanceData* instanceData = nullptr;
 		Microsoft::WRL::ComPtr<ID3D12Resource> baseVertexBuffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource> indexBuffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource> instanceBuffer;

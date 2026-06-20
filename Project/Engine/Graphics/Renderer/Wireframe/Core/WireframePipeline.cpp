@@ -93,11 +93,11 @@ namespace Ken4lowEngine
 		assert(SUCCEEDED(hr));
 	}
 
-	void Wireframe::CreateAABBInstancedPSO()
+	void Wireframe::CreateBoxWireInstancedPSO()
 	{
-		CreateRootSignature(aabbInstancedRootSignature_);
+		CreateRootSignature(boxWireInstancedRootSignature_);
 
-		// Slot 0は共有単位キューブ、Slot 1はAABBごとのworld行列と色を受け取る。
+		// Slot 0は共有単位キューブ、Slot 1はAABB / OBBごとのworld行列と色を受け取る。
 		const D3D12_INPUT_ELEMENT_DESC inputElementDescs[] = {
 			{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,   0 },
 			{ "WORLD",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 1,  0, D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA, 1 },
@@ -123,7 +123,7 @@ namespace Ken4lowEngine
 		depthStencilDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC desc{};
-		desc.pRootSignature = aabbInstancedRootSignature_.Get();
+		desc.pRootSignature = boxWireInstancedRootSignature_.Get();
 		desc.InputLayout = { inputElementDescs, _countof(inputElementDescs) };
 		desc.VS = { vertexShaderBlob->GetBufferPointer(), vertexShaderBlob->GetBufferSize() };
 		desc.PS = { pixelShaderBlob->GetBufferPointer(), pixelShaderBlob->GetBufferSize() };
@@ -138,7 +138,7 @@ namespace Ken4lowEngine
 		desc.SampleDesc.Count = 1;
 
 		const HRESULT hr = dxCommon_->GetDevice()->CreateGraphicsPipelineState(
-			&desc, IID_PPV_ARGS(aabbInstancedPipelineState_.GetAddressOf()));
+			&desc, IID_PPV_ARGS(boxWireInstancedPipelineState_.GetAddressOf()));
 		assert(SUCCEEDED(hr));
 	}
 

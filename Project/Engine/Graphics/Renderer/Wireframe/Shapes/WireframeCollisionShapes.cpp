@@ -8,12 +8,6 @@ namespace Ken4lowEngine
 
 	void Wireframe::DrawAABB(const AABB& aabb, const Vector4& color)
 	{
-		if (!aabbInstancedData_ || !aabbInstancedData_->instanceData ||
-			aabbInstanceCount_ >= kWireframeAABBMaxInstanceCount)
-		{
-			return;
-		}
-
 		const Vector3 size = aabb.max - aabb.min;
 		// 反転または厚み0のAABBは線キューブとして成立しないため登録しない。
 		if (size.x <= 0.0f || size.y <= 0.0f || size.z <= 0.0f)
@@ -22,39 +16,34 @@ namespace Ken4lowEngine
 		}
 
 		const Vector3 center = (aabb.min + aabb.max) * 0.5f;
-		WireframeAABBInstanceData& instance = aabbInstancedData_->instanceData[aabbInstanceCount_++];
-		// 共有単位キューブをsizeで拡縮し、centerへ移動するworld行列だけを毎フレーム書き込む。
-		instance.world = Matrix4x4::MakeAffineMatrix(size, Vector3(0.0f, 0.0f, 0.0f), center);
-		instance.color = color;
+		const Matrix4x4 world = Matrix4x4::MakeAffineMatrix(size, Vector3(0.0f, 0.0f, 0.0f), center);
+		AddBoxWireInstance(world, color);
 	}
 
 	void Wireframe::DrawOBB(const OBB& obb, const Vector4& color)
 	{
-		// OBBの各頂点を定義（ローカル座標）
-		Vector3 localVertices[8] = {
-			{ -obb.size.x, -obb.size.y, -obb.size.z }, { obb.size.x, -obb.size.y, -obb.size.z },
-			{ obb.size.x, obb.size.y, -obb.size.z }, { -obb.size.x, obb.size.y, -obb.size.z },
-			{ -obb.size.x, -obb.size.y, obb.size.z }, { obb.size.x, -obb.size.y, obb.size.z },
-			{ obb.size.x, obb.size.y, obb.size.z }, { -obb.size.x, obb.size.y, obb.size.z }
-		};
-		// ワールド座標に変換（回転適用 & 平行移動）
-		Vector3 worldVertices[8];
-		for (int i = 0; i < 8; i++) {
-			worldVertices[i] =
-				obb.center +
-				obb.orientations[0] * localVertices[i].x +
-				obb.orientations[1] * localVertices[i].y +
-				obb.orientations[2] * localVertices[i].z;
+		const Vector3 fullSize = obb.size * 2.0f;
+		if (fullSize.x <= 0.0f || fullSize.y <= 0.0f || fullSize.z <= 0.0f)
+		{
+			return;
 		}
-		// OBBのエッジを結ぶ
-		int edges[12][2] = {
-			{ 0, 1 }, { 1, 2 }, { 2, 3 }, { 3, 0 }, // 底面
-			{ 4, 5 }, { 5, 6 }, { 6, 7 }, { 7, 4 }, // 上面
-			{ 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }  // 側面
-		};
-		for (int i = 0; i < 12; i++) {
-			DrawLine(worldVertices[edges[i][0]], worldVertices[edges[i][1]], color);
-		}
+
+		// 既存の12本DrawLineをやめ、OBBの姿勢行列を作ってAABBと同じインスタンシング経路へ送る。
+		Matrix4x4 world = Matrix4x4::MakeIdentity();
+		world.m[0][0] = obb.orientations[0].x * fullSize.x;
+		world.m[0][1] = obb.orientations[0].y * fullSize.x;
+		world.m[0][2] = obb.orientations[0].z * fullSize.x;
+		world.m[1][0] = obb.orientations[1].x * fullSize.y;
+		world.m[1][1] = obb.orientations[1].y * fullSize.y;
+		world.m[1][2] = obb.orientations[1].z * fullSize.y;
+		world.m[2][0] = obb.orientations[2].x * fullSize.z;
+		world.m[2][1] = obb.orientations[2].y * fullSize.z;
+		world.m[2][2] = obb.orientations[2].z * fullSize.z;
+		world.m[3][0] = obb.center.x;
+		world.m[3][1] = obb.center.y;
+		world.m[3][2] = obb.center.z;
+		world.m[3][3] = 1.0f;
+		AddBoxWireInstance(world, color);
 	}
 
 	void Wireframe::DrawSphere(const Vector3& center, const float radius, const Vector4& color)
