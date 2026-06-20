@@ -199,7 +199,7 @@ void Bullet::Initialize(const K4E::Vector3& startPos,
 
 	// デバッグ表示したいなら
 	model_ = std::make_unique<K4E::Object3D>();
-	model_->Initialize("Test/cube.gltf");
+	model_->Initialize("Sample/cube.gltf");
 
 	// 弾種で色を変えたいなら（任意）
 	// if (typeId == (uint32_t)CollisionTypeIdDef::kEnemyBullet) debugColor_ = {1,0,0,1};

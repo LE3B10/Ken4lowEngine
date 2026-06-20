@@ -20,7 +20,7 @@ namespace
 	constexpr uint32_t kMuzzleSparkMeshId = 1000u;
 	constexpr uint32_t kMuzzleSparkBurstCount = 8u;
 	constexpr const char* kMuzzleSparkEmitterName = "MuzzleSparkMesh";
-	constexpr const char* kMuzzleSparkMeshModelPath = "Test/cube.gltf";
+	constexpr const char* kMuzzleSparkMeshModelPath = "Sample/cube.gltf";
 
 	constexpr uint32_t kBulletTracerMeshId = 1001u;
 	constexpr uint32_t kBulletTracerBurstCountPerPoint = 10u;
@@ -28,7 +28,7 @@ namespace
 	constexpr float kBulletTracerStartOffset = 0.22f;
 	constexpr float kBulletTracerStepDistance = 0.16f;
 	constexpr const char* kBulletTracerEmitterBaseName = "BulletTracerMesh_";
-	constexpr const char* kBulletTracerMeshModelPath = "Test/cube.gltf";
+	constexpr const char* kBulletTracerMeshModelPath = "Sample/cube.gltf";
 
 	std::string MakeMeshTexturePath(uint32_t meshId)
 	{

@@ -121,7 +121,7 @@ void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint, const st
 	SetOwner(this);
 
 	debugCube_ = std::make_unique<Object3D>();
-	debugCube_->Initialize("Test/cube.gltf");
+	debugCube_->Initialize("Sample/cube.gltf");
 	debugCube_->SetColor({ 0.25f, 0.85f, 1.0f, 1.0f });
 	SyncTransformToRuntime(floorAABBs, obstacleAABBs);
 }

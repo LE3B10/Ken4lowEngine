@@ -1,4 +1,4 @@
-﻿#define NOMINMAX
+#define NOMINMAX
 #include "GameplayPhysicsDebugController.h"
 
 #include "BulletManager.h"
@@ -184,7 +184,7 @@ void GameplayPhysicsDebugController::InitializeGameplayPhysicsTest()
 	}
 
 	physicsTestObject_ = std::make_unique<K4E::Object3D>();
-	physicsTestObject_->Initialize("Test/cube.gltf");
+	physicsTestObject_->Initialize("Sample/cube.gltf");
 	physicsTestObject_->SetScale(physicsTestHalfSize_ * 2.0f);
 	physicsTestObject_->SetColor({ 0.2f, 0.9f, 1.0f, 1.0f });
 
@@ -225,7 +225,7 @@ void GameplayPhysicsDebugController::InitializeGameplayPhysicsTriggerTest()
 	physicsTriggerTargetCollider_.SetEnabled(false);
 
 	physicsTriggerTargetObject_ = std::make_unique<K4E::Object3D>();
-	physicsTriggerTargetObject_->Initialize("Test/cube.gltf");
+	physicsTriggerTargetObject_->Initialize("Sample/cube.gltf");
 	physicsTriggerTargetObject_->SetScale(physicsTriggerTargetHalfSize_ * 2.0f);
 	physicsTriggerTargetObject_->SetColor({ 0.2f, 1.0f, 0.3f, 1.0f });
 	physicsTriggerTargetObject_->Update();

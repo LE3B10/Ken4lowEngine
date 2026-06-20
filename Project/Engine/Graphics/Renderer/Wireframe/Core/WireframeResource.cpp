@@ -117,37 +117,54 @@ namespace Ken4lowEngine
 		transformationMatrixData_->WVP = Matrix4x4::Multiply(camera_->GetViewMatrix(), camera_->GetProjectionMatrix());
 	}
 
-	void Wireframe::CalcSphereVertexData()
+	void Wireframe::CreateSphereInstancedData(WireframeSphereInstancedData* sphereData)
 	{
-		const float pi = std::numbers::pi_v<float>;
-		const uint32_t kSubdivision = 8; // 分割数
-		const float kLonEvery = 2.0f * pi / float(kSubdivision); // 経度の1分割の角度
-		const float kLatEvery = pi / float(kSubdivision); // 緯度の1分割の角度
-		// 緯度方向
-		for (uint32_t latIndex = 0; latIndex < kSubdivision; latIndex++)
+		// Sphereの基本リングメッシュを初期化時に1回だけ作り、各Sphereはインスタンスデータで描画する。
+		const UINT baseVertexBufferSize = sizeof(WireframeSphereVertexData) * kWireframeSphereBaseVertexCount;
+		const UINT indexBufferSize = sizeof(uint32_t) * kWireframeSphereIndexCount;
+		const UINT instanceBufferSize = sizeof(WireframeSphereInstanceData) * kWireframeSphereMaxInstanceCount;
+
+		sphereData->baseVertexBuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), baseVertexBufferSize);
+		sphereData->baseVertexBufferView = {
+			sphereData->baseVertexBuffer->GetGPUVirtualAddress(), baseVertexBufferSize, sizeof(WireframeSphereVertexData)
+		};
+		// SphereのXY / XZ / YZ共有リング頂点バッファをMapして初期データを書き込む。
+		sphereData->baseVertexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&sphereData->baseVertexData));
+
+		const float angleStep = 2.0f * std::numbers::pi_v<float> / static_cast<float>(kWireframeSphereRingSegmentCount);
+		for (uint32_t segment = 0; segment < kWireframeSphereRingSegmentCount; ++segment)
 		{
-			float lat = -pi / 2.0f + kLatEvery * float(latIndex);
-			// 経度方向
-			for (uint32_t lonIndex = 0; lonIndex < kSubdivision; lonIndex++)
+			const float angle = angleStep * static_cast<float>(segment);
+			const float cosine = std::cos(angle);
+			const float sine = std::sin(angle);
+			sphereData->baseVertexData[segment].position = { cosine, sine, 0.0f }; // XYリング
+			sphereData->baseVertexData[kWireframeSphereRingSegmentCount + segment].position = { cosine, 0.0f, sine }; // XZリング
+			sphereData->baseVertexData[kWireframeSphereRingSegmentCount * 2 + segment].position = { 0.0f, cosine, sine }; // YZリング
+		}
+
+		sphereData->indexBuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), indexBufferSize);
+		sphereData->indexBufferView.BufferLocation = sphereData->indexBuffer->GetGPUVirtualAddress();
+		sphereData->indexBufferView.SizeInBytes = indexBufferSize;
+		sphereData->indexBufferView.Format = DXGI_FORMAT_R32_UINT;
+		// 各リングの隣接頂点をLINELISTで結ぶSphere共有indexバッファをMapする。
+		sphereData->indexBuffer->Map(0, nullptr, reinterpret_cast<void**>(&sphereData->indexData));
+		for (uint32_t ring = 0; ring < kWireframeSphereRingCount; ++ring)
+		{
+			const uint32_t vertexOffset = ring * kWireframeSphereRingSegmentCount;
+			const uint32_t indexOffset = ring * kWireframeSphereRingSegmentCount * 2;
+			for (uint32_t segment = 0; segment < kWireframeSphereRingSegmentCount; ++segment)
 			{
-				float lon = kLonEvery * float(lonIndex);
-				// 球の表面上の点を求める
-				Vector3 a, b, c;
-				a.x = 0.0f + 1.0f * cos(lat) * cos(lon);
-				a.y = 0.0f + 1.0f * sin(lat);
-				a.z = 0.0f + 1.0f * cos(lat) * sin(lon);
-				b.x = 0.0f + 1.0f * cos(lat + kLatEvery) * cos(lon);
-				b.y = 0.0f + 1.0f * sin(lat + kLatEvery);
-				b.z = 0.0f + 1.0f * cos(lat + kLatEvery) * sin(lon);
-				c.x = 0.0f + 1.0f * cos(lat) * cos(lon + kLonEvery);
-				c.y = 0.0f + 1.0f * sin(lat);
-				c.z = 0.0f + 1.0f * cos(lat) * sin(lon + kLonEvery);
-				// 座標を保存
-				spheres_.push_back(a);
-				spheres_.push_back(b);
-				spheres_.push_back(c);
+				sphereData->indexData[indexOffset + segment * 2] = vertexOffset + segment;
+				sphereData->indexData[indexOffset + segment * 2 + 1] = vertexOffset + (segment + 1) % kWireframeSphereRingSegmentCount;
 			}
 		}
+
+		sphereData->instanceBuffer = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), instanceBufferSize);
+		sphereData->instanceBufferView = {
+			sphereData->instanceBuffer->GetGPUVirtualAddress(), instanceBufferSize, sizeof(WireframeSphereInstanceData)
+		};
+		// Sphereごとのworld行列と色を毎フレーム追記するインスタンスバッファを永続Mapする。
+		sphereData->instanceBuffer->Map(0, nullptr, reinterpret_cast<void**>(&sphereData->instanceData));
 	}
 
 } // namespace Ken4lowEngine

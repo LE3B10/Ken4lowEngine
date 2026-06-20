@@ -23,7 +23,7 @@ namespace
 		case ItemType::AmmoSmall:
 		case ItemType::NextStageKey:
 		default:
-			return "Test/cube.gltf";
+			return "Sample/cube.gltf";
 		}
 	}
 }

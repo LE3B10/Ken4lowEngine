@@ -17,7 +17,7 @@ void PhysicsTestBullet::Initialize(uint32_t collisionLayer)
 	collider_.SetEnabled(false);
 
 	object3d_ = std::make_unique<K4E::Object3D>();
-	object3d_->Initialize("Test/cube.gltf");
+	object3d_->Initialize("Sample/cube.gltf");
 	object3d_->SetScale(halfSize_ * 2.0f);
 	object3d_->SetColor({ 1.0f, 0.9f, 0.15f, 1.0f });
 	object3d_->Update();

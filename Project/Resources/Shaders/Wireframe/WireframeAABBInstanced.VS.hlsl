@@ -17,7 +17,7 @@ struct TransformationMatrix
 
 ConstantBuffer<TransformationMatrix> gTransformationMatrix : register(b0);
 
-// AABB / OBB共有単位キューブをインスタンスごとのworld行列で変換し、共通のViewProjectionを適用する。
+// 形状ごとの共有ローカル頂点をインスタンスのworld行列で変換し、共通のViewProjectionを適用する。
 VertexShaderOutput main(VertexShaderInput input)
 {
     VertexShaderOutput output;

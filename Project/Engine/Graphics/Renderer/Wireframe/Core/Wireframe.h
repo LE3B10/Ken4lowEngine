@@ -257,6 +257,10 @@ namespace Ken4lowEngine
 		uint32_t GetAABBInstanceCount() const { return GetBoxWireInstanceCount(); }
 		static constexpr uint32_t GetAABBMaxInstanceCount() { return GetBoxWireMaxInstanceCount(); }
 
+		// 現在フレームに蓄積されたSphereインスタンス数を返す。
+		uint32_t GetSphereInstanceCount() const { return sphereInstanceCount_; }
+		static constexpr uint32_t GetSphereMaxInstanceCount() { return kWireframeSphereMaxInstanceCount; }
+
 	private: /// ---------- メンバ関数 ---------- ///
 
 		// Pipeline生成: DirectX の描画パイプライン構築だけを担当する内部処理。
@@ -264,8 +268,8 @@ namespace Ken4lowEngine
 		void CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE primitiveTopologyType,
 			ComPtr<ID3D12RootSignature>& rootSignature,
 			ComPtr<ID3D12PipelineState>& pipelineState);
-		// AABB / OBB共通のBox Wireインスタンシング用入力レイアウトとPSOを生成する。
-		void CreateBoxWireInstancedPSO();
+		// local position + world + colorを使うWireframe形状共通のインスタンシングPSOを生成する。
+		void CreateInstancedWirePSO();
 
 		// Buffer生成: Wireframe が蓄積する頂点・インデックス・定数バッファを作る内部処理。
 		void CreateTriangleVertexData(WireframeTriangleData* triangleData);
@@ -273,13 +277,14 @@ namespace Ken4lowEngine
 		void CreateLineVertexData(WireframeLineData* lineData);
 		// 単位キューブ共有メッシュとAABB / OBB共通インスタンスバッファを生成する。
 		void CreateBoxWireInstancedData(WireframeBoxInstancedData* boxWireData);
+		// Sphereの基本リングメッシュを1回だけ作り、各Sphereはインスタンスデータで描画する。
+		void CreateSphereInstancedData(WireframeSphereInstancedData* sphereData);
 		void CreateTransformationMatrix();
 
 		// AABB / OBBの単位キューブ線メッシュを共有し、World行列と色だけをインスタンスとして登録する。
 		void AddBoxWireInstance(const Matrix4x4& world, const Vector4& color);
-
-		// 事前計算: 実行時の描画負荷を抑えるための形状データを準備する。
-		void CalcSphereVertexData();
+		// Sphereごとの差分となるworld行列と色だけをインスタンスとして登録する。
+		void AddSphereWireInstance(const Matrix4x4& world, const Vector4& color);
 
 	private: /// ---------- メンバ変数 ---------- ///
 
@@ -293,12 +298,12 @@ namespace Ken4lowEngine
 		// ルートシグネチャ
 		ComPtr<ID3D12RootSignature> triangleRootSignature_;
 		ComPtr<ID3D12RootSignature> lineRootSignature_;
-		ComPtr<ID3D12RootSignature> boxWireInstancedRootSignature_;
+		ComPtr<ID3D12RootSignature> instancedWireRootSignature_;
 
 		// パイプラインステート
 		ComPtr<ID3D12PipelineState> trianglePipelineState_;
 		ComPtr<ID3D12PipelineState> linePipelineState_;
-		ComPtr<ID3D12PipelineState> boxWireInstancedPipelineState_;
+		ComPtr<ID3D12PipelineState> instancedWirePipelineState_;
 
 		// 座標変換行列バッファ
 		ComPtr<ID3D12Resource> transformationMatrixBuffer_;
@@ -318,8 +323,8 @@ namespace Ken4lowEngine
 		// AABB / OBBの単位キューブ線メッシュを共有し、world行列と色だけをインスタンスごとに送る。
 		std::unique_ptr<WireframeBoxInstancedData> boxWireInstancedData_;
 
-		// 球のデータ
-		std::vector<Vector3> spheres_;
+		// Sphereの3リング共有メッシュとインスタンスデータ。
+		std::unique_ptr<WireframeSphereInstancedData> sphereInstancedData_;
 
 	private: /// ---------- メンバ変数 ---------- ///
 
@@ -343,6 +348,9 @@ namespace Ken4lowEngine
 
 		// 現在フレームに蓄積されたAABB / OBB共通のBox Wireインスタンス数。
 		uint32_t boxWireInstanceCount_ = 0;
+
+		// 現在フレームに蓄積されたSphereインスタンス数。
+		uint32_t sphereInstanceCount_ = 0;
 
 		// マトリックス
 		Matrix4x4 projectionMatrix_{};

@@ -26,8 +26,8 @@ namespace Ken4lowEngine
 		CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE, triangleRootSignature_, trianglePipelineState_);
 		// 線用のPSOを作成
 		CreatePSO(D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE, lineRootSignature_, linePipelineState_);
-		// AABB / OBB共通のBox Wireインスタンシング専用PSOを作成
-		CreateBoxWireInstancedPSO();
+		// AABB / OBB / Sphereで共有するWireframeインスタンシング専用PSOを作成
+		CreateInstancedWirePSO();
 		// 座標変換行列データの生成
 		CreateTransformationMatrix();
 		// 三角形の頂点データを生成
@@ -42,15 +42,16 @@ namespace Ken4lowEngine
 		// AABB / OBB用の共有単位キューブと共通インスタンスバッファを生成
 		boxWireInstancedData_ = std::make_unique<WireframeBoxInstancedData>();
 		CreateBoxWireInstancedData(boxWireInstancedData_.get());
-		// 球の頂点座標を計算
-		CalcSphereVertexData();
+		// Sphere用の共有3リングメッシュとインスタンスバッファを生成
+		sphereInstancedData_ = std::make_unique<WireframeSphereInstancedData>();
+		CreateSphereInstancedData(sphereInstancedData_.get());
 		// 名前の設定
 		trianglePipelineState_->SetName(L"Wireframe_Triangle_PSO");
 		triangleRootSignature_->SetName(L"Wireframe_Triangle_RootSignature");
 		linePipelineState_->SetName(L"Wireframe_Line_PSO");
 		lineRootSignature_->SetName(L"Wireframe_Line_RootSignature");
-		boxWireInstancedPipelineState_->SetName(L"Wireframe_BoxWireInstanced_PSO");
-		boxWireInstancedRootSignature_->SetName(L"Wireframe_BoxWireInstanced_RootSignature");
+		instancedWirePipelineState_->SetName(L"Wireframe_InstancedShape_PSO");
+		instancedWireRootSignature_->SetName(L"Wireframe_InstancedShape_RootSignature");
 	}
 
 	void Wireframe::Finalize()
@@ -92,14 +93,20 @@ namespace Ken4lowEngine
 			UnmapAndResetVB(boxWireInstancedData_->instanceBuffer, boxWireInstancedData_->instanceData);
 			boxWireInstancedData_.reset();
 		}
-		spheres_.clear();
+		if (sphereInstancedData_) {
+			// Sphere共有頂点・index・インスタンスの各Mapを解除してからGPUリソースを破棄する。
+			UnmapAndResetVB(sphereInstancedData_->baseVertexBuffer, sphereInstancedData_->baseVertexData);
+			UnmapAndResetVB(sphereInstancedData_->indexBuffer, sphereInstancedData_->indexData);
+			UnmapAndResetVB(sphereInstancedData_->instanceBuffer, sphereInstancedData_->instanceData);
+			sphereInstancedData_.reset();
+		}
 		// ---- PSO / RootSignature を解放 ----
 		trianglePipelineState_.Reset();
 		linePipelineState_.Reset();
-		boxWireInstancedPipelineState_.Reset();
+		instancedWirePipelineState_.Reset();
 		triangleRootSignature_.Reset();
 		lineRootSignature_.Reset();
-		boxWireInstancedRootSignature_.Reset();
+		instancedWireRootSignature_.Reset();
 		// ---- 参照だけ持ってるポインタは切る ----
 		camera_ = nullptr;
 		dxCommon_ = nullptr;
@@ -151,8 +158,8 @@ namespace Ken4lowEngine
 #pragma region ---------- AABB / OBB共通インスタンシング描画 ----------
 		if (boxWireInstanceCount_ > 0 && boxWireInstancedData_)
 		{
-			commandList->SetGraphicsRootSignature(boxWireInstancedRootSignature_.Get());
-			commandList->SetPipelineState(boxWireInstancedPipelineState_.Get());
+			commandList->SetGraphicsRootSignature(instancedWireRootSignature_.Get());
+			commandList->SetPipelineState(instancedWirePipelineState_.Get());
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
 			const D3D12_VERTEX_BUFFER_VIEW vertexBufferViews[] = {
 				boxWireInstancedData_->baseVertexBufferView,
@@ -163,6 +170,23 @@ namespace Ken4lowEngine
 			commandList->SetGraphicsRootConstantBufferView(0, transformationMatrixBuffer_->GetGPUVirtualAddress());
 			// 共有する24 indexを、蓄積した全AABB / OBBについて1回のDrawCallで描画する。
 			commandList->DrawIndexedInstanced(kWireframeBoxWireIndexCount, boxWireInstanceCount_, 0, 0, 0);
+		}
+#pragma endregion -------------------------------------------
+#pragma region ---------- Sphereインスタンシング描画 ----------
+		if (sphereInstanceCount_ > 0 && sphereInstancedData_)
+		{
+			commandList->SetGraphicsRootSignature(instancedWireRootSignature_.Get());
+			commandList->SetPipelineState(instancedWirePipelineState_.Get());
+			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+			const D3D12_VERTEX_BUFFER_VIEW vertexBufferViews[] = {
+				sphereInstancedData_->baseVertexBufferView,
+				sphereInstancedData_->instanceBufferView
+			};
+			commandList->IASetVertexBuffers(0, _countof(vertexBufferViews), vertexBufferViews);
+			commandList->IASetIndexBuffer(&sphereInstancedData_->indexBufferView);
+			commandList->SetGraphicsRootConstantBufferView(0, transformationMatrixBuffer_->GetGPUVirtualAddress());
+			// XY / XZ / YZの共有3リングを、蓄積した全Sphereについて1回のDrawCallで描画する。
+			commandList->DrawIndexedInstanced(kWireframeSphereIndexCount, sphereInstanceCount_, 0, 0, 0);
 		}
 #pragma endregion -------------------------------------------
 		// リセット処理
@@ -176,6 +200,7 @@ namespace Ken4lowEngine
 		boxIndex_ = 0;
 		lineIndex_ = 0;
 		boxWireInstanceCount_ = 0;
+		sphereInstanceCount_ = 0;
 	}
 
 	void Wireframe::AddBoxWireInstance(const Matrix4x4& world, const Vector4& color)
@@ -188,6 +213,20 @@ namespace Ken4lowEngine
 		}
 
 		WireframeBoxInstanceData& instance = boxWireInstancedData_->instanceData[boxWireInstanceCount_++];
+		instance.world = world;
+		instance.color = color;
+	}
+
+	void Wireframe::AddSphereWireInstance(const Matrix4x4& world, const Vector4& color)
+	{
+		// 共有単位球リングに対し、Sphereごとの差分となるworld行列と色だけを登録する。
+		if (!sphereInstancedData_ || !sphereInstancedData_->instanceData ||
+			sphereInstanceCount_ >= kWireframeSphereMaxInstanceCount)
+		{
+			return;
+		}
+
+		WireframeSphereInstanceData& instance = sphereInstancedData_->instanceData[sphereInstanceCount_++];
 		instance.world = world;
 		instance.color = color;
 	}

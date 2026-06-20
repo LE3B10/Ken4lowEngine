@@ -19,4 +19,11 @@ namespace Ken4lowEngine
 	inline constexpr uint32_t kWireframeBoxWireVertexCount = 8;
 	inline constexpr uint32_t kWireframeBoxWireIndexCount = 24;
 	inline constexpr uint32_t kWireframeBoxWireMaxInstanceCount = 100000;
+
+	// Sphereは原点中心・半径1のXY / XZ / YZリングを共有して一括描画する。
+	inline constexpr uint32_t kWireframeSphereRingSegmentCount = 32;
+	inline constexpr uint32_t kWireframeSphereRingCount = 3;
+	inline constexpr uint32_t kWireframeSphereBaseVertexCount = kWireframeSphereRingSegmentCount * kWireframeSphereRingCount;
+	inline constexpr uint32_t kWireframeSphereIndexCount = kWireframeSphereRingSegmentCount * 2 * kWireframeSphereRingCount;
+	inline constexpr uint32_t kWireframeSphereMaxInstanceCount = 2048;
 }

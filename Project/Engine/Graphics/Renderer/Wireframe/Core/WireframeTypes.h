@@ -44,6 +44,33 @@ namespace Ken4lowEngine
 		D3D12_VERTEX_BUFFER_VIEW instanceBufferView{};
 	};
 
+	// Sphere共有リングメッシュの頂点データ。半径・位置・色はインスタンス側から受け取る。
+	struct WireframeSphereVertexData
+	{
+		Vector3 position;
+	};
+
+	// Sphere 1個分のインスタンスデータ。単位球リングをworld行列で配置する。
+	struct WireframeSphereInstanceData
+	{
+		Matrix4x4 world;
+		Vector4 color;
+	};
+
+	// Sphereの共有3リングメッシュと、毎フレーム更新するインスタンスバッファを管理する。
+	struct WireframeSphereInstancedData
+	{
+		WireframeSphereVertexData* baseVertexData = nullptr;
+		uint32_t* indexData = nullptr;
+		WireframeSphereInstanceData* instanceData = nullptr;
+		Microsoft::WRL::ComPtr<ID3D12Resource> baseVertexBuffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource> indexBuffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource> instanceBuffer;
+		D3D12_VERTEX_BUFFER_VIEW baseVertexBufferView{};
+		D3D12_INDEX_BUFFER_VIEW indexBufferView{};
+		D3D12_VERTEX_BUFFER_VIEW instanceBufferView{};
+	};
+
 	// ワイヤー描画用の座標変換行列。
 	struct WireframeTransformationMatrix
 	{
@@ -77,10 +104,4 @@ namespace Ken4lowEngine
 		D3D12_VERTEX_BUFFER_VIEW vertexBufferView{};
 	};
 
-	// 球体デバッグ形状用の基本データ。
-	struct WireframeSphereData
-	{
-		Vector3 center;
-		float radius;
-	};
 }

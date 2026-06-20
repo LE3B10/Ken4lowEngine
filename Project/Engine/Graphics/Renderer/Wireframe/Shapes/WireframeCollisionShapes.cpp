@@ -48,20 +48,15 @@ namespace Ken4lowEngine
 
 	void Wireframe::DrawSphere(const Vector3& center, const float radius, const Vector4& color)
 	{
-		Matrix4x4 worldMatrix = Matrix4x4::MakeAffineMatrix(Vector3(radius, radius, radius), Vector3(0.0f, 0.0f, 0.0f), center);
-		for (uint32_t i = 0; i + 2 < spheres_.size(); i += 3)
+		if (radius <= 0.0f)
 		{
-			Vector3 a = spheres_[i];
-			Vector3 b = spheres_[i + 1];
-			Vector3 c = spheres_[i + 2];
-			a = Vector3::Transform(a, worldMatrix);
-			b = Vector3::Transform(b, worldMatrix);
-			c = Vector3::Transform(c, worldMatrix);
-			// 線描画
-			DrawLine(a, b, color);
-			//DrawLine(b, c, color);
-			DrawLine(a, c, color); // 三角形を完成させるための線を追加
+			return;
 		}
+
+		// 既存のDrawLine大量呼び出しをやめ、単位球ワイヤーメッシュを共有してworld行列と色だけを送る。
+		const Vector3 scale(radius, radius, radius);
+		const Matrix4x4 world = Matrix4x4::MakeAffineMatrix(scale, Vector3(0.0f, 0.0f, 0.0f), center);
+		AddSphereWireInstance(world, color);
 	}
 
 	void Wireframe::DrawSphere(const Sphere& sphere, const Vector4& color)

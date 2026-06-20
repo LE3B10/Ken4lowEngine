@@ -54,7 +54,7 @@ void BossClearItem::Initialize(const K4E::Vector3& position)
 	SetCenterPosition(position_);
 
 	object3d_ = std::make_unique<K4E::Object3D>();
-	object3d_->Initialize("Test/cube.gltf");
+	object3d_->Initialize("Sample/cube.gltf");
 	object3d_->SetScale({ 1.8f, 1.8f, 1.8f });
 	object3d_->SetTranslate(position_);
 	object3d_->SetColor({ 1.0f, 0.85f, 0.05f, 1.0f });
