@@ -236,6 +236,13 @@ namespace Ken4lowEngine
 		/// </summary>
 		void Draw();
 
+		/// <summary>Preview Statusから共通RuntimeのUpdate経路通過を確認する診断カウンタです。</summary>
+		uint64_t GetUpdateCallCount() const { return updateCallCount_; }
+		/// <summary>Preview Statusから共通RuntimeのDraw経路通過を確認する診断カウンタです。</summary>
+		uint64_t GetDrawCallCount() const { return drawCallCount_; }
+		/// <summary>発生要求がComputeのEmit Dispatchまで届いた回数を返します。</summary>
+		uint64_t GetEmitDispatchCount() const { return emitDispatchCount_; }
+
 		/// <summary>
 		/// GPU パーティクル用の ImGui デバッグUIを描画します。<br/>
 		/// Mesh Asset の読み込み・エミッターの作成/編集/削除・バースト発生・
@@ -254,6 +261,12 @@ namespace Ken4lowEngine
 		/// <param name="overwrite">既存登録を上書きするかどうか。</param>
 		/// <returns>登録に成功した場合は true、上書き禁止かつ既存がある場合は false。</returns>
 		bool RegisterMeshAsset(uint32_t meshId, MeshParticleAsset asset, bool overwrite = true);
+
+		/// <summary>Debug Previewが所有するMesh Assetを個別に安全に解除します。</summary>
+		bool UnregisterMeshAsset(uint32_t meshId);
+
+		/// <summary>登録済みMesh Assetの表示テクスチャを安全に差し替えます。</summary>
+		bool SetMeshAssetTexturePath(uint32_t meshId, const std::string& texturePath);
 
 		/// <summary>
 		/// 登録済みの MeshParticleAsset を検索します。<br/>
@@ -484,6 +497,9 @@ namespace Ken4lowEngine
 		std::unordered_set<std::string> runtimeEmitterNames_;
 
 		uint32_t lastDrawCallCount_ = 0;
+		uint64_t updateCallCount_ = 0;
+		uint64_t drawCallCount_ = 0;
+		uint64_t emitDispatchCount_ = 0;
 
 	private: /// ---------- メッシュデータ ---------- ///
 

@@ -47,35 +47,53 @@ void main(uint3 DTid : SV_DispatchThreadID)
     }
 
     float t = saturate(p.currentTime / max(p.lifeTime, 1e-5f));
-    ParticleTypeParam param = GetParticleTypeParam(p.type);
-
-    float damp = max(0.0f, 1.0f - param.drag * dt);
-    p.velocity *= damp;
-    p.velocity.y += param.accelY * dt;
-
-    p.translate += p.velocity * dt;
-
-    if (param.scaleGrow > 0.0f)
+    if ((p.customFlags & GPU_PARTICLE_CUSTOM_DESC_OVERRIDE) != 0u)
     {
-        uint kind = GPUParticle_GetKind(p.billboardMode);
-        if (kind == GPU_PARTICLE_KIND_SPRITE || kind == GPU_PARTICLE_KIND_RIBBON)
+		// Desc Previewは指定velocityで移動し、寿命比でsize/colorを開始値から終了値へ補間する。
+        float damp = max(0.0f, 1.0f - p.damping * dt);
+        p.velocity *= damp;
+        p.velocity += p.gravity * dt;
+        p.translate += p.velocity * dt;
+        p.scale = lerp(p.startScale, p.endScale, t);
+        p.color = lerp(p.startColor, p.endColor, t);
+        if ((p.customFlags & GPU_PARTICLE_CUSTOM_ALPHA_FADE) == 0u)
         {
-            p.scale.xy += param.scaleGrow * dt;
+            p.color.a = p.startColor.a;
         }
-        else
-        {
-            p.scale += param.scaleGrow * dt;
-        }
+        p.rotation += p.rotationSpeed * dt;
     }
-
-    if (param.scaleShrink > 0.0f)
+    else
     {
-        float s = max(0.0f, 1.0f - param.scaleShrink * dt);
-        p.scale *= s;
-    }
+        ParticleTypeParam param = GetParticleTypeParam(p.type);
 
-    float a = pow(1.0f - t, param.alphaPow) * param.baseAlpha;
-    p.color.a = saturate(a);
+        float damp = max(0.0f, 1.0f - param.drag * dt);
+        p.velocity *= damp;
+        p.velocity.y += param.accelY * dt;
+
+        p.translate += p.velocity * dt;
+
+        if (param.scaleGrow > 0.0f)
+        {
+            uint kind = GPUParticle_GetKind(p.billboardMode);
+            if (kind == GPU_PARTICLE_KIND_SPRITE || kind == GPU_PARTICLE_KIND_RIBBON)
+            {
+                p.scale.xy += param.scaleGrow * dt;
+            }
+            else
+            {
+                p.scale += param.scaleGrow * dt;
+            }
+        }
+
+        if (param.scaleShrink > 0.0f)
+        {
+            float s = max(0.0f, 1.0f - param.scaleShrink * dt);
+            p.scale *= s;
+        }
+
+        float a = pow(1.0f - t, param.alphaPow) * param.baseAlpha;
+        p.color.a = saturate(a);
+    }
 
     gParticles[particleIndex] = p;
 }

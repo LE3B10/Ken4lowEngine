@@ -120,14 +120,8 @@ float3 RandColor(float3 seed, float3 a, float3 b)
 
 uint DecideRenderKind()
 {
-    uint flags = GPUParticle_GetBillboardFlags(gEmitter.billboardMode);
-    if (flags == BILLBOARD_NONE)
-    {
-        return GPU_PARTICLE_KIND_MESH;
-    }
-
-    uint kindFromCB = GPUParticle_GetKind(gEmitter.billboardMode);
-    return kindFromCB;
+    // 描画種別は明示的なkindを優先し、billboard=falseのSpriteをMeshへ誤分類しない。
+    return GPUParticle_GetKind(gEmitter.billboardMode);
 }
 
 void FinalizeParticle(inout Particle p, uint kind)
@@ -410,6 +404,62 @@ void SpawnByType(uint i, float3 seed, inout Particle p)
     ApplyParticleSpawnOverride(i, seed, p);
 }
 
+// ImGuiで編集したEmitter設定を、Preview用GPUパーティクルの生成値へ直接反映する。
+// overrideFlagsが無効な既存Emitterは従来のType別生成処理だけを使用する。
+void ApplyEmitterDescOverride(float3 seed, uint kind, inout Particle p)
+{
+    if ((gEmitter.overrideFlags & GPU_PARTICLE_CUSTOM_DESC_OVERRIDE) == 0u)
+        return;
+
+    float3 positionRandom = (GPURand3(seed + 101.0f) * 2.0f - 1.0f) * abs(gEmitter.positionRandom);
+    if (gEmitter.spawnShape == 1u) // Sphere
+    {
+        positionRandom += SampleSphere(seed + 111.0f, max(gEmitter.spawnRadius, 0.0f));
+    }
+    else if (gEmitter.spawnShape == 2u) // Box
+    {
+        positionRandom += (GPURand3(seed + 121.0f) * 2.0f - 1.0f) * abs(gEmitter.spawnBoxSize) * 0.5f;
+    }
+
+    float3 velocityRandom = (GPURand3(seed + 131.0f) * 2.0f - 1.0f) * abs(gEmitter.velocityRandom);
+    float3 initialVelocity = gEmitter.velocity + velocityRandom;
+    if (gEmitter.speed > 0.0f)
+    {
+        float speedValue = max(0.0f, gEmitter.speed + (GPURand1(seed + 141.0f) * 2.0f - 1.0f) * abs(gEmitter.speedRandom));
+        initialVelocity = SafeNormalize3(initialVelocity, SampleUnitDir(seed + 151.0f)) * speedValue;
+    }
+
+    float sizeFactor = max(0.0001f, 1.0f + (GPURand1(seed + 161.0f) * 2.0f - 1.0f) * abs(gEmitter.sizeRandom));
+    float3 spriteStartScale = float3(gEmitter.startSize, (gEmitter.startSize.x + gEmitter.startSize.y) * 0.5f);
+    float3 spriteEndScale = float3(gEmitter.endSize, (gEmitter.endSize.x + gEmitter.endSize.y) * 0.5f);
+    float4 colorRandom = (float4(GPURand3(seed + 171.0f), GPURand1(seed + 181.0f)) * 2.0f - 1.0f) * abs(gEmitter.colorRandom);
+
+    p.translate = gEmitter.translate + positionRandom;
+    p.velocity = initialVelocity;
+    p.lifeTime = max(0.01f, gEmitter.lifeTime + (GPURand1(seed + 191.0f) * 2.0f - 1.0f) * abs(gEmitter.lifeTimeRandom));
+    p.startScale = max(kind == GPU_PARTICLE_KIND_MESH ? gEmitter.startScale3D : spriteStartScale, float3(0.0001f, 0.0001f, 0.0001f)) * sizeFactor;
+    p.endScale = max(kind == GPU_PARTICLE_KIND_MESH ? gEmitter.endScale3D : spriteEndScale, float3(0.0001f, 0.0001f, 0.0001f)) * sizeFactor;
+    p.scale = p.startScale;
+    p.startColor = saturate(gEmitter.startColor + colorRandom);
+    p.endColor = saturate(gEmitter.endColor);
+    p.color = p.startColor;
+    p.customFlags = GPU_PARTICLE_CUSTOM_DESC_OVERRIDE;
+    if (gEmitter.alphaFade != 0u) p.customFlags |= GPU_PARTICLE_CUSTOM_ALPHA_FADE;
+    p.gravity = gEmitter.gravity;
+    p.damping = max(gEmitter.damping, 0.0f);
+    p.rotation = gEmitter.startRotation + (GPURand1(seed + 201.0f) * 2.0f - 1.0f) * abs(gEmitter.rotationRandom);
+    p.rotationSpeed = gEmitter.rotationSpeed;
+
+    if (gEmitter.useSpriteSheet != 0u)
+    {
+        p.atlasRows = max(gEmitter.spriteSheetRows, 1u);
+        p.atlasCols = max(gEmitter.spriteSheetColumns, 1u);
+        p.animFrameCount = p.atlasRows * p.atlasCols;
+        p.animFps = max(gEmitter.spriteSheetFrameRate, 0.0f);
+        p.animFlags = GPU_PARTICLE_ANIM_LOOP;
+    }
+}
+
 // ------------------------------------------------------------
 // Entry
 // ------------------------------------------------------------
@@ -438,6 +488,7 @@ void main(uint3 DTid : SV_DispatchThreadID)
                 (float) gEmitter.type * 37.719f);
 
             SpawnByType(i, seed, p);
+            ApplyEmitterDescOverride(seed, kind, p);
             FinalizeParticle(p, kind);
 
             gParticles[particleIndex] = p;

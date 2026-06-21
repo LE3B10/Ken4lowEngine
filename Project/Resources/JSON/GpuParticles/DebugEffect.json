@@ -1,0 +1,110 @@
+{
+    "effectName": "DebugEffect",
+    "emitters": [
+        {
+            "alphaFade": true,
+            "angularVelocity": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "angularVelocityRandom": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "billboard": true,
+            "blendMode": "Alpha",
+            "burstCount": 16,
+            "colorRandom": [
+                0.0,
+                0.0,
+                0.0,
+                0.0
+            ],
+            "damping": 0.0,
+            "duration": 1.0,
+            "endColor": [
+                1.0,
+                1.0,
+                1.0,
+                0.0
+            ],
+            "endScale3D": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "endSize": [
+                0.5,
+                0.5
+            ],
+            "gravity": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "lifeTime": 1.0,
+            "lifeTimeRandom": 0.0,
+            "loop": true,
+            "maxParticles": 1024,
+            "meshPath": "",
+            "name": "SpriteEmitter",
+            "position": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "positionRandom": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "renderType": "Sprite",
+            "rotationRandom": 0.0,
+            "rotationSpeed": 0.0,
+            "sizeRandom": 0.0,
+            "spawnBoxSize": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "spawnRadius": 0.0,
+            "spawnRate": 30.0,
+            "spawnShape": "Point",
+            "speed": 0.0,
+            "speedRandom": 0.0,
+            "spriteSheetColumns": 1,
+            "spriteSheetFrameRate": 0.0,
+            "spriteSheetRows": 1,
+            "startColor": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+            ],
+            "startRotation": 0.0,
+            "startScale3D": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "startSize": [
+                0.20000000298023224,
+                0.20000000298023224
+            ],
+            "texturePath": "Effects/white.dds",
+            "useSpriteSheet": false,
+            "velocity": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "velocityRandom": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        }
+    ]
+}

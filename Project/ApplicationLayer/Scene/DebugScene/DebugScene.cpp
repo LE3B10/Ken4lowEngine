@@ -2,6 +2,7 @@
 #include "DebugScene.h"
 #include "PhysicsDebugController.h"
 #include "AnimationModelBatchTest.h"
+#include "GpuParticlePreviewController.h"
 #include <Input.h>
 #include <SpriteManager.h>
 #include "CameraManager.h"
@@ -9,6 +10,7 @@
 #include <LightManager.h>
 #include <GameTimer.h>
 #include <InstancedObject3DRenderer.h>
+#include <GpuParticleEffectEditor.h>
 
 #include <algorithm>
 #include <cmath>
@@ -31,6 +33,13 @@ DebugScene::~DebugScene() = default;
 void DebugScene::Initialize()
 {
 	input_ = Input::GetInstance();
+
+	// GPU描画へはまだ接続せず、DebugSceneで編集・JSON保存するための既定Effectを用意する。
+	editingGpuParticleEffect_ = CreateDefaultGpuParticleEffectDesc();
+	editingGpuParticleEffect_.effectName = "DebugEffect";
+	selectedGpuParticleEmitterIndex_ = editingGpuParticleEffect_.emitters.empty() ? -1 : 0;
+	gpuParticlePreviewController_ = std::make_unique<GpuParticlePreviewController>();
+	gpuParticlePreviewController_->Initialize();
 
 	// 衝突判定マネージャーの初期化
 	collisionManager_ = std::make_unique<CollisionManager>();
@@ -74,6 +83,19 @@ void DebugScene::Update()
 	{
 		animationModelBatchTest_->Update(deltaTime);
 	}
+	if (gpuParticlePreviewController_)
+	{
+		// DebugScene上でプレビュー用Emitter設定と発生要求を更新する。
+		// GPU Particle Runtime本体のUpdateは、このScene更新より前にFramework共通処理から毎フレーム呼ばれる。
+		gpuParticlePreviewController_->Update(
+			deltaTime,
+			editingGpuParticleEffect_,
+			selectedGpuParticleEmitterIndex_,
+			gpuParticlePreviewPosition_,
+			gpuParticlePreviewEmitCount_,
+			gpuParticlePreviewAutoPlay_,
+			gpuParticlePreviewSelectedOnly_);
+	}
 
 	collisionManager_->CheckAllCollisions();
 	collisionManager_->Update();
@@ -86,6 +108,18 @@ void DebugScene::UpdateEditor(float deltaTime)
 	{
 		animationModelBatchTest_->Update(deltaTime);
 	}
+	if (gpuParticlePreviewController_)
+	{
+		// EditorのPlay停止中もPreview操作を止めず、発生要求を次フレームの共通Runtime Updateへ渡す。
+		gpuParticlePreviewController_->Update(
+			deltaTime,
+			editingGpuParticleEffect_,
+			selectedGpuParticleEmitterIndex_,
+			gpuParticlePreviewPosition_,
+			gpuParticlePreviewEmitCount_,
+			gpuParticlePreviewAutoPlay_,
+			gpuParticlePreviewSelectedOnly_);
+	}
 }
 
 /// -------------------------------------------------------------
@@ -93,6 +127,8 @@ void DebugScene::UpdateEditor(float deltaTime)
 /// -------------------------------------------------------------
 void DebugScene::Draw3DObjects()
 {
+	// Preview粒子のDrawはGameApplication共通3Dパスが、この関数とWireframe描画の後に呼び出す。
+	// Scene内から重複Drawせず、Preview StatusのRuntime Draw Calledで共通経路への到達を確認する。
 	if (animationModelBatchTest_)
 	{
 		animationModelBatchTest_->Draw();
@@ -165,6 +201,11 @@ void DebugScene::Finalize()
 		animationModelBatchTest_.reset();
 	}
 	instancingTestRenderer_.reset();
+	if (gpuParticlePreviewController_)
+	{
+		gpuParticlePreviewController_->Clear();
+		gpuParticlePreviewController_.reset();
+	}
 
 	input_ = nullptr;
 }
@@ -187,6 +228,32 @@ void DebugScene::DrawImGui()
 	if (animationModelBatchTest_)
 	{
 		animationModelBatchTest_->DrawImGui();
+	}
+
+	ImGui::Checkbox("Show GPU Particle Editor", &showGpuParticleEditor_);
+	if (showGpuParticleEditor_)
+	{
+		// Effect / Emitter設定をDebugSceneから編集するための独立したImGuiウィンドウ。
+		if (ImGui::Begin("GPU Particle Editor", &showGpuParticleEditor_))
+		{
+			DrawGpuParticleEffectEditor(
+				editingGpuParticleEffect_,
+				selectedGpuParticleEmitterIndex_,
+				gpuParticleEffectJsonPath_,
+				gpuParticleEditorStatus_,
+				gpuParticleEditorLastOperationSucceeded_);
+			if (gpuParticlePreviewController_)
+			{
+				gpuParticlePreviewController_->DrawImGui(
+					editingGpuParticleEffect_,
+					selectedGpuParticleEmitterIndex_,
+					gpuParticlePreviewPosition_,
+					gpuParticlePreviewEmitCount_,
+					gpuParticlePreviewAutoPlay_,
+					gpuParticlePreviewSelectedOnly_);
+			}
+		}
+		ImGui::End();
 	}
 
 	ImGui::SeparatorText("GPU Instancing Test");

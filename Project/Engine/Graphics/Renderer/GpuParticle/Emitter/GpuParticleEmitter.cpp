@@ -41,9 +41,16 @@ GpuParticleEmitter::GpuParticleEmitter(const std::string& name, const EmitterInf
 /// -------------------------------------------------------------
 ///					　　　射出要求
 /// -------------------------------------------------------------
-void GpuParticleEmitter::RequestEmit(uint32_t count)
+uint32_t GpuParticleEmitter::RequestEmit(uint32_t count)
 {
-	pendingBurstCount_ += count;
+	if (count == 0 || info_.maxParticles == 0) return 0;
+
+	// Preview EmitterがmaxParticlesを超えて無限に増えないよう、CPU推定生存数と発生待ち数で抑制する。
+	const uint64_t reserved = static_cast<uint64_t>(estimatedActiveParticleCount_) + pendingBurstCount_;
+	const uint64_t available = reserved < info_.maxParticles ? info_.maxParticles - reserved : 0;
+	const uint32_t accepted = static_cast<uint32_t>((std::min)(static_cast<uint64_t>(count), available));
+	pendingBurstCount_ += accepted;
+	return accepted;
 }
 
 void GpuParticleEmitter::UpdateActivity(float deltaTime)
@@ -62,6 +69,12 @@ void GpuParticleEmitter::UpdateActivity(float deltaTime)
 
 float GpuParticleEmitter::EstimateParticleLifeTimeSec() const
 {
+	if (info_.useDescSpawnOverride)
+	{
+		// Preview粒子はDescのlifeTimeをGPUへ直接渡すため、CPU側の生存数推定も同じ寿命へ合わせる。
+		return (std::max)(info_.lifeTime + std::abs(info_.lifeTimeRandom), 0.01f) + 0.10f;
+	}
+
 	// HLSL の lifeMax と合わせ、寿命後は Draw 対象から外して常時フル描画を避ける。
 	return EstimateGpuParticleLifeTimeSec(static_cast<GpuParticleType>(GetEffectiveType())) * std::max(info_.lifeScale, 0.01f) + 0.10f;
 }
@@ -92,7 +105,7 @@ bool GpuParticleEmitter::BuildCB(GpuEmitterCBData& out, float deltaTime)
 		// 周期を超えた分だけ発生（取りこぼし防止でwhile）
 		while (loopTimer_ >= info_.loopFrequency)
 		{
-			pendingBurstCount_ += info_.loopCount;
+			RequestEmit(info_.loopCount);
 			loopTimer_ -= info_.loopFrequency;
 		}
 	}
@@ -110,6 +123,36 @@ bool GpuParticleEmitter::BuildCB(GpuEmitterCBData& out, float deltaTime)
 	out.billboardMode = GetPackedBillboardMode();
 	out.lifeScale = std::max(info_.lifeScale, 0.01f);
 	out.speedScale = std::max(info_.speedScale, 0.0f);
+	out.overrideFlags = info_.useDescSpawnOverride ? 1u : 0u;
+	out.maxParticles = info_.maxParticles;
+	out.positionRandom = info_.positionRandom;
+	out.lifeTime = (std::max)(info_.lifeTime, 0.01f);
+	out.velocity = info_.velocity;
+	out.lifeTimeRandom = (std::max)(info_.lifeTimeRandom, 0.0f);
+	out.velocityRandom = info_.velocityRandom;
+	out.sizeRandom = (std::max)(info_.sizeRandom, 0.0f);
+	out.startSize = info_.startSize;
+	out.endSize = info_.endSize;
+	out.startColor = info_.startColor;
+	out.endColor = info_.endColor;
+	out.gravity = info_.gravity;
+	out.damping = (std::max)(info_.damping, 0.0f);
+	out.speed = (std::max)(info_.speed, 0.0f);
+	out.speedRandom = (std::max)(info_.speedRandom, 0.0f);
+	out.startRotation = info_.startRotation;
+	out.rotationSpeed = info_.rotationSpeed;
+	out.rotationRandom = (std::max)(info_.rotationRandom, 0.0f);
+	out.spawnRadius = (std::max)(info_.spawnRadius, 0.0f);
+	out.spawnShape = info_.spawnShape;
+	out.alphaFade = info_.alphaFade ? 1u : 0u;
+	out.spawnBoxSize = info_.spawnBoxSize;
+	out.colorRandom = info_.colorRandom;
+	out.startScale3D = info_.startScale3D;
+	out.endScale3D = info_.endScale3D;
+	out.useSpriteSheet = info_.useSpriteSheet ? 1u : 0u;
+	out.spriteSheetRows = (std::max)(info_.spriteSheetRows, 1u);
+	out.spriteSheetColumns = (std::max)(info_.spriteSheetColumns, 1u);
+	out.spriteSheetFrameRate = (std::max)(info_.spriteSheetFrameRate, 0.0f);
 
 	// ------------------------------
 	// Emitしない

@@ -175,6 +175,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </ClCompile>
     <ClCompile Include="ApplicationLayer\DebugTools\EnemyScalability\EnemyScalabilitySystem.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\AnimationModelBatchTest.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DisintegrationDebugController.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\PhysicsDebugController.cpp" />
@@ -395,6 +396,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Pipeline\GpuParticleSpritePipeline.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterPreset.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterSerializer.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEffectEditor.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEffectSerializer.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Renderer\GpuParticleRenderer.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3D.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Object3D\Object3DCommon.cpp" />
@@ -823,6 +826,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </ClInclude>
     <ClInclude Include="ApplicationLayer\DebugTools\EnemyScalability\EnemyScalabilitySystem.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h" />
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\AnimationModelBatchTest.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DisintegrationDebugController.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\PhysicsDebugController.h" />
@@ -1124,6 +1128,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Buffers\GpuParticleBuffers.h" />
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Data\BillboardMode.h" />
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Data\GpuParticleEmitterData.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Data\GpuParticleEffectDesc.h" />
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Data\GpuParticleType.h" />
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Emitter\GpuParticleEmitter.h" />
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Manager\GpuParticleManager.h" />
@@ -1134,6 +1139,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterAsset.h" />
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterPreset.h" />
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterSerializer.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEffectEditor.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEffectSerializer.h" />
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Renderer\GpuParticleRenderer.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Object3D\Object3D.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Object3D\Object3DCommon.h" />

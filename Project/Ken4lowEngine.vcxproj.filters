@@ -268,6 +268,9 @@
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.cpp">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\AnimationModelBatchTest.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClCompile>
@@ -889,6 +892,12 @@
     <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterSerializer.cpp">
       <Filter>Engine\Graphics\Renderer\GpuParticle\Preset</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEffectEditor.cpp">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Preset</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEffectSerializer.cpp">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Preset</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\GpuParticle\Renderer\GpuParticleRenderer.cpp">
       <Filter>Engine\Graphics\Renderer\GpuParticle\Renderer</Filter>
     </ClCompile>
@@ -1204,6 +1213,9 @@
       <Filter>ApplicationLayer\DebugTools</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.h">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\AnimationModelBatchTest.h">
@@ -1983,6 +1995,9 @@
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Data\GpuParticleType.h">
       <Filter>Engine\Graphics\Renderer\GpuParticle\Data</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Data\GpuParticleEffectDesc.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Data</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Emitter\GpuParticleEmitter.h">
       <Filter>Engine\Graphics\Renderer\GpuParticle\Emitter</Filter>
     </ClInclude>
@@ -2005,6 +2020,12 @@
       <Filter>Engine\Graphics\Renderer\GpuParticle\Preset</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEmitterSerializer.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Preset</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEffectEditor.h">
+      <Filter>Engine\Graphics\Renderer\GpuParticle\Preset</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Preset\GpuParticleEffectSerializer.h">
       <Filter>Engine\Graphics\Renderer\GpuParticle\Preset</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Renderer\GpuParticle\Renderer\GpuParticleRenderer.h">

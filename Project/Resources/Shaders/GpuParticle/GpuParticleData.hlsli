@@ -21,6 +21,8 @@ static const uint BILLBOARD_RIBBON = 1u << 2;
 
 static const uint GPU_PARTICLE_ANIM_LOOP = 1u << 0;
 static const uint GPU_PARTICLE_ANIM_RANDOM_START = 1u << 1;
+static const uint GPU_PARTICLE_CUSTOM_DESC_OVERRIDE = 1u << 0;
+static const uint GPU_PARTICLE_CUSTOM_ALPHA_FADE = 1u << 1;
 
 uint GPUParticle_GetKind(uint packedBillboardMode)
 {
@@ -80,6 +82,18 @@ struct Particle
     float3 _pad1;
 
     float4 color;
+
+    float3 startScale;
+    uint customFlags;
+    float3 endScale;
+    float customPadding;
+    float4 startColor;
+    float4 endColor;
+    float3 gravity;
+    float damping;
+    float rotation;
+    float rotationSpeed;
+    float2 customPadding2;
 };
 
 /// ---------- エミッター ---------- ///
@@ -95,7 +109,40 @@ struct EmitterCBData
     uint billboardMode;
     float lifeScale;
     float speedScale;
-    float2 padding;
+    uint overrideFlags;
+    uint maxParticles;
+    float2 overridePadding;
+    float3 positionRandom;
+    float lifeTime;
+    float3 velocity;
+    float lifeTimeRandom;
+    float3 velocityRandom;
+    float sizeRandom;
+    float2 startSize;
+    float2 endSize;
+    float4 startColor;
+    float4 endColor;
+    float3 gravity;
+    float damping;
+    float speed;
+    float speedRandom;
+    float startRotation;
+    float rotationSpeed;
+    float rotationRandom;
+    float spawnRadius;
+    uint spawnShape;
+    uint alphaFade;
+    float3 spawnBoxSize;
+    float spawnBoxPadding;
+    float4 colorRandom;
+    float3 startScale3D;
+    float startScalePadding;
+    float3 endScale3D;
+    float endScalePadding;
+    uint useSpriteSheet;
+    uint spriteSheetRows;
+    uint spriteSheetColumns;
+    float spriteSheetFrameRate;
 };
 
 /// ---------- 時間制御 ---------- ///

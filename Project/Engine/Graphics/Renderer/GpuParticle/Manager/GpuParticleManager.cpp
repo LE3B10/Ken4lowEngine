@@ -82,6 +82,10 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void GpuParticleManager::Initialize(Camera* camera)
 	{
+		updateCallCount_ = 0;
+		drawCallCount_ = 0;
+		emitDispatchCount_ = 0;
+		lastDrawCallCount_ = 0;
 		// 引数でカメラのポインタを受け取ってメンバ変数に記録する
 		camera_ = camera;
 
@@ -138,6 +142,8 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void GpuParticleManager::Update(float deltaTime)
 	{
+		// DebugSceneのPreview Statusで、共通GPU Particle Runtimeの更新到達を追跡する。
+		++updateCallCount_;
 		// GPUパーティクルバッファの更新処理
 		gpuParticleBuffers_->Update(deltaTime);
 
@@ -167,6 +173,8 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void GpuParticleManager::Draw()
 	{
+		// DebugSceneのPreview Statusで、共通3D描画パスの到達を追跡する。
+		++drawCallCount_;
 		const UINT instanceCount = GpuParticleBuffers::GetMaxParticles();
 
 		uint32_t drawSlot = 0;
@@ -560,6 +568,19 @@ namespace Ken4lowEngine
 		return true;
 	}
 
+	bool GpuParticleManager::UnregisterMeshAsset(uint32_t meshId)
+	{
+		return meshAssets_.erase(meshId) > 0;
+	}
+
+	bool GpuParticleManager::SetMeshAssetTexturePath(uint32_t meshId, const std::string& texturePath)
+	{
+		auto it = meshAssets_.find(meshId);
+		if (it == meshAssets_.end()) return false;
+		it->second.textureFilePath = texturePath;
+		return true;
+	}
+
 	const MeshParticleAsset* GpuParticleManager::FindMeshAsset(uint32_t meshId) const
 	{
 		auto it = meshAssets_.find(meshId);
@@ -794,6 +815,8 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void GpuParticleManager::DispatchEmit(D3D12_GPU_VIRTUAL_ADDRESS emitterCbAddr)
 	{
+		// RequestEmitがBuildCBを経由し、実際のGPU発生Dispatchまで到達したことを記録する。
+		++emitDispatchCount_;
 		auto* dxCommon = DirectXCommon::GetInstance();
 		auto* commandList = dxCommon->GetCommandManager()->GetCommandList();
 

@@ -1,12 +1,15 @@
 #pragma once
 #include "BaseScene.h"
 #include "CollisionManager.h"
+#include "GpuParticleEffectDesc.h"
 
 #include <cstdint>
 #include <memory>
+#include <string>
 
 class PhysicsDebugController;
 class AnimationModelBatchTest;
+class GpuParticlePreviewController;
 
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine
@@ -80,4 +83,19 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool instancingRandomRotation_ = false;
 	bool instancingRandomColor_ = false;
 	bool instancingFrustumCulling_ = false;
+
+	// DebugSceneからEffect / Emitter設定を編集するためのGPU Particle Editor用データ。
+	K4E::GpuParticleEffectDesc editingGpuParticleEffect_;
+	int selectedGpuParticleEmitterIndex_ = -1;
+	bool showGpuParticleEditor_ = true;
+	std::string gpuParticleEffectJsonPath_ = "Resources/JSON/GpuParticles/DebugEffect.json";
+	std::string gpuParticleEditorStatus_ = "GPU Particle Editor ready.";
+	bool gpuParticleEditorLastOperationSucceeded_ = true;
+
+	// DebugScene専用のGPUパーティクル試射状態。本番EffectやGamePlaySceneとは共有しない。
+	std::unique_ptr<GpuParticlePreviewController> gpuParticlePreviewController_;
+	bool gpuParticlePreviewAutoPlay_ = false;
+	bool gpuParticlePreviewSelectedOnly_ = true;
+	K4E::Vector3 gpuParticlePreviewPosition_{ 0.0f, 1.0f, 0.0f };
+	uint32_t gpuParticlePreviewEmitCount_ = 32;
 };

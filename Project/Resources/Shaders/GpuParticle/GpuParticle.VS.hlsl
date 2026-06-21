@@ -114,8 +114,17 @@ VertexShaderOutput main(VertexShaderInput input, uint instanceId : SV_InstanceID
     // 平行移動
     worldMatrix[3].xyz += particle.translate;
 
+    // Preview DescのstartRotation / rotationSpeedをSpriteのローカルZ回転へ反映する。
+    float sinRotation;
+    float cosRotation;
+    sincos(particle.rotation, sinRotation, cosRotation);
+    float4 localPosition = input.position;
+    localPosition.xy = float2(
+        input.position.x * cosRotation - input.position.y * sinRotation,
+        input.position.x * sinRotation + input.position.y * cosRotation);
+
     // 変換
-    output.position = mul(input.position, mul(worldMatrix, gPerView.viewProjectionMatrix));
+    output.position = mul(localPosition, mul(worldMatrix, gPerView.viewProjectionMatrix));
     output.texcoord = input.texcoord;
     output.color = particle.color;
     output.type = particle.type;

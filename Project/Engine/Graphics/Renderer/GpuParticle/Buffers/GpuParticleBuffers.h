@@ -44,7 +44,20 @@ class GpuParticleBuffers
 		float pad1[3] = {};
 
 		Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+
+		Vector3 startScale{};
+		uint32_t customFlags = 0;
+		Vector3 endScale{};
+		float customPadding = 0.0f;
+		Vector4 startColor{};
+		Vector4 endColor{};
+		Vector3 gravity{};
+		float damping = 0.0f;
+		float rotation = 0.0f;
+		float rotationSpeed = 0.0f;
+		float customPadding2[2]{};
 	};
+	static_assert(sizeof(ParticleCS) == 208); // HLSL Particle構造体とのstride一致を保証する。
 
 	// ビュー行列と射影行列
 	struct PerView

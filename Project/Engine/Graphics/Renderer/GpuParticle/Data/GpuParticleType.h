@@ -4,6 +4,8 @@
 namespace Ken4lowEngine
 {
 
+	// 既存GPU/HLSLとの互換を維持する低レベル分類です。
+	// 新しい編集・JSON設計ではGpuParticleRenderType（Sprite/Meshのみ）を使用し、今回はこの既存分類を削除しません。
 	enum class GpuParticleKind : uint32_t
 	{
 		Sprite = 0,
@@ -24,7 +26,8 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///				GPUパーティクルの種類を管理する列挙型
+	/// GPUパーティクルの演出プリセット（Blood/Smokeなど）を管理する既存列挙型
+	/// 描画方式ではないため、新設計のGpuParticleRenderTypeとは役割を分けて段階的に接続します。
 	/// -------------------------------------------------------------
 	enum class GpuParticleType : uint32_t
 	{

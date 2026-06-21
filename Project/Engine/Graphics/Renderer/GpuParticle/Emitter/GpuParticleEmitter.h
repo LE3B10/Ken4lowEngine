@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 #include <deque>
+#include <limits>
+#include <Vector2.h>
 #include <Vector3.h>
 #include <Vector4.h>
 
@@ -46,6 +48,39 @@ public: /// ---------- 構造体 ---------- ///
 		// 攻撃ヒットなど同一タイプ内の差別化用に、寿命と初速度だけエミッター単位で上書きする。
 		float lifeScale = 1.0f;
 		float speedScale = 1.0f;
+
+		// ImGuiで編集したEmitterDescを実際のGPU生成値へ渡すPreview用上書き設定。
+		// useDescSpawnOverride=falseの既存Emitterは従来のType別Shader設定をそのまま使用する。
+		bool useDescSpawnOverride = false;
+		uint32_t maxParticles = (std::numeric_limits<uint32_t>::max)();
+		Vector3 positionRandom{};
+		Vector3 velocity{};
+		Vector3 velocityRandom{};
+		Vector2 startSize{ 1.0f, 1.0f };
+		Vector2 endSize{ 1.0f, 1.0f };
+		Vector4 startColor{ 1.0f, 1.0f, 1.0f, 1.0f };
+		Vector4 endColor{ 1.0f, 1.0f, 1.0f, 0.0f };
+		float lifeTime = 1.0f;
+		float lifeTimeRandom = 0.0f;
+		Vector3 gravity{};
+		float damping = 0.0f;
+		float speed = 0.0f;
+		float speedRandom = 0.0f;
+		float sizeRandom = 0.0f;
+		float startRotation = 0.0f;
+		float rotationSpeed = 0.0f;
+		float rotationRandom = 0.0f;
+		uint32_t spawnShape = 0; // GpuParticleSpawnShapeと同じPoint/Sphere/Boxの値。
+		float spawnRadius = 0.0f;
+		Vector3 spawnBoxSize{};
+		Vector4 colorRandom{};
+		bool alphaFade = true;
+		Vector3 startScale3D{ 1.0f, 1.0f, 1.0f };
+		Vector3 endScale3D{ 1.0f, 1.0f, 1.0f };
+		bool useSpriteSheet = false;
+		uint32_t spriteSheetRows = 1;
+		uint32_t spriteSheetColumns = 1;
+		float spriteSheetFrameRate = 0.0f;
 	};
 
 public: /// ---------- メンバ関数 ---------- ///
@@ -64,7 +99,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// Update() 側から複数回呼ばれても、そのフレーム内で合算されて利用されます。
 	/// </summary>
 	/// <param name="count">このフレームに追加で発生させたいパーティクル数</param>
-	void RequestEmit(uint32_t count);
+	/// <returns>maxParticlesと発生待ち数を考慮して、Runtimeが実際に受理した数。</returns>
+	uint32_t RequestEmit(uint32_t count);
 
 	/// 発生済み粒子が残っている間だけ描画するための軽量更新。
 	void UpdateActivity(float deltaTime);
