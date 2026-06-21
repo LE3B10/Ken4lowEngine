@@ -268,9 +268,6 @@
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.cpp">
-      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\AnimationModelBatchTest.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClCompile>
@@ -1060,6 +1057,9 @@
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\AmmoRecoveryItemSpawner.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.cpp">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1213,9 +1213,6 @@
       <Filter>ApplicationLayer\DebugTools</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h">
-      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.h">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\AnimationModelBatchTest.h">
@@ -2210,6 +2207,9 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\AmmoRecoveryItemSpawner.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.h">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

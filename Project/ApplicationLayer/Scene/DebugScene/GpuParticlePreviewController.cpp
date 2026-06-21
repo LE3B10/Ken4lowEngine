@@ -103,7 +103,7 @@ namespace
 		bool forceVisibleSprite,
 		std::string& warning)
 	{
-		const auto settings = K4E::BuildPreviewSpawnSettings(desc, previewPosition, previewEmitCount);
+		const auto settings = K4E::BuildPreviewSpawnSettings(desc, previewPosition, previewEmitCount, forceVisibleSprite);
 		K4E::GpuParticleEmitter::EmitterInfo info{};
 		info.useDescSpawnOverride = true;
 		// ImGuiで編集した値を固定値で上書きせず、補正済みPreview設定からRuntimeへ反映する。
@@ -166,16 +166,6 @@ namespace
 
 			if (forceVisibleSprite)
 			{
-				// Runtime接続確認を最優先し、カメラから確認しやすい白いSpriteへ一時的に固定する。
-				info.textureFilePath = kFallbackTexture;
-				info.velocity = { 0.0f, 1.0f, 0.0f };
-				info.velocityRandom = {};
-				info.lifeTime = 2.0f;
-				info.lifeTimeRandom = 0.0f;
-				info.startSize = { 0.5f, 0.5f };
-				info.endSize = { 0.5f, 0.5f };
-				info.startColor = { 1.0f, 1.0f, 1.0f, 1.0f };
-				info.endColor = { 1.0f, 1.0f, 1.0f, 0.0f };
 				info.billboardFlags = K4E::BillboardMode::Camera;
 				AppendMessage(warning, "Force Visible Sprite: Effects/white.dds / size 0.5 / lifetime 2 sec");
 			}
@@ -189,7 +179,8 @@ namespace Ken4lowEngine
 	GpuParticlePreviewSpawnSettings BuildPreviewSpawnSettings(
 		const GpuParticleEmitterDesc& desc,
 		const Vector3& previewPosition,
-		uint32_t previewEmitCount)
+		uint32_t previewEmitCount,
+		bool forceVisibleSprite)
 	{
 		GpuParticlePreviewSpawnSettings settings{};
 		settings.maxParticles = (std::min)(desc.maxParticles == 0 ? 1024u : desc.maxParticles, GpuParticleBuffers::GetMaxParticles());
@@ -219,6 +210,32 @@ namespace Ken4lowEngine
 		settings.spawnBoxSize = { std::abs(desc.spawnBoxSize.x), std::abs(desc.spawnBoxSize.y), std::abs(desc.spawnBoxSize.z) };
 		settings.blendMode = desc.blendMode;
 		settings.texturePath = desc.texturePath;
+
+		if (forceVisibleSprite && desc.renderType == GpuParticleRenderType::Sprite)
+		{
+			// Runtime接続確認用の強制表示モード。この分岐だけがDescを無視した固定値を使用する。
+			settings.position = previewPosition;
+			settings.positionRandom = {};
+			settings.velocity = { 0.0f, 1.0f, 0.0f };
+			settings.velocityRandom = {};
+			settings.gravity = {};
+			settings.damping = 0.0f;
+			settings.lifeTime = 2.0f;
+			settings.lifeTimeRandom = 0.0f;
+			settings.startSize = { 0.5f, 0.5f };
+			settings.endSize = { 0.5f, 0.5f };
+			settings.sizeRandom = 0.0f;
+			settings.startColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+			settings.endColor = { 1.0f, 1.0f, 1.0f, 0.0f };
+			settings.colorRandom = {};
+			settings.startRotation = 0.0f;
+			settings.rotationSpeed = 0.0f;
+			settings.rotationRandom = 0.0f;
+			settings.spawnShape = GpuParticleSpawnShape::Point;
+			settings.spawnRadius = 0.0f;
+			settings.spawnBoxSize = {};
+			settings.texturePath = kFallbackTexture;
+		}
 		return settings;
 	}
 
@@ -235,7 +252,7 @@ namespace Ken4lowEngine
 		outWarning.clear();
 		const auto previousInfo = runtimeEmitter.GetInfo();
 		auto info = BuildRuntimeEmitterInfo(desc, previewPosition, previewEmitCount, forceVisibleSprite, outWarning);
-		const auto settings = BuildPreviewSpawnSettings(desc, previewPosition, previewEmitCount);
+		const auto settings = BuildPreviewSpawnSettings(desc, previewPosition, previewEmitCount, forceVisibleSprite);
 
 		// Mesh Asset IDはControllerが所有するため、毎フレームのDesc同期でも選択済みIDを維持する。
 		if (desc.renderType == GpuParticleRenderType::Mesh)
@@ -249,8 +266,7 @@ namespace Ken4lowEngine
 		}
 
 		runtimeEmitter.GetInfoMutable() = info;
-		const bool useExactPreviewPosition = forceVisibleSprite && desc.renderType == GpuParticleRenderType::Sprite;
-		runtimeEmitter.SetPosition(useExactPreviewPosition ? previewPosition : settings.position);
+		runtimeEmitter.SetPosition(settings.position);
 		return true;
 	}
 }
@@ -308,7 +324,7 @@ bool GpuParticlePreviewController::CreateRuntimeEmitter(
 {
 	outAcceptedCount = 0;
 	std::string warning;
-	const auto previewSettings = K4E::BuildPreviewSpawnSettings(desc, previewPosition, initialEmitCount);
+	const auto previewSettings = K4E::BuildPreviewSpawnSettings(desc, previewPosition, initialEmitCount, forceVisibleSprite_);
 	auto info = BuildRuntimeEmitterInfo(desc, previewPosition, initialEmitCount, forceVisibleSprite_, warning);
 	RuntimeEmitterRecord record{};
 	record.sourceEmitterIndex = sourceEmitterIndex;
@@ -376,13 +392,14 @@ bool GpuParticlePreviewController::CreateRuntimeEmitter(
 		return false;
 	}
 
-	const bool useExactPreviewPosition = forceVisibleSprite_ && desc.renderType == K4E::GpuParticleRenderType::Sprite;
-	emitter->SetPosition(useExactPreviewPosition ? previewPosition : previewSettings.position);
-	lastEmitPosition_ = useExactPreviewPosition ? previewPosition : previewSettings.position;
+	emitter->SetPosition(previewSettings.position);
+	lastEmitPosition_ = previewSettings.position;
 	lastUsedVelocity_ = info.velocity;
 	lastUsedLifeTime_ = info.lifeTime;
 	lastUsedStartSize_ = info.startSize;
 	lastUsedStartColor_ = info.startColor;
+	lastUsedTexturePath_ = info.textureFilePath;
+	lastUsedMode_ = forceVisibleSprite_ && desc.renderType == K4E::GpuParticleRenderType::Sprite ? "ForceVisible" : "Desc";
 	// ImGuiのPreviewボタンからRuntimeへ発生要求を渡す確認用処理。受理数をStatusへ返す。
 	runtimeSpawnCalled_ = true;
 	outAcceptedCount = emitter->RequestEmit(initialEmitCount);
@@ -443,7 +460,7 @@ void GpuParticlePreviewController::EmitOnce(
 		const auto& desc = effect.emitters[index];
 		const uint32_t selectedCount = useBurstCountForEmitOnce_ && desc.burstCount > 0 ? desc.burstCount : safeCount;
 		lastEmitCountSource_ = useBurstCountForEmitOnce_ && desc.burstCount > 0 ? "Emitter burstCount" : "Preview Emit Count";
-		const auto settings = K4E::BuildPreviewSpawnSettings(desc, previewPosition, selectedCount);
+		const auto settings = K4E::BuildPreviewSpawnSettings(desc, previewPosition, selectedCount, forceVisibleSprite_);
 		const uint32_t perEmitterCount = settings.emitCount;
 		lastEmitRequestedCount_ += perEmitterCount;
 		K4E::Log("[GpuParticlePreview] Selected emitter: " + desc.name + "\n");
@@ -506,7 +523,7 @@ void GpuParticlePreviewController::Play(
 	{
 		const auto& desc = effect.emitters[index];
 		// Effect再生開始時はloopの有無に関係なく、Emitter固有のBurstを一度だけ生成する。
-		const auto settings = K4E::BuildPreviewSpawnSettings(desc, previewPosition, (std::max)(desc.burstCount, 1u));
+		const auto settings = K4E::BuildPreviewSpawnSettings(desc, previewPosition, (std::max)(desc.burstCount, 1u), forceVisibleSprite_);
 		const uint32_t initialCount = settings.emitCount;
 		lastEmitCountSource_ = "Emitter burstCount";
 		lastEmitRequestedCount_ += initialCount;
@@ -629,6 +646,8 @@ void GpuParticlePreviewController::Update(
 		lastUsedLifeTime_ = appliedInfo.lifeTime;
 		lastUsedStartSize_ = appliedInfo.startSize;
 		lastUsedStartColor_ = appliedInfo.startColor;
+		lastUsedTexturePath_ = appliedInfo.textureFilePath;
+		lastUsedMode_ = forceVisibleSprite_ && desc.renderType == K4E::GpuParticleRenderType::Sprite ? "ForceVisible" : "Desc";
 
 		record.elapsedTime += (std::max)(deltaTime, 0.0f);
 		const bool withinDuration = desc.loop || record.elapsedTime < (std::max)(desc.duration, 0.0f);
@@ -692,8 +711,10 @@ void GpuParticlePreviewController::DrawImGui(
 	ImGui::Checkbox("Auto Play", &autoPlay);
 	ImGui::Checkbox("Emit Once Uses burstCount", &useBurstCountForEmitOnce_);
 	ImGui::Checkbox("Force Visible Sprite", &forceVisibleSprite_);
-	if (ImGui::IsItemHovered()) ImGui::SetTooltip("故障切り分け用です。有効中はvelocity / lifetime / size / colorを固定値で上書きします。");
-	if (forceVisibleSprite_)
+	if (ImGui::IsItemHovered()) ImGui::SetTooltip("通常のEmitterDesc設定を無視し、白いSpriteを固定値で出すRuntime接続確認用です。");
+	const bool forceVisibleTargetsSprite = selectedEmitterIndex >= 0 && selectedEmitterIndex < static_cast<int>(effect.emitters.size()) &&
+		effect.emitters[static_cast<size_t>(selectedEmitterIndex)].renderType == K4E::GpuParticleRenderType::Sprite;
+	if (forceVisibleSprite_ && forceVisibleTargetsSprite)
 	{
 		ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.2f, 1.0f), "Force Visible is ON: edited motion/size/color values are overridden.");
 	}
@@ -718,6 +739,19 @@ void GpuParticlePreviewController::DrawImGui(
 	const bool currentSelectedIndexValid = selectedOnly
 		? selectedEmitterIndex >= 0 && selectedEmitterIndex < static_cast<int>(effect.emitters.size())
 		: !effect.emitters.empty();
+	const bool selectedIsSprite = selectedEmitterIndex >= 0 && selectedEmitterIndex < static_cast<int>(effect.emitters.size()) &&
+		effect.emitters[static_cast<size_t>(selectedEmitterIndex)].renderType == K4E::GpuParticleRenderType::Sprite;
+	const bool forceVisibleActive = forceVisibleSprite_ && selectedIsSprite;
+	// 設定が反映されない原因を確認しやすくするため、固定表示とDesc反映のどちらかを明示する。
+	ImGui::Text("Preview Mode: %s", forceVisibleActive ? "ForceVisible" : "Desc");
+	ImGui::Text("Force Visible Sprite: %s", forceVisibleSprite_ ? "ON" : "OFF");
+	ImGui::Text("Desc Applied: %s", forceVisibleActive ? "NO" : "YES");
+	ImGui::Text("Using Texture Path: %s", lastUsedTexturePath_.empty() ? "not emitted yet" : lastUsedTexturePath_.c_str());
+	ImGui::Text("Using Size: %.3f, %.3f", lastUsedStartSize_.x, lastUsedStartSize_.y);
+	ImGui::Text("Using Lifetime: %.3f", lastUsedLifeTime_);
+	ImGui::Text("Using StartColor: %.2f, %.2f, %.2f, %.2f",
+		lastUsedStartColor_.x, lastUsedStartColor_.y, lastUsedStartColor_.z, lastUsedStartColor_.w);
+	ImGui::Text("Using Velocity: %.2f, %.2f, %.2f", lastUsedVelocity_.x, lastUsedVelocity_.y, lastUsedVelocity_.z);
 	ImGui::Text("Preview Playing: %s", playing_ ? "ON" : "OFF");
 	ImGui::Text("Emit Button Pressed Count: %llu", static_cast<unsigned long long>(emitButtonPressedCount_));
 	ImGui::Text("Last Emit Requested Count: %u", lastEmitRequestedCount_);
@@ -740,6 +774,8 @@ void GpuParticlePreviewController::DrawImGui(
 	ImGui::Text("Connected: spawnShape YES");
 	ImGui::Text("Connected: blendMode NO (Preview pipeline uses Alpha)");
 	ImGui::Text("Last Used Velocity: %.2f, %.2f, %.2f", lastUsedVelocity_.x, lastUsedVelocity_.y, lastUsedVelocity_.z);
+	ImGui::Text("Last Used Mode: %s", lastUsedMode_.c_str());
+	ImGui::Text("Last Used Texture: %s", lastUsedTexturePath_.empty() ? "not emitted yet" : lastUsedTexturePath_.c_str());
 	ImGui::Text("Last Used LifeTime: %.3f", lastUsedLifeTime_);
 	ImGui::Text("Last Used StartSize: %.3f, %.3f", lastUsedStartSize_.x, lastUsedStartSize_.y);
 	ImGui::Text("Last Used StartColor: %.2f, %.2f, %.2f, %.2f",
@@ -754,6 +790,10 @@ void GpuParticlePreviewController::DrawImGui(
 		{
 			// TODO: Mesh Asset接続に失敗した場合はSprite表示確認を優先し、理由を明示する。
 			ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.2f, 1.0f), "Mesh particle runtime is not connected yet");
+		}
+		if (selected.renderType == K4E::GpuParticleRenderType::Mesh && forceVisibleSprite_)
+		{
+			ImGui::TextDisabled("Force Visible Sprite is Sprite-only; Mesh preview continues to use Desc.");
 		}
 	}
 	else

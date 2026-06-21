@@ -15,7 +15,7 @@
             ],
             "billboard": true,
             "blendMode": "Alpha",
-            "burstCount": 16,
+            "burstCount": 32,
             "colorRandom": [
                 0.0,
                 0.0,
@@ -26,8 +26,8 @@
             "duration": 1.0,
             "endColor": [
                 1.0,
-                1.0,
-                1.0,
+                0.0,
+                0.0,
                 0.0
             ],
             "endScale3D": [
@@ -36,15 +36,15 @@
                 1.0
             ],
             "endSize": [
-                0.5,
-                0.5
+                0.800000011920929,
+                0.800000011920929
             ],
             "gravity": [
                 0.0,
-                0.0,
+                -2.0,
                 0.0
             ],
-            "lifeTime": 1.0,
+            "lifeTime": 2.0,
             "lifeTimeRandom": 0.0,
             "loop": true,
             "maxParticles": 1024,
@@ -70,7 +70,7 @@
                 0.0
             ],
             "spawnRadius": 0.0,
-            "spawnRate": 30.0,
+            "spawnRate": 50.0,
             "spawnShape": "Point",
             "speed": 0.0,
             "speedRandom": 0.0,
@@ -79,8 +79,8 @@
             "spriteSheetRows": 1,
             "startColor": [
                 1.0,
-                1.0,
-                1.0,
+                0.800000011920929,
+                0.20000000298023224,
                 1.0
             ],
             "startRotation": 0.0,
@@ -90,20 +90,20 @@
                 1.0
             ],
             "startSize": [
-                0.20000000298023224,
-                0.20000000298023224
+                0.10000000149011612,
+                0.10000000149011612
             ],
             "texturePath": "Effects/white.dds",
             "useSpriteSheet": false,
             "velocity": [
                 0.0,
-                0.0,
+                2.0,
                 0.0
             ],
             "velocityRandom": [
-                0.0,
-                0.0,
-                0.0
+                1.0,
+                1.0,
+                1.0
             ]
         }
     ]

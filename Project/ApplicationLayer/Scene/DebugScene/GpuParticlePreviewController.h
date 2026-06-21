@@ -49,7 +49,8 @@ namespace Ken4lowEngine
 	GpuParticlePreviewSpawnSettings BuildPreviewSpawnSettings(
 		const GpuParticleEmitterDesc& desc,
 		const Vector3& previewPosition,
-		uint32_t previewEmitCount);
+		uint32_t previewEmitCount,
+		bool forceVisibleSprite);
 
 	/// <summary>
 	/// ImGuiで編集したEmitter設定を、実際のGPUパーティクルRuntime Emitterへ渡します。
@@ -171,6 +172,8 @@ private:
 	float lastUsedLifeTime_ = 0.0f;
 	Ken4lowEngine::Vector2 lastUsedStartSize_{};
 	Ken4lowEngine::Vector4 lastUsedStartColor_{};
+	std::string lastUsedTexturePath_;
+	std::string lastUsedMode_ = "Desc";
 	std::string lastEmitCountSource_ = "Preview Emit Count";
 	std::string lastStatus_ = "Preview ready.";
 	std::string lastErrorMessage_;
