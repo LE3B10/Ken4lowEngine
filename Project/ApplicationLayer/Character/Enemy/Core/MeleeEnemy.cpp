@@ -21,7 +21,7 @@ using namespace Ken4lowEngine;
 namespace
 {
 	constexpr float kEpsilon = 0.0001f;
-	constexpr float kPi = 3.1415926535f;
+	constexpr float kPi = std::numbers::pi_v<float>;
 	constexpr float kTwoPi = kPi * 2.0f;
 
 	float LengthXZ(const Vector3& v)
@@ -63,6 +63,33 @@ namespace
 		return LengthXZ(K4E::Vector3{ p.x - closest.x, 0.0f, p.z - closest.z });
 	}
 
+	float DistancePointToAabbXZ(const K4E::Vector3& p, const K4E::AABB& aabb)
+	{
+		const float dx = std::max({ aabb.min.x - p.x, 0.0f, p.x - aabb.max.x });
+		const float dz = std::max({ aabb.min.z - p.z, 0.0f, p.z - aabb.max.z });
+
+		// AABBの中心ではなく、表面までのXZ距離で乗り越え開始距離を判定する。
+		return std::sqrt(dx * dx + dz * dz);
+	}
+
+	float DotXZ(const K4E::Vector3& a, const K4E::Vector3& b)
+	{
+		return a.x * b.x + a.z * b.z;
+	}
+
+	float DistancePointToObbXZ(const K4E::Vector3& p, const K4E::OBB& obb)
+	{
+		const K4E::Vector3 d = p - obb.center;
+
+		const float localX = DotXZ(d, obb.orientations[0]);
+		const float localZ = DotXZ(d, obb.orientations[2]);
+
+		const float dx = std::max(std::abs(localX) - obb.size.x, 0.0f);
+		const float dz = std::max(std::abs(localZ) - obb.size.z, 0.0f);
+
+		// AABBではなく、回転を考慮したOBB表面までの距離で乗り越え開始を判定する。
+		return std::sqrt(dx * dx + dz * dz);
+	}
 }
 
 void MeleeEnemy::Initialize()
@@ -336,7 +363,16 @@ bool MeleeEnemy::EvaluateContactObstacleClimbable(const K4E::AABB& obstacle, int
 	const bool tooHigh = heightFromFoot > traversal_.maxClimbHeight;
 	const bool isFloorLike = std::abs(obstacle.max.y - obstacle.min.y) <= 0.05f;
 	const bool sideNearEnough = nearFaceDistance <= 1.75f;
-	const bool climbable = traversal_.enabled && traversal_.allowJumpOverLowObstacles && xzOverlap && facingObstacle && sideNearEnough && !isFloorLike && !topTooLow && !tooHigh;
+
+	const bool heightClimbable = !isFloorLike && !topTooLow && !tooHigh;
+	const bool contactClimbable = xzOverlap && sideNearEnough && heightClimbable;
+
+	// 接触していて高さ的に乗れる障害物は、向き判定に失敗しても乗り越え候補として扱う。
+	const bool climbable =
+		traversal_.enabled &&
+		traversal_.allowJumpOverLowObstacles &&
+		contactClimbable;
+
 	contactObstacleState_.hasContact = true;
 	contactObstacleState_.climbable = climbable;
 	contactObstacleState_.climbableByHeight = !topTooLow && !tooHigh;
@@ -441,11 +477,11 @@ void MeleeEnemy::Draw()
 		Wireframe::GetInstance()->DrawLine(path[i - 1] + Vector3{ 0.0f, 0.15f, 0.0f }, path[i] + Vector3{ 0.0f, 0.15f, 0.0f }, pathLineColor);
 	}
 	if (pathDebugDrawEnabled_)
-	for (size_t i = 0; i < path.size(); ++i)
-	{
-		const Vector4 c = (static_cast<int>(i) == navigator_.GetCurrentPathIndex()) ? Vector4{ 1.0f, 0.3f, 0.1f, 1.0f } : Vector4{ 0.1f, 0.9f, 1.0f, 1.0f };
-		Wireframe::GetInstance()->DrawSphere(path[i] + Vector3{ 0.0f, 0.2f, 0.0f }, (static_cast<int>(i) == navigator_.GetCurrentPathIndex()) ? 0.26f : 0.16f, c);
-	}
+		for (size_t i = 0; i < path.size(); ++i)
+		{
+			const Vector4 c = (static_cast<int>(i) == navigator_.GetCurrentPathIndex()) ? Vector4{ 1.0f, 0.3f, 0.1f, 1.0f } : Vector4{ 0.1f, 0.9f, 1.0f, 1.0f };
+			Wireframe::GetInstance()->DrawSphere(path[i] + Vector3{ 0.0f, 0.2f, 0.0f }, (static_cast<int>(i) == navigator_.GetCurrentPathIndex()) ? 0.26f : 0.16f, c);
+		}
 	if (pathDetailDebugDrawEnabled_ && pathState_.lineBlocked)
 	{
 		Wireframe::GetInstance()->DrawLine(pathState_.blockedSegmentFrom + Vector3{ 0.0f, 0.2f, 0.0f }, pathState_.blockedSegmentTo + Vector3{ 0.0f, 0.2f, 0.0f }, { 1.0f, 0.15f, 0.1f, 1.0f });
@@ -456,10 +492,10 @@ void MeleeEnemy::Draw()
 		Wireframe::GetInstance()->DrawLine(origin + Vector3{ 0.0f, 0.2f, 0.0f }, GetTargetPosition() + Vector3{ 0.0f, 0.2f, 0.0f }, { 0.5f, 1.0f, 0.1f, 1.0f });
 	}
 	if (pathDetailDebugDrawEnabled_)
-	for (const auto& inflated : navigator_.GetInflatedObstacleAABBs())
-	{
-		Wireframe::GetInstance()->DrawAABB(inflated, { 1.0f, 0.7f, 0.2f, 0.35f });
-	}
+		for (const auto& inflated : navigator_.GetInflatedObstacleAABBs())
+		{
+			Wireframe::GetInstance()->DrawAABB(inflated, { 1.0f, 0.7f, 0.2f, 0.35f });
+		}
 	for (size_t i = 0; i < climbableObstacleAABBs_.size(); ++i)
 	{
 		// 乗り越え候補AABBを色分けし、直線乗り越え選択中の障害物は強調する
@@ -625,7 +661,7 @@ void MeleeEnemy::DrawImGui()
 			ImGui::Text("元の障害物数: %d", sourceObstacleCount);
 			ImGui::Text("乗り越え除外後の障害物数: %d", static_cast<int>(pathBlockingObstacleAABBs_.size()));
 		}
-		
+
 		if (ImGui::CollapsingHeader("乗り越え", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::Checkbox("乗り越えを使う", &traversal_.enabled);
 			ImGui::Checkbox("直線乗り越えを優先", &traversal_.preferDirectClimb);
@@ -680,7 +716,7 @@ void MeleeEnemy::DrawImGui()
 			ImGui::Text("最後のジャンプ理由: %s", jumpState_.lastReason.c_str());
 			ImGui::Text("最後の乗り越え理由: %s", traversalState_.lastReason.c_str());
 		}
-if (ImGui::CollapsingHeader("スタック", ImGuiTreeNodeFlags_DefaultOpen)) {
+		if (ImGui::CollapsingHeader("スタック", ImGuiTreeNodeFlags_DefaultOpen)) {
 			ImGui::SliderFloat("判定時間", &stuckSettings_.checkTime, 0.1f, 3.0f);
 			ImGui::SliderFloat("判定距離", &stuckSettings_.distance, 0.01f, 2.0f);
 			ImGui::SliderFloat("移動閾値", &stuckSettings_.moveThreshold, 0.03f, 1.2f);
@@ -1117,25 +1153,46 @@ bool MeleeEnemy::MoveAlongPath(float deltaTime)
 
 
 
-bool MeleeEnemy::IsObstacleClimbable(const K4E::AABB& obstacle, const K4E::Vector3& selfPos, const K4E::Vector3& moveOrTargetDir) const
+bool MeleeEnemy::IsObstacleClimbable(const K4E::AABB& obstacle, int obstacleIndex, const K4E::Vector3& selfPos, const K4E::Vector3& moveOrTargetDir) const
 {
 	if (!traversal_.enabled || !traversal_.allowJumpOverLowObstacles) { return false; }
+
 	const float footY = selfPos.y - 2.0f;
 	const float obstacleHeight = obstacle.max.y - footY;
 	if (obstacleHeight <= 0.0f || obstacleHeight > traversal_.maxClimbHeight) { return false; }
-	// 床面付近に張り付いたAABBは床扱いとして除外する
+
 	if (std::abs(obstacle.max.y - obstacle.min.y) <= 0.05f) { return false; }
+
 	const float width = obstacle.max.x - obstacle.min.x;
 	const float depth = obstacle.max.z - obstacle.min.z;
-	const K4E::Vector3 moveDir = LengthXZ(moveOrTargetDir) > kEpsilon ? NormalizeXZ(moveOrTargetDir) : K4E::Vector3{ 0.0f, 0.0f, 1.0f };
-	const float forwardThickness = std::abs(moveDir.x) >= std::abs(moveDir.z) ? width : depth;
+
+	const K4E::Vector3 moveDir =
+		LengthXZ(moveOrTargetDir) > kEpsilon
+		? NormalizeXZ(moveOrTargetDir)
+		: K4E::Vector3{ 0.0f, 0.0f, 1.0f };
+
+	const float forwardThickness =
+		std::abs(moveDir.x) >= std::abs(moveDir.z) ? width : depth;
+
 	if (forwardThickness > traversal_.maxClimbObstacleDepth * 4.0f) { return false; }
+
 	const K4E::Vector3 center = (obstacle.min + obstacle.max) * 0.5f;
 	const K4E::Vector3 toObs = center - selfPos;
-	const float horizontalDistance = LengthXZ(toObs);
+
+	float horizontalDistance = DistancePointToAabbXZ(selfPos, obstacle);
+
+	if (wallObstacleOBBs_ &&
+		obstacleIndex >= 0 &&
+		obstacleIndex < static_cast<int>(wallObstacleOBBs_->size()))
+	{
+		horizontalDistance = DistancePointToObbXZ(selfPos, (*wallObstacleOBBs_)[obstacleIndex]);
+	}
+
 	if (horizontalDistance > traversal_.climbHorizontalDistanceMax) { return false; }
+
 	const K4E::Vector3 dirToObs = NormalizeXZ(toObs);
 	const float dirDot = dirToObs.x * moveOrTargetDir.x + dirToObs.z * moveOrTargetDir.z;
+
 	return dirDot >= 0.15f || horizontalDistance <= traversal_.climbJumpTriggerDistance;
 }
 
@@ -1143,6 +1200,7 @@ void MeleeEnemy::UpdateTraversalObstacleClassification()
 {
 	pathBlockingObstacleAABBs_.clear();
 	climbableObstacleAABBs_.clear();
+	climbableObstacleIndices_.clear();
 	traversalState_.selectedClimbObstacleIndex = -1;
 	traversalState_.directClimbCandidateFound = false;
 	traversalState_.selectedObstacleJudgeReason = "None";
@@ -1153,14 +1211,43 @@ void MeleeEnemy::UpdateTraversalObstacleClassification()
 	const K4E::Vector3 selfPos = GetCenterPosition();
 	K4E::Vector3 moveOrTargetDir = NormalizeXZ(GetVelocity());
 	if (LengthXZ(moveOrTargetDir) <= kEpsilon) { moveOrTargetDir = NormalizeXZ(GetTargetPosition() - selfPos); }
-	auto classify = [&](const K4E::AABB& obstacle)
+	auto classify = [&](const K4E::AABB& obstacle, int obstacleIndex)
+		{
+			if (wallObstacleWalkable_ &&
+				obstacleIndex >= 0 &&
+				obstacleIndex < static_cast<int>(wallObstacleWalkable_->size()) &&
+				(*wallObstacleWalkable_)[obstacleIndex] == 0)
+			{
+				pathBlockingObstacleAABBs_.push_back(obstacle);
+				return;
+			}
+
+			if (IsObstacleClimbable(obstacle, obstacleIndex, selfPos, moveOrTargetDir))
+			{
+				climbableObstacleAABBs_.push_back(obstacle);
+				climbableObstacleIndices_.push_back(obstacleIndex);
+			}
+			else
+			{
+				pathBlockingObstacleAABBs_.push_back(obstacle);
+			}
+		};
+
+	if (wallSrc)
 	{
-		// 低くて小さい障害物は乗り越え候補、それ以外は経路探索の回避対象に分類する
-		if (IsObstacleClimbable(obstacle, selfPos, moveOrTargetDir)) { climbableObstacleAABBs_.push_back(obstacle); }
-		else { pathBlockingObstacleAABBs_.push_back(obstacle); }
-	};
-	if (wallSrc) { for (const auto& obstacle : *wallSrc) { classify(obstacle); } }
-	if (navSrc) { for (const auto& obstacle : *navSrc) { classify(obstacle); } }
+		for (size_t i = 0; i < wallSrc->size(); ++i)
+		{
+			classify((*wallSrc)[i], static_cast<int>(i));
+		}
+	}
+
+	if (navSrc && navSrc != wallSrc)
+	{
+		for (size_t i = 0; i < navSrc->size(); ++i)
+		{
+			classify((*navSrc)[i], -1);
+		}
+	}
 	traversalState_.climbableObstacleCount = static_cast<int>(climbableObstacleAABBs_.size());
 	traversalState_.blockingObstacleCount = static_cast<int>(pathBlockingObstacleAABBs_.size());
 }
@@ -1204,8 +1291,12 @@ bool MeleeEnemy::TryDirectClimbOverObstacleToTarget(float deltaTime)
 	const Vector3 dir = NormalizeXZ(center - selfPos);
 	SetVelocity({ dir.x * move_.moveSpeed, GetVelocity().y, dir.z * move_.moveSpeed });
 	traversalState_.lastReason = "DirectClimbOverObstacle";
+
 	// 直線乗り越え中のジャンプ遷移は既存処理を使って高さ挙動を統一する
-	TryJumpOverClimbableObstacle(deltaTime);
+	const bool jumped = TryJumpOverClimbableObstacle(deltaTime);
+
+	// 直線乗り越え候補へ接近中か、ジャンプ実行済みかをデバッグで判別しやすくする。
+	traversalState_.lastReason = jumped ? "DirectClimbJump" : "DirectClimbApproach";
 	return true;
 }
 
@@ -1227,7 +1318,19 @@ bool MeleeEnemy::TryJumpOverClimbableObstacle(float)
 		const auto& obstacle = climbableObstacleAABBs_[i];
 		const K4E::Vector3 center = (obstacle.min + obstacle.max) * 0.5f;
 		const K4E::Vector3 toObs = center - selfPos;
-		const float horizontalDistance = LengthXZ(toObs);
+		float horizontalDistance = DistancePointToAabbXZ(selfPos, obstacle);
+
+		const int obstacleIndex =
+			i < climbableObstacleIndices_.size()
+			? climbableObstacleIndices_[i]
+			: -1;
+
+		if (wallObstacleOBBs_ &&
+			obstacleIndex >= 0 &&
+			obstacleIndex < static_cast<int>(wallObstacleOBBs_->size()))
+		{
+			horizontalDistance = DistancePointToObbXZ(selfPos, (*wallObstacleOBBs_)[obstacleIndex]);
+		}
 		if (horizontalDistance > traversal_.climbJumpTriggerDistance) { traversalState_.lastReason = "TooFarFromObstacle"; continue; }
 		const K4E::Vector3 dirToObs = NormalizeXZ(toObs);
 		const float dirDot = dirToObs.x * moveOrTargetDir.x + dirToObs.z * moveOrTargetDir.z;
@@ -1274,7 +1377,18 @@ bool MeleeEnemy::TryJumpOverContactObstacle()
 	if (!traversal_.enabled || !traversal_.allowJumpOverLowObstacles) { contactJumpDebugState_.lastReason = "Disabled"; jumpState_.lastReason = "Disabled"; return false; }
 	if (!jump_.enabled) { contactJumpDebugState_.lastReason = "Disabled"; jumpState_.lastReason = "Disabled"; return false; }
 	if (IsDeadCondition()) { contactJumpDebugState_.lastReason = "Dead"; jumpState_.lastReason = "Dead"; return false; }
-	if (attackController_.IsAttacking() || attackState_.lockTimer > 0.0f) { contactJumpDebugState_.lastReason = "Attack"; return false; }
+	if (attackController_.IsAttacking() || attackState_.lockTimer > 0.0f)
+	{
+		if (!contactObstacleState_.climbable)
+		{
+			contactJumpDebugState_.lastReason = "Attack";
+			return false;
+		}
+
+		// 乗り越え可能な障害物に接触している場合は、攻撃より乗り越えを優先する。
+		StopAttack();
+		attackState_.lockTimer = 0.0f;
+	}
 	if (jumpState_.cooldownTimer > 0.0f) { contactJumpDebugState_.lastReason = "Cooldown"; jumpState_.lastReason = "Cooldown"; return false; }
 	if (!contactObstacleState_.hasContact) { contactJumpDebugState_.lastReason = "NoContactObstacle"; return false; }
 	if (!contactObstacleState_.climbable) { contactJumpDebugState_.lastReason = "ContactNotClimbable"; jumpState_.lastReason = contactObstacleState_.notClimbableReason; return false; }
@@ -1428,12 +1542,34 @@ void MeleeEnemy::EvaluateBehavior(float deltaTime)
 
 	if (attackController_.IsAttacking() || attackState_.lockTimer > 0.0f)
 	{
+		UpdateTraversalObstacleClassification();
+
+		if (TryDirectClimbOverObstacleToTarget(deltaTime))
+		{
+			StopAttack();
+			attackState_.lockTimer = 0.0f;
+			FaceToMoveDirection(deltaTime);
+			animationState_.animState = AnimState::Walk;
+			currentBehaviorName_ = "DirectClimbWhileAttack";
+			return;
+		}
+
 		MeleeAttackAction();
 		return;
 	}
 
 	const float distance = GetDistanceToTarget();
 	stuck_.isStuck = (distance <= detection_.stopDistance && LengthXZ(GetVelocity()) < 0.05f);
+
+	// 障害物越しにプレイヤーが近い場合は、攻撃よりも乗り越え移動を優先する。
+	UpdateTraversalObstacleClassification();
+	if (TryDirectClimbOverObstacleToTarget(deltaTime))
+	{
+		FaceToMoveDirection(deltaTime);
+		animationState_.animState = AnimState::Walk;
+		currentBehaviorName_ = "DirectClimbBeforeAttack";
+		return;
+	}
 
 	if (distance <= detection_.attackStartRange)
 	{
@@ -1903,8 +2039,7 @@ bool MeleeEnemy::LoadTuningFromJson(const std::filesystem::path& path, std::stri
 		navigator_.Reset();
 		if (outMessage) { *outMessage = "読み込み成功"; }
 		return true;
-	}
-	catch (const std::exception& e)
+	} catch (const std::exception& e)
 	{
 		if (outMessage) { *outMessage = std::string("読み込み失敗: ") + e.what(); }
 		return false;
@@ -1979,16 +2114,15 @@ bool MeleeEnemy::SaveTuningToJson(const std::filesystem::path& path, std::string
 		j["hitReaction"] = { { "hitReactionEnabled", hitReactionSettings_.enabled }, { "hitReactionDuration", hitReactionSettings_.duration }, { "hitReactionKnockbackPower", hitReactionSettings_.knockbackPower }, { "hitReactionKnockbackUpPower", hitReactionSettings_.knockbackUpPower }, { "hitReactionBodyLean", hitReactionSettings_.bodyLean }, { "hitReactionFlashDuration", hitReactionSettings_.flashDuration }, { "hitReactionInterruptAttack", hitReactionSettings_.interruptAttack } };
 		j["deathAnimation"] = { { "deathAnimationEnabled", deathAnimationSettings_.enabled }, { "deathAnimationDuration", deathAnimationSettings_.duration }, { "deathAnimationFallRotateX", deathAnimationSettings_.fallRotateX }, { "deathAnimationSinkDistance", deathAnimationSettings_.sinkDistance }, { "deathAnimationFadeDelay", deathAnimationSettings_.fadeDelay }, { "deathAnimationFadeDuration", deathAnimationSettings_.fadeDuration }, { "deathAnimationDisableCollisionOnDeath", deathAnimationSettings_.disableCollisionOnDeath }, { "deathAnimationStopMoveOnDeath", deathAnimationSettings_.stopMoveOnDeath } };
 		// 保存対象は設定値のみで、ランタイム状態は書き出さない。
-		if (const auto* s = attackController_.FindPattern(MeleeAttackType::Scratch)) { const auto& st = s->steps[0]; j["attackPatterns"]["scratch"] = { {"damage", st.damage}, {"range", st.range}, {"radius", st.radius}, {"startTime", st.startTime}, {"activeTime", st.activeTime}, {"recoveryTime", s->recoveryTime}, {"cooldown", s->cooldown} }; }
-		if (const auto* o = attackController_.FindPattern(MeleeAttackType::LungeScratch)) { const auto& st = o->steps[0]; j["attackPatterns"]["lungeScratch"] = { {"damage", st.damage}, {"range", st.range}, {"radius", st.radius}, {"startTime", st.startTime}, {"activeTime", st.activeTime}, {"forwardMoveSpeed", o->forwardMoveSpeed}, {"forwardMoveDuration", o->forwardMoveDuration}, {"recoveryTime", o->recoveryTime}, {"cooldown", o->cooldown} }; }
+		if (const auto* s = attackController_.FindPattern(MeleeAttackType::Scratch)) { const auto& st = s->steps[0]; j["attackPatterns"]["scratch"] = { { "damage", st.damage }, { "range", st.range }, { "radius", st.radius }, { "startTime", st.startTime }, { "activeTime", st.activeTime }, { "recoveryTime", s->recoveryTime }, { "cooldown", s->cooldown } }; }
+		if (const auto* o = attackController_.FindPattern(MeleeAttackType::LungeScratch)) { const auto& st = o->steps[0]; j["attackPatterns"]["lungeScratch"] = { { "damage", st.damage }, { "range", st.range }, { "radius", st.radius }, { "startTime", st.startTime }, { "activeTime", st.activeTime }, { "forwardMoveSpeed", o->forwardMoveSpeed }, { "forwardMoveDuration", o->forwardMoveDuration }, { "recoveryTime", o->recoveryTime }, { "cooldown", o->cooldown } }; }
 		// 保存先ディレクトリはResources/DataAssets/Enemy/MeleeEnemy配下に限定して作成する。
 		std::filesystem::create_directories(path.parent_path());
 		std::ofstream ofs(path);
 		ofs << j.dump(4);
 		if (outMessage) { *outMessage = "保存成功"; }
 		return true;
-	}
-	catch (const std::exception& e)
+	} catch (const std::exception& e)
 	{
 		if (outMessage) { *outMessage = std::string("保存失敗: ") + e.what(); }
 		return false;

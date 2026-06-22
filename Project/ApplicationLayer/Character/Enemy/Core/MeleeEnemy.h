@@ -5,6 +5,7 @@
 #include "../Navigation/EnemyAStarNavigator.h"
 #include <string>
 #include <filesystem>
+#include <OBB.h>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -483,6 +484,13 @@ public: /// ---------- アクセッサ ---------- ///
 	// 壁の障害物のAABBも同様に外部で管理されているものへのポインタを受け取る形にする
 	void SetWallObstacleAABBs(const std::vector<K4E::AABB>* aabbs) { wallObstacleAABBs_ = aabbs; }
 
+	void SetWallObstacleColliders(const std::vector<K4E::AABB>* broadPhaseAABBs, const std::vector<K4E::OBB>* obbs, const std::vector<uint8_t>* walkable = nullptr)
+	{
+		wallObstacleAABBs_ = broadPhaseAABBs;
+		wallObstacleOBBs_ = obbs;
+		wallObstacleWalkable_ = walkable;
+	}
+
 	/// ----- ターゲットに関するアクセッサ ----- ///
 
 	// ターゲットのコライダーを取得
@@ -610,7 +618,7 @@ private: /// ---------- 内部処理 ---------- ///
 	// 障害物を避ける処理（壁の障害物やステージの衝突を解決する）
 	void TryJumpForTraversal(float deltaTime);
 
-		// ジャンプを試みる処理（ターゲットの高さや距離、ジャンプのクールダウンなどを考慮してジャンプするかどうかを判断し、実際にジャンプする）
+	// ジャンプを試みる処理（ターゲットの高さや距離、ジャンプのクールダウンなどを考慮してジャンプするかどうかを判断し、実際にジャンプする）
 	bool TryJumpOverClimbableObstacle(float deltaTime);
 	bool TryJumpOverContactObstacle();
 	bool EvaluateContactObstacleClimbable(const K4E::AABB& obstacle, int index);
@@ -620,7 +628,7 @@ private: /// ---------- 内部処理 ---------- ///
 	void UpdateTraversalObstacleClassification();
 
 	// 障害物1個が乗り越え可能かを判定する
-	bool IsObstacleClimbable(const K4E::AABB& obstacle, const K4E::Vector3& selfPos, const K4E::Vector3& moveOrTargetDir) const;
+	bool IsObstacleClimbable(const K4E::AABB& obstacle, int obstacleIndex, const K4E::Vector3& selfPos, const K4E::Vector3& moveOrTargetDir) const;
 
 	bool ResolveObstaclePenetrationXZ(float deltaTime);
 
@@ -773,12 +781,16 @@ private: /// ---------- メンバ変数 ---------- //
 
 	// 壁の障害物のAABBのリストへのポインタ（外部で管理されているものを参照する形）
 	const std::vector<K4E::AABB>* wallObstacleAABBs_ = nullptr;
+	const std::vector<K4E::OBB>* wallObstacleOBBs_ = nullptr;
+	const std::vector<uint8_t>* wallObstacleWalkable_ = nullptr;
 
 	// 経路探索へ渡す回避対象AABB（乗り越え不可のみ）
 	std::vector<K4E::AABB> pathBlockingObstacleAABBs_{};
 
 	// 乗り越え候補AABB（上面着地・ジャンプ判定用）
 	std::vector<K4E::AABB> climbableObstacleAABBs_{};
+
+	std::vector<int> climbableObstacleIndices_{};
 
 	// デバッグ用の現在のアニメーション状態の名前
 	const char* currentBehaviorName_ = "None";

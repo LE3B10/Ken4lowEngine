@@ -157,7 +157,7 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	float walkSpeed_ = 6.0f;
 	float runSpeed_ = 8.5f;
 	float blinkSpeed_ = 20.0f;
-	float jumpSpeed_ = 9.4f;
+	float jumpSpeed_ = 12.0f;
 	float gravity_ = 24.0f;
 	float ladderClimbSpeed_ = 3.0f;
 
