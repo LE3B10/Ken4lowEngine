@@ -2,23 +2,21 @@
 #include "PauseMenu.h"
 
 #include <DirectXCommon.h>
+#include <FontAtlasLoader.h>
 #include <Input.h>
+#include <TextSpriteDrawer.h>
 #include "GameViewportConstants.h"
 
 #include <algorithm>
 
 namespace K4E = ::Ken4lowEngine;
 
-namespace
+PauseMenu::~PauseMenu()
 {
-	constexpr const char* kPauseTitleTex = "Resources/Textures/Compiled/UI/Pause/pause_paused_text.dds";
-	constexpr const char* kPauseHelpTex = "Resources/Textures/Compiled/UI/Pause/pause_help_text.dds";
-	constexpr const char* kButtonTextTex[3] =
+	if (textDrawer_)
 	{
-		"Resources/Textures/Compiled/UI/Pause/pause_resume_text.dds",
-		"Resources/Textures/Compiled/UI/Pause/pause_stage_select_text.dds",
-		"Resources/Textures/Compiled/UI/Pause/pause_title_text.dds"
-	};
+		textDrawer_->Finalize();
+	}
 }
 
 void PauseMenu::Initialize()
@@ -27,12 +25,11 @@ void PauseMenu::Initialize()
 	screenWidth_ = static_cast<float>(K4E::GameViewportConstants::Width);
 	screenHeight_ = static_cast<float>(K4E::GameViewportConstants::Height);
 
+	// UI生成画像に依存しないよう、白スプライトの矩形とTextSpriteDrawerでポーズ画面を構築する。
 	overlay_ = CreateWhiteSprite();
 	panel_ = CreateWhiteSprite();
 	panelBorder_ = CreateWhiteSprite();
-
-	title_ = CreateTextSprite(kPauseTitleTex);
-	help_ = CreateTextSprite(kPauseHelpTex);
+	titleLine_ = CreateWhiteSprite();
 
 	buttons_.clear();
 	buttons_.reserve(items_.size());
@@ -43,11 +40,26 @@ void PauseMenu::Initialize()
 		b.bg = CreateWhiteSprite();
 		b.border = CreateWhiteSprite();
 		b.accent = CreateWhiteSprite();
-
-		const char* path = (i >= 0 && i < 3) ? kButtonTextTex[i] : "Effects/white.dds";
-		b.text = CreateTextSprite(path);
-
 		buttons_.push_back(std::move(b));
+	}
+
+	textDrawer_ = std::make_unique<K4E::TextSpriteDrawer>();
+	textReady_ = false;
+	try
+	{
+		auto fontDefJP = K4E::FontAtlasLoader::LoadFromJson(
+			"UI/Font/JP/DotGothic16-Regular_atlas.dds",
+			"Resources/Fonts/Compiled/JP/DotGothic16-Regular.json",
+			32.0f,
+			32.0f,
+			U'?'
+		);
+		textDrawer_->Initialize(fontDefJP);
+		textReady_ = true;
+	}
+	catch (...)
+	{
+		textReady_ = false;
 	}
 
 	selectedIndex_ = 0;
@@ -146,20 +158,18 @@ void PauseMenu::Draw()
 	ApplyVisualState();
 
 	if (overlay_) overlay_->Draw();
-	if (panel_) panel_->Draw();
 	if (panelBorder_) panelBorder_->Draw();
-
-	if (title_) title_->Draw();
+	if (panel_) panel_->Draw();
+	if (titleLine_) titleLine_->Draw();
 
 	for (auto& b : buttons_)
 	{
-		if (b.bg) b.bg->Draw();
 		if (b.border) b.border->Draw();
+		if (b.bg) b.bg->Draw();
 		if (b.accent) b.accent->Draw();
-		if (b.text) b.text->Draw();
 	}
 
-	if (help_) help_->Draw();
+	DrawTexts();
 }
 
 void PauseMenu::RebuildLayout()
@@ -167,10 +177,10 @@ void PauseMenu::RebuildLayout()
 	const float cx = screenWidth_ * 0.5f;
 	const float cy = screenHeight_ * 0.5f;
 
-	const float panelW = std::min(screenWidth_ * 0.62f, 720.0f);
-	const float panelH = std::min(screenHeight_ * 0.58f, 460.0f);
-	const float panelX = cx - panelW * 0.5f;
-	const float panelY = cy - panelH * 0.5f;
+	panelW_ = std::min(screenWidth_ * 0.62f, 760.0f);
+	panelH_ = std::min(screenHeight_ * 0.58f, 460.0f);
+	panelX_ = cx - panelW_ * 0.5f;
+	panelY_ = cy - panelH_ * 0.5f;
 
 	// 全画面オーバーレイ
 	if (overlay_)
@@ -185,8 +195,8 @@ void PauseMenu::RebuildLayout()
 	if (panel_)
 	{
 		panel_->SetAnchorPoint({ 0.0f, 0.0f });
-		panel_->SetPosition({ panelX, panelY });
-		panel_->SetSize({ panelW, panelH });
+		panel_->SetPosition({ panelX_, panelY_ });
+		panel_->SetSize({ panelW_, panelH_ });
 		panel_->Update();
 	}
 
@@ -194,38 +204,25 @@ void PauseMenu::RebuildLayout()
 	if (panelBorder_)
 	{
 		panelBorder_->SetAnchorPoint({ 0.0f, 0.0f });
-		panelBorder_->SetPosition({ panelX - 2.0f, panelY - 2.0f });
-		panelBorder_->SetSize({ panelW + 4.0f, panelH + 4.0f });
+		panelBorder_->SetPosition({ panelX_ - 3.0f, panelY_ - 3.0f });
+		panelBorder_->SetSize({ panelW_ + 6.0f, panelH_ + 6.0f });
 		panelBorder_->Update();
 	}
 
-	// タイトル
-	if (title_)
+	// タイトル下のライン
+	if (titleLine_)
 	{
-		title_->SetAnchorPoint({ 0.5f, 0.0f });
-		title_->SetPosition({ cx, panelY + 18.0f });
-
-		auto t = title_->GetTextureSize();
-		title_->SetSize({ t.x, t.y });
-		title_->Update();
-	}
-
-	// ヘルプ
-	if (help_)
-	{
-		help_->SetAnchorPoint({ 0.5f, 1.0f });
-		help_->SetPosition({ cx, panelY + panelH - 16.0f });
-
-		auto t = help_->GetTextureSize();
-		help_->SetSize({ t.x, t.y });
-		help_->Update();
+		titleLine_->SetAnchorPoint({ 0.5f, 0.0f });
+		titleLine_->SetPosition({ cx, panelY_ + 86.0f });
+		titleLine_->SetSize({ panelW_ - 120.0f, 4.0f });
+		titleLine_->Update();
 	}
 
 	// ボタン
-	const float buttonW = panelW - 72.0f;
-	const float buttonH = 58.0f;
-	const float gap = 14.0f;
-	const float startY = panelY + 92.0f;
+	const float buttonW = panelW_ - 96.0f;
+	const float buttonH = 64.0f;
+	const float gap = 16.0f;
+	const float startY = panelY_ + 118.0f;
 
 	for (int i = 0; i < static_cast<int>(buttons_.size()); ++i)
 	{
@@ -239,6 +236,14 @@ void PauseMenu::RebuildLayout()
 		b.rect.right = x + buttonW;
 		b.rect.bottom = y + buttonH;
 
+		if (b.border)
+		{
+			b.border->SetAnchorPoint({ 0.0f, 0.0f });
+			b.border->SetPosition({ x - 2.0f, y - 2.0f });
+			b.border->SetSize({ buttonW + 4.0f, buttonH + 4.0f });
+			b.border->Update();
+		}
+
 		if (b.bg)
 		{
 			b.bg->SetAnchorPoint({ 0.0f, 0.0f });
@@ -247,31 +252,12 @@ void PauseMenu::RebuildLayout()
 			b.bg->Update();
 		}
 
-		if (b.border)
-		{
-			b.border->SetAnchorPoint({ 0.0f, 0.0f });
-			b.border->SetPosition({ x - 1.0f, y - 1.0f });
-			b.border->SetSize({ buttonW + 2.0f, buttonH + 2.0f });
-			b.border->Update();
-		}
-
 		if (b.accent)
 		{
 			b.accent->SetAnchorPoint({ 0.0f, 0.5f });
-			b.accent->SetPosition({ x + 12.0f, y + buttonH * 0.5f });
-			b.accent->SetSize({ 6.0f, buttonH - 16.0f });
+			b.accent->SetPosition({ x + 14.0f, y + buttonH * 0.5f });
+			b.accent->SetSize({ 7.0f, buttonH - 18.0f });
 			b.accent->Update();
-		}
-
-		if (b.text)
-		{
-			b.text->SetAnchorPoint({ 0.0f, 0.5f });
-			b.text->SetPosition({ x + 28.0f, y + buttonH * 0.5f });
-
-			const K4E::Vector2 tex = b.text->GetTextureSize();
-			const float scale = 0.82f; // 少し小さめに
-			b.text->SetSize({ tex.x * scale, tex.y * scale });
-			b.text->Update();
 		}
 	}
 }
@@ -306,11 +292,9 @@ void PauseMenu::ApplyVisualState()
 {
 	// 背景・パネル
 	if (overlay_) overlay_->SetColor({ 0.0f, 0.0f, 0.0f, 0.62f });
-	if (panel_) panel_->SetColor({ 0.06f, 0.07f, 0.09f, 0.93f });
-	if (panelBorder_) panelBorder_->SetColor({ 0.95f, 0.28f, 0.22f, 0.92f });
-
-	if (title_) title_->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
-	if (help_) help_->SetColor({ 0.85f, 0.88f, 0.94f, 0.85f });
+	if (panel_) panel_->SetColor({ 0.045f, 0.040f, 0.035f, 0.94f });
+	if (panelBorder_) panelBorder_->SetColor({ 0.95f, 0.48f, 0.14f, 0.95f });
+	if (titleLine_) titleLine_->SetColor({ 0.95f, 0.56f, 0.18f, 0.92f });
 
 	for (int i = 0; i < static_cast<int>(buttons_.size()); ++i)
 	{
@@ -319,28 +303,56 @@ void PauseMenu::ApplyVisualState()
 
 		if (b.bg)
 		{
-			if (selected) { b.bg->SetColor({ 0.20f, 0.05f, 0.05f, 0.94f }); }
-			else { b.bg->SetColor({ 0.10f, 0.11f, 0.14f, 0.88f }); }
+			if (selected) { b.bg->SetColor({ 0.32f, 0.18f, 0.06f, 0.98f }); }
+			else { b.bg->SetColor({ 0.12f, 0.11f, 0.10f, 0.95f }); }
 		}
 
 		if (b.border)
 		{
-			if (selected) { b.border->SetColor({ 1.0f, 0.55f, 0.25f, 0.95f }); }
-			else { b.border->SetColor({ 1.0f, 1.0f, 1.0f, 0.14f }); }
+			if (selected) { b.border->SetColor({ 1.0f, 0.64f, 0.18f, 1.0f }); }
+			else { b.border->SetColor({ 0.35f, 0.30f, 0.22f, 1.0f }); }
 		}
 
 		if (b.accent)
 		{
-			if (selected) { b.accent->SetColor({ 1.0f, 0.38f, 0.20f, 0.95f }); }
-			else { b.accent->SetColor({ 1.0f, 0.38f, 0.20f, 0.00f }); }
-		}
-
-		if (b.text)
-		{
-			if (selected) { b.text->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f }); }
-			else { b.text->SetColor({ 0.82f, 0.86f, 0.93f, 0.95f }); }
+			if (selected) { b.accent->SetColor({ 1.0f, 0.40f, 0.18f, 0.96f }); }
+			else { b.accent->SetColor({ 1.0f, 0.40f, 0.18f, 0.00f }); }
 		}
 	}
+}
+
+void PauseMenu::DrawTexts()
+{
+	if (!textReady_ || !textDrawer_)
+	{
+		return;
+	}
+
+	const float cx = screenWidth_ * 0.5f;
+	textDrawer_->Reset();
+	textDrawer_->SetLetterSpacing(2.0f);
+	textDrawer_->SetLineSpacing(6.0f);
+
+	textDrawer_->SetScale(1.35f);
+	textDrawer_->SetColor({ 1.0f, 0.90f, 0.52f, 1.0f });
+	textDrawer_->DrawTextCentered("一時停止", { cx, panelY_ + 34.0f });
+
+	textDrawer_->SetScale(0.92f);
+	for (int i = 0; i < static_cast<int>(buttons_.size()); ++i)
+	{
+		const auto& b = buttons_[i];
+		const bool selected = (i == selectedIndex_);
+		const float centerX = (b.rect.left + b.rect.right) * 0.5f;
+		const float centerY = (b.rect.top + b.rect.bottom) * 0.5f;
+
+		textDrawer_->SetColor(selected ? K4E::Vector4{ 1.0f, 0.94f, 0.50f, 1.0f } : K4E::Vector4{ 0.78f, 0.76f, 0.70f, 1.0f });
+		textDrawer_->DrawTextCentered(items_[i], { centerX, centerY - 8.0f });
+	}
+
+	textDrawer_->SetScale(0.50f);
+	textDrawer_->SetLetterSpacing(1.0f);
+	textDrawer_->SetColor({ 0.78f, 0.80f, 0.82f, 0.92f });
+	textDrawer_->DrawTextCentered("W / S / ↑ / ↓ 選択    Enter / Click 決定", { cx, panelY_ + panelH_ - 34.0f });
 }
 
 std::unique_ptr<K4E::Sprite> PauseMenu::CreateWhiteSprite()
@@ -350,18 +362,6 @@ std::unique_ptr<K4E::Sprite> PauseMenu::CreateWhiteSprite()
 	sp->SetPosition({ 0.0f, 0.0f });
 	sp->SetSize({ 1.0f, 1.0f });
 	sp->SetAnchorPoint({ 0.0f, 0.0f });
-	sp->Update();
-	return sp;
-}
-
-std::unique_ptr<K4E::Sprite> PauseMenu::CreateTextSprite(const std::string& path)
-{
-	auto sp = std::make_unique<K4E::Sprite>();
-	sp->Initialize(path);
-	sp->SetAnchorPoint({ 0.0f, 0.0f });
-	sp->SetPosition({ 0.0f, 0.0f });
-	const K4E::Vector2 tex = sp->GetTextureSize();
-	sp->SetSize({ tex.x, tex.y });
 	sp->Update();
 	return sp;
 }
