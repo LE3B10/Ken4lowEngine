@@ -1,4 +1,4 @@
-#define NOMINMAX
+﻿#define NOMINMAX
 #include "TitleScene.h"
 #include <DirectXCommon.h>
 #include <SpriteManager.h>
@@ -15,7 +15,10 @@
 #include <LightManager.h>
 #include <Editor/EditorTransformAccess.h>
 #include <GameTimer.h>
+#include <FontAtlasLoader.h>
+#include <TextSpriteDrawer.h>
 
+#include <algorithm>
 #include <utility>
 
 #ifdef USE_IMGUI
@@ -61,6 +64,9 @@ void TitleScene::Initialize()
 
 	// 影の初期化
 	InitializeButtonShadowSprite();
+
+	// バトルへボタン文字の初期化
+	InitializeBattleButtonText();
 
 	// クリックヒントの初期化
 	InitializeClickHintUI();
@@ -215,13 +221,15 @@ void TitleScene::Draw2DSprites()
 		}
 	}
 
-	// ロビー系（TransitionToLobby と LobbyIdle の間だけロビーUIを表示）
-	if (state_ == State::TransitionToLobby ||
-		state_ == State::LobbyIdle ||
-		state_ == State::Loading)
+	// ロビー待機状態になるまではバトルボタンを描画せず、タイトルクリック直後に先出しされないようにする。
+	if (state_ == State::LobbyIdle)
 	{
 		if (battleButtonUI_.btnShadow) { battleButtonUI_.btnShadow->Draw(); } // ← 影を先に
+		if (battleButtonUI_.btnBorder) { battleButtonUI_.btnBorder->Draw(); }
 		if (battleButtonUI_.btnSprite) { battleButtonUI_.btnSprite->Draw(); } // ← ボタン本体
+		if (battleButtonUI_.btnAccentLeft) { battleButtonUI_.btnAccentLeft->Draw(); }
+		if (battleButtonUI_.btnAccentRight) { battleButtonUI_.btnAccentRight->Draw(); }
+		DrawBattleButtonText();
 	}
 
 	// ====== 最後にオーバーレイを最前面へ重ね描き ======
@@ -252,6 +260,12 @@ void TitleScene::Finalize()
 	clickHintUI_.hintSprite.reset();
 	battleButtonUI_.btnSprite.reset();
 	battleButtonUI_.btnShadow.reset();
+	battleButtonUI_.btnBorder.reset();
+	battleButtonUI_.btnAccentLeft.reset();
+	battleButtonUI_.btnAccentRight.reset();
+	if (battleButtonTextDrawer_) { battleButtonTextDrawer_->Finalize(); }
+	battleButtonTextDrawer_.reset();
+	battleButtonTextReady_ = false;
 
 	logoSprite_.reset();
 	terrain_.reset();
@@ -393,15 +407,45 @@ void TitleScene::InitializeLogoUI()
 /// -------------------------------------------------------------
 void TitleScene::InitializeBattleButtonUI()
 {
-	// バトルボタンUI
+	// UI生成画像に依存しないよう、白スプライトの矩形とTextSpriteDrawerでバトルボタンを構築する。
 	battleButtonUI_.btnSprite = std::make_unique<Sprite>();
-	battleButtonUI_.btnSprite->Initialize("UI/Common/btn_battle.dds");
+	battleButtonUI_.btnSprite->Initialize("Effects/white.dds");
 	battleButtonUI_.btnSprite->SetAnchorPoint(battleButtonUI_.anchor);
+
+	battleButtonUI_.btnBorder = std::make_unique<Sprite>();
+	battleButtonUI_.btnBorder->Initialize("Effects/white.dds");
+	battleButtonUI_.btnBorder->SetAnchorPoint(battleButtonUI_.anchor);
+
+	battleButtonUI_.btnAccentLeft = std::make_unique<Sprite>();
+	battleButtonUI_.btnAccentLeft->Initialize("Effects/white.dds");
+	battleButtonUI_.btnAccentLeft->SetAnchorPoint({ 0.5f, 0.5f });
+
+	battleButtonUI_.btnAccentRight = std::make_unique<Sprite>();
+	battleButtonUI_.btnAccentRight->Initialize("Effects/white.dds");
+	battleButtonUI_.btnAccentRight->SetAnchorPoint({ 0.5f, 0.5f });
 
 	battleButtonUI_.position = { GameViewportConstants::Width * 0.5f, GameViewportConstants::Height * 0.75f }; // Title UIは固定内部解像度1920x1080基準にする。
 
 	battleButtonUI_.btnSprite->SetPosition(battleButtonUI_.position);
 	battleButtonUI_.btnSprite->SetSize(battleButtonUI_.size);
+	battleButtonUI_.btnSprite->SetColor({ 0.36f, 0.92f, 0.52f, 0.94f });
+	battleButtonUI_.btnSprite->Update();
+
+	battleButtonUI_.btnBorder->SetPosition(battleButtonUI_.position);
+	battleButtonUI_.btnBorder->SetSize({ battleButtonUI_.size.x + 10.0f, battleButtonUI_.size.y + 10.0f });
+	battleButtonUI_.btnBorder->SetColor({ 0.12f, 0.45f, 0.24f, 0.95f });
+	battleButtonUI_.btnBorder->Update();
+
+	const float accentOffsetX = battleButtonUI_.size.x * 0.5f - 28.0f;
+	battleButtonUI_.btnAccentLeft->SetPosition({ battleButtonUI_.position.x - accentOffsetX, battleButtonUI_.position.y });
+	battleButtonUI_.btnAccentLeft->SetSize({ 16.0f, battleButtonUI_.size.y - 34.0f });
+	battleButtonUI_.btnAccentLeft->SetColor({ 0.92f, 1.0f, 0.70f, 0.95f });
+	battleButtonUI_.btnAccentLeft->Update();
+
+	battleButtonUI_.btnAccentRight->SetPosition({ battleButtonUI_.position.x + accentOffsetX, battleButtonUI_.position.y });
+	battleButtonUI_.btnAccentRight->SetSize({ 16.0f, battleButtonUI_.size.y - 34.0f });
+	battleButtonUI_.btnAccentRight->SetColor({ 0.92f, 1.0f, 0.70f, 0.95f });
+	battleButtonUI_.btnAccentRight->Update();
 }
 
 /// -------------------------------------------------------------
@@ -411,11 +455,34 @@ void TitleScene::InitializeButtonShadowSprite()
 {
 	// 影スプライトも作成
 	battleButtonUI_.btnShadow = std::make_unique<Sprite>();
-	battleButtonUI_.btnShadow->Initialize("UI/Common/btn_battle.dds");
+	battleButtonUI_.btnShadow->Initialize("Effects/white.dds");
 	battleButtonUI_.btnShadow->SetAnchorPoint(battleButtonUI_.anchor);
-	battleButtonUI_.btnShadow->SetPosition({ battleButtonUI_.position.x, battleButtonUI_.position.y + 6.0f }); // 影は少し下
-	battleButtonUI_.btnShadow->SetSize({ battleButtonUI_.size.x * 1.02f, battleButtonUI_.size.y * 1.02f }); // わずかに大きく
-	battleButtonUI_.btnShadow->SetColor({ 0, 0, 0, 0.35f }); // 半透明の黒
+	battleButtonUI_.btnShadow->SetPosition({ battleButtonUI_.position.x, battleButtonUI_.position.y + 8.0f }); // 影は少し下
+	battleButtonUI_.btnShadow->SetSize({ battleButtonUI_.size.x * 1.03f, battleButtonUI_.size.y * 1.03f }); // わずかに大きく
+	battleButtonUI_.btnShadow->SetColor({ 0, 0, 0, 0.32f }); // 半透明の黒
+	battleButtonUI_.btnShadow->Update();
+}
+
+void TitleScene::InitializeBattleButtonText()
+{
+	battleButtonTextDrawer_ = std::make_unique<TextSpriteDrawer>();
+	battleButtonTextReady_ = false;
+	try
+	{
+		auto fontDefJP = FontAtlasLoader::LoadFromJson(
+			"UI/Font/JP/DotGothic16-Regular_atlas.dds",
+			"Resources/Fonts/Compiled/JP/DotGothic16-Regular.json",
+			32.0f,
+			32.0f,
+			U'?'
+		);
+		battleButtonTextDrawer_->Initialize(fontDefJP);
+		battleButtonTextReady_ = true;
+	}
+	catch (...)
+	{
+		battleButtonTextReady_ = false;
+	}
 }
 
 /// -------------------------------------------------------------
@@ -430,6 +497,33 @@ void TitleScene::InitializeClickHintUI()
 	clickHintUI_.hintSprite->SetPosition({ GameViewportConstants::Width * 0.5f + clickHintUI_.offset.x, GameViewportConstants::Height * 0.25f + clickHintUI_.offset.y }); // Title UIは固定内部解像度1920x1080基準にする。
 	clickHintUI_.hintSprite->SetSize({ 153.6f, 102.4f });       // 元画像が1536x1024pxなので1/10スケール
 	clickHintUI_.baseSize = clickHintUI_.hintSprite->GetSize(); // 基準サイズを保存
+}
+
+void TitleScene::DrawBattleButtonText()
+{
+	if (!battleButtonTextReady_ || !battleButtonTextDrawer_)
+	{
+		return;
+	}
+
+	const float appear = std::clamp(battleButtonUI_.appearAnim, 0.0f, 1.0f);
+	const float appearEase = 1.0f - ((1.0f - appear) * (1.0f - appear) * (1.0f - appear));
+	const float appearScale = 0.72f + 0.28f * appearEase;
+	const float buttonScale =
+		(1.0f + battleButtonUI_.scaleHover * battleButtonUI_.hoverAnim) -
+		(battleButtonUI_.scalePress * battleButtonUI_.pressAnim);
+	const float scale = buttonScale * appearScale;
+	const Vector2 textPos = {
+		battleButtonUI_.position.x,
+		battleButtonUI_.position.y + battleButtonUI_.pressOffsetPx * battleButtonUI_.pressAnim + battleButtonUI_.appearOffsetPx * (1.0f - appearEase) - 12.0f
+	};
+
+	battleButtonTextDrawer_->Reset();
+	battleButtonTextDrawer_->SetLetterSpacing(3.0f);
+	battleButtonTextDrawer_->SetLineSpacing(6.0f);
+	battleButtonTextDrawer_->SetScale(1.30f * scale);
+	battleButtonTextDrawer_->SetColor({ 0.05f, 0.08f, 0.06f, appearEase });
+	battleButtonTextDrawer_->DrawTextCentered("バトルへ", textPos);
 }
 
 /// -------------------------------------------------------------

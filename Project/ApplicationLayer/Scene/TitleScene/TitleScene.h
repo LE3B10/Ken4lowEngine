@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <Sprite.h>
 #include <Object3D.h>
 #include <BaseScene.h>
@@ -16,6 +16,7 @@ namespace K4E = ::Ken4lowEngine;
 namespace Ken4lowEngine { class DirectXCommon; }
 namespace Ken4lowEngine { class Input; }
 namespace Ken4lowEngine { class Camera; }
+namespace Ken4lowEngine { class TextSpriteDrawer; }
 class SceneManager;
 
 /// -------------------------------------------------------------
@@ -100,17 +101,22 @@ private: /// ---------- 構造体 ---------- ///
 	/// ---------- バトルへボタンUI ---------- ///
 	struct BattleButtonUI
 	{
-		std::unique_ptr<K4E::Sprite> btnSprite;	   // ボタンスプライト
+		std::unique_ptr<K4E::Sprite> btnSprite;	   // ボタン本体スプライト
 		std::unique_ptr<K4E::Sprite> btnShadow;	   // 影スプライト
+		std::unique_ptr<K4E::Sprite> btnBorder;	   // 枠スプライト
+		std::unique_ptr<K4E::Sprite> btnAccentLeft;  // 左アクセント
+		std::unique_ptr<K4E::Sprite> btnAccentRight; // 右アクセント
 		K4E::Vector2 position = { 640.0f, 600.0f }; // 配置座標（画面中央下）
-		K4E::Vector2 size = { 420.0f, 140.0f };     // 表示サイズ
+		K4E::Vector2 size = { 420.0f, 110.0f };     // 表示サイズ
 		K4E::Vector2 anchor = { 0.5f, 0.5f };	   // アンカー（中心）
 		bool isPressing = false;               // ボタン内で押し始めたか
 		float pressAnim = 0.0f;                // 0=通常, 1=押し込み
 		float hoverAnim = 0.0f;                // 0=非ホバー, 1=ホバー
+		float appearAnim = 0.0f;               // 0=非表示, 1=入場完了
 		const float pressOffsetPx = 6.0f;      // 押下で沈む距離(px)
 		const float scalePress = 0.04f;        // 押下で縮む率(=4%)
 		const float scaleHover = 0.03f;        // ホバーで大きくなる率(=3%)
+		const float appearOffsetPx = 34.0f;    // 入場時に下から浮き上がる距離(px)
 	};
 
 	/// ---------- タイマー群 ---------- ///
@@ -190,11 +196,17 @@ private: /// ---------- メンバ関数 ---------- ///
 	// バトルへボタンUIの初期化
 	void InitializeBattleButtonUI();
 
+	// バトルへボタンの文字描画初期化
+	void InitializeBattleButtonText();
+
 	// 影のスプライトの初期化
 	void InitializeButtonShadowSprite();
 
 	// クリックヒントUIの初期化
 	void InitializeClickHintUI();
+
+	// バトルへボタンの文字を描画
+	void DrawBattleButtonText();
 
 public: /// ---------- セッタ ---------- ///
 
@@ -259,7 +271,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	LogoUI logoUI_ = {};				 // ロゴ＆ヒントUI状態
 	ClickHintUI clickHintUI_ = {};		 // クリックヒントUI状態
 	BattleButtonUI battleButtonUI_ = {}; // バトルへボタンUI状態
-	Timers timers_ = {};				 // 各種タイマー
+	Timers timers_ = {};
+	std::unique_ptr<K4E::TextSpriteDrawer> battleButtonTextDrawer_; // バトルボタン用文字描画
+	bool battleButtonTextReady_ = false; // TextSpriteDrawerの初期化が完了しているか				 // 各種タイマー
 
 	K4E::DirectXCommon* dxCommon_ = nullptr; // DirectX共通管理
 	K4E::Input* input_ = nullptr;			// 入力管理
