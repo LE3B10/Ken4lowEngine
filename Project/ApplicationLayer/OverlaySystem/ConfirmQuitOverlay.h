@@ -2,14 +2,20 @@
 #include "BaseOverlay.h"
 #include <Sprite.h>
 #include <Rect.h>
+#include <TextSpriteDrawer.h>
 
 #include <functional>
 #include <memory>
+#include <string>
+#include <vector>
 
 namespace K4E = ::Ken4lowEngine;
 
 /// ---------- 前方宣言 ---------- ///
-namespace Ken4lowEngine { class Input; }
+namespace Ken4lowEngine
+{
+	class Input;
+}
 
 /// -------------------------------------------------------------
 ///					終了確認オーバーレイクラス
@@ -20,6 +26,9 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// コールバック関数の型定義
 	using Callback = std::function<void()>;
+
+	// デストラクタ
+	~ConfirmQuitOverlay() override;
 
 	// オーバーレイを開く処理
 	void Open(SceneManager* sceneManager) override;
@@ -41,19 +50,23 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::Input* input_ = nullptr; // 入力管理オブジェクトへのポインタ
 
 	std::unique_ptr<K4E::Sprite> dim_;
+	std::unique_ptr<K4E::Sprite> panelBorder_;
 	std::unique_ptr<K4E::Sprite> panel_;
+	std::vector<std::unique_ptr<K4E::Sprite>> blockTiles_;
+	std::unique_ptr<K4E::Sprite> titleLine_;
+	std::unique_ptr<K4E::Sprite> btnYesBorder_;
 	std::unique_ptr<K4E::Sprite> btnYes_;
+	std::unique_ptr<K4E::Sprite> btnNoBorder_;
 	std::unique_ptr<K4E::Sprite> btnNo_;
-	Rect rYes_{ 350, 400, 261, 89 };
-	Rect rNo_{ 660, 400, 260, 89 };
+	std::unique_ptr<K4E::TextSpriteDrawer> textDrawer_;
+
+	Rect rYes_{ 0.0f, 0.0f, 300.0f, 84.0f };
+	Rect rNo_{ 0.0f, 0.0f, 300.0f, 84.0f };
 	int focus_ = 0; // 0:Yes,1:No
+	bool textReady_ = false; // TextSpriteDrawerの初期化が完了しているか
 
 	Callback onYes_;
 	Callback onNo_;
 
-	const std::string kWhiteTex = "Effects/white.dds";   // 1x1 の白
-	const std::string kPanelTex = "UI/Overlays/ConfirmOverlay_panel_only.dds";   // 任意。無ければ白＋色
-	const std::string kBtnTexYes_ = "UI/Overlays/ConfirmOverlay_button_yes.dds";  // 任意
-	const std::string kBtnTexNo_ = "UI/Overlays/ConfirmOverlay_button_no.dds";  // 任意
+	const std::string kWhiteTex = "Effects/white.dds"; // 1x1 の白
 };
-
