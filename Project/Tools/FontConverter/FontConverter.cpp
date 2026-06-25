@@ -12,6 +12,9 @@
 
 namespace
 {
+	/// <summary>
+	/// JSON文字列として壊れないよう、引用符・バックスラッシュ・改行などをエスケープする
+	/// </summary>
 	std::string EscapeJsonString(const std::string& s)
 	{
 		std::string out;
@@ -36,6 +39,7 @@ namespace
 
 void FontConverter::OutputUsage()
 {
+	// コマンドライン実行時に必要な引数と、指定可能なオプションを表示する。
 	std::wcout << L"Usage:\n";
 	std::wcout << L"  FontConverter.exe <FontFilePath> [options]\n";
 	std::wcout << L"\nOptions:\n";
@@ -50,8 +54,10 @@ void FontConverter::OutputUsage()
 
 bool FontConverter::ConvertFont(const std::wstring& filePath, int numOptions, wchar_t** options)
 {
+	// 先にオプションを解析し、フォントサイズ・出力先・文字一覧などを確定する。
 	ParseOptions(numOptions, options);
 
+	// 入力フォントが存在しない場合は、以降のDirectWrite処理に進まず終了する。
 	if (!std::filesystem::exists(filePath))
 	{
 		std::wcerr << L"[FontConverter] Input file not found: " << filePath << L"\n";
@@ -60,10 +66,12 @@ bool FontConverter::ConvertFont(const std::wstring& filePath, int numOptions, wc
 
 	if (charset_.empty())
 	{
+		// 使用文字一覧が指定されていない場合は、最低限の英数字・記号を対象にする。
 		BuildDefaultCharset();
 	}
 
 	std::error_code ec;
+	// PNGやJSONを書き込めるよう、出力先ディレクトリを作成する。
 	std::filesystem::create_directories(outputDirectory_, ec);
 	if (ec)
 	{
@@ -79,12 +87,14 @@ bool FontConverter::ConvertFont(const std::wstring& filePath, int numOptions, wc
 	std::wcout << L"  Output : " << outputDirectory_ << L"\n";
 	std::wcout << L"  Charset length : " << charset_.size() << L"\n";
 
+	// メインフォント用のDirectWriteラスタライザを初期化する。
 	if (!fontRasterizer_.Initialize())
 	{
 		std::wcerr << L"[FontConverter] Failed to initialize FontRasterizer.\n";
 		return false;
 	}
 
+	// 入力フォントファイルを読み込み、グリフ取得に使うFontFaceを作成する。
 	if (!fontRasterizer_.LoadFontFile(filePath))
 	{
 		std::wcerr << L"[FontConverter] Failed to load font file into FontRasterizer.\n";
@@ -95,6 +105,7 @@ bool FontConverter::ConvertFont(const std::wstring& filePath, int numOptions, wc
 
 	if (!fallbackFontPath_.empty())
 	{
+		// メインフォントに存在しない文字を補うため、任意指定のフォールバックフォントを準備する。
 		std::wcout << L"[FontConverter] Try load fallback font: " << fallbackFontPath_ << L"\n";
 
 		if (!std::filesystem::exists(fallbackFontPath_))
@@ -132,6 +143,7 @@ bool FontConverter::ConvertFont(const std::wstring& filePath, int numOptions, wc
 			<< (fallbackFontRasterizer_.HasGlyph(L'あ') ? L"OK" : L"NG") << L"\n";
 	}
 
+	// 使用文字一覧を1文字ずつビットマップ化する。
 	std::vector<RasterizedGlyph> glyphs = RasterizeCharset();
 	if (glyphs.empty())
 	{
@@ -139,6 +151,7 @@ bool FontConverter::ConvertFont(const std::wstring& filePath, int numOptions, wc
 		return false;
 	}
 
+	// ラスタライズした全文字を1枚のアトラス画像にまとめる。
 	FontAtlas atlas = BuildSimpleHorizontalAtlas(std::move(glyphs));
 	if (!atlas.isValid)
 	{
@@ -146,6 +159,7 @@ bool FontConverter::ConvertFont(const std::wstring& filePath, int numOptions, wc
 		return false;
 	}
 
+	// 入力フォント名を元に、出力ファイル名の共通部分を作成する。
 	const std::wstring baseName = MakeOutputBaseName(filePath);
 
 	const std::filesystem::path dummyPath =
@@ -166,6 +180,7 @@ bool FontConverter::ConvertFont(const std::wstring& filePath, int numOptions, wc
 	const std::filesystem::path glyphPngPath =
 		std::filesystem::path(outputDirectory_) / (baseName + L"_A.png");
 
+	// 確認用テキスト、描画用JSON、アトラス画像をそれぞれ出力する。
 	WriteDummyOutput(dummyPath.wstring(), filePath);
 	SaveMetadataJson(jsonPath.wstring(), filePath, atlas);
 	SaveAtlasAsPgm(atlasPgmPath.wstring(), atlas);
@@ -200,6 +215,7 @@ void FontConverter::ParseOptions(int numOptions, wchar_t** options)
 {
 	for (int i = 0; i < numOptions; ++i)
 	{
+		// オプション名と次の値をセットで読み取り、対応する設定へ反映する。
 		const std::wstring arg = options[i];
 
 		if (arg == L"-size" && i + 1 < numOptions)
@@ -244,6 +260,7 @@ void FontConverter::ParseOptions(int numOptions, wchar_t** options)
 
 void FontConverter::BuildDefaultCharset()
 {
+	// charsetFileが指定されていない場合でも最低限のUI文字を出せるよう、既定文字を用意する。
 	charset_ =
 		L"0123456789"
 		L"ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -253,6 +270,7 @@ void FontConverter::BuildDefaultCharset()
 
 std::wstring FontConverter::ReadTextFileUtf8(const std::wstring& filePath) const
 {
+	// UTF-8 BOMの有無を確認できるよう、バイナリとして読み込む。
 	std::ifstream ifs(std::filesystem::path(filePath), std::ios::binary);
 	if (!ifs)
 	{
@@ -278,7 +296,9 @@ std::wstring FontConverter::ReadTextFileUtf8(const std::wstring& filePath) const
 		bytes.erase(0, 3);
 	}
 
-	const int size = MultiByteToWideChar(
+	// UTF-8のバイト列をWide文字列へ変換するため、まず必要な文字数を取得する。
+	const int size = // 確保したバッファへ、実際にUTF-8からWide文字列へ変換する。
+	MultiByteToWideChar(
 		CP_UTF8,
 		0,
 		bytes.data(),
@@ -294,6 +314,7 @@ std::wstring FontConverter::ReadTextFileUtf8(const std::wstring& filePath) const
 
 	std::wstring result(static_cast<size_t>(size), L'\0');
 
+	// 確保したバッファへ、実際にUTF-8からWide文字列へ変換する。
 	MultiByteToWideChar(
 		CP_UTF8,
 		0,
@@ -314,6 +335,7 @@ bool FontConverter::LoadCharsetFromFile(const std::wstring& filePath)
 		return false;
 	}
 
+	// 文字一覧ファイルの内容を、実際にアトラス化する文字集合として保存する。
 	charset_.clear();
 	charset_.reserve(text.size());
 
@@ -340,6 +362,7 @@ void FontConverter::SaveMetadataJson(
 	const FontAtlas& atlas
 ) const
 {
+	// JSONは毎回作り直すため、既存ファイルを上書きする。
 	std::ofstream ofs(std::filesystem::path(outputPath), std::ios::out | std::ios::trunc);
 	if (!ofs)
 	{
@@ -347,6 +370,7 @@ void FontConverter::SaveMetadataJson(
 		return;
 	}
 
+	// WindowsのWide文字列パスを、JSONへ書けるUTF-8文字列に変換する。
 	const std::string inputFileUtf8 = NarrowForJson(inputFilePath);
 	const std::string charsetUtf8 = NarrowForJson(charset_);
 
@@ -362,6 +386,7 @@ void FontConverter::SaveMetadataJson(
 
 	for (size_t i = 0; i < atlas.glyphs.size(); ++i)
 	{
+		// TextSpriteDrawerが1文字ずつ描画できるよう、各グリフのUVとメトリクスを書き出す。
 		const auto& g = atlas.glyphs[i];
 		ofs << "    {\n";
 		ofs << "      \"codepoint\": " << g.glyphInfo.codepoint << ",\n";
@@ -436,7 +461,7 @@ void FontConverter::SaveGlyphBitmapAsPgm(const std::wstring& outputPath, const R
 		return;
 	}
 
-	// PGM (P5) binary grayscale
+	// PGM(P5)は単純なグレースケール形式なので、デバッグ用にアルファ画像を確認しやすい。
 	ofs << "P5\n";
 	ofs << glyph.bitmapWidth << " " << glyph.bitmapHeight << "\n";
 	ofs << "255\n";
@@ -465,7 +490,9 @@ std::string FontConverter::NarrowForJson(const std::wstring& text) const
 		return {};
 	}
 
-	const int size = WideCharToMultiByte(
+	// JSON出力用に、Wide文字列をUTF-8へ変換するための必要バイト数を取得する。
+	const int size = // 確保したバッファへ、実際にWide文字列からUTF-8へ変換する。
+	WideCharToMultiByte(
 		CP_UTF8,
 		0,
 		text.c_str(),
@@ -483,6 +510,7 @@ std::string FontConverter::NarrowForJson(const std::wstring& text) const
 
 	std::string result(static_cast<size_t>(size), '\0');
 
+	// 確保したバッファへ、実際にWide文字列からUTF-8へ変換する。
 	WideCharToMultiByte(
 		CP_UTF8,
 		0,
@@ -509,6 +537,7 @@ std::vector<RasterizedGlyph> FontConverter::RasterizeCharset() const
 
 	for (wchar_t c : charset_)
 	{
+		// メインフォントに存在する文字はメインフォントから、なければフォールバックフォントから生成する。
 		RasterizedGlyph glyph{};
 
 		if (fontRasterizer_.HasGlyph(c))
@@ -543,6 +572,7 @@ std::vector<RasterizedGlyph> FontConverter::RasterizeCharset() const
 			continue;
 		}
 
+		// 有効なグリフだけをアトラス生成対象に追加する。
 		glyphs.push_back(std::move(glyph));
 	}
 
@@ -558,6 +588,7 @@ FontAtlas FontConverter::BuildSimpleHorizontalAtlas(std::vector<RasterizedGlyph>
 		return atlas;
 	}
 
+	// 文字同士がにじんで見えないよう、各グリフの周囲に余白を入れる。
 	constexpr int kPadding = 4;
 	const int maxAtlasWidth = atlasWidth_;
 
@@ -566,6 +597,7 @@ FontAtlas FontConverter::BuildSimpleHorizontalAtlas(std::vector<RasterizedGlyph>
 		return atlas;
 	}
 
+	// 1行に配置するグリフ範囲と、ベースライン計算に必要な情報を保持する。
 	struct RowInfo
 	{
 		int startIndex = 0;
@@ -582,7 +614,7 @@ FontAtlas FontConverter::BuildSimpleHorizontalAtlas(std::vector<RasterizedGlyph>
 	rows.reserve(64);
 
 	// -----------------------------
-	// 1. 行分割
+	// 1. 行分割：横幅を超えそうになったら次の行へ送る
 	// -----------------------------
 	int rowStart = 0;
 	int cursorX = kPadding;
@@ -601,6 +633,7 @@ FontAtlas FontConverter::BuildSimpleHorizontalAtlas(std::vector<RasterizedGlyph>
 			continue;
 		}
 
+		// 現在の行にこのグリフを置いた場合、アトラス幅を超えるかを計算する。
 		const int requiredWidth = (cursorX == kPadding)
 			? (glyphW + kPadding)
 			: (cursorX + glyphW + kPadding);
@@ -630,6 +663,7 @@ FontAtlas FontConverter::BuildSimpleHorizontalAtlas(std::vector<RasterizedGlyph>
 			rowMaxBearingY = glyph.glyphInfo.bearingY;
 		}
 
+		// ベースラインより下に出る量を求め、行の高さ計算に使う。
 		const float descender =
 			static_cast<float>(glyph.bitmapHeight) - glyph.glyphInfo.bearingY;
 
@@ -658,7 +692,7 @@ FontAtlas FontConverter::BuildSimpleHorizontalAtlas(std::vector<RasterizedGlyph>
 	}
 
 	// -----------------------------
-	// 2. 各行のY位置と baseline を決める
+	// 2. 各行のY位置と baseline を決める：英数字と日本語の縦位置を揃える
 	// -----------------------------
 	int atlasHeightUsed = kPadding;
 	int usedWidth = 0;
@@ -683,10 +717,11 @@ FontAtlas FontConverter::BuildSimpleHorizontalAtlas(std::vector<RasterizedGlyph>
 		return atlas;
 	}
 
+	// 透明なアトラス画像を用意し、ここへ各グリフのアルファ画像をコピーしていく。
 	atlas.pixels.assign(static_cast<size_t>(atlas.width * atlas.height), 0);
 
 	// -----------------------------
-	// 3. 各 glyph を配置
+	// 3. 各 glyph を配置：行ごとのベースラインに合わせてピクセルをコピーする
 	// -----------------------------
 	for (const auto& row : rows)
 	{
@@ -696,6 +731,7 @@ FontAtlas FontConverter::BuildSimpleHorizontalAtlas(std::vector<RasterizedGlyph>
 		{
 			auto& glyph = glyphs[i];
 
+			// ベースラインを基準に配置することで、文字ごとの高さ差があっても自然に並ぶようにする。
 			glyph.atlasX = rowCursorX;
 			glyph.atlasY = row.baselineY - static_cast<int>(std::round(glyph.glyphInfo.bearingY));
 
@@ -716,6 +752,7 @@ FontAtlas FontConverter::BuildSimpleHorizontalAtlas(std::vector<RasterizedGlyph>
 				}
 			}
 
+			// 描画時にアトラス内の該当文字を切り出せるよう、ピクセル座標をUV座標へ変換する。
 			glyph.glyphInfo.u0 = static_cast<float>(glyph.atlasX) / static_cast<float>(atlas.width);
 			glyph.glyphInfo.v0 = static_cast<float>(glyph.atlasY) / static_cast<float>(atlas.height);
 			glyph.glyphInfo.u1 = static_cast<float>(glyph.atlasX + glyph.bitmapWidth) / static_cast<float>(atlas.width);
@@ -781,6 +818,7 @@ void FontConverter::SaveAlphaImageAsPng(
 
 	using Microsoft::WRL::ComPtr;
 
+	// WICを使って、アルファ画像をPNGとして保存する。
 	ComPtr<IWICImagingFactory> factory;
 	HRESULT hr = CoCreateInstance(
 		CLSID_WICImagingFactory,
@@ -855,6 +893,7 @@ void FontConverter::SaveAlphaImageAsPng(
 		return;
 	}
 
+	// アルファのみの画像を、白色RGBA画像へ変換してPNGに書き込む。
 	std::vector<std::uint8_t> rgbaPixels(static_cast<size_t>(width * height * 4), 0);
 
 	for (int i = 0; i < width * height; ++i)

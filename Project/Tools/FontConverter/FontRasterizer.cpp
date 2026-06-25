@@ -11,6 +11,7 @@
 
 FontRasterizer::~FontRasterizer()
 {
+	// RegisterFontFileLoaderしたローダーは、終了時に必ず解除してDirectWrite側の参照を残さないようにする。
 	if (dwriteFactory_ && fontFileLoader_)
 	{
 		dwriteFactory_->UnregisterFontFileLoader(fontFileLoader_);
@@ -27,9 +28,11 @@ bool FontRasterizer::Initialize()
 {
 	if (dwriteFactory_)
 	{
+		// すでに初期化済みなら、重複してFactoryやLoaderを作らず成功扱いにする。
 		return true;
 	}
 
+	// DirectWriteの入口となるFactoryを作成する。
 	HRESULT hr = DWriteCreateFactory(
 		DWRITE_FACTORY_TYPE_SHARED,
 		__uuidof(IDWriteFactory),
@@ -42,6 +45,7 @@ bool FontRasterizer::Initialize()
 		return false;
 	}
 
+	// 任意パスのフォントファイルを読み込むため、独自FontFileLoaderをDirectWriteへ登録する。
 	fontFileLoader_ = new FontFileLoader();
 	hr = dwriteFactory_->RegisterFontFileLoader(fontFileLoader_);
 	if (FAILED(hr))
@@ -71,11 +75,13 @@ bool FontRasterizer::LoadFontFile(const std::wstring& filePath)
 		return false;
 	}
 
+	// CreateCustomFontFileReferenceで参照できるよう、読み込むフォントパスをメンバに保持する。
 	loadedFontPath_ = filePath;
 
 	fontFile_.Reset();
 	fontFace_.Reset();
 
+	// 独自Loaderへ渡すキーとして、フォントファイルパス文字列をそのまま使用する。
 	const void* fontKey = loadedFontPath_.c_str();
 	const UINT32 fontKeySize = static_cast<UINT32>((loadedFontPath_.size() + 1) * sizeof(wchar_t));
 
@@ -97,6 +103,7 @@ bool FontRasterizer::LoadFontFile(const std::wstring& filePath)
 	DWRITE_FONT_FACE_TYPE faceType = DWRITE_FONT_FACE_TYPE_UNKNOWN;
 	UINT32 numberOfFaces = 0;
 
+	// フォント形式がDirectWriteで扱えるか、Face数が存在するかを調べる。
 	hr = fontFile_->Analyze(&isSupported, &fileType, &faceType, &numberOfFaces);
 	if (FAILED(hr))
 	{
@@ -117,6 +124,7 @@ bool FontRasterizer::LoadFontFile(const std::wstring& filePath)
 		return false;
 	}
 
+	// 解析済みのFontFileから、実際にグリフを取得するFontFaceを作成する。
 	IDWriteFontFile* fontFiles[] = { fontFile_.Get() };
 	hr = dwriteFactory_->CreateFontFace(
 		faceType,
@@ -146,10 +154,12 @@ bool FontRasterizer::HasGlyph(wchar_t character) const
 		return false;
 	}
 
+	// wchar_tをUnicodeコードポイントとして扱い、フォント内のGlyphIndexへ変換する。
 	const UINT32 codepoint = static_cast<UINT32>(character);
 	UINT16 glyphIndex = 0;
 	fontFace_->GetGlyphIndicesW(&codepoint, 1, &glyphIndex);
 
+	// GlyphIndexが0の場合は、一般的にその文字がフォントに存在しない扱いにする。
 	return glyphIndex != 0;
 }
 
@@ -175,6 +185,7 @@ RasterizedGlyph FontRasterizer::RasterizeGlyph(wchar_t character, float fontSize
 
 	RasterizedGlyph glyph{};
 
+	// 文字をGlyphIndexへ変換し、以降のメトリクス取得とビットマップ化に使う。
 	const UINT32 codepoint = static_cast<UINT32>(character);
 	UINT16 glyphIndex = 0;
 	fontFace_->GetGlyphIndicesW(&codepoint, 1, &glyphIndex);
@@ -187,6 +198,7 @@ RasterizedGlyph FontRasterizer::RasterizeGlyph(wchar_t character, float fontSize
 		return RasterizedGlyph{};
 	}
 
+	// フォント全体の基準値と、対象グリフの個別メトリクスを取得する。
 	DWRITE_FONT_METRICS fontMetrics{};
 	fontFace_->GetMetrics(&fontMetrics);
 
@@ -200,6 +212,7 @@ RasterizedGlyph FontRasterizer::RasterizeGlyph(wchar_t character, float fontSize
 		return RasterizedGlyph{};
 	}
 
+	// DirectWriteのデザイン単位を、実際に出力するピクセルサイズへ変換する倍率。
 	const float scale = fontSize / static_cast<float>(fontMetrics.designUnitsPerEm);
 
 	const float width =
@@ -208,6 +221,7 @@ RasterizedGlyph FontRasterizer::RasterizeGlyph(wchar_t character, float fontSize
 	const float height =
 		static_cast<float>(glyphMetrics.advanceHeight - glyphMetrics.topSideBearing - glyphMetrics.bottomSideBearing) * scale;
 
+	// TextSpriteDrawerで参照するため、文字のサイズ・送り幅・ベアリング情報を保存する。
 	glyph.glyphInfo.codepoint = codepoint;
 	glyph.glyphInfo.u0 = 0.0f;
 	glyph.glyphInfo.v0 = 0.0f;
@@ -223,6 +237,7 @@ RasterizedGlyph FontRasterizer::RasterizeGlyph(wchar_t character, float fontSize
 	glyph.bitmapWidth = std::max(1, static_cast<int>(glyph.glyphInfo.width));
 	glyph.bitmapHeight = std::max(1, static_cast<int>(glyph.glyphInfo.height));
 
+	// GlyphRunAnalysisを使って、実際のアルファビットマップを生成する。
 	if (!BuildGlyphBitmap(glyphIndex, fontSize, glyphMetrics, fontMetrics, glyph))
 	{
 		std::wcerr << L"[FontRasterizer] Failed to build glyph bitmap: U+"
@@ -242,25 +257,21 @@ RasterizedGlyph FontRasterizer::RasterizeGlyph(wchar_t character, float fontSize
 	return glyph;
 }
 
-bool FontRasterizer::BuildGlyphBitmap(
-	UINT16 glyphIndex,
-	float fontSize,
-	const DWRITE_GLYPH_METRICS& glyphMetrics,
-	const DWRITE_FONT_METRICS& fontMetrics,
-	RasterizedGlyph& outGlyph
-) const
+bool FontRasterizer::BuildGlyphBitmap(UINT16 glyphIndex, float fontSize, const DWRITE_GLYPH_METRICS& glyphMetrics, const DWRITE_FONT_METRICS& fontMetrics, RasterizedGlyph& outGlyph) const
 {
 	if (!dwriteFactory_ || !fontFace_)
 	{
 		return false;
 	}
 
+	// DirectWriteへ渡すemサイズ。ここでは出力したいフォントサイズをそのまま使う。
 	const float emSize = fontSize;
 
 	UINT16 glyphIndices[1] = { glyphIndex };
 	FLOAT glyphAdvances[1] = { 0.0f };
 	DWRITE_GLYPH_OFFSET glyphOffsets[1] = {};
 
+	// 1文字分だけを描画対象にしたGlyphRunを構築する。
 	DWRITE_GLYPH_RUN glyphRun{};
 	glyphRun.fontFace = fontFace_.Get();
 	glyphRun.fontEmSize = emSize;
@@ -273,6 +284,7 @@ bool FontRasterizer::BuildGlyphBitmap(
 
 	Microsoft::WRL::ComPtr<IDWriteGlyphRunAnalysis> analysis;
 
+	// GlyphRunAnalysisを作成し、文字の描画範囲とアルファテクスチャを取得できる状態にする。
 	HRESULT hr = dwriteFactory_->CreateGlyphRunAnalysis(
 		&glyphRun,
 		1.0f,
@@ -289,6 +301,7 @@ bool FontRasterizer::BuildGlyphBitmap(
 		return false;
 	}
 
+	// 実際に描画されるアルファテクスチャの矩形範囲を取得する。
 	RECT textureBounds{};
 	hr = analysis->GetAlphaTextureBounds(
 		DWRITE_TEXTURE_ALIASED_1x1,
@@ -305,12 +318,14 @@ bool FontRasterizer::BuildGlyphBitmap(
 
 	if (width <= 0 || height <= 0)
 	{
+		// 空白など描画ピクセルがない文字でも、後続処理が壊れないよう1pxの透明画像として扱う。
 		outGlyph.bitmapWidth = 1;
 		outGlyph.bitmapHeight = 1;
 		outGlyph.pixels.assign(1, 0);
 		return true;
 	}
 
+	// DirectWriteから取得したアルファ値を、0〜255のグレースケールとして保持する。
 	std::vector<std::uint8_t> alphaPixels(static_cast<size_t>(width * height), 0);
 
 	hr = analysis->CreateAlphaTexture(
@@ -339,6 +354,7 @@ RasterizedGlyph FontRasterizer::BuildFallbackGlyph(wchar_t character, float font
 {
 	RasterizedGlyph glyph{};
 
+	// フォントに存在しない文字を確認しやすいよう、仮の矩形グリフを作成する。
 	glyph.glyphInfo.codepoint = static_cast<std::uint32_t>(character);
 	glyph.glyphInfo.u0 = 0.0f;
 	glyph.glyphInfo.v0 = 0.0f;
