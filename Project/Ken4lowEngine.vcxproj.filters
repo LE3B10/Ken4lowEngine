@@ -163,6 +163,9 @@
     <Filter Include="ApplicationLayer\UISystem\HUDManager">
       <UniqueIdentifier>{c6e64e0a-a0d0-48e3-abd0-f830b4001a94}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Scene\Actor">
+      <UniqueIdentifier>{9b4bc25e-9c44-43d6-913a-cce19da1ea04}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -1059,6 +1062,9 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Actor.cpp">
+      <Filter>Engine\Scene\Actor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2210,6 +2216,12 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.h">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\ActorComponent.h">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Actor.h">
+      <Filter>Engine\Scene\Actor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
