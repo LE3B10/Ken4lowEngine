@@ -82,9 +82,14 @@ namespace Ken4lowEngine
 
 		int instanceCount_ = 100;      // 描画するインスタンス数
 		float spacing_ = 2.0f;         // インスタンス同士の間隔
-		Vector3 instanceScale_{ 1.0f, 1.0f, 1.0f }; // 各インスタンスの基本スケール。
+		Vector3 instanceScale_{ 1.0f, 1.0f, 1.0f }; // 各インスタンスの基本スケール
 
 		bool isRebuildRequested_ = true; // 配置再構築が必要かどうか
 		bool isInitializedRenderer_ = false; // Renderer初期化済みかどうか
+
+		Vector3 lastWorldPosition_{};		 // 前回のワールド位置
+		Vector3 lastWorldRotation_{};		 // 前回のワールド回転
+		Vector3 lastWorldScale_{};			 // 前回のワールドスケール
+		bool hasLastWorldTransform_ = false; // 前回のワールドTransformが有効かどうか
 	};
 }

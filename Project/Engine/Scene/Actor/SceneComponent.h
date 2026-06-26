@@ -7,7 +7,7 @@
 namespace Ken4lowEngine
 {
 	/// -------------------------------------------------------------
-	/// 位置・回転・スケールと親子関係を持つComponentクラス。
+	///		位置・回転・スケールと親子関係を持つComponentクラス
 	/// -------------------------------------------------------------
 	class SceneComponent : public ActorComponent
 	{
@@ -22,6 +22,14 @@ namespace Ken4lowEngine
 		/// SceneComponentの1フレーム更新処理。
 		/// </summary>
 		void Update(float deltaTime) override;
+
+		/// <summary>
+		/// 現在のLocalTransformからWorldTransformを即座に再計算する。
+		/// </summary>
+		void RefreshWorldTransform()
+		{
+			UpdateWorldTransform(); // 物理補正後のLocalTransformを同フレーム中にWorldTransformへ反映する
+		}
 
 		/// <summary>
 		/// SceneComponentのImGui描画処理。

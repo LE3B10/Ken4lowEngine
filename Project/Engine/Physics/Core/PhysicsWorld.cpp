@@ -117,6 +117,7 @@ namespace Ken4lowEngine
 
 		// 将来の本格接続に備え、積分、検出、解決の順序だけを固定する。
 		IntegrateBodies(deltaTime);
+		IntegrateColliderPositions(deltaTime);
 		DetectCollisions();
 		ResolveContacts();
 		UpdateRigidbodySleepState(deltaTime);
@@ -199,6 +200,31 @@ namespace Ken4lowEngine
 				rigidbody->SetGravity(gravity_);
 				rigidbody->Integrate(deltaTime);
 			}
+		}
+	}
+
+	void PhysicsWorld::IntegrateColliderPositions(float deltaTime)
+	{
+		if (deltaTime <= 0.0f)
+		{
+			return; // 不正な時間ではCollider位置を更新しない
+		}
+
+		for (Collider* collider : colliders_)
+		{
+			if (!collider)
+			{
+				continue;
+			}
+
+			Rigidbody* rigidbody = collider->GetRigidbody();
+			if (!rigidbody || rigidbody->GetBodyType() != BodyType::Dynamic)
+			{
+				continue; // Rigidbodyがないか、Static/Triggerなら位置更新しない
+			}
+
+			const Vector3 velocity = rigidbody->GetVelocity();
+			collider->SetCenterPosition(collider->GetCenterPosition() + velocity * deltaTime); // Rigidbodyの速度をCollider中心へ反映する
 		}
 	}
 

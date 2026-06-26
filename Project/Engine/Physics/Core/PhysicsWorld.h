@@ -43,6 +43,9 @@ namespace Ken4lowEngine
 		// 登録済みRigidbodyの速度積分を行う。
 		void IntegrateBodies(float deltaTime);
 
+		// Rigidbodyの速度をCollider位置へ反映する
+		void IntegrateColliderPositions(float deltaTime);
+
 		// 登録済みCollider同士の接触を検出する。
 		void DetectCollisions();
 

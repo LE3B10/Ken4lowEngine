@@ -1,6 +1,7 @@
 #pragma once
 #include "SceneComponent.h"
 #include <Collider.h>
+#include <PhysicsCollisionLayer.h>
 
 #include <memory>
 
@@ -63,6 +64,11 @@ namespace Ken4lowEngine
 		/// PhysicsWorld用のCollisionLayerを設定する
 		/// </summary>
 		void SetCollisionLayer(uint32_t layer);
+
+		/// <summary>
+		/// PhysicsWorld用のCollisionLayerを名前付きレイヤーで設定する。
+		/// </summary>
+		void SetCollisionLayer(PhysicsCollisionLayer layer);
 
 		/// <summary>
 		/// AABB / OBB 判定に使う半サイズを設定する

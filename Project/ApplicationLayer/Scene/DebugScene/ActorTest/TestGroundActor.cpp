@@ -8,9 +8,13 @@
 void TestGroundActor::Initialize()
 {
 	// Actor全体の基準TransformとしてRootComponentを生成する。
-	auto& root = CreateRootComponent<>();
+	auto& root = CreateRootComponent<Ken4lowEngine::ColliderComponent>();
+	root.SetName("Root Collider Component");
 	root.SetLocalPosition({ 0.0f, -3.0f, 0.0f });
 	root.SetLocalScale({ 1.0f, 1.0f, 1.0f });
+	root.SetShapeType(Ken4lowEngine::ECollisionShapeType::AABB);
+	root.SetHalfSize({ 10.0f, 1.0f, 10.0f });
+	root.SetCollisionLayer(Ken4lowEngine::PhysicsCollisionLayer::WorldStatic); // 床用の静的衝突レイヤーを設定する
 
 	// GPUインスタンシングで床用のキューブを大量描画する。
 	auto& instancedModel = AddComponent<Ken4lowEngine::InstancedModelComponent>();
@@ -20,14 +24,6 @@ void TestGroundActor::Initialize()
 	instancedModel.SetSpacing(2.0f);
 	instancedModel.SetInstanceScale({ 1.0f, 1.0f, 1.0f });
 	instancedModel.AttachTo(&root);
-
-	// 床全体を受け止めるための簡易Colliderを追加する。
-	auto& collider = AddComponent<Ken4lowEngine::ColliderComponent>();
-	collider.SetName("Ground Collider");
-	collider.SetShapeType(Ken4lowEngine::ECollisionShapeType::AABB);
-	collider.SetHalfSize({ 10.0f, 1.0f, 10.0f });
-	collider.SetCollisionLayer(1); // CollisionLayerを設定する
-	collider.AttachTo(&root);
 
 	// 床は物理で動かないStatic Bodyにする。
 	auto& rigidbody = AddComponent<Ken4lowEngine::RigidbodyComponent>();

@@ -10,6 +10,21 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		bool IsDifferentVector3(const Vector3& v1, const Vector3& v2)
+		{
+			constexpr float kEpsilon = 0.0001f;
+
+			// 小さな誤差で毎フレーム再構築されないようにする
+			return
+				std::abs(v1.x - v2.x) > kEpsilon ||
+				std::abs(v1.y - v2.y) > kEpsilon ||
+				std::abs(v1.z - v2.z) > kEpsilon;
+		}
+	}
+
+
 	void InstancedModelComponent::Initialize()
 	{
 		SceneComponent::Initialize(); // 親子関係を考慮したWorldTransformを初期計算する。
@@ -30,6 +45,22 @@ namespace Ken4lowEngine
 	void InstancedModelComponent::Update(float deltaTime)
 	{
 		SceneComponent::Update(deltaTime); // SceneComponent側でWorldTransformを更新する。
+
+		const Vector3 currentWorldPosition = GetWorldPosition();
+		const Vector3 currentWorldRotation = GetWorldRotation();
+		const Vector3 currentWorldScale = GetWorldScale();
+
+		if (!hasLastWorldTransform_ ||
+			IsDifferentVector3(currentWorldPosition, lastWorldPosition_) ||
+			IsDifferentVector3(currentWorldRotation, lastWorldRotation_) ||
+			IsDifferentVector3(currentWorldScale, lastWorldScale_))
+		{
+			RequestRebuild(); // 親RootのTransform変更をGPUインスタンス配置へ反映する
+			lastWorldPosition_ = currentWorldPosition;
+			lastWorldRotation_ = currentWorldRotation;
+			lastWorldScale_ = currentWorldScale;
+			hasLastWorldTransform_ = true;
+		}
 
 		if (isRebuildRequested_)
 		{

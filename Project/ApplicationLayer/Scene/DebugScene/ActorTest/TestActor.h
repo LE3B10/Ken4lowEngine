@@ -7,7 +7,7 @@
 class TestActorComponent;
 
 /// -------------------------------------------------------------
-///	 Actor・ActorComponent・ActorWorldの動作確認を行うテスト用Actorクラス。
+///	 Actor・ActorComponent・ActorWorldの動作確認を行うテスト用Actorクラス
 /// -------------------------------------------------------------
 class TestActor final : public Ken4lowEngine::Actor
 {

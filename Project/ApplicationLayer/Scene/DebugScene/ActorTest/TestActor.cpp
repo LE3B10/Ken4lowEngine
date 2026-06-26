@@ -9,10 +9,14 @@
 void TestActor::Initialize()
 {
 	// ActorのRootとして扱う SceneComponentを追加する
-	auto& root = CreateRootComponent<>();
+	auto& root = CreateRootComponent<Ken4lowEngine::ColliderComponent>();
+	root.SetName("Root Collider Component");
 	root.SetLocalPosition({ 0.0f, 0.0f, 0.0f });
+	root.SetShapeType(Ken4lowEngine::ECollisionShapeType::AABB);
+	root.SetHalfSize({ 1.0f, 1.0f, 1.0f });
+	root.SetCollisionLayer(Ken4lowEngine::PhysicsCollisionLayer::DynamicActor); // 動くActor用の衝突レイヤーを設定する)
 
-	// ActorにModelComponentを追加する。
+	// ActorにModelComponentを追加する
 	auto& model = AddComponent<Ken4lowEngine::ModelComponent>();
 	model.SetName("Model Component");
 	model.SetModelPath("Sample/cube.gltf");
@@ -25,14 +29,6 @@ void TestActor::Initialize()
 	camera.SetLocalRotation({ 0.2f, 0.0f, 0.0f });
 	camera.SetAutoRegisterMainCamera(true); // MainCameraとして登録する
 	camera.AttachTo(&root); // Root SceneComponentの子として接続する
-
-	// ActorにColliderComponentを追加する。
-	auto& collider = AddComponent<Ken4lowEngine::ColliderComponent>();
-	collider.SetName("Collider Component");
-	collider.SetShapeType(Ken4lowEngine::ECollisionShapeType::AABB);
-	collider.SetHalfSize({ 1.0f, 1.0f, 1.0f });
-	collider.SetCollisionLayer(1); // CollisionLayerを設定する
-	collider.AttachTo(&root); // Root SceneComponentの子として接続する
 
 	// ActorにRigidbodyComponentを追加する。
 	auto& rigidbody = AddComponent<Ken4lowEngine::RigidbodyComponent>();

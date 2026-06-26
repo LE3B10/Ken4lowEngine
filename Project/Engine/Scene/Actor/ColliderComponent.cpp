@@ -1,5 +1,6 @@
 #include "ColliderComponent.h"
 #include <Actor.h>
+#include <SceneComponent.h>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -26,20 +27,46 @@ namespace Ken4lowEngine
 		SyncFromSceneTransform();
 	}
 
-	void ColliderComponent::PostPhysicsUpdate([[maybe_unused]]float deltaTime)
+	void ColliderComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
 	{
 		if (!collider_)
 		{
 			return; // Colliderが生成されていない場合は同期しない
 		}
 
-		auto* owner = GetOwner();
-		if (!owner || owner->GetRootComponent() != this)
+		Actor* owner = GetOwner();
+		if (!owner)
 		{
-			return; // 所有者Actorが存在しない、またはRootComponentでない場合は同期しない
+			return; // 所有者Actorが存在しない場合は同期しない
 		}
 
-		LocalPosition() = collider_->GetCenterPosition(); // Colliderの中心位置をSceneComponentのローカル位置に反映する
+		SceneComponent* root = owner->GetRootComponent();
+		if (!root)
+		{
+			return; // 所有者ActorのRootComponentが存在しない場合は同期しない
+		}
+
+		const Vector3 currentWorldPosition = GetWorldPosition();
+		const Vector3 correctedWorldPosition = collider_->GetCenterPosition();
+		const Vector3 correctionDelta = correctedWorldPosition - currentWorldPosition;
+
+		constexpr float kCorrectionEpsilon = 0.0001f; // 許容誤差の閾値
+		if (Vector3::Length(correctionDelta) <= kCorrectionEpsilon)
+		{
+			return; // 補正差分がほぼない場合はTransformを動かさない
+		}
+
+		if (root == this)
+		{
+			LocalPosition() += correctionDelta; // RootComponentの場合はLocalPositionを直接修正する
+		}
+		else
+		{
+			root->LocalPosition() += correctionDelta; // RootComponent以外の場合はRootComponentのLocalPositionを修正する
+		}
+
+		root->RefreshWorldTransform(); // RootComponentのWorldTransformを更新する
+		SyncFromSceneTransform();	   // ColliderのTransformをSceneComponentへ反映する
 	}
 
 	void ColliderComponent::DrawImGui()
@@ -91,6 +118,12 @@ namespace Ken4lowEngine
 		{
 			collider_->SetCollisionLayer(collisionLayer_); // Colliderの衝突レイヤーを設定する
 		}
+	}
+
+	void ColliderComponent::SetCollisionLayer(PhysicsCollisionLayer layer)
+	{
+		// 名前付きレイヤーを既存の数値レイヤーへ変換して設定する
+		SetCollisionLayer(static_cast<uint32_t>(layer));
 	}
 
 	void ColliderComponent::SyncFromSceneTransform()

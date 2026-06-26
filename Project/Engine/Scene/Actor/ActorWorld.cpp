@@ -124,7 +124,15 @@ namespace Ken4lowEngine
 		}
 
 		// ActorComponent物理では、まず同一Layer同士をBLockにして衝突確認をしやすくする
-		physicsWorld_->GetResponseMatrix().SetResponse(0, 0, CollisionResponseType::Block);
+		physicsWorld_->GetResponseMatrix().SetResponse(
+			PhysicsCollisionLayer::DynamicActor,
+			PhysicsCollisionLayer::DynamicActor,
+			CollisionResponseType::Block); // 動くActor同士は物理的に衝突させる。
+
+		physicsWorld_->GetResponseMatrix().SetResponse(
+			PhysicsCollisionLayer::DynamicActor,
+			PhysicsCollisionLayer::WorldStatic,
+			CollisionResponseType::Block); // 動くActorと床は物理的に衝突させる。
 	}
 
 	void ActorWorld::RegisterPhysicsComponents(Actor& actor)

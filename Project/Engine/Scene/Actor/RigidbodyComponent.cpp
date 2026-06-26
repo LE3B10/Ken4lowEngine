@@ -28,26 +28,14 @@ namespace Ken4lowEngine
 		velocity_ = rigidbody_->GetVelocity(); // Debug表示用に現在速度を保持する
 	}
 
-	void RigidbodyComponent::PostPhysicsUpdate(float deltaTime)
+	void RigidbodyComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
 	{
 		if (!rigidbody_)
 		{
-			return; // Rigidbody未生成の場合はTransformへ反映しない
+			return; // Rigidbody未生成の場合は更新しない
 		}
 
-		if (rigidbody_->GetBodyType() != BodyType::Dynamic)
-		{
-			return; // Dynamic以外は物理移動させない
-		}
-
-		SceneComponent* root = GetTargetRootComponent();
-		if (!root)
-		{
-			return; // RootComponentが無いActorでは物理移動できない
-		}
-
-		const Vector3 velocity = rigidbody_->GetVelocity();
-		root->LocalPosition() += velocity * deltaTime; // Rigidbodyの速度をSceneComponentの位置へ反映する
+		velocity_ = rigidbody_->GetVelocity(); // Debug表示用に現在速度を保持する
 	}
 
 	void RigidbodyComponent::DrawImGui()
