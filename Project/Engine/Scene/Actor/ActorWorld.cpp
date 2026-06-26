@@ -4,10 +4,33 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+#include <cstdio>
+#include <typeinfo>
 #endif
 
 namespace Ken4lowEngine
 {
+#ifdef USE_IMGUI
+	namespace
+	{
+		constexpr size_t kNameEditBufferSize = 128;
+
+		bool DrawNameInput(const char* label, const std::string& currentName, std::string& editName)
+		{
+			std::array<char, kNameEditBufferSize> buffer{};
+			std::snprintf(buffer.data(), buffer.size(), "%s", currentName.c_str());
+
+			if (ImGui::InputText(label, buffer.data(), buffer.size()))
+			{
+				editName = std::string(buffer.data());
+				return true; // 名前が変更された場合にtrueを返す
+			}
+
+			return false; // 名前が変更されなかった場合にfalseを返す
+		}
+	}
+#endif // USE_IMGUI
+
 	void ActorWorld::Initialize()
 	{
 		for (auto& actor : actors_)
@@ -72,17 +95,82 @@ namespace Ken4lowEngine
 	void ActorWorld::DrawImGui()
 	{
 #ifdef USE_IMGUI
-		ImGui::SeparatorText("Actor World");
-
-		for (auto& actor : actors_)
+		if (ImGui::Begin("Actor World"))
 		{
-			// Actor名をTreeNodeにして、ActorごとのComponent情報を見やすくする
-			if (ImGui::TreeNode(actor->GetName().c_str()))
+			ImGui::Text("Actor Count: %zu", actors_.size());
+			ImGui::Separator();
+
+			for (size_t actorIndex = 0; actorIndex < actors_.size(); ++actorIndex)
 			{
-				actor->DrawImGui();
-				ImGui::TreePop();
+				Actor* actor = actors_[actorIndex].get();
+				if (!actor)
+				{
+					continue; // Actorがnullptrなら表示しない
+				}
+
+				Actor* beforeSelectedActor = selectedActor_;
+				ActorComponent* beforeSelectedComponent = selectedComponent_;
+
+				ImGui::PushID(static_cast<int>(actorIndex));
+				actor->DrawHierarchyImGui(selectedActor_, selectedComponent_); // Actor World上にActor/Component階層を表示する
+				ImGui::PopID();
+
+				if (beforeSelectedActor != selectedActor_ || beforeSelectedComponent != selectedComponent_)
+				{
+					requestFocusActorDetails_ = true; // 選択中ActorまたはComponentが変化した場合にDetailsウィンドウを更新する
+				}
 			}
 		}
+		ImGui::End();
+
+		DrawDetailsImGui(); // 選択中ActorまたはComponentのDetailsウィンドウを描画する
+#endif // USE_IMGUI
+	}
+
+	void ActorWorld::DrawDetailsImGui()
+	{
+#ifdef USE_IMGUI
+		if (requestFocusActorDetails_)
+		{
+			ImGui::SetNextWindowFocus(); // 選択が変わったらActor Detailsを前面へ出す。
+			requestFocusActorDetails_ = false;
+		}
+
+		if (ImGui::Begin("Actor Details"))
+		{
+			if (selectedComponent_)
+			{
+				std::string editedName;
+				if (DrawNameInput("Name", selectedComponent_->GetName(), editedName))
+				{
+					selectedComponent_->SetName(editedName); // Component名をEditorから変更する。
+				}
+
+				ImGui::Text("Class: %s", typeid(*selectedComponent_).name());
+				ImGui::Separator();
+
+				selectedComponent_->DrawInspectorImGui(); // 選択中Componentの詳細を描画する。
+			}
+			else if (selectedActor_)
+			{
+				std::string editedName;
+				if (DrawNameInput("Name", selectedActor_->GetName(), editedName))
+				{
+					selectedActor_->SetName(editedName); // Actor名をEditorから変更する。
+				}
+
+				ImGui::Text("Class: %s", typeid(*selectedActor_).name());
+				ImGui::Separator();
+
+				selectedActor_->DrawInspectorImGui(); // 選択中Actorの詳細を描画する。
+			}
+			else
+			{
+				ImGui::Text("No selection.");
+			}
+		}
+
+		ImGui::End();
 #endif // USE_IMGUI
 	}
 
@@ -137,31 +225,35 @@ namespace Ken4lowEngine
 
 	void ActorWorld::RegisterPhysicsComponents(Actor& actor)
 	{
-
 		if (!physicsWorld_ || actor.IsPhysicsRegistered())
 		{
-			return; // 既に登録済みなら二重登録しない。
+			return; // PhysicsWorldが無い、または登録済みの場合は何もしない
 		}
 
-		auto* collider = actor.GetComponent<ColliderComponent>();
+		auto colliders = actor.GetComponents<ColliderComponent>();
 		auto* rigidbody = actor.GetComponent<RigidbodyComponent>();
+		Rigidbody* physicsRigidbody = rigidbody ? rigidbody->GetRigidbody() : nullptr;
 
-		if (collider && rigidbody)
-		{
-			// ColliderからRigidbodyを参照できるようにして、Solverが押し戻し・速度補正できるようにする
-			collider->GetCollider()->SetRigidbody(rigidbody->GetRigidbody());
-		}
-
-		if (collider)
-		{
-			// ActorのColliderをPhysicsWorldへ登録する
-			physicsWorld_->RegisterCollider(collider->GetCollider());
-		}
-
-		if (rigidbody)
+		if (physicsRigidbody)
 		{
 			// ActorのRigidbodyをPhysicsWorldへ登録する
-			physicsWorld_->RegisterRigidbody(rigidbody->GetRigidbody());
+			physicsWorld_->RegisterRigidbody(physicsRigidbody);
+		}
+
+		for (ColliderComponent* collider : colliders)
+		{
+			if (!collider || !collider->GetCollider())
+			{
+				continue; // Colliderがnullptrなら登録しない
+			}
+
+			if (physicsRigidbody)
+			{
+				collider->GetCollider()->SetRigidbody(physicsRigidbody); // ColliderにRigidbodyを紐付ける
+			}
+
+			// ActorのColliderをPhysicsWorldへ登録する
+			physicsWorld_->RegisterCollider(collider->GetCollider());
 		}
 
 		actor.SetPhysicsRegistered(true); // 登録済みフラグを立てる
@@ -174,8 +266,14 @@ namespace Ken4lowEngine
 			return; // 未登録なら二重解除しない。
 		}
 
-		if (auto* collider = actor.GetComponent<ColliderComponent>())
+		auto colliders = actor.GetComponents<ColliderComponent>();
+		for (ColliderComponent* collider : colliders)
 		{
+			if (!collider || !collider->GetCollider())
+			{
+				continue; // Colliderがnullptrなら解除しない
+			}
+
 			// ActorのColliderをPhysicsWorldから登録解除する
 			physicsWorld_->UnregisterCollider(collider->GetCollider());
 		}

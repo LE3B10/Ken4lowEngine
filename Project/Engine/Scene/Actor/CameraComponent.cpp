@@ -13,26 +13,47 @@ namespace Ken4lowEngine
 		// 親子関係を考慮したWorldTransformを初期計算する
 		SceneComponent::Initialize();
 
+		if (!autoRegisterMainCamera_)
+		{
+			camera_ = nullptr;
+			return; // MainCameraへ登録しない場合はCameraを生成しない
+		}
+
 		// CameraManagerのMainCameraを取得する
 		camera_ = CameraManager::GetInstance()->GetMainCamera();
 
 		SyncTransformToCamera();
+
+		if (camera_)
+		{
+			camera_->Update(); // MainCameraのViewProjectionを初期計算する
+		}
 	}
 
 	void CameraComponent::Update(float deltaTime)
 	{
 		// SceneComponent側でWorldTransformを更新する
-		SceneComponent::Update(deltaTime); 
+		SceneComponent::Update(deltaTime);
 
-		if (!camera_)
+		if (!autoRegisterMainCamera_ || !camera_)
 		{
-			return; // Cameraが生成されていない場合は同期できない
+			return; // MainCameraとして使わない場合は同期しない
 		}
 
 		SyncTransformToCamera();
+		camera_->Update(); // Update時点のCamera行列を更新する
+	}
 
-		// MainCameraのViewProjectionを更新する
-		camera_->Update();
+	void CameraComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
+	{
+		if (!autoRegisterMainCamera_ || !camera_)
+		{
+			return; // MainCameraとして使わない場合は同期しない
+		}
+
+		// Physics補正後の親TransformをCameraへ反映する
+		SceneComponent::RefreshWorldTransform(); // 親子関係を考慮したWorldTransformを即座に再計算する
+		SyncTransformToCamera(); // CameraのTransformを更新する
 	}
 
 	void CameraComponent::DrawImGui()
@@ -48,6 +69,25 @@ namespace Ken4lowEngine
 	void CameraComponent::Finalize()
 	{
 		camera_ = nullptr; // CameraComponentが所有しているCameraを破棄する
+	}
+
+	void CameraComponent::SetAutoRegisterMainCamera(bool autoRegister)
+	{
+		autoRegisterMainCamera_ = autoRegister;
+
+		if (!autoRegisterMainCamera_)
+		{
+			camera_ = nullptr; // MainCameraへ登録しない場合はCameraを破棄する
+			return;
+		}
+
+		camera_ = CameraManager::GetInstance()->GetMainCamera(); // MainCameraへ登録する場合はCameraを取得する
+		SyncTransformToCamera(); // CameraのTransformを更新する
+
+		if (camera_)
+		{
+			camera_->Update(); // 再登録時にCamera行列を即更新する
+		}
 	}
 
 	void CameraComponent::SyncTransformToCamera()

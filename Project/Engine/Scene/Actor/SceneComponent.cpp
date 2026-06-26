@@ -38,6 +38,48 @@ namespace Ken4lowEngine
 #endif // USE_IMGUI
 	}
 
+	void SceneComponent::DrawComponentHierarchyImGui(Actor*& selectedActor, ActorComponent*& selectedComponent)
+	{
+#ifdef USE_IMGUI
+		const std::string label = GetName().empty() ? "Scene Component" : GetName();
+		const std::string treeLabel = label + "##SceneComponentTree";
+
+		ImGuiTreeNodeFlags flags =
+			ImGuiTreeNodeFlags_OpenOnArrow |
+			ImGuiTreeNodeFlags_SpanAvailWidth;
+
+		if (selectedComponent == this)
+		{
+			flags |= ImGuiTreeNodeFlags_Selected; // 選択中のComponentはハイライト表示する
+		}
+
+		const bool opened = ImGui::TreeNodeEx(treeLabel.c_str(), flags);
+
+		if (ImGui::IsItemClicked())
+		{
+			selectedActor = nullptr; // 選択されたComponentの所有者をDetails表示対象として選択する
+			selectedComponent = this; // SceneComponentをDetails表示対象として選択する
+		}
+
+		if (opened)
+		{
+			for (SceneComponent* child : children_)
+			{
+				if (!child)
+				{
+					continue; // 子Componentがnullptrなら表示しない
+				}
+
+				ImGui::PushID(child); // 同名ComponentがあってもImGui IDが衝突しないようにする
+				child->DrawComponentHierarchyImGui(selectedActor, selectedComponent);
+				ImGui::PopID();
+			}
+
+			ImGui::TreePop();
+		}
+#endif // USE_IMGUI
+	}
+
 	void SceneComponent::AttachTo(SceneComponent* parent)
 	{
 		if (parent_ == parent)

@@ -73,6 +73,11 @@ namespace Ken4lowEngine
 		void DrawImGui();
 
 		/// <summary>
+		/// 選択中ActorまたはComponentのDetailsウィンドウを描画する。
+		/// </summary>
+		void DrawDetailsImGui();
+
+		/// <summary>
 		/// ActorWorldが所有する全Actorの終了処理を行う
 		/// </summary>
 		void Finalize();
@@ -125,6 +130,15 @@ namespace Ken4lowEngine
 
 		// ActorWorldがActorの寿命を管理する
 		std::vector<std::unique_ptr<Actor>> actors_;
+
+		// Actor World上で選択中のActor
+		Actor* selectedActor_ = nullptr;
+
+		// Actor World上で選択中のActorComponent
+		ActorComponent* selectedComponent_ = nullptr;
+
+		// Actor Detailsウィンドウへフォーカスを移す要求
+		bool requestFocusActorDetails_ = false;
 
 		// ActorWorldが所有するPhysicsWorldへの参照
 		PhysicsWorld* physicsWorld_ = nullptr;

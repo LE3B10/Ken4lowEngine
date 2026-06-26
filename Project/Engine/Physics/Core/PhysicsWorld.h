@@ -138,6 +138,9 @@ namespace Ken4lowEngine
 		// ColliderペアからContactを構築する。
 		Contact BuildContact(Collider* colliderA, Collider* colliderB, CollisionResponseType response) const;
 
+		// Rigidbodyの速度をClampして極端な値を抑制する
+		void ClampRigidbodyVelocities();
+
 	private: /// ---------- メンバ変数 ---------- ///
 
 		// 物理ワールドが参照するCollider一覧。所有権は持たない。

@@ -6,6 +6,8 @@
 
 namespace Ken4lowEngine
 {
+	class Actor;
+
 	/// -------------------------------------------------------------
 	///		位置・回転・スケールと親子関係を持つComponentクラス
 	/// -------------------------------------------------------------
@@ -35,6 +37,11 @@ namespace Ken4lowEngine
 		/// SceneComponentのImGui描画処理。
 		/// </summary>
 		void DrawImGui() override;
+
+		/// <summary>
+		/// Actorが所有するComponentを階層表示する。
+		/// </summary>
+		void DrawComponentHierarchyImGui(Actor*& selectedActor, ActorComponent*& selectedComponent);
 
 	public: /// ---------- 親子関係 ---------- ///
 

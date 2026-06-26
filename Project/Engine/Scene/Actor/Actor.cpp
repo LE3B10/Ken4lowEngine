@@ -2,6 +2,7 @@
 
 #ifdef USE_IMGUI
 #include <imgui.h>
+#include <typeinfo>
 #endif // USE_IMGUI
 
 namespace Ken4lowEngine
@@ -54,15 +55,110 @@ namespace Ken4lowEngine
 	void Actor::DrawImGui()
 	{
 #ifdef USE_IMGUI
-		for (auto& component : components_)
+		DrawInspectorImGui(); // 既存のDrawImGui呼び出しはDetails表示として扱う
+#endif // USE_IMGUI
+	}
+
+	void Actor::DrawHierarchyImGui(Actor*& selectedActor, ActorComponent*& selectedComponent)
+	{
+#ifdef USE_IMGUI
+		const std::string actorLabel = 
+			GetName().empty() 
+			? std::string(typeid(*this).name()) 
+			: GetName();
+
+		const std::string treeLabel = actorLabel + "##ActorHierarchy";
+
+		ImGuiTreeNodeFlags flags =
+			ImGuiTreeNodeFlags_OpenOnArrow |
+			ImGuiTreeNodeFlags_OpenOnDoubleClick |
+			ImGuiTreeNodeFlags_SpanAvailWidth;
+
+		if (selectedActor == this && selectedComponent == nullptr)
 		{
-			if (ImGui::TreeNode(component->GetName().c_str()))
-			{
-				component->DrawImGui(); // Component単位でEditor表示を行う。
-				ImGui::TreePop();
-			}
+			flags |= ImGuiTreeNodeFlags_Selected; // 選択中のActorはハイライト表示する
+		}
+
+		const bool opened = ImGui::TreeNodeEx(treeLabel.c_str(), flags);
+
+		if (ImGui::IsItemClicked())
+		{
+			selectedComponent = nullptr; // Actor自体が選択された場合はComponent選択を解除する
+			selectedActor = this;		 // 閉じたTreeNodeをクリックした場合もActorを選択する
+		}
+
+		if (opened)
+		{
+			DrawComponentHierarchyImGui(selectedActor, selectedComponent);
+			ImGui::TreePop();
 		}
 #endif // USE_IMGUI
+	}
+
+	void Actor::DrawComponentHierarchyImGui(Actor*& selectedActor, ActorComponent*& selectedComponent)
+	{
+#ifdef USE_IMGUI
+		SceneComponent* root = GetRootComponent();
+
+		if (root)
+		{
+			ImGui::PushID(root); // RootComponentのポインタを使ってImGui IDの衝突を防ぐ
+			root->DrawComponentHierarchyImGui(selectedActor, selectedComponent);
+			ImGui::PopID();
+		}
+
+		for (auto& component : components_)
+		{
+			if (!component)
+			{
+				continue; // nullptrのComponentは無視する
+			}
+
+			SceneComponent* sceneComponent = dynamic_cast<SceneComponent*>(component.get());
+			if (sceneComponent)
+			{
+				continue; // SceneComponentはRootComponentの階層描画に含まれるため、ここでは描画しない
+			}
+
+			ImGui::PushID(component.get()); // Componentのポインタを使ってImGui IDの衝突を防ぐ
+
+			const std::string label = component->GetName().empty()
+				? std::string(typeid(*component).name()) 
+				: component->GetName();
+
+			const std::string treeLabel = label + "##ActorComponentHierarchy";
+
+			ImGuiTreeNodeFlags flags =
+				ImGuiTreeNodeFlags_Leaf |
+				ImGuiTreeNodeFlags_NoTreePushOnOpen |
+				ImGuiTreeNodeFlags_SpanAvailWidth;
+
+			if (selectedComponent == component.get())
+			{
+				flags |= ImGuiTreeNodeFlags_Selected; // 選択中のComponentはハイライト表示する
+			}
+
+			ImGui::TreeNodeEx(treeLabel.c_str(), flags);
+
+			if (ImGui::IsItemClicked())
+			{
+				selectedActor = nullptr;			 // 選択されたComponentの所有者をDetails表示対象として選択する
+				selectedComponent = component.get(); // ActorComponentをDetails表示対象として選択する
+			}
+
+			ImGui::PopID();
+		}
+#endif // USE_IMGUI
+	}
+
+	void Actor::DrawInspectorImGui()
+	{
+#ifdef USE_IMGUI
+		ImGui::SeparatorText("Actor");
+		ImGui::Text("Component Count : %zu", components_.size());
+		ImGui::Text("Root Component : %s", rootComponent_ ? rootComponent_->GetName().c_str() : "None");
+#endif // USE_IMGUI
+
 	}
 
 	void Actor::Finalize()

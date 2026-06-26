@@ -59,6 +59,14 @@ namespace Ken4lowEngine
 		virtual void DrawImGui() {}
 
 		/// <summary>
+		/// Detailsウィンドウに表示するComponent詳細を描画する。
+		/// </summary>
+		virtual void DrawInspectorImGui()
+		{
+			DrawImGui(); // 既存のImGui描画をDetails表示に流用する
+		}
+
+		/// <summary>
 		/// ActorComponent破棄前の終了処理
 		/// </summary>
 		virtual void Finalize() {};

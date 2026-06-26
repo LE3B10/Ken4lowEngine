@@ -55,6 +55,47 @@ namespace Ken4lowEngine
 			return nullptr;
 		}
 
+		/// <summary>
+		/// 指定型のComponentをすべて取得する
+		/// </summary>
+		template<class T>
+		std::vector<T*> GetComponents()
+		{
+			static_assert(std::is_base_of_v<ActorComponent, T>, "T must inherit from ActorComponent.");
+
+			std::vector<T*> results;
+			for (auto& component : components_)
+			{
+				if (auto* result = dynamic_cast<T*>(component.get()))
+				{
+					results.push_back(result); // 指定型に一致したComponentを一覧へ追加する
+				}
+			}
+			return results;
+		}
+
+		/// <summary>
+		/// 指定型のComponentをすべて取得する
+		/// </summary>
+		template<class T>
+		std::vector<const T*> GetComponents() const
+		{
+			static_assert(std::is_base_of_v<ActorComponent, T>, "T must inherit from ActorComponent.");
+
+			std::vector<const T*> results;
+			for (const auto& component : components_)
+			{
+				if (const auto* result = dynamic_cast<T*>(component.get()))
+				{
+					results.push_back(result); // 指定型に一致したComponentを一覧へ追加する
+				}
+			}
+			return results;
+		}
+
+		/// <summary>
+		/// Actorの基準となるRootComponentを生成して設定する
+		/// </summary>
 		template<class T = SceneComponent, class... Args>
 		T& CreateRootComponent(Args&&... args)
 		{
@@ -63,7 +104,11 @@ namespace Ken4lowEngine
 			auto& root = AddComponent<T>(std::forward<Args>(args)...);
 			root.SetName(typeid(T).name()); // RootComponentの型名をデフォルト名として設定する
 
-			rootComponent_ = &root;  // Actor全体の基準Transformとして保持する
+			if (!rootComponent_)
+			{
+				rootComponent_ = &root;  // Actor全体の基準Transformとして保持する
+			}
+
 			return root;
 		}
 
@@ -103,6 +148,23 @@ namespace Ken4lowEngine
 		/// Actorが持つ全ComponentのEditor表示を行う
 		/// </summary>
 		virtual void DrawImGui();
+
+#ifdef USE_IMGUI
+		/// <summary>
+		/// ActorWorld上にActorとComponent階層を表示する。
+		/// </summary>
+		void DrawHierarchyImGui(Actor*& selectedActor, ActorComponent*& selectedComponent);
+
+		/// <summary>
+		/// Actorが所有するComponentを階層表示する。
+		/// </summary>
+		void DrawComponentHierarchyImGui(Actor*& selectedActor, ActorComponent*& selectedComponent);
+
+		/// <summary>
+		/// Detailsウィンドウに表示するActor詳細を描画する。
+		/// </summary>
+		void DrawInspectorImGui();
+#endif // USE_IMGUI
 
 		/// <summary>
 		/// Actorが持つ全Componentの終了処理を行う

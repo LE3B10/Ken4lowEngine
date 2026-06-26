@@ -27,6 +27,11 @@ namespace Ken4lowEngine
 		void Update(float deltaTime) override;
 
 		/// <summary>
+		/// PhysicsWorld更新後にインスタンス配置へ最新Transformを反映する。
+		/// </summary>
+		void PostPhysicsUpdate(float deltaTime) override;
+
+		/// <summary>
 		/// InstancedModelComponentの通常描画処理
 		/// </summary>
 		void Draw() override;

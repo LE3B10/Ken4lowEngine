@@ -38,6 +38,17 @@ namespace Ken4lowEngine
 		object3D_->Update(); // Object3D側の行列更新やGPU転送を行う。
 	}
 
+	void ModelComponent::PostPhysicsUpdate([[maybe_unused]]float deltaTime)
+	{
+		if (!object3D_)
+		{
+			return; // モデル未生成の場合は更新しない。
+		}
+
+		SyncTransformToObject3D();
+		object3D_->Update(); // Object3D側の行列更新やGPU転送を行う。
+	}
+
 	void ModelComponent::Draw()
 	{
 		if (!object3D_)

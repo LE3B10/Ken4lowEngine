@@ -8,7 +8,6 @@
 #include "Rigidbody.h"
 
 #include <algorithm>
-#include <cmath>
 
 namespace Ken4lowEngine
 {
@@ -62,7 +61,7 @@ namespace Ken4lowEngine
 
 	void PhysicsWorld::RegisterRigidbody(Rigidbody* rigidbody)
 	{
-		// nullptrと重複登録を避け、外部所有のRigidbody参照だけを保持する。
+		// nullptrと重複登録を避け、外部所有のRigidbody参照だけを保持する
 		if (!rigidbody || ContainsPointer(rigidbodies_, rigidbody))
 		{
 			return;
@@ -108,21 +107,19 @@ namespace Ken4lowEngine
 
 	void PhysicsWorld::Step(float deltaTime)
 	{
-		// 1回分の物理更新を実行する。固定更新時はUpdate()からfixedTimeStepで呼び出される。
-		// Contactは毎フレーム作り直し、前フレームの接触情報を残さない。
 		contacts_.clear();
 
 		// 接地などのフレーム状態はContactから再計算するため、Step開始時に消しておく。
 		ClearRigidbodyFrameState();
 
-		// 将来の本格接続に備え、積分、検出、解決の順序だけを固定する。
+		// Rigidbodyの速度を更新し、その速度をCollider位置へ反映してから衝突を解決する
 		IntegrateBodies(deltaTime);
+		ClampRigidbodyVelocities();
 		IntegrateColliderPositions(deltaTime);
 		DetectCollisions();
 		ResolveContacts();
 		UpdateRigidbodySleepState(deltaTime);
 
-		// 物理更新後に接触イベントを生成し、Trigger/BlockのEnter/Stay/Exitを外部から確認できるようにする。
 		eventDispatcher_.Update(contacts_);
 	}
 
@@ -466,6 +463,32 @@ namespace Ken4lowEngine
 
 		contact.isTrigger = response == CollisionResponseType::Trigger || colliderA->IsTrigger() || colliderB->IsTrigger();
 		return contact;
+	}
+
+	void PhysicsWorld::ClampRigidbodyVelocities()
+	{
+		constexpr float kMaxFallSpeed = -100.0f; // 落下速度の上限（m/s）
+		constexpr float kMaxMoveSpeed = 100.0f;  // 移動速度の上限（m/s）
+
+		for (Rigidbody* rigidbody : rigidbodies_)
+		{
+			if (!rigidbody || rigidbody->GetBodyType() != BodyType::Dynamic)
+			{
+				continue;
+			}
+
+			Vector3 velocity = rigidbody->GetVelocity();
+
+			if (velocity.y < kMaxFallSpeed)
+			{
+				velocity.y = kMaxFallSpeed;
+			}
+
+			velocity.x = std::clamp(velocity.x, -kMaxMoveSpeed, kMaxMoveSpeed);
+			velocity.z = std::clamp(velocity.z, -kMaxMoveSpeed, kMaxMoveSpeed);
+
+			rigidbody->SetVelocity(velocity);
+		}
 	}
 
 } // namespace Ken4lowEngine

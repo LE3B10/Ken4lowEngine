@@ -65,6 +65,7 @@ void DebugScene::Initialize()
 	RebuildInstancingTest();
 
 	actorWorld_.SetPhysicsWorld(&actorPhysicsWorld_);
+	actorPhysicsWorld_.SetUseFixedStep(false);
 	actorWorld_.SpawnActor<TestActor>();
 	actorWorld_.SpawnActor<TestGroundActor>();
 	actorWorld_.Initialize();

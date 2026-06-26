@@ -66,7 +66,7 @@ namespace Ken4lowEngine
 		}
 
 		root->RefreshWorldTransform(); // RootComponentのWorldTransformを更新する
-		SyncFromSceneTransform();	   // ColliderのTransformをSceneComponentへ反映する
+		SyncFromSceneTransform();	   // SceneComponentのTransformをColliderへ再同期する
 	}
 
 	void ColliderComponent::DrawImGui()

@@ -28,6 +28,11 @@ namespace Ken4lowEngine
 		void Update(float deltaTime) override;
 
 		/// <summary>
+		/// PhysicsWorld更新後にCameraのTransformを更新する
+		/// </summary>
+		void PostPhysicsUpdate(float deltaTime) override;
+
+		/// <summary>
 		/// CameraComponentのImGui描画処理
 		/// </summary>
 		void DrawImGui() override;
@@ -52,10 +57,7 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// このCameraComponentをCameraManagerのMainCameraとして登録するか設定する
 		/// </summary>
-		void SetAutoRegisterMainCamera(bool enabled)
-		{
-			autoRegisterMainCamera_ = enabled; // DebugSceneで確認するため、必要な時だけMainCameraへ登録する
-		}
+		void SetAutoRegisterMainCamera(bool enabled);
 
 	private: /// ---------- 内部処理 ---------- ///
 

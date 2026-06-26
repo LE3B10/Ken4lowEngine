@@ -68,6 +68,30 @@ namespace Ken4lowEngine
 		}
 	}
 
+	void InstancedModelComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
+	{
+		const Vector3 currentWorldPosition = GetWorldPosition();
+		const Vector3 currentWorldRotation = GetWorldRotation();
+		const Vector3 currentWorldScale = GetWorldScale();
+
+		if (!hasLastWorldTransform_ ||
+			IsDifferentVector3(currentWorldPosition, lastWorldPosition_) ||
+			IsDifferentVector3(currentWorldRotation, lastWorldRotation_) ||
+			IsDifferentVector3(currentWorldScale, lastWorldScale_))
+		{
+			RequestRebuild(); // 親RootのTransform変更をGPUインスタンス配置へ反映する
+			lastWorldPosition_ = currentWorldPosition;
+			lastWorldRotation_ = currentWorldRotation;
+			lastWorldScale_ = currentWorldScale;
+			hasLastWorldTransform_ = true;
+		}
+
+		if (isRebuildRequested_)
+		{
+			RebuildInstances(); // ImGuiや外部設定で変更された配置をGPU用データへ反映する。
+		}
+	}
+
 	void InstancedModelComponent::Draw()
 	{
 		if (!renderer_)
