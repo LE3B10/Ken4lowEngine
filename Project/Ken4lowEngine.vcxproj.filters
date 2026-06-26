@@ -166,6 +166,9 @@
     <Filter Include="Engine\Scene\Actor">
       <UniqueIdentifier>{9b4bc25e-9c44-43d6-913a-cce19da1ea04}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ApplicationLayer\Scene\DebugScene\ActorTest">
+      <UniqueIdentifier>{5f0a625e-95e3-4ac6-8640-d74509b72f62}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -1066,6 +1069,37 @@
     <ClCompile Include="Engine\Scene\Actor\Actor.cpp">
       <Filter>Engine\Scene\Actor</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\ActorWorld.cpp">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActor.cpp">
+      <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActorComponent.cpp">
+      <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\TransformComponent.cpp">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\ModelComponent.cpp">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\SceneComponent.cpp">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\CameraComponent.cpp">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\ColliderComponent.cpp">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\RigidbodyComponent.cpp">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\InstancedModelComponent.cpp">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestGroundActor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2223,6 +2257,37 @@
     <ClInclude Include="Engine\Scene\Actor\Actor.h">
       <Filter>Engine\Scene\Actor</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\ActorWorld.h">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActor.h">
+      <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActorComponent.h">
+      <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\TransformComponent.h">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\ModelComponent.h">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\SceneComponent.h">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\CameraComponent.h">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\ColliderComponent.h">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\RigidbodyComponent.h">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\InstancedModelComponent.h">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestGroundActor.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

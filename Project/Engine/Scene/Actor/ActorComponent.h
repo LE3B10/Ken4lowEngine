@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+#include <string_view>
 
 namespace Ken4lowEngine
 {
@@ -35,7 +37,11 @@ namespace Ken4lowEngine
 		/// ActorComponentの1フレーム更新処理
 		/// </summary>
 		/// <param name="deltaTime">ゲーム時間</param>
-		virtual void Update(float deltaTime) {}
+		virtual void Update([[maybe_unused]] float deltaTime) {}
+
+		/// <summary>
+		/// PhysicsWorld更新後に呼ばれる後処理
+		virtual void PostPhysicsUpdate([[maybe_unused]] float deltaTime) {}
 
 		/// <summary>
 		/// ゲーム画面に表示する描画処理
@@ -77,8 +83,30 @@ namespace Ken4lowEngine
 			return owner_; // ActorComponentはActorを所有せず、参照だけ保持する
 		}
 
+	public: /// ---------- 名前設定 ---------- ///
+
+		/// <summary>
+		/// Componentの識別名を設定する。
+		/// </summary>
+		void SetName(std::string_view name)
+		{
+			name_ = std::string(name); // string_viewは保持せず、Component側で文字列を所有する
+		}
+
+		/// <summary>
+		/// Componentの識別名を取得する。
+		/// </summary>
+		const std::string& GetName() const
+		{
+			return name_; // Editor表示やComponent検索に使う名前を返すc 
+		}
+
 	protected: /// ---------- メンバ変数 ---------- ///
 
-		Actor* owner_ = nullptr; // 所有権はActor側にあり、ActorComponent側ではdeleteしない
+		// 所有権はActor側にあり、ActorComponent側ではdeleteしない
+		Actor* owner_ = nullptr;
+
+		// Editor上でComponentを識別するための名前
+		std::string name_ = "ActorComponent";
 	};
 }

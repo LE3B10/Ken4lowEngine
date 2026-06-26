@@ -1,10 +1,13 @@
 #pragma once
 #include "ActorComponent.h"
+#include "SceneComponent.h"
 
 #include <memory>
 #include <type_traits>
 #include <vector>
 #include <utility>
+#include <string>
+#include <string_view>
 
 namespace Ken4lowEngine
 {
@@ -16,7 +19,7 @@ namespace Ken4lowEngine
 	public: /// ---------- テンプレート関数 ---------- ///
 
 		/// <summary>
-		/// ActorにComponentを追加する。
+		/// ActorにComponentを追加する
 		/// </summary>
 		template<class T, class... Args>
 		T& AddComponent(Args&&... args)
@@ -24,6 +27,7 @@ namespace Ken4lowEngine
 			static_assert(std::is_base_of_v<ActorComponent, T>, "T must inherit from ActorComponent.");
 
 			auto component = std::make_unique<T>(std::forward<Args>(args)...);
+			component->SetName(typeid(T).name()); // Componentの型名をデフォルト名として設定する
 
 			auto& ref = *component;	   // push後も呼び出し側が追加したComponentを扱えるように参照を保持しておく
 			component->SetOwner(this); // Componentに所有者Actorを設定する
@@ -44,14 +48,31 @@ namespace Ken4lowEngine
 			{
 				if (auto* result = dynamic_cast<T*>(component.get()))
 				{
-					return result; // 最初に見つかった指定型Componentを返す。
+					return result; // 最初に見つかった指定型Componentを返す
 				}
 			}
 
 			return nullptr;
 		}
 
-	public: /// ---------- メンバ関数 ---------- ///
+		template<class T = SceneComponent, class... Args>
+		T& CreateRootComponent(Args&&... args)
+		{
+			static_assert(std::is_base_of_v<SceneComponent, T>, "T must inherit from SceneComponent.");
+
+			auto& root = AddComponent<T>(std::forward<Args>(args)...);
+			root.SetName(typeid(T).name()); // RootComponentの型名をデフォルト名として設定する
+
+			rootComponent_ = &root;  // Actor全体の基準Transformとして保持する
+			return root;
+		}
+
+	public: /// ---------- 仮想関数 ---------- ///
+
+		/// <summary>
+		/// 派生Actorを安全に破棄するための仮想デストラクタ
+		/// </summary>
+		virtual ~Actor() = default;
 
 		/// <summary>
 		/// Actorが持つ全Componentを初期化する
@@ -59,34 +80,143 @@ namespace Ken4lowEngine
 		virtual void Initialize();
 
 		/// <summary>
-		/// Actorが持つ全Componentを更新する。
+		/// Actorが持つ全Componentを更新する
 		/// </summary>
 		virtual void Update(float deltaTime);
 
 		/// <summary>
-		/// Actorが持つ全Componentの描画を行う。
+		/// PhysicsWorld更新後に全Componentへ後処理を流す。
+		/// </summary>
+		virtual void PostPhysicsUpdate(float deltaTime);
+
+		/// <summary>
+		/// Actorが持つ全Componentの描画を行う
 		/// </summary>
 		virtual void Draw();
 
 		/// <summary>
-		/// Actorが持つ全Componentのシャドウ描画を行う。
+		/// Actorが持つ全Componentのシャドウ描画を行う
 		/// </summary>
 		virtual void DrawShadow();
 
 		/// <summary>
-		/// Actorが持つ全ComponentのEditor表示を行う。
+		/// Actorが持つ全ComponentのEditor表示を行う
 		/// </summary>
 		virtual void DrawImGui();
 
 		/// <summary>
-		/// Actorが持つ全Componentの終了処理を行う。
+		/// Actorが持つ全Componentの終了処理を行う
 		/// </summary>
 		virtual void Finalize();
 
+	public: /// ---------- Actor破棄フラグ設定 ---------- ///
+
+		/// <summary>
+		/// Actorを削除予約状態にする。
+		/// </summary>
+		void Destroy()
+		{
+			isPendingDestroy_ = true; // ActorWorldの安全なタイミングで削除されるように予約する
+		}
+
+		/// <summary>
+		/// Actorが削除予約中華取得する
+		/// </summary>
+		bool IsPendingDestroy() const
+		{
+			return isPendingDestroy_; // ActorWorld側の削除判定に使う
+		}
+
+	public: /// ---------- Component一覧取得 ---------- ///
+
+		/// <summary>
+		/// Actorが所有するComponent一覧を取得する
+		/// </summary>
+		const std::vector<std::unique_ptr<ActorComponent>>& GetComponents() const
+		{
+			return components_; // Editor表示用に読み取り専用でComponent一覧を返す
+		}
+
+	public: /// ---------- 名前設定 ---------- ///
+
+		/// <summary>
+		/// Actorの識別名を設定する
+		/// </summary>
+		void SetName(std::string_view name)
+		{
+			name_ = std::string(name); // string_viewは保持せず、Actor側で文字列を所有する
+		}
+
+		/// <summary>
+		/// Actorの識別名を取得する
+		/// </summary>
+		const std::string& GetName() const
+		{
+			return name_; // Actor検索に使う名前を返す
+		}
+
+		/// <summary>
+		/// 名前からComponentを検索する。
+		/// </summary>
+		ActorComponent* FindComponentByName(std::string_view name);
+
+		/// <summary>
+		/// 名前からComponentを検索する。
+		/// </summary>
+		const ActorComponent* FindComponentByName(std::string_view name) const;
+
+	public: /// ---------- RootComponent ---------- ///
+
+		/// <summary>
+		/// Actorの基準となるRootComponentを設定する。
+		/// </summary>
+		void SetRootComponent(SceneComponent* rootComponent)
+		{
+			rootComponent_ = rootComponent; // ActorのRootComponentを設定する
+		}
+
+		/// <summary>
+		/// Actorの基準となるRootComponentを取得する。
+		/// </summary>
+		SceneComponent* GetRootComponent() const
+		{
+			return rootComponent_; // Modelや子Componentが参照する基準Transformを返す
+		}
+
+	public: /// ---------- PhysicsWorld登録状態 ---------- ///
+
+		/// <summary>
+		/// PhysicsWorldへ登録済みか設定する。
+		/// </summary>
+		void SetPhysicsRegistered(bool isRegistered)
+		{
+			isPhysicsRegistered_ = isRegistered; // PhysicsWorldへの登録状態を設定する
+		}
+
+		/// <summary>
+		/// PhysicsWorldへ登録済みか取得する。
+		/// </summary>
+		bool IsPhysicsRegistered() const
+		{
+			return isPhysicsRegistered_; // PhysicsWorldへの登録状態を返す
+		}
+
 	private: /// ---------- メンバ変数 ---------- ///
+
+		// Actor全体の基準Transform。所有権はcomponents_側が持つ
+		SceneComponent* rootComponent_ = nullptr;
 
 		// ActorがComponentの寿命を管理するためのコンテナ
 		std::vector<std::unique_ptr<ActorComponent>> components_;
+
+		// ActorWorldやEditor上で識別するための名前
+		std::string name_ = "Actor";
+
+		// 更新中に即削除せず、ActorWorld側で安全に破棄するためのフラグ
+		bool isPendingDestroy_ = false;
+
+		// PhysicsWorldへ登録済みかどうか
+		bool isPhysicsRegistered_ = false;
 	};
 
 }

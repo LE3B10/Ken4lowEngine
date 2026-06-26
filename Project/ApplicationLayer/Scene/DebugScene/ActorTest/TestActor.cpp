@@ -1,8 +1,45 @@
 #include "TestActor.h"
 #include "TestActorComponent.h"
+#include <SceneComponent.h>
+#include <ModelComponent.h>
+#include <CameraComponent.h>
+#include <ColliderComponent.h>
+#include <RigidbodyComponent.h>
 
 void TestActor::Initialize()
 {
+	// ActorのRootとして扱う SceneComponentを追加する
+	auto& root = CreateRootComponent<>();
+	root.SetLocalPosition({ 0.0f, 0.0f, 0.0f });
+
+	// ActorにModelComponentを追加する。
+	auto& model = AddComponent<Ken4lowEngine::ModelComponent>();
+	model.SetName("Model Component");
+	model.SetModelPath("Sample/cube.gltf");
+	model.AttachTo(&root); // Root SceneComponentの子として接続する
+
+	// ActorにColliderComponentを追加する。
+	auto& camera = AddComponent<Ken4lowEngine::CameraComponent>();
+	camera.SetName("Camera Component");
+	camera.SetLocalPosition({ 0.0f, 2.0f, -8.0f });
+	camera.SetLocalRotation({ 0.2f, 0.0f, 0.0f });
+	camera.SetAutoRegisterMainCamera(true); // MainCameraとして登録する
+	camera.AttachTo(&root); // Root SceneComponentの子として接続する
+
+	// ActorにColliderComponentを追加する。
+	auto& collider = AddComponent<Ken4lowEngine::ColliderComponent>();
+	collider.SetName("Collider Component");
+	collider.SetShapeType(Ken4lowEngine::ECollisionShapeType::AABB);
+	collider.SetHalfSize({ 1.0f, 1.0f, 1.0f });
+	collider.SetCollisionLayer(1); // CollisionLayerを設定する
+	collider.AttachTo(&root); // Root SceneComponentの子として接続する
+
+	// ActorにRigidbodyComponentを追加する。
+	auto& rigidbody = AddComponent<Ken4lowEngine::RigidbodyComponent>();
+	rigidbody.SetName("Rigidbody Component");
+	rigidbody.SetMass(1.0f);
+	rigidbody.SetUseGravity(true);
+
 	// Actorへテスト用Componentを追加する。
 	AddComponent<TestActorComponent>();
 
@@ -30,8 +67,10 @@ void TestActor::DrawShadow()
 
 void TestActor::DrawImGui()
 {
+#ifdef USE_IMGUI
 	// Actor基底クラスのImGui描画処理を実行する。
 	Actor::DrawImGui();
+#endif // USE_IMGUI
 }
 
 void TestActor::Finalize()

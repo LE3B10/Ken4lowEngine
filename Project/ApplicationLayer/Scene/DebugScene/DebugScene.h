@@ -3,6 +3,10 @@
 #include "CollisionManager.h"
 #include "GpuParticleEffectDesc.h"
 
+#include <ActorWorld.h>
+#include <PhysicsWorld.h>
+#include <PhysicsDebugDraw.h>
+
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -98,4 +102,11 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool gpuParticlePreviewSelectedOnly_ = true;
 	K4E::Vector3 gpuParticlePreviewPosition_{ 0.0f, 1.0f, 0.0f };
 	uint32_t gpuParticlePreviewEmitCount_ = 32;
+
+private: /// ---------- テスト ---------- ///
+
+	K4E::ActorWorld actorWorld_; // ActorWorldのテスト用
+
+	K4E::PhysicsWorld actorPhysicsWorld_; // ActorComponent用Colliderを登録する物理World。
+	K4E::PhysicsDebugDraw actorPhysicsDebugDraw_; // ActorComponent用ColliderをWireframe表示するDebug描画。
 };

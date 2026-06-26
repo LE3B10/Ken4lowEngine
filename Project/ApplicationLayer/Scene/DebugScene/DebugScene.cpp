@@ -11,6 +11,8 @@
 #include <GameTimer.h>
 #include <InstancedObject3DRenderer.h>
 #include <GpuParticleEffectEditor.h>
+#include "TestActor.h"
+#include "TestGroundActor.h"
 
 #include <algorithm>
 #include <cmath>
@@ -59,8 +61,13 @@ void DebugScene::Initialize()
 
 	// 高ポリゴンモデルを大量描画してTDRを起こさないよう、Debug用の描画予算を設定する。
 	instancingTestRenderer_->SetDebugIndexBudget(instancingIndexBudget_);
-	
+
 	RebuildInstancingTest();
+
+	actorWorld_.SetPhysicsWorld(&actorPhysicsWorld_);
+	actorWorld_.SpawnActor<TestActor>();
+	actorWorld_.SpawnActor<TestGroundActor>();
+	actorWorld_.Initialize();
 }
 
 /// -------------------------------------------------------------
@@ -99,6 +106,14 @@ void DebugScene::Update()
 
 	collisionManager_->CheckAllCollisions();
 	collisionManager_->Update();
+
+	actorWorld_.Update(deltaTime);
+
+	// ActorComponent由来のCollider同士を判定・イベント更新する
+	actorPhysicsWorld_.Update(deltaTime);
+
+	// PhysicsWorldの結果をActor/Component側のTransformへ反映する
+	actorWorld_.PostPhysicsUpdate(deltaTime);
 }
 
 void DebugScene::UpdateEditor(float deltaTime)
@@ -139,6 +154,10 @@ void DebugScene::Draw3DObjects()
 		instancingTestRenderer_->Draw();
 	}
 
+	actorWorld_.Draw();
+
+	// ActorComponent由来のColliderをWireframe表示する
+	actorPhysicsDebugDraw_.Draw(actorPhysicsWorld_);
 
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
@@ -159,7 +178,7 @@ void DebugScene::Draw3DObjects()
 /// -------------------------------------------------------------
 void DebugScene::DrawShadowObjects()
 {
-
+	actorWorld_.DrawShadow();
 }
 
 /// -------------------------------------------------------------
@@ -206,7 +225,7 @@ void DebugScene::Finalize()
 		gpuParticlePreviewController_->Clear();
 		gpuParticlePreviewController_.reset();
 	}
-
+	actorWorld_.Finalize();
 	input_ = nullptr;
 }
 
@@ -229,6 +248,12 @@ void DebugScene::DrawImGui()
 	{
 		animationModelBatchTest_->DrawImGui();
 	}
+
+	actorWorld_.DrawImGui();
+
+	actorPhysicsDebugDraw_.GetSettings().drawPhysicsDebug = true;
+	actorPhysicsDebugDraw_.GetSettings().drawColliders = true;
+	actorPhysicsDebugDraw_.DrawImGui(actorPhysicsWorld_);
 
 	ImGui::Checkbox("Show GPU Particle Editor", &showGpuParticleEditor_);
 	if (showGpuParticleEditor_)
@@ -322,7 +347,7 @@ void DebugScene::RebuildInstancingTest()
 	const int columns = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(count))));
 	std::mt19937 random(0x4B3445u); // 同じ設定なら同じ配置になる固定seed。
 	std::uniform_real_distribution<float> scaleDistribution(0.55f, 1.45f);
-	std::uniform_real_distribution<float> rotationDistribution(0.0f, std::numbers::pi_v<float> * 2.0f);
+	std::uniform_real_distribution<float> rotationDistribution(0.0f, std::numbers::pi_v<float> *2.0f);
 	std::uniform_real_distribution<float> colorDistribution(0.25f, 1.0f);
 
 	std::vector<InstancedObject3DRenderer::InstanceTransform> transforms;
@@ -342,7 +367,7 @@ void DebugScene::RebuildInstancingTest()
 		if (instancingRandomRotation_) { transform.rotation.y = rotationDistribution(random); }
 		transform.color = instancingRandomColor_
 			? Vector4{ colorDistribution(random), colorDistribution(random), colorDistribution(random), 1.0f }
-			: Vector4{ 0.35f, 0.8f, 1.0f, 1.0f };
+		: Vector4{ 0.35f, 0.8f, 1.0f, 1.0f };
 		transforms.push_back(transform);
 	}
 
