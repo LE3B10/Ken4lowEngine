@@ -8,6 +8,7 @@
 #include <utility>
 #include <string>
 #include <string_view>
+#include <json.hpp>
 
 namespace Ken4lowEngine
 {
@@ -170,6 +171,21 @@ namespace Ken4lowEngine
 		/// Actorが持つ全Componentの終了処理を行う
 		/// </summary>
 		virtual void Finalize();
+
+	public: /// ---------- JSONシリアライズ / デシリアライズ ---------- ///
+
+		/// <summary>
+		/// JSON保存・復元で使用するActorクラス名を取得する
+		/// </summary>
+		virtual std::string GetClassTypeName() const
+		{
+			return "Actor"; // 基底Actorの型名を返す。派生Actorでオーバーライドする。
+		}
+
+		/// <summary>
+		/// Actorと所有Component情報をJSONへ保存する。
+		/// </summary>
+		virtual void ToJson(nlohmann::json& outJson) const;
 
 	public: /// ---------- Actor破棄フラグ設定 ---------- ///
 

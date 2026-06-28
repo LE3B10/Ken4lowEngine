@@ -118,6 +118,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\Scene\Actor\ActorJsonSerializer.cpp" />
     <ClCompile Include="Engine\Scene\Actor\ColliderComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\CameraComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\ActorWorld.cpp" />
@@ -480,7 +481,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Platform\Windows\ResolutionManager.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Sprite\Utility\SpriteFactory.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActor.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActorComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\ModelComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\SceneComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\RigidbodyComponent.cpp" />
@@ -772,6 +772,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Scene\Actor\ActorJsonSerializer.h" />
     <ClInclude Include="Engine\Physics\Collision\Core\PhysicsCollisionLayer.h" />
     <ClInclude Include="Engine\Scene\Actor\ColliderComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\CameraComponent.h" />
@@ -1267,7 +1268,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Platform\Windows\ResolutionManager.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Sprite\Utility\SpriteFactory.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActor.h" />
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActorComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\ModelComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\SceneComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\RigidbodyComponent.h" />

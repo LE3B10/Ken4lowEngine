@@ -1,6 +1,7 @@
 #include "ActorWorld.h"
 #include "ColliderComponent.h"
 #include "RigidbodyComponent.h"
+#include "ActorJsonSerializer.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -132,34 +133,67 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		if (requestFocusActorDetails_)
 		{
-			ImGui::SetNextWindowFocus(); // 選択が変わったらActor Detailsを前面へ出す。
+			ImGui::SetNextWindowFocus(); // 選択が変わったらActor Detailsを前面へ出す
 			requestFocusActorDetails_ = false;
 		}
 
 		if (ImGui::Begin("Actor Details"))
 		{
-			if (selectedComponent_)
+			Actor* saveTargetActor = selectedActor_;
+
+			if (!saveTargetActor && selectedComponent_)
 			{
-				std::string editedName;
-				if (DrawNameInput("Name", selectedComponent_->GetName(), editedName))
+				saveTargetActor = selectedComponent_->GetOwner(); // Componentが選択中なら所有Actorを取得する
+			}
+
+			if (saveTargetActor)
+			{
+				if (ImGui::Button("Save Selected Actor JSON"))
 				{
-					selectedComponent_->SetName(editedName); // Component名をEditorから変更する。
+					const std::string actorName = saveTargetActor->GetName().empty()
+						? saveTargetActor->GetClassTypeName() // 名前が空なら型名を使う
+						: saveTargetActor->GetName();
+
+					const std::string filePath = "Resources/ActorPrefabs/" + actorName + ".json"; // 保存先のファイルパスを生成する
+
+					const bool succeded = ActorJsonSerializer::SaveActorToFile(*saveTargetActor, filePath);
+
+					if (succeded)
+					{
+						lastActorJsonSaveMessage_ = "Saved : " + filePath; // 保存成功メッセージを保持する
+					}
+					else
+					{
+						lastActorJsonSaveMessage_ = "Failed to save : " + filePath; // 保存失敗メッセージを保持する
+					}
 				}
 
-				ImGui::Text("Class: %s", typeid(*selectedComponent_).name());
+				if (!lastActorJsonSaveMessage_.empty())
+				{
+					ImGui::Text("%s", lastActorJsonSaveMessage_.c_str());
+				}
+
+				ImGui::Separator();
+			}
+
+			if (selectedComponent_)
+			{
+				const std::string componentName = selectedComponent_->GetName().empty()
+					? "Unnamed Component"
+					: selectedComponent_->GetName();
+
+				ImGui::Text("Selected Component: %s", componentName.c_str());
 				ImGui::Separator();
 
 				selectedComponent_->DrawInspectorImGui(); // 選択中Componentの詳細を描画する。
 			}
 			else if (selectedActor_)
 			{
-				std::string editedName;
-				if (DrawNameInput("Name", selectedActor_->GetName(), editedName))
-				{
-					selectedActor_->SetName(editedName); // Actor名をEditorから変更する。
-				}
+				const std::string actorName = selectedActor_->GetName().empty()
+					? "Unnamed Actor"
+					: selectedActor_->GetName();
 
-				ImGui::Text("Class: %s", typeid(*selectedActor_).name());
+				ImGui::Text("Selected Actor: %s", actorName.c_str());
 				ImGui::Separator();
 
 				selectedActor_->DrawInspectorImGui(); // 選択中Actorの詳細を描画する。

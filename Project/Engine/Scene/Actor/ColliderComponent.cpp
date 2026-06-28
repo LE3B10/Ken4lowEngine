@@ -8,6 +8,32 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		/// <summary>
+		/// Collision形状をJSON保存用文字列へ変換する。
+		/// </summary>
+		const char* Tostring(ECollisionShapeType shapeType)
+		{
+			switch (shapeType)
+			{
+			case Ken4lowEngine::ECollisionShapeType::Sphere:
+				return "Sphere";
+			case Ken4lowEngine::ECollisionShapeType::AABB:
+				return "AABB";
+			case Ken4lowEngine::ECollisionShapeType::OBB:
+				return "OBB";
+			case Ken4lowEngine::ECollisionShapeType::Capsule:
+				return "Capsule";
+			case Ken4lowEngine::ECollisionShapeType::Segment:
+				return "Segment";
+			case Ken4lowEngine::ECollisionShapeType::None:
+			default:
+				return "None";
+			}
+		}
+	}
+
 	void ColliderComponent::Initialize()
 	{
 		SceneComponent::Initialize(); // 親子関係を考慮したWorldTransformを初期計算する
@@ -108,6 +134,17 @@ namespace Ken4lowEngine
 	void ColliderComponent::Finalize()
 	{
 		collider_.reset(); // Colliderを破棄する
+	}
+
+	void ColliderComponent::ToJson(nlohmann::json& outJson) const
+	{
+		SceneComponent::ToJson(outJson); // SceneComponent共通情報をJSONへ保存する
+
+		outJson["Class"] = GetClassTypeName();								// ColliderComponentのクラス種別をJSONへ保存する
+		outJson["ShapeType"] = Tostring(shapeType_);						// Colliderの形状種別をJSONへ保存する
+		outJson["HalfSize"] = { halfSize_.x, halfSize_.y, halfSize_.z };	// AABB / OBBの半サイズをJSONへ保存する
+		outJson["IsTrigger"] = isTrigger_;									// Trigger判定かどうかをJSONへ保存する
+		outJson["CollisionLayer"] = static_cast<uint32_t>(collisionLayer_); // Colliderの衝突レイヤーをJSONへ保存する
 	}
 
 	void ColliderComponent::SetCollisionLayer(uint32_t layer)

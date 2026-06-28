@@ -38,7 +38,7 @@ namespace Ken4lowEngine
 		object3D_->Update(); // Object3D側の行列更新やGPU転送を行う。
 	}
 
-	void ModelComponent::PostPhysicsUpdate([[maybe_unused]]float deltaTime)
+	void ModelComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
 	{
 		if (!object3D_)
 		{
@@ -84,6 +84,14 @@ namespace Ken4lowEngine
 	void ModelComponent::Finalize()
 	{
 		object3D_.reset(); // Component破棄時にObject3Dも破棄する。
+	}
+
+	void ModelComponent::ToJson(nlohmann::json& outJson) const
+	{
+		SceneComponent::ToJson(outJson); // SceneComponent共通情報をJSONへ保存する
+
+		outJson["Class"] = GetClassTypeName(); // ModelComponentとして保存する
+		outJson["ModelPath"] = modelPath_;     // モデルパスをJSONへ保存する
 	}
 
 	void ModelComponent::SetModelPath(std::string_view modelPath)

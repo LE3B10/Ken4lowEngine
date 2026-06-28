@@ -153,6 +153,18 @@ namespace Ken4lowEngine
 		isRebuildRequested_ = true;
 	}
 
+	void InstancedModelComponent::ToJson(nlohmann::json& outJson) const
+	{
+		SceneComponent::ToJson(outJson); // 親クラスの共通情報を保存する。
+
+		outJson["Class"] = GetClassTypeName(); // InstancedModelComponentとして保存する
+
+		outJson["ModelPath"] = modelPath_;			// 使用しているモデルパスを保存する
+		outJson["InstanceCount"] = instanceCount_;	// 描画するインスタンス数を保存する
+		outJson["Spacing"] = spacing_;				// インスタンス同士の間隔を保存する
+		outJson["InstanceScale"] = { instanceScale_.x, instanceScale_.y, instanceScale_.z };
+	}
+
 	void InstancedModelComponent::SetModelPath(std::string_view modelPath)
 	{
 		modelPath_ = std::string(modelPath); // string_viewは保持せず、内部で所有する。

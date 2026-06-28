@@ -8,6 +8,27 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		/// <summary>
+		/// Rigidbodyの種類をJSON保存用文字列へ変換する。
+		/// </summary>
+		const char* ToString(BodyType bodyType)
+		{
+			switch (bodyType)
+			{
+			case BodyType::Static:
+				return "Static";
+			case BodyType::Dynamic:
+				return "Dynamic";
+			case BodyType::Kinematic:
+				return "Kinematic";
+			default:
+				return "Unknown";
+			}
+		}
+	}
+
 	void RigidbodyComponent::Initialize()
 	{
 		rigidbody_ = std::make_unique<Rigidbody>();
@@ -83,6 +104,25 @@ namespace Ken4lowEngine
 	void RigidbodyComponent::Finalize()
 	{
 		rigidbody_.reset(); // Component破棄時にRigidbodyも破棄する
+	}
+
+	void RigidbodyComponent::ToJson(nlohmann::json& outJson) const
+	{
+		ActorComponent::ToJson(outJson); // 基底クラスの共通情報を保存する
+
+		outJson["Class"] = GetClassTypeName(); // RigidbodyComponentとして保存する
+
+		if (!rigidbody_)
+		{
+			return; // Rigidbody未生成の場合は保存しない
+		}
+
+		outJson["BodyType"] = ToString(bodyType_); // BodyTypeを文字列で保存する
+		outJson["Mass"] = mass_;                   // 質量を保存する
+		outJson["UseGravity"] = useGravity_;       // 重力フラグを保存する
+
+		const Vector3 velocity = rigidbody_->GetVelocity(); // Rigidbodyから現在速度を取得する
+		outJson["Velocity"] = { velocity.x, velocity.y, velocity.z }; // 速度を配列で保存する
 	}
 
 	void RigidbodyComponent::SetBodyType(BodyType bodyType)

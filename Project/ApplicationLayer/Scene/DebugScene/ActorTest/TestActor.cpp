@@ -1,5 +1,4 @@
 #include "TestActor.h"
-#include "TestActorComponent.h"
 #include <SceneComponent.h>
 #include <ModelComponent.h>
 #include <CameraComponent.h>
@@ -35,9 +34,6 @@ void TestActor::Initialize()
 	rigidbody.SetName("Rigidbody Component");
 	rigidbody.SetMass(1.0f);
 	rigidbody.SetUseGravity(true);
-
-	// Actorへテスト用Componentを追加する。
-	AddComponent<TestActorComponent>();
 
 	// Actor基底クラスの初期化処理を実行する。
 	Actor::Initialize();

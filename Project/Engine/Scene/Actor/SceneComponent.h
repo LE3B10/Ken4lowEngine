@@ -3,6 +3,7 @@
 #include "Vector3.h"
 
 #include <vector>
+#include <json.hpp>
 
 namespace Ken4lowEngine
 {
@@ -42,6 +43,21 @@ namespace Ken4lowEngine
 		/// Actorが所有するComponentを階層表示する。
 		/// </summary>
 		void DrawComponentHierarchyImGui(Actor*& selectedActor, ActorComponent*& selectedComponent);
+
+	public: /// ---------- JSONシリアライズ / デシリアライズ ---------- ///
+
+		/// <summary>
+		/// JSON保存用のComponentクラス名を取得する
+		/// </summary>
+		virtual std::string GetClassTypeName() const override
+		{
+			return "SceneComponent"; // SceneComponentの型名を返す。派生クラスでオーバーライドする
+		}
+
+		/// <summary>
+		/// SceneComponentのTransformと親情報をJSONへ保存する
+		/// </summary>
+		virtual void ToJson(nlohmann::json& outJson) const override;
 
 	public: /// ---------- 親子関係 ---------- ///
 

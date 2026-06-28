@@ -39,6 +39,21 @@ namespace Ken4lowEngine
 		/// </summary>
 		void Finalize() override;
 
+	public: /// ---------- Jsonシリアライズ / デシリアライズ ---------- ///
+
+		/// <summary>
+		/// JSON保存・復元で使用するComponentのクラス種別を取得する。
+		/// </summary>
+		std::string GetClassTypeName() const override
+		{
+			return "ColliderComponent"; // ColliderComponentとして保存する。
+		}
+
+		/// <summary>
+		/// ColliderComponent固有情報をJSONへ保存する。
+		/// </summary>
+		void ToJson(nlohmann::json& outJson) const override;
+
 	public: /// ---------- アクセサ ---------- ///
 
 		/// <summary>
@@ -103,5 +118,8 @@ namespace Ken4lowEngine
 
 		// SphereColliderとして扱う半径
 		float radius_ = 1.0f;
+
+		// Trigger判定かどうか
+		bool isTrigger_ = false;
 	};
 }

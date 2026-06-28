@@ -1,0 +1,92 @@
+{
+    "Class": "TestActor",
+    "Components": [
+        {
+            "Class": "ColliderComponent",
+            "CollisionLayer": 1,
+            "HalfSize": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "IsTrigger": false,
+            "LocalPosition": [
+                0.0,
+                -1.0000001192092896,
+                0.0
+            ],
+            "LocalRotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "LocalScale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "Name": "Root Collider Component",
+            "Parent": "",
+            "ShapeType": "AABB",
+            "Type": "SceneComponent"
+        },
+        {
+            "Class": "ModelComponent",
+            "LocalPosition": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "LocalRotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "LocalScale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "ModelPath": "Sample/cube.gltf",
+            "Name": "Model Component",
+            "Parent": "Root Collider Component",
+            "Type": "SceneComponent"
+        },
+        {
+            "AutoRegisterMainCamera": true,
+            "Class": "CameraComponent",
+            "LocalPosition": [
+                0.0,
+                2.0,
+                -8.0
+            ],
+            "LocalRotation": [
+                0.20000000298023224,
+                0.0,
+                0.0
+            ],
+            "LocalScale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "Name": "Camera Component",
+            "Parent": "Root Collider Component",
+            "Type": "SceneComponent"
+        },
+        {
+            "BodyType": "Dynamic",
+            "Class": "RigidbodyComponent",
+            "Mass": 1.0,
+            "Name": "Rigidbody Component",
+            "Type": "ActorComponent",
+            "UseGravity": true,
+            "Velocity": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        }
+    ],
+    "Name": "TestActor"
+}

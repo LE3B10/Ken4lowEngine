@@ -62,9 +62,9 @@ namespace Ken4lowEngine
 	void Actor::DrawHierarchyImGui(Actor*& selectedActor, ActorComponent*& selectedComponent)
 	{
 #ifdef USE_IMGUI
-		const std::string actorLabel = 
-			GetName().empty() 
-			? std::string(typeid(*this).name()) 
+		const std::string actorLabel =
+			GetName().empty()
+			? std::string(typeid(*this).name())
 			: GetName();
 
 		const std::string treeLabel = actorLabel + "##ActorHierarchy";
@@ -123,7 +123,7 @@ namespace Ken4lowEngine
 			ImGui::PushID(component.get()); // Componentのポインタを使ってImGui IDの衝突を防ぐ
 
 			const std::string label = component->GetName().empty()
-				? std::string(typeid(*component).name()) 
+				? std::string(typeid(*component).name())
 				: component->GetName();
 
 			const std::string treeLabel = label + "##ActorComponentHierarchy";
@@ -172,6 +172,26 @@ namespace Ken4lowEngine
 		components_.clear(); // ActorがComponentの寿命を管理するため、ここで破棄する
 	}
 
+	void Actor::ToJson(nlohmann::json& outJson) const
+	{
+		outJson["Name"] = GetName();		// Actor名を保存する
+		outJson["Class"] = GetClassTypeName();  // Actorの種類を保存する
+
+		outJson["Components"] = nlohmann::json::array(); // Component一覧を保存するための配列を作成する
+
+		for (const auto& component : components_)
+		{
+			if (!component)
+			{
+				continue; // nullptrのComponentは無視する
+			}
+
+			nlohmann::json componentJson;
+			component->ToJson(componentJson);				// Componentの情報をJSONへ保存する
+			outJson["Components"].push_back(componentJson); // Component情報を配列へ追加する
+		}
+	}
+
 	ActorComponent* Actor::FindComponentByName(std::string_view name)
 	{
 		for (auto& component : components_)
@@ -200,4 +220,4 @@ namespace Ken4lowEngine
 		return nullptr; // 一致するComponentが見つからなかった場合はnullptrを返す
 	}
 
-}
+} // namespace Ken4lowEngine

@@ -71,6 +71,14 @@ namespace Ken4lowEngine
 		camera_ = nullptr; // CameraComponentが所有しているCameraを破棄する
 	}
 
+	void CameraComponent::ToJson(nlohmann::json& outJson) const
+	{
+		SceneComponent::ToJson(outJson); // 親クラスの情報をJSONへ保存する
+
+		outJson["Class"] = GetClassTypeName(); // CameraComponentの種類を保存する
+		outJson["AutoRegisterMainCamera"] = autoRegisterMainCamera_; // MainCamera登録フラグを保存する"]
+	}
+
 	void CameraComponent::SetAutoRegisterMainCamera(bool autoRegister)
 	{
 		autoRegisterMainCamera_ = autoRegister;

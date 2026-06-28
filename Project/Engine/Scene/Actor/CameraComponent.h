@@ -42,6 +42,21 @@ namespace Ken4lowEngine
 		/// </summary>
 		void Finalize() override;
 
+	public: /// ---------- Jsonシリアライズ / デシリアライズ ---------- ///
+
+		/// <summary>
+		/// JSON保存・復元で使用するComponentのクラス種別を取得する。
+		/// </summary>
+		std::string GetClassTypeName() const override
+		{
+			return "CameraComponent"; // CameraComponentとして保存する。
+		}
+
+		/// <summary>
+		/// CameraComponent固有情報をJSONへ保存する。
+		/// </summary>
+		void ToJson(nlohmann::json& outJson) const override;
+
 	public: /// ---------- Getter ---------- ///
 
 		/// <summary>

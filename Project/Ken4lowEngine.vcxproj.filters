@@ -1084,9 +1084,6 @@
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActor.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActorComponent.cpp">
-      <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\TransformComponent.cpp">
       <Filter>Engine\Scene\Actor</Filter>
     </ClCompile>
@@ -1116,6 +1113,9 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestGroundActor.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\ActorJsonSerializer.cpp">
+      <Filter>Engine\Scene\Actor</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2253,9 +2253,6 @@
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActor.h">
       <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActorComponent.h">
-      <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\TransformComponent.h">
       <Filter>Engine\Scene\Actor</Filter>
     </ClInclude>
@@ -2309,6 +2306,9 @@
     </ClInclude>
     <ClInclude Include="Engine\Physics\Collision\Core\PhysicsCollisionLayer.h">
       <Filter>Engine\Physics\Collision\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\ActorJsonSerializer.h">
+      <Filter>Engine\Scene\Actor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

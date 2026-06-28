@@ -80,6 +80,20 @@ namespace Ken4lowEngine
 #endif // USE_IMGUI
 	}
 
+	void SceneComponent::ToJson(nlohmann::json& outJson) const
+	{
+		ActorComponent::ToJson(outJson); // ActorComponent共通情報をJSONへ保存する
+
+		outJson["Type"] = "SceneComponent"; // SceneComponent系であることを保存する
+
+		outJson["LocalPosition"] = { GetLocalPosition().x, GetLocalPosition().y, GetLocalPosition().z };
+		outJson["LocalRotation"] = { GetLocalRotation().x, GetLocalRotation().y, GetLocalRotation().z };
+		outJson["LocalScale"] = { GetLocalScale().x, GetLocalScale().y, GetLocalScale().z };
+
+		const SceneComponent* parent = GetParent();
+		outJson["Parent"] = parent ? parent->GetName() : ""; // 親が存在する場合は親の名前を保存する
+	}
+
 	void SceneComponent::AttachTo(SceneComponent* parent)
 	{
 		if (parent_ == parent)

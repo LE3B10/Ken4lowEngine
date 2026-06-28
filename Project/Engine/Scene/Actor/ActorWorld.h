@@ -7,6 +7,7 @@
 #include <utility>
 #include <vector>
 #include <typeinfo>
+#include <string>
 
 namespace Ken4lowEngine
 {
@@ -26,7 +27,7 @@ namespace Ken4lowEngine
 			static_assert(std::is_base_of_v<Actor, T>, "T must inherit from Actor.");
 
 			auto actor = std::make_unique<T>(std::forward<Args>(args)...);
-			actor->SetName(typeid(T).name()); // Actorの型名をデフォルトの名前として設定する。
+			actor->SetName(actor->GetClassTypeName()); // Actorの型名をデフォルトの名前として設定する。
 
 			auto& ref = *actor; // 登録後も生成したActorを呼び出し側で設定できるように参照を保持する。
 			actors_.push_back(std::move(actor));
@@ -130,6 +131,8 @@ namespace Ken4lowEngine
 
 		// ActorWorldがActorの寿命を管理する
 		std::vector<std::unique_ptr<Actor>> actors_;
+
+		std::string lastActorJsonSaveMessage_; // ActorWorldの最後のJSON保存メッセージを保持する
 
 		// Actor World上で選択中のActor
 		Actor* selectedActor_ = nullptr;

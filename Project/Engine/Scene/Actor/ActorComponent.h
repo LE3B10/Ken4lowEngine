@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <string_view>
+#include <json.hpp>
 
 namespace Ken4lowEngine
 {
@@ -107,6 +108,26 @@ namespace Ken4lowEngine
 		const std::string& GetName() const
 		{
 			return name_; // Editor表示やComponent検索に使う名前を返すc 
+		}
+
+	public: /// ---------- JSONシリアライズ / デシリアライズ ---------- ///
+
+		/// <summary>
+		/// JSON保存・復元で使用するComponentクラス名を取得する。
+		/// </summary>
+		virtual std::string GetClassTypeName() const
+		{
+			return "ActorComponent"; // Componentの型名を返す。派生クラスでオーバーライドする
+		}
+
+		/// <summary>
+		/// Component共通情報をJSONへ保存する。
+		/// </summary>
+		virtual void ToJson(nlohmann::json& outJson)const
+		{
+			outJson["Name"] = GetName();			// Component名を保存する
+			outJson["Class"] = GetClassTypeName();  // Componentの種類を保存する
+			outJson["Type"] = "ActorComponent";		// ActorComponent系であることを保存する
 		}
 
 	protected: /// ---------- メンバ変数 ---------- ///
