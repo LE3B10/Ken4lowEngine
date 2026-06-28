@@ -202,6 +202,11 @@ namespace Ken4lowEngine
 		/// </summary>
 		void ClearComponents();
 
+		/// <summary>
+		/// 指定ComponentをActorから削除する。RootComponentは削除しない
+		/// </summary>
+		bool RemoveComponent(ActorComponent* component);
+
 	public: /// ---------- Actor破棄フラグ設定 ---------- ///
 
 		/// <summary>

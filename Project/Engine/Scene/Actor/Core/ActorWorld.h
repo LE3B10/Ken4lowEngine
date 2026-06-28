@@ -178,6 +178,21 @@ namespace Ken4lowEngine
 		void DrawActorPrefabSaveImGui();
 
 		/// <summary>
+		/// 選択中ActorへComponentを追加するためのImGuiを描画する
+		/// </summary>
+		void DrawAddComponentImGui();
+
+		/// <summary>
+		/// 選択中Actorへ指定ClassのComponentを追加する
+		/// </summary>
+		void AddComponentToSelectedActor(std::string_view componentClassName);
+
+		/// <summary>
+		/// Actor内で重複しないComponent名を作成する
+		/// </summary>
+		std::string MakeUniqueComponentName(const Actor& actor, const std::string& baseName) const;
+
+		/// <summary>
 		/// ActorWorld内で重複しないActor名を作成する
 		/// </summary>
 		std::string MakeUniqueActorName(const std::string& baseName) const;
@@ -191,6 +206,16 @@ namespace Ken4lowEngine
 		/// 指定パスがActor Preafabフォルダ内のJSONか確認する
 		/// </summary>
 		bool IsValidActorPrefabJsonPath(const std::string& filePath) const;
+
+		/// <summary>
+		/// Component削除予約を次フレームの安全なタイミングで処理する
+		/// </summary>
+		void ProcessPendingComponentDelete();
+
+		/// <summary>
+		/// 選択中Componentを削除する
+		/// </summary>
+		void DeleteSelectedComponent();
 
 	private: /// ---------- メンバ変数 ---------- ///
 
@@ -223,6 +248,12 @@ namespace Ken4lowEngine
 		// Actor削除を次フレームUpdateで実行するための予約Actor
 		Actor* pendingDeleteActor_ = nullptr;
 
+		// Component削除を次フレームUpdateで実行するための予約Component
+		ActorComponent* pendingDeleteComponent_ = nullptr;
+
+		// Component削除予約中があるかどうか
+		bool hasPendingDeleteComponent_ = false;
+
 		// Actor削除予約中があるかどうか
 		bool hasPendingDeleteActor_ = false;
 
@@ -239,6 +270,9 @@ namespace Ken4lowEngine
 		bool isInitialized_ = false;
 
 		Vector3 actorPrefabSpawnOffset_ = { 3.0f, 0.0f, 0.0f }; // Actor Prefab Spawn時の位置オフセット
+
+		// Editorから追加するComponentの種類選択用
+		int selectedAddComponentTypeIndex_ = 0;
 
 		// Actor Prefabフォルダ内で見つかったJSONファイル一覧
 		std::vector<std::string> actorPrefabFiles_;

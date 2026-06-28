@@ -10,14 +10,18 @@
 namespace Ken4lowEngine
 {
 
-	ActorComponent* Ken4lowEngine::ComponentFactory::CreateComponent(Actor* owner, std::string_view className)
+	ActorComponent* ComponentFactory::CreateComponent(Actor* owner, std::string_view className)
 	{
 		if (!owner)
 		{
 			return nullptr; // Actorがnullptrの場合はComponentを生成しない
 		}
 
-		if (className == "ModelComponent")
+		if (className == "SceneComponent")
+		{
+			return &owner->AddComponent<SceneComponent>();			// SceneComponentをActorへ追加して返す
+		}
+		else if (className == "ModelComponent")
 		{
 			return &owner->AddComponent<ModelComponent>();			// ModelComponentをActorへ追加して返す
 		}

@@ -4,6 +4,9 @@
 #include "ActorJsonSerializer.h"
 #include "CameraComponent.h"
 
+#include "ComponentFactory.h"
+#include "SceneComponent.h"
+
 #include <algorithm>
 #include <array>
 #include <cstdio>
@@ -63,6 +66,7 @@ namespace Ken4lowEngine
 		ProcessPendingActorReload(); // JSON読込予約があれば次フレームの安全なタイミングで処理する
 		ProcessPendingActorSpawn();	 // JSON生成予約があれば次フレームの安全なタイミングで処理する
 		ProcessPendingActorDelete(); // Destroy予約があれば次フレームの安全なタイミングで処理する
+		ProcessPendingComponentDelete(); // Component削除予約があれば次フレームの安全なタイミングで処理する
 
 		for (auto& actor : actors_)
 		{
@@ -229,9 +233,48 @@ namespace Ken4lowEngine
 					: selectedComponent_->GetName();
 
 				ImGui::Text("Selected Component: %s", componentName.c_str());
+
+				Actor* owner = selectedComponent_->GetOwner();
+				const bool isRootComponent = owner && selectedComponent_ == owner->GetRootComponent();
+
+				if (isRootComponent)
+				{
+					ImGui::TextDisabled("RootComponent cannot be deleted.");
+				}
+				else
+				{
+					if (ImGui::Button("Delete Selected Component"))
+					{
+						ImGui::OpenPopup("Delete Component?");
+					}
+				}
+
+				if (ImGui::BeginPopupModal("Delete Component?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+				{
+					ImGui::Text("Delete this Component?");
+					ImGui::Text("%s", componentName.c_str());
+
+					ImGui::Separator();
+
+					if (ImGui::Button("Delete", ImVec2(120.0f, 0.0f)))
+					{
+						DeleteSelectedComponent(); // Draw中には消さず、次フレームUpdateで削除する。
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::SameLine();
+
+					if (ImGui::Button("Cancel", ImVec2(120.0f, 0.0f)))
+					{
+						ImGui::CloseCurrentPopup();
+					}
+
+					ImGui::EndPopup();
+				}
+
 				ImGui::Separator();
 
-				selectedComponent_->DrawInspectorImGui(); // 選択中Componentの詳細を描画する。
+				selectedComponent_->DrawInspectorImGui();
 			}
 			else if (selectedActor_)
 			{
@@ -248,6 +291,8 @@ namespace Ken4lowEngine
 			{
 				ImGui::Text("No selection.");
 			}
+
+			DrawAddComponentImGui(); // 選択中ActorにComponentを追加するUIを描画する
 		}
 
 		ImGui::End();
@@ -566,9 +611,9 @@ namespace Ken4lowEngine
 
 		ImGui::SameLine();
 
-		if (ImGui::Button("Use TestGround"))
+		if (ImGui::Button("Use TestGroundActor"))
 		{
-			actorPrefabPath_ = "Resources/ActorPrefabs/TestGround.json"; // Prefab PathをTestGroundに設定する
+			actorPrefabPath_ = "Resources/ActorPrefabs/TestGroundActor.json"; // Prefab PathをTestGroundに設定する
 		}
 
 		DrawActorPrefabBrowserImGui(); // Actor Prefabsのブラウザを描画する
@@ -734,6 +779,155 @@ namespace Ken4lowEngine
 #endif // USE_IMGUI
 	}
 
+	void ActorWorld::DrawAddComponentImGui()
+	{
+#ifdef USE_IMGUI
+		Actor* targetActor = selectedActor_;
+
+		if (!targetActor && selectedComponent_)
+		{
+			targetActor = selectedComponent_->GetOwner(); // Component選択中なら所有Actorを対象にする。
+		}
+
+		ImGui::SeparatorText("Add Component");
+
+		if (!targetActor)
+		{
+			ImGui::TextDisabled("No selected Actor.");
+			return;
+		}
+
+		static constexpr const char* kComponentTypeNames[] =
+		{
+			"SceneComponent",
+			"ModelComponent",
+			"CameraComponent",
+			"ColliderComponent",
+			"RigidbodyComponent",
+			"InstancedModelComponent",
+		};
+
+		constexpr int kComponentTypeCount =
+			static_cast<int>(sizeof(kComponentTypeNames) / sizeof(kComponentTypeNames[0]));
+
+		ImGui::Combo(
+			"Component Type",
+			&selectedAddComponentTypeIndex_,
+			kComponentTypeNames,
+			kComponentTypeCount
+		);
+
+		if (ImGui::Button("Add Component"))
+		{
+			const char* componentClassName = kComponentTypeNames[selectedAddComponentTypeIndex_];
+			AddComponentToSelectedActor(componentClassName);
+		}
+#endif // USE_IMGUI
+	}
+
+	void ActorWorld::AddComponentToSelectedActor(std::string_view componentClassName)
+	{
+		Actor* targetActor = selectedActor_;
+
+		if (!targetActor && selectedComponent_)
+		{
+			targetActor = selectedComponent_->GetOwner(); // Component選択中なら所有Actorへ追加する
+		}
+
+		if (!targetActor)
+		{
+			lastActorJsonSaveMessage_ = "Add Component failed : no selected Actor";
+			return;
+		}
+
+		// 既にPhysicsWorldへ登録済みなら、一度解除してからComponentを追加する
+		const bool wasPhysicsRegistered = targetActor->IsPhysicsRegistered();
+		if (wasPhysicsRegistered)
+		{
+			UnregisterPhysicsComponents(*targetActor);
+		}
+
+		ActorComponent* newComponent = nullptr;
+
+		// RootComponentが無いActorにSceneComponent系を追加する場合はRootとして生成する
+		if (!targetActor->GetRootComponent() && componentClassName != "RigidbodyComponent")
+		{
+			newComponent = ComponentFactory::CreateRootSceneComponent(targetActor, componentClassName);
+		}
+		else
+		{
+			newComponent = ComponentFactory::CreateComponent(targetActor, componentClassName);
+		}
+
+		if (!newComponent)
+		{
+			if (wasPhysicsRegistered)
+			{
+				RegisterPhysicsComponents(*targetActor); // 追加失敗時は元のPhysics登録状態へ戻す
+			}
+
+			lastActorJsonSaveMessage_ = "Add Component failed : " + std::string(componentClassName);
+			return;
+		}
+
+		// Component名が重複しないようにする
+		newComponent->SetName(MakeUniqueComponentName(*targetActor, std::string(componentClassName)));
+
+		// SceneComponent系なら、Rootがある場合はRoot配下へAttachする
+		if (SceneComponent* newSceneComponent = dynamic_cast<SceneComponent*>(newComponent))
+		{
+			SceneComponent* rootComponent = targetActor->GetRootComponent();
+
+			if (rootComponent && rootComponent != newSceneComponent)
+			{
+				newSceneComponent->AttachTo(rootComponent); // 追加したSceneComponentはRoot配下に置く
+			}
+
+			newSceneComponent->RefreshWorldTransform();
+		}
+
+		if (isInitialized_)
+		{
+			newComponent->Initialize(); // 追加したComponentだけ初期化する
+		}
+
+		if (wasPhysicsRegistered)
+		{
+			RegisterPhysicsComponents(*targetActor); // Collider/Rigidbody追加に対応するためPhysics登録を作り直す
+		}
+
+		selectedActor_ = nullptr;
+		selectedComponent_ = newComponent;
+		requestFocusActorDetails_ = true;
+
+		lastActorJsonSaveMessage_ = "Added Component : " + newComponent->GetName();
+	}
+
+	std::string ActorWorld::MakeUniqueComponentName(const Actor& actor, const std::string& baseName) const
+	{
+		const std::string safeBaseName = baseName.empty() ? "Component" : baseName; // 空文字の場合はデフォルト名を使用する
+
+		if (!actor.FindComponentByName(safeBaseName))
+		{
+			return safeBaseName; // 同名のComponentが存在しない場合はそのまま返す
+		}
+
+		for (int index = 1; index < 10000; ++index)
+		{
+			char nameBuffer[256]{};
+			std::snprintf(nameBuffer, sizeof(nameBuffer), "%s_%03d", safeBaseName.c_str(), index);
+
+			const std::string candidateName = nameBuffer;
+
+			if (!actor.FindComponentByName(candidateName))
+			{
+				return candidateName; // 同名のComponentが存在しない場合はその名前を返す
+			}
+		}
+
+		return safeBaseName + "_Duplicate"; // 10000件以上同名が存在する場合は末尾に_Duplicateを付けて返す
+	}
+
 	std::string ActorWorld::MakeUniqueActorName(const std::string& baseName) const
 	{
 		const std::string safeBaseName = baseName.empty() ? "Actor" : baseName; // 空文字の場合はデフォルト名を使用する
@@ -860,6 +1054,105 @@ namespace Ken4lowEngine
 		}
 
 		return true;
+	}
+
+	void ActorWorld::ProcessPendingComponentDelete()
+	{
+		if (!hasPendingDeleteComponent_ || !pendingDeleteComponent_)
+		{
+			return; // Component削除予約が無い場合は何もしない。
+		}
+
+		ActorComponent* deleteComponent = pendingDeleteComponent_;
+
+		hasPendingDeleteComponent_ = false; // 再処理防止。
+		pendingDeleteComponent_ = nullptr;
+
+		Actor* owner = deleteComponent->GetOwner();
+		if (!owner)
+		{
+			lastActorJsonSaveMessage_ = "Delete Component failed : no owner";
+			return;
+		}
+
+		// ActorWorldが所有しているActorか確認する。
+		bool ownerExists = false;
+		for (const auto& actor : actors_)
+		{
+			if (actor.get() == owner)
+			{
+				ownerExists = true;
+				break;
+			}
+		}
+
+		if (!ownerExists)
+		{
+			lastActorJsonSaveMessage_ = "Delete Component failed : owner not found";
+			return;
+		}
+
+		if (deleteComponent == owner->GetRootComponent())
+		{
+			lastActorJsonSaveMessage_ = "Delete Component failed : RootComponent cannot be deleted";
+			return;
+		}
+
+		const std::string deletedComponentName = deleteComponent->GetName();
+
+		const bool wasPhysicsRegistered = owner->IsPhysicsRegistered();
+		if (wasPhysicsRegistered)
+		{
+			UnregisterPhysicsComponents(*owner); // Collider/Rigidbodyを消す可能性があるので一度解除する。
+		}
+
+		if (selectedComponent_ == deleteComponent)
+		{
+			selectedComponent_ = nullptr; // 削除対象を選択していた場合は選択解除する。
+			selectedActor_ = owner;       // 削除後は所有Actorを選択状態に戻す。
+		}
+
+		const bool removed = owner->RemoveComponent(deleteComponent);
+
+		if (wasPhysicsRegistered)
+		{
+			RegisterPhysicsComponents(*owner); // 残ったCollider/Rigidbodyを再登録する。
+		}
+
+		if (!removed)
+		{
+			lastActorJsonSaveMessage_ = "Delete Component failed : " + deletedComponentName;
+			return;
+		}
+
+		lastActorJsonSaveMessage_ = "Deleted Component : " + deletedComponentName;
+	}
+
+	void ActorWorld::DeleteSelectedComponent()
+	{
+		if (!selectedComponent_)
+		{
+			lastActorJsonSaveMessage_ = "Delete Component failed : no selected Component";
+			return;
+		}
+
+		Actor* owner = selectedComponent_->GetOwner();
+		if (!owner)
+		{
+			lastActorJsonSaveMessage_ = "Delete Component failed : no owner";
+			return;
+		}
+
+		if (selectedComponent_ == owner->GetRootComponent())
+		{
+			lastActorJsonSaveMessage_ = "Delete Component failed : RootComponent cannot be deleted";
+			return;
+		}
+
+		pendingDeleteComponent_ = selectedComponent_;
+		hasPendingDeleteComponent_ = true;
+
+		lastActorJsonSaveMessage_ = "Delete Component requested : " + selectedComponent_->GetName();
 	}
 
 }

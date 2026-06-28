@@ -225,6 +225,67 @@ namespace Ken4lowEngine
 		isPhysicsRegistered_ = false; // PhysicsWorldへの登録状態をリセットする
 	}
 
+	bool Actor::RemoveComponent(ActorComponent* component)
+	{
+		if (!component)
+		{
+			return false; // 無効なComponentは削除できない
+		}
+
+		if (component == rootComponent_)
+		{
+			return false; // RootComponent削除は今回は禁止する
+		}
+
+		// SceneComponentの場合は、親子関係を整理してから削除する
+		if (SceneComponent* sceneComponent = dynamic_cast<SceneComponent*>(component))
+		{
+			SceneComponent* parent = sceneComponent->GetParent();
+
+			// 子Component一覧はAttachTo中に変化するのでコピーしてから処理する
+			std::vector<SceneComponent*> children = sceneComponent->GetChildren();
+
+			for (SceneComponent* child : children)
+			{
+				if (!child)
+				{
+					continue; // nullptrの子Componentは無視する
+				}
+
+				if (parent)
+				{
+					child->AttachTo(parent); // 親がいる場合は、子Componentを親に接続し直す
+				}
+				else if (rootComponent_ && rootComponent_ != child)
+				{
+					child->AttachTo(rootComponent_); // 親がいない場合は、子ComponentをRootComponentに接続する
+				}
+				else
+				{
+					child->Detach(); // 親もRootComponentもいない場合は、子Componentを切り離す
+				}
+			}
+
+			sceneComponent->Detach(); // 削除するSceneComponentを親から切り離す
+		}
+
+		component->Finalize(); // Component破棄前に明示的な終了処理を流す
+
+		const auto removeIt = std::remove_if(components_.begin(), components_.end(),
+			[component](const std::unique_ptr<ActorComponent>& ownedComponent)
+			{
+				return ownedComponent.get() == component; // 指定されたComponentと一致する場合に削除対象とする
+			});
+
+		if (removeIt == components_.end())
+		{
+			return false; // 指定されたComponentが見つからなかった場合は削除できない
+		}
+
+		components_.erase(removeIt, components_.end());
+		return true;
+	}
+
 	ActorComponent* Actor::FindComponentByName(std::string_view name)
 	{
 		for (auto& component : components_)
