@@ -1,13 +1,13 @@
 #pragma once
 #include "Actor.h"
 #include "PhysicsWorld.h"
+#include "ActorSpawnOptions.h"
 
 #include <memory>
 #include <type_traits>
 #include <utility>
-#include <vector>
-#include <typeinfo>
 #include <string>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -89,6 +89,11 @@ namespace Ken4lowEngine
 		/// <param name="name">検索するActorの名前</param>
 		Actor* FindActorByName(std::string_view name);
 
+		/// <summary>
+		/// JSONファイルからActorを生成してActorWorldに追加する
+		/// </summary>
+		Actor* SpawnActorFromJson(std::string_view filePath, const ActorSpawnOptions& options = {});
+
 	public: /// ---------- Actor一覧取得 ---------- ///
 
 		/// <summary>
@@ -98,6 +103,11 @@ namespace Ken4lowEngine
 		{
 			return actors_; // Editor表示やDebug確認のために読み取り専用でActor一覧を返す
 		}
+
+		/// <summary>
+		/// 選択中ActorまたはComponentの注視位置を取得する。
+		/// </summary>
+		bool GetSelectedFocusPosition(Vector3& outPosition) const;
 
 	public: /// ---------- PhysicsWorld設定 ---------- ///
 
@@ -137,12 +147,60 @@ namespace Ken4lowEngine
 		/// </summary>
 		bool ReloadActorFromJson(Actor& actor, const std::string_view filePath);
 
+		/// <summary>
+		/// Actor JSON Spawn予約を次フレームの安全なタイミングで処理する
+		/// </summary>
+		void ProcessPendingActorSpawn();
+
+		/// <summary>
+		///	Actor削除予約を次フレームの安全なタイミングで処理する
+		/// </summary>
+		void ProcessPendingActorDelete();
+
+		/// <summary>
+		/// Actor Prefab JSONからSpawnするためのImGuiを描画する
+		/// </summary>
+		void DrawActorPrefabSpawnImGui();
+
+		/// <summary>
+		/// Actor Prefabフォルダ内のJSONファイル一覧を更新する
+		/// </summary>
+		void RefreshActorPrefabFileList();
+
+		/// <summary>
+		/// Actor Prefabフォルダ内のJSONファイル一覧をImGuiで表示する
+		/// </summary>
+		void DrawActorPrefabBrowserImGui();
+
+		/// <summary>
+		/// 選択中ActorをPrefabとして保存するためのImGuiを描画する
+		/// </summary>
+		void DrawActorPrefabSaveImGui();
+
+		/// <summary>
+		/// ActorWorld内で重複しないActor名を作成する
+		/// </summary>
+		std::string MakeUniqueActorName(const std::string& baseName) const;
+
+		/// <summary>
+		/// 現在選択中のPrefab JSONファイルを削除する
+		/// </summary>
+		void DeleteSelectedActorPrefabFile();
+
+		/// <summary>
+		/// 指定パスがActor Preafabフォルダ内のJSONか確認する
+		/// </summary>
+		bool IsValidActorPrefabJsonPath(const std::string& filePath) const;
+
 	private: /// ---------- メンバ変数 ---------- ///
 
 		// ActorWorldがActorの寿命を管理する
 		std::vector<std::unique_ptr<Actor>> actors_;
 
 		std::string lastActorJsonSaveMessage_; // ActorWorldの最後のJSON保存メッセージを保持する
+
+		// 次フレームSpawn時に使用するオプション
+		ActorSpawnOptions pendingSpawnOptions_;
 
 		// Actor World上で選択中のActor
 		Actor* selectedActor_ = nullptr;
@@ -153,8 +211,20 @@ namespace Ken4lowEngine
 		// JSON読込予約中のファイルパス
 		std::string pendingReloadFilePath_;
 
+		// JSON生成予約中のファイルパス
+		std::string pendingSpawnFilePath_;
+
 		// JSON読込予約中があるかどうか
 		bool hasPendingReloadActor_ = false;
+
+		// JSON生成予約中があるかどうか
+		bool hasPendingSpawnActor_ = false;
+
+		// Actor削除を次フレームUpdateで実行するための予約Actor
+		Actor* pendingDeleteActor_ = nullptr;
+
+		// Actor削除予約中があるかどうか
+		bool hasPendingDeleteActor_ = false;
 
 		// Actor World上で選択中のActorComponent
 		ActorComponent* selectedComponent_ = nullptr;
@@ -167,5 +237,19 @@ namespace Ken4lowEngine
 
 		// ActorWorldが初期化済みかどうかのフラグ
 		bool isInitialized_ = false;
+
+		Vector3 actorPrefabSpawnOffset_ = { 3.0f, 0.0f, 0.0f }; // Actor Prefab Spawn時の位置オフセット
+
+		// Actor Prefabフォルダ内で見つかったJSONファイル一覧
+		std::vector<std::string> actorPrefabFiles_;
+
+		// Actor Prefabフォルダのパス
+		std::string actorPrefabDirectory_ = "Resources/ActorPrefabs";
+
+		// Actor PrefabのJSONパス入力用バッファ
+		std::string actorPrefabPath_ = "Resources/ActorPrefabs/TestActor.json";
+
+		// 選択中ActorをPrefabとして保存する際のデフォルトパス
+		std::string actorPrefabSavePath_ = "Resources/ActorPrefabs/NewActorPrefab.json";
 	};
 }

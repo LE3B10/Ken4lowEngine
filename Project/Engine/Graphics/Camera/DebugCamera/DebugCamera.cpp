@@ -7,135 +7,135 @@
 namespace Ken4lowEngine
 {
 
-/// -------------------------------------------------------------
-///					シングルトンインスタンス
-/// -------------------------------------------------------------
-DebugCamera* DebugCamera::GetInstance()
-{
-	static DebugCamera instance;
-	return &instance;
-}
-
-/// -------------------------------------------------------------
-///							初期化処理
-/// -------------------------------------------------------------
-void DebugCamera::Initialize()
-{
-	worldTransform_.Initialize();
-	worldTransform_.translate_ = { 0.0f,0.0f,-20.0f };
-
-	fovY_ = 1.0f;
-	aspectRatio_ = GameViewportConstants::Aspect; // Editor上のProjectionは固定内部解像度16:9へ統一する。
-	nearClip_ = 0.1f;
-	farClip_ = 1000.0f;
-
-	UpdateViewProjection();
-}
-
-/// -------------------------------------------------------------
-///						　終了処理
-/// -------------------------------------------------------------
-void DebugCamera::Finalize()
-{
-	worldTransform_ = {};
-	worldMatrix_ = {};
-	rotateMatrix_ = {};
-	viewMatrix_ = {};
-	projectionMatrix_ = {};
-	viewProjectionMatrix_ = {};
-	rotation_ = {};
-
-	fovY_ = 0.0f;
-	aspectRatio_ = 0.0f;
-	nearClip_ = 0.0f;
-	farClip_ = 0.0f;
-}
-
-/// -------------------------------------------------------------
-///					Aspect比設定
-/// -------------------------------------------------------------
-void DebugCamera::SetAspectRatio(float aspectRatio)
-{
-	if (aspectRatio <= 0.0f)
+	/// -------------------------------------------------------------
+	///					シングルトンインスタンス
+	/// -------------------------------------------------------------
+	DebugCamera* DebugCamera::GetInstance()
 	{
-		return;
+		static DebugCamera instance;
+		return &instance;
 	}
 
-	// RenderTargetのAspect変更をDebugCameraのProjectionへ即時反映する。
-	aspectRatio_ = aspectRatio;
-	UpdateViewProjection();
-}
+	/// -------------------------------------------------------------
+	///							初期化処理
+	/// -------------------------------------------------------------
+	void DebugCamera::Initialize()
+	{
+		worldTransform_.Initialize();
+		worldTransform_.translate_ = { 0.0f, 0.0f, -20.0f };
+
+		fovY_ = 1.0f;
+		aspectRatio_ = GameViewportConstants::Aspect; // Editor上のProjectionは固定内部解像度16:9へ統一する。
+		nearClip_ = 0.1f;
+		farClip_ = 1000.0f;
+
+		UpdateViewProjection();
+	}
+
+	/// -------------------------------------------------------------
+	///						　終了処理
+	/// -------------------------------------------------------------
+	void DebugCamera::Finalize()
+	{
+		worldTransform_ = {};
+		worldMatrix_ = {};
+		rotateMatrix_ = {};
+		viewMatrix_ = {};
+		projectionMatrix_ = {};
+		viewProjectionMatrix_ = {};
+		rotation_ = {};
+
+		fovY_ = 0.0f;
+		aspectRatio_ = 0.0f;
+		nearClip_ = 0.0f;
+		farClip_ = 0.0f;
+	}
+
+	/// -------------------------------------------------------------
+	///					Aspect比設定
+	/// -------------------------------------------------------------
+	void DebugCamera::SetAspectRatio(float aspectRatio)
+	{
+		if (aspectRatio <= 0.0f)
+		{
+			return;
+		}
+
+		// RenderTargetのAspect変更をDebugCameraのProjectionへ即時反映する。
+		aspectRatio_ = aspectRatio;
+		UpdateViewProjection();
+	}
 
 
-/// -------------------------------------------------------------
-///							　更新処理
-/// -------------------------------------------------------------
-void DebugCamera::Update()
-{
-	// 移動処理
-	Move();
+	/// -------------------------------------------------------------
+	///							　更新処理
+	/// -------------------------------------------------------------
+	void DebugCamera::Update()
+	{
+		// 移動処理
+		Move();
 
-	// 行列の更新
-	UpdateViewProjection();
-}
+		// 行列の更新
+		UpdateViewProjection();
+	}
 
 
-/// -------------------------------------------------------------
-///							移動操作処理
-/// -------------------------------------------------------------
-void DebugCamera::Move()
-{
-	Vector3 move = { 0.0f, 0.0f, 0.0f };
+	/// -------------------------------------------------------------
+	///							移動操作処理
+	/// -------------------------------------------------------------
+	void DebugCamera::Move()
+	{
+		Vector3 move = { 0.0f, 0.0f, 0.0f };
 
-	/// ---------- キー入力による移動 ---------- ///
-	if (Input::GetInstance()->PushKey(DIK_W)) { move.z += 0.2f; }
-	if (Input::GetInstance()->PushKey(DIK_S)) { move.z -= 0.2f; }
-	if (Input::GetInstance()->PushKey(DIK_A)) { move.x -= 0.2f; }
-	if (Input::GetInstance()->PushKey(DIK_D)) { move.x += 0.2f; }
-	if (Input::GetInstance()->PushKey(DIK_SPACE)) { move.y += 0.2f; }
-	if (Input::GetInstance()->PushKey(DIK_LSHIFT)) { move.y -= 0.2f; }
+		/// ---------- キー入力による移動 ---------- ///
+		if (Input::GetInstance()->PushKey(DIK_W)) { move.z += 0.2f; }
+		if (Input::GetInstance()->PushKey(DIK_S)) { move.z -= 0.2f; }
+		if (Input::GetInstance()->PushKey(DIK_A)) { move.x -= 0.2f; }
+		if (Input::GetInstance()->PushKey(DIK_D)) { move.x += 0.2f; }
+		if (Input::GetInstance()->PushKey(DIK_SPACE)) { move.y += 0.2f; }
+		if (Input::GetInstance()->PushKey(DIK_LSHIFT)) { move.y -= 0.2f; }
 
-	// 十字キーで回転
-	if (Input::GetInstance()->PushKey(DIK_UP)) { worldTransform_.rotate_.x -= 0.02f; }
-	if (Input::GetInstance()->PushKey(DIK_DOWN)) { worldTransform_.rotate_.x += 0.02f; }
-	if (Input::GetInstance()->PushKey(DIK_LEFT)) { worldTransform_.rotate_.y += 0.02f; }
-	if (Input::GetInstance()->PushKey(DIK_RIGHT)) { worldTransform_.rotate_.y -= 0.02f; }
+		// 十字キーで回転
+		if (Input::GetInstance()->PushKey(DIK_UP)) { worldTransform_.rotate_.x -= 0.02f; }
+		if (Input::GetInstance()->PushKey(DIK_DOWN)) { worldTransform_.rotate_.x += 0.02f; }
+		if (Input::GetInstance()->PushKey(DIK_LEFT)) { worldTransform_.rotate_.y += 0.02f; }
+		if (Input::GetInstance()->PushKey(DIK_RIGHT)) { worldTransform_.rotate_.y -= 0.02f; }
 
-	///// ---------- ホイールで前後移動 ---------- ///
-	//move.z += Input::GetInstance()->GetMouseWheel() * 0.02f;
+		///// ---------- ホイールで前後移動 ---------- ///
+		//move.z += Input::GetInstance()->GetMouseWheel() * 0.02f;
 
-	// 回転行列を適用して移動方向を修正
-	move = Vector3::Transform(move, rotateMatrix_);
-	worldTransform_.translate_ += move;
+		// 回転行列を適用して移動方向を修正
+		move = Vector3::Transform(move, rotateMatrix_);
+		worldTransform_.translate_ += move;
 
-	///// ---------- マウスでカメラ回転 ---------- ///
-	//const float rotateSpeed = 0.002f;
-	//worldTransform_.rotate_.x += Input::GetInstance()->GetMouseMoveY() * rotateSpeed;
-	//worldTransform_.rotate_.y += Input::GetInstance()->GetMouseMoveX() * -rotateSpeed;
+		///// ---------- マウスでカメラ回転 ---------- ///
+		//const float rotateSpeed = 0.002f;
+		//worldTransform_.rotate_.x += Input::GetInstance()->GetMouseMoveY() * rotateSpeed;
+		//worldTransform_.rotate_.y += Input::GetInstance()->GetMouseMoveX() * -rotateSpeed;
 
-	//// カメラのピッチ制限（±90度）
-	//worldTransform_.rotate_.x = std::clamp(worldTransform_.rotate_.x, -1.57f, 1.57f);
-}
+		//// カメラのピッチ制限（±90度）
+		//worldTransform_.rotate_.x = std::clamp(worldTransform_.rotate_.x, -1.57f, 1.57f);
+	}
 
-/// -------------------------------------------------------------
-///						行列の更新処理
-/// -------------------------------------------------------------
-void DebugCamera::UpdateViewProjection()
-{
-	// **回転行列を更新**
-	rotateMatrix_ = Matrix4x4::MakeRotateMatrix(worldTransform_.rotate_);
+	/// -------------------------------------------------------------
+	///						行列の更新処理
+	/// -------------------------------------------------------------
+	void DebugCamera::UpdateViewProjection()
+	{
+		// **回転行列を更新**
+		rotateMatrix_ = Matrix4x4::MakeRotateMatrix(worldTransform_.rotate_);
 
-	// ワールド行列を作る
-	worldMatrix_ = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
+		// ワールド行列を作る
+		worldMatrix_ = Matrix4x4::MakeAffineMatrix(worldTransform_.scale_, worldTransform_.rotate_, worldTransform_.translate_);
 
-	// ビュー行列を作る
-	viewMatrix_ = Matrix4x4::Inverse(worldMatrix_);
+		// ビュー行列を作る
+		viewMatrix_ = Matrix4x4::Inverse(worldMatrix_);
 
-	// 射影行列を更新
-	projectionMatrix_ = Matrix4x4::MakePerspectiveFovMatrix(fovY_, aspectRatio_, nearClip_, farClip_);
+		// 射影行列を更新
+		projectionMatrix_ = Matrix4x4::MakePerspectiveFovMatrix(fovY_, aspectRatio_, nearClip_, farClip_);
 
-	// ビュー射影行列を更新
-	viewProjectionMatrix_ = Matrix4x4::Multiply(viewMatrix_, projectionMatrix_);
-}
+		// ビュー射影行列を更新
+		viewProjectionMatrix_ = Matrix4x4::Multiply(viewMatrix_, projectionMatrix_);
+	}
 
 } // namespace Ken4lowEngine

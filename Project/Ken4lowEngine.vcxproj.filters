@@ -184,6 +184,18 @@
     <Filter Include="Engine\Physics\Collision\Legacy">
       <UniqueIdentifier>{cb8c59d4-ebbb-45c4-b769-2a3b79cf3fdd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Scene\Actor\Core">
+      <UniqueIdentifier>{325285c4-df91-450b-af88-ef7ab51c7fa0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Scene\Actor\Components">
+      <UniqueIdentifier>{126cf5fa-2c87-4814-80e5-2e2106120c67}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Scene\Actor\Serialization">
+      <UniqueIdentifier>{c12ddb44-19e4-445c-9352-7679fff020f6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Scene\Actor\Factory">
+      <UniqueIdentifier>{3e270e79-8ae9-45d4-ad78-e24f9c83cbdc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -1075,35 +1087,8 @@
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Scene\Actor\Actor.cpp">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Scene\Actor\ActorWorld.cpp">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActor.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Scene\Actor\TransformComponent.cpp">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Scene\Actor\ModelComponent.cpp">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Scene\Actor\SceneComponent.cpp">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Scene\Actor\CameraComponent.cpp">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Scene\Actor\ColliderComponent.cpp">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Scene\Actor\RigidbodyComponent.cpp">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Scene\Actor\InstancedModelComponent.cpp">
-      <Filter>Engine\Scene\Actor</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Physics\Collision\Legacy\CollisionManager.cpp">
       <Filter>Engine\Physics\Collision\Legacy</Filter>
@@ -1114,12 +1099,43 @@
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestGroundActor.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Scene\Actor\ActorJsonSerializer.cpp">
-      <Filter>Engine\Scene\Actor</Filter>
+    <ClCompile Include="Engine\Scene\Actor\Core\Actor.cpp">
+      <Filter>Engine\Scene\Actor\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Scene\Actor\ComponentFactory.cpp">
-      <Filter>Engine\Scene\Actor</Filter>
+    <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld.cpp">
+      <Filter>Engine\Scene\Actor\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Serialization\ActorJsonSerializer.cpp">
+      <Filter>Engine\Scene\Actor\Serialization</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Serialization\ComponentFactory.cpp">
+      <Filter>Engine\Scene\Actor\Serialization</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\CameraComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\ColliderComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\InstancedModelComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\ModelComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\RigidbodyComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\SceneComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\TransformComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Factory\ActorFactory.cpp">
+      <Filter>Engine\Scene\Actor\Factory</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2244,38 +2260,8 @@
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.h">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Scene\Actor\ActorComponent.h">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Scene\Actor\Actor.h">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Scene\Actor\ActorWorld.h">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActor.h">
       <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Scene\Actor\TransformComponent.h">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Scene\Actor\ModelComponent.h">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Scene\Actor\SceneComponent.h">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Scene\Actor\CameraComponent.h">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Scene\Actor\ColliderComponent.h">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Scene\Actor\RigidbodyComponent.h">
-      <Filter>Engine\Scene\Actor</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Scene\Actor\InstancedModelComponent.h">
-      <Filter>Engine\Scene\Actor</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Physics\Collision\Legacy\CollisionBroadPhase.h">
       <Filter>Engine\Physics\Collision\Legacy</Filter>
@@ -2310,12 +2296,49 @@
     <ClInclude Include="Engine\Physics\Collision\Core\PhysicsCollisionLayer.h">
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Scene\Actor\ActorJsonSerializer.h">
-      <Filter>Engine\Scene\Actor</Filter>
+    <ClInclude Include="Engine\Scene\Actor\Core\Actor.h">
+      <Filter>Engine\Scene\Actor\Core</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Scene\Actor\ComponentFactory.h">
-      <Filter>Engine\Scene\Actor</Filter>
+    <ClInclude Include="Engine\Scene\Actor\Core\ActorComponent.h">
+      <Filter>Engine\Scene\Actor\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Core\ActorWorld.h">
+      <Filter>Engine\Scene\Actor\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Core\ActorSpawnOptions.h">
+      <Filter>Engine\Scene\Actor\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Serialization\ActorJsonSerializer.h">
+      <Filter>Engine\Scene\Actor\Serialization</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Serialization\ComponentFactory.h">
+      <Filter>Engine\Scene\Actor\Serialization</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\CameraComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\ColliderComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\InstancedModelComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\ModelComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\RigidbodyComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\SceneComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\TransformComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Factory\ActorFactory.h">
+      <Filter>Engine\Scene\Actor\Factory</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

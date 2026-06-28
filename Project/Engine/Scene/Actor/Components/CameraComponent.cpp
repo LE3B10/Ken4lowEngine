@@ -62,7 +62,12 @@ namespace Ken4lowEngine
 
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("Camera Component");
-		ImGui::Checkbox("Auto Register Main Camera", &autoRegisterMainCamera_);
+
+		bool autoRegister = autoRegisterMainCamera_;
+		if (ImGui::Checkbox("Auto Register Main Camera", &autoRegister))
+		{
+			SetAutoRegisterMainCamera(autoRegister); // MainCamera登録フラグを更新する
+		}
 #endif // USE_IMGUI
 	}
 

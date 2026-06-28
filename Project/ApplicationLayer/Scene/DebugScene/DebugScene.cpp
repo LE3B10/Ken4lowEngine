@@ -11,6 +11,8 @@
 #include <GameTimer.h>
 #include <InstancedObject3DRenderer.h>
 #include <GpuParticleEffectEditor.h>
+
+#include "DebugActorRegistration.h"
 #include "TestActor.h"
 #include "TestGroundActor.h"
 
@@ -34,6 +36,8 @@ DebugScene::~DebugScene() = default;
 /// -------------------------------------------------------------
 void DebugScene::Initialize()
 {
+	RegisterDebugActors(); // DebugScene専用のActorを登録する
+
 	input_ = Input::GetInstance();
 
 	// GPU描画へはまだ接続せず、DebugSceneで編集・JSON保存するための既定Effectを用意する。

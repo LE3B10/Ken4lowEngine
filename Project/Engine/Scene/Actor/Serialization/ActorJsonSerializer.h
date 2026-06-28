@@ -1,5 +1,8 @@
 #pragma once
-#include <string>
+
+#include "ActorSpawnOptions.h"
+
+#include <memory>
 #include <string_view>
 
 namespace Ken4lowEngine
@@ -25,5 +28,10 @@ namespace Ken4lowEngine
 		/// JSONファイルからActorへComponent構成を読み込む
 		/// </summary>
 		static bool LoadActorFromFile(Actor& actor, std::string_view filePath);
+
+		/// <summary>
+		/// JSONファイルからActorを生成してComponent構成を読み込む
+		/// </summary>
+		static std::unique_ptr<Actor> CreateActorFromJson(std::string_view filePath, const ActorSpawnOptions& options = {});
 	};
 }

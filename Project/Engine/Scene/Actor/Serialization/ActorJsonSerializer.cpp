@@ -3,6 +3,7 @@
 #include "ActorComponent.h"
 #include "SceneComponent.h"
 #include "ComponentFactory.h"
+#include "ActorFactory.h"
 
 #include <filesystem>
 #include <fstream>
@@ -15,10 +16,6 @@ namespace Ken4lowEngine
 {
 	bool ActorJsonSerializer::SaveActorToFile(const Actor& actor, std::string_view filePath)
 	{
-		nlohmann::json actorJson;
-
-		actor.ToJson(actorJson); // Actorの情報をJSONへ保存する
-
 		const std::filesystem::path path(filePath);
 
 		if (path.has_parent_path())
@@ -31,6 +28,9 @@ namespace Ken4lowEngine
 		{
 			return false; // ファイルが開けなかった場合は失敗を返す
 		}
+
+		nlohmann::json actorJson;
+		actor.ToJson(actorJson); // Actorの情報をJSONへ保存する
 
 		file << actorJson.dump(4); // JSONデータをフォーマットしてファイルに書き込む
 		return true;
@@ -145,6 +145,56 @@ namespace Ken4lowEngine
 
 		actor.InitializeComponents(); // 派生ActorのInitializeを呼ばず、復元したComponentだけを初期化する
 		return true;
+	}
+
+	std::unique_ptr<Actor> ActorJsonSerializer::CreateActorFromJson(std::string_view filePath, const ActorSpawnOptions& options)
+	{
+		const std::filesystem::path path{ std::string(filePath) }; // string_viewを安全にpathへ変換する
+
+		std::ifstream file{ path }; // Most Vexing Parseを避けるため、波括弧でifstreamを生成する
+		if (!file.is_open())
+		{
+			return nullptr; // ファイルを開けなかった場合はnullptrを返す
+		}
+
+		nlohmann::json actorJson;
+		file >> actorJson; // JSONファイルを読み込む
+
+		if (!actorJson.is_object())
+		{
+			return nullptr; // Actor用JSONではない場合はnullptrを返す
+		}
+
+		if (!actorJson.contains("Class") || !actorJson["Class"].is_string())
+		{
+			return nullptr; // Classが無いActorは生成できないため、nullptrを返す
+		}
+
+		const std::string actorClass = actorJson["Class"].get<std::string>();
+
+		std::unique_ptr<Actor> actor = ActorFactory::CreateActor(actorClass); // ActorFactoryで指定ClassのActorを生成する
+		if (!actor)
+		{
+			return nullptr; // 未対応Classならnullptrを返す
+		}
+
+		if (!LoadActorFromFile(*actor, filePath))
+		{
+			return nullptr; // JSON読み込みに失敗した場合はnullptrを返す
+		}
+
+		if (options.applySpawnOffset && actor->GetRootComponent())
+		{
+			if (SceneComponent* root = actor->GetRootComponent())
+			{
+				Vector3 position = Vector3::Add(root->GetLocalPosition(), options.spawnOffset);
+				root->SetLocalPosition(position); // SpawnOffsetをRootComponentのローカル位置に適用する
+				root->RefreshWorldTransform(); // SpawnOffsetを適用した後にWorldTransformを更新する
+			}
+		}
+
+
+		return actor;
 	}
 
 }
