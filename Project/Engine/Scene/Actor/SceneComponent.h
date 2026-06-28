@@ -59,6 +59,11 @@ namespace Ken4lowEngine
 		/// </summary>
 		virtual void ToJson(nlohmann::json& outJson) const override;
 
+		/// <summary>
+		/// JSONからSceneComponentのTransform情報を復元する
+		/// </summary>
+		void FromJson(const nlohmann::json& inJson) override;
+
 	public: /// ---------- 親子関係 ---------- ///
 
 		/// <summary>

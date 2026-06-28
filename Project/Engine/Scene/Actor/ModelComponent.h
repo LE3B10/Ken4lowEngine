@@ -68,6 +68,11 @@ namespace Ken4lowEngine
 		/// </summary>
 		void ToJson(nlohmann::json& outJson) const override;
 
+		/// <summary>
+		/// JSONからModelComponent固有情報を復元する
+		/// </summary>
+		void FromJson(const nlohmann::json& inJson) override;
+
 	public: /// ---------- 設定処理 ---------- ///
 
 		/// <summary>

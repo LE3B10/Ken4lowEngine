@@ -27,6 +27,41 @@ namespace Ken4lowEngine
 				return "Unknown";
 			}
 		}
+
+		BodyType BodyTypeFromString(const std::string& bodyType)
+		{
+			if (bodyType == "Static")
+			{
+				return BodyType::Static;
+			}
+			else if (bodyType == "Dynamic")
+			{
+				return BodyType::Dynamic;
+			}
+			else if (bodyType == "Kinematic")
+			{
+				return BodyType::Kinematic;
+			}
+
+			return BodyType::Dynamic; // デフォルトはDynamicにする
+		}
+
+		/// <summary>
+		/// JSONからVector3を読み取る
+		/// </summary>
+		Vector3 ReadVector3FromJson(const nlohmann::json& json, const char* key, const Vector3& defaultValue)
+		{
+			if (!json.contains(key) || !json[key].is_array() || json[key].size() != 3)
+			{
+				return defaultValue; // 配列が存在しない場合はデフォルト値を返す
+			}
+
+			return {
+				json[key][0].get<float>(),
+				json[key][1].get<float>(),
+				json[key][2].get<float>()
+			};
+		}
 	}
 
 	void RigidbodyComponent::Initialize()
@@ -123,6 +158,32 @@ namespace Ken4lowEngine
 
 		const Vector3 velocity = rigidbody_->GetVelocity(); // Rigidbodyから現在速度を取得する
 		outJson["Velocity"] = { velocity.x, velocity.y, velocity.z }; // 速度を配列で保存する
+	}
+
+	void RigidbodyComponent::FromJson(const nlohmann::json& inJson)
+	{
+		ActorComponent::FromJson(inJson); // 基底クラスの共通情報を復元する
+
+		if (inJson.contains("BodyType") && inJson["BodyType"].is_string())
+		{
+			SetBodyType(BodyTypeFromString(inJson["BodyType"].get<std::string>())); // BodyTypeを復元する。
+		}
+
+		if (inJson.contains("Mass") && inJson["Mass"].is_number())
+		{
+			SetMass(inJson["Mass"].get<float>()); // 質量を復元する。
+		}
+
+		if (inJson.contains("UseGravity") && inJson["UseGravity"].is_boolean())
+		{
+			SetUseGravity(inJson["UseGravity"].get<bool>()); // 重力設定を復元する。
+		}
+
+		if (inJson.contains("Velocity") && inJson["Velocity"].is_array())
+		{
+			const Vector3 velocity = ReadVector3FromJson(inJson, "Velocity", Vector3{ 0.0f, 0.0f, 0.0f });
+			SetVelocity(velocity); // Rigidbody生成前なら保持値に、生成後なら実体にも反映する。
+		}
 	}
 
 	void RigidbodyComponent::SetBodyType(BodyType bodyType)

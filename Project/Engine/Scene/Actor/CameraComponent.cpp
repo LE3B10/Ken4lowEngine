@@ -52,8 +52,8 @@ namespace Ken4lowEngine
 		}
 
 		// Physics補正後の親TransformをCameraへ反映する
-		SceneComponent::RefreshWorldTransform(); // 親子関係を考慮したWorldTransformを即座に再計算する
 		SyncTransformToCamera(); // CameraのTransformを更新する
+		camera_->Update(); // Update時点のCamera行列を更新する
 	}
 
 	void CameraComponent::DrawImGui()
@@ -77,6 +77,16 @@ namespace Ken4lowEngine
 
 		outJson["Class"] = GetClassTypeName(); // CameraComponentの種類を保存する
 		outJson["AutoRegisterMainCamera"] = autoRegisterMainCamera_; // MainCamera登録フラグを保存する"]
+	}
+
+	void CameraComponent::FromJson(const nlohmann::json& inJson)
+	{
+		SceneComponent::FromJson(inJson); // 親クラスの情報をJSONから復元する
+
+		if (inJson.contains("AutoRegisterMainCamera") && inJson["AutoRegisterMainCamera"].is_boolean())
+		{
+			SetAutoRegisterMainCamera(inJson["AutoRegisterMainCamera"].get<bool>()); // MainCamera登録フラグを復元する
+		}
 	}
 
 	void CameraComponent::SetAutoRegisterMainCamera(bool autoRegister)

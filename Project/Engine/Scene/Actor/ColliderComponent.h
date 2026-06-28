@@ -54,6 +54,11 @@ namespace Ken4lowEngine
 		/// </summary>
 		void ToJson(nlohmann::json& outJson) const override;
 
+		/// <summary>
+		/// JSONからModelComponent固有情報を復元する
+		/// </summary>
+		void FromJson(const nlohmann::json& inJson) override;
+
 	public: /// ---------- アクセサ ---------- ///
 
 		/// <summary>
@@ -94,6 +99,19 @@ namespace Ken4lowEngine
 		/// AABB / OBB 判定に使う半サイズを取得する
 		/// </summary>
 		const Vector3& GetHalfSize() const { return halfSize_; }
+
+		/// <summary>
+		/// Trigger判定として扱うかを設定する
+		/// </summary>
+		void SetIsTrigger(bool isTrigger)
+		{
+			isTrigger_ = isTrigger;
+
+			if (collider_)
+			{
+				collider_->SetTrigger(isTrigger_); // ColliderのTrigger設定を反映する
+			}
+		}
 
 	private: /// ---------- 内部処理 ---------- ///
 

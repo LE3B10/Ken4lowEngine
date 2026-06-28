@@ -118,6 +118,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Engine\Scene\Actor\ComponentFactory.cpp" />
     <ClCompile Include="Engine\Scene\Actor\ActorJsonSerializer.cpp" />
     <ClCompile Include="Engine\Scene\Actor\ColliderComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\CameraComponent.cpp" />
@@ -772,6 +773,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Engine\Scene\Actor\ComponentFactory.h" />
     <ClInclude Include="Engine\Scene\Actor\ActorJsonSerializer.h" />
     <ClInclude Include="Engine\Physics\Collision\Core\PhysicsCollisionLayer.h" />
     <ClInclude Include="Engine\Scene\Actor\ColliderComponent.h" />

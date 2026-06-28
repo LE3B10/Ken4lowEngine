@@ -1,18 +1,18 @@
 {
-    "Class": "TestActor",
+    "Class": "TestGroundActor",
     "Components": [
         {
             "Class": "ColliderComponent",
-            "CollisionLayer": 1,
+            "CollisionLayer": 2,
             "HalfSize": [
+                10.0,
                 1.0,
-                1.0,
-                1.0
+                10.0
             ],
             "IsTrigger": false,
             "LocalPosition": [
                 0.0,
-                -0.9999998807907104,
+                -3.0,
                 0.0
             ],
             "LocalRotation": [
@@ -31,7 +31,13 @@
             "Type": "SceneComponent"
         },
         {
-            "Class": "ModelComponent",
+            "Class": "InstancedModelComponent",
+            "InstanceCount": 100,
+            "InstanceScale": [
+                1.0,
+                1.0,
+                1.0
+            ],
             "LocalPosition": [
                 0.0,
                 0.0,
@@ -48,39 +54,18 @@
                 1.0
             ],
             "ModelPath": "Sample/cube.gltf",
-            "Name": "Model Component",
+            "Name": "Instanced Ground Model",
             "Parent": "Root Collider Component",
+            "Spacing": 2.0,
             "Type": "SceneComponent"
         },
         {
-            "AutoRegisterMainCamera": true,
-            "Class": "CameraComponent",
-            "LocalPosition": [
-                0.0,
-                2.0,
-                -8.0
-            ],
-            "LocalRotation": [
-                0.20000000298023224,
-                0.0,
-                0.0
-            ],
-            "LocalScale": [
-                1.0,
-                1.0,
-                1.0
-            ],
-            "Name": "Camera Component",
-            "Parent": "Root Collider Component",
-            "Type": "SceneComponent"
-        },
-        {
-            "BodyType": "Dynamic",
+            "BodyType": "Static",
             "Class": "RigidbodyComponent",
             "Mass": 1.0,
-            "Name": "Rigidbody Component",
+            "Name": "Ground Rigidbody",
             "Type": "ActorComponent",
-            "UseGravity": true,
+            "UseGravity": false,
             "Velocity": [
                 0.0,
                 0.0,
@@ -88,5 +73,5 @@
             ]
         }
     ],
-    "Name": "TestActor"
+    "Name": "TestGroundActor"
 }

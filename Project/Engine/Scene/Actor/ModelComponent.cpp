@@ -94,6 +94,16 @@ namespace Ken4lowEngine
 		outJson["ModelPath"] = modelPath_;     // モデルパスをJSONへ保存する
 	}
 
+	void ModelComponent::FromJson(const nlohmann::json& inJson)
+	{
+		SceneComponent::FromJson(inJson); // SceneComponent共通情報をJSONから復元する
+
+		if (inJson.contains("ModelPath") && inJson["ModelPath"].is_string())
+		{
+			modelPath_ = inJson["ModelPath"].get<std::string>(); // モデルパスをJSONから復元する
+		}
+	}
+
 	void ModelComponent::SetModelPath(std::string_view modelPath)
 	{
 		modelPath_ = std::string(modelPath); // string_viewは保持せず、内部ではstd::stringとして所有する。

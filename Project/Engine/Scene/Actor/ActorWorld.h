@@ -127,6 +127,16 @@ namespace Ken4lowEngine
 		/// </summary>
 		void UnregisterPhysicsComponents(Actor& actor);
 
+		/// <summary>
+		/// Actor JSON読込予約を次フレームの安全なタイミングで処理する
+		/// </summary>
+		void ProcessPendingActorReload();
+
+		/// <summary>
+		/// 指定ActorへJSONを読み込み、PhysicsWorld登録も安全に更新する。
+		/// </summary>
+		bool ReloadActorFromJson(Actor& actor, const std::string_view filePath);
+
 	private: /// ---------- メンバ変数 ---------- ///
 
 		// ActorWorldがActorの寿命を管理する
@@ -136,6 +146,15 @@ namespace Ken4lowEngine
 
 		// Actor World上で選択中のActor
 		Actor* selectedActor_ = nullptr;
+
+		// JSON読込を次フレームUpdateで実行するための予約Actor
+		Actor* pendingReloadActor_ = nullptr;
+
+		// JSON読込予約中のファイルパス
+		std::string pendingReloadFilePath_;
+
+		// JSON読込予約中があるかどうか
+		bool hasPendingReloadActor_ = false;
 
 		// Actor World上で選択中のActorComponent
 		ActorComponent* selectedComponent_ = nullptr;

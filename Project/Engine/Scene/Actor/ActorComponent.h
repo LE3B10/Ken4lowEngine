@@ -130,6 +130,18 @@ namespace Ken4lowEngine
 			outJson["Type"] = "ActorComponent";		// ActorComponent系であることを保存する
 		}
 
+		/// <summary>
+		/// JSONからComponent共通情報を復元する
+		/// </summary>
+		virtual void FromJson(const nlohmann::json& inJson)
+		{
+			if (inJson.contains("Name") && inJson["Name"].is_string())
+			{
+				SetName(inJson["Name"].get<std::string>()); // Actor名を復元する
+			}
+		}
+
+
 	protected: /// ---------- メンバ変数 ---------- ///
 
 		// 所有権はActor側にあり、ActorComponent側ではdeleteしない

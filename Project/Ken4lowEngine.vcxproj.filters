@@ -1117,6 +1117,9 @@
     <ClCompile Include="Engine\Scene\Actor\ActorJsonSerializer.cpp">
       <Filter>Engine\Scene\Actor</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\ComponentFactory.cpp">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2308,6 +2311,9 @@
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\ActorJsonSerializer.h">
+      <Filter>Engine\Scene\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\ComponentFactory.h">
       <Filter>Engine\Scene\Actor</Filter>
     </ClInclude>
   </ItemGroup>

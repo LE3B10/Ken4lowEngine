@@ -8,6 +8,23 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		Vector3 ReadVector3(const nlohmann::json& json, const char* key, const Vector3& defaultValue)
+		{
+			if (!json.contains(key) || !json[key].is_array() || json[key].size() != 3)
+			{
+				return defaultValue; // 指定したキーが存在しない場合はデフォルト値を返す
+			}
+
+			return {
+				json[key][0].get<float>(),
+				json[key][1].get<float>(),
+				json[key][2].get<float>()
+			};
+		}
+	}
+
 	void SceneComponent::Initialize()
 	{
 		// 初期TransformをWorldTransformへ反映する。
@@ -92,6 +109,17 @@ namespace Ken4lowEngine
 
 		const SceneComponent* parent = GetParent();
 		outJson["Parent"] = parent ? parent->GetName() : ""; // 親が存在する場合は親の名前を保存する
+	}
+
+	void SceneComponent::FromJson(const nlohmann::json& inJson)
+	{
+		ActorComponent::FromJson(inJson); // ActorComponent共通情報をJSONから復元する
+
+		SetLocalPosition(ReadVector3(inJson, "LocalPosition", GetLocalPosition()));
+		SetLocalRotation(ReadVector3(inJson, "LocalRotation", GetLocalRotation()));
+		SetLocalScale(ReadVector3(inJson, "LocalScale", GetLocalScale()));
+
+		RefreshWorldTransform(); // 復元したLocalTransformをWorldTransformへ反映する
 	}
 
 	void SceneComponent::AttachTo(SceneComponent* parent)

@@ -48,6 +48,8 @@ namespace Ken4lowEngine
 
 	void ActorWorld::Update(float deltaTime)
 	{
+		ProcessPendingActorReload(); // JSON読込予約があれば次フレームの安全なタイミングで処理する
+
 		for (auto& actor : actors_)
 		{
 			// ActorWorldは更新順だけ管理し、処理内容はActor/Component側に任せる
@@ -151,21 +153,35 @@ namespace Ken4lowEngine
 				if (ImGui::Button("Save Selected Actor JSON"))
 				{
 					const std::string actorName = saveTargetActor->GetName().empty()
-						? saveTargetActor->GetClassTypeName() // 名前が空なら型名を使う
+						? saveTargetActor->GetClassTypeName()
 						: saveTargetActor->GetName();
 
-					const std::string filePath = "Resources/ActorPrefabs/" + actorName + ".json"; // 保存先のファイルパスを生成する
+					const std::string filePath = "Resources/ActorPrefabs/" + actorName + ".json";
 
-					const bool succeded = ActorJsonSerializer::SaveActorToFile(*saveTargetActor, filePath);
+					const bool succeeded = ActorJsonSerializer::SaveActorToFile(*saveTargetActor, filePath);
 
-					if (succeded)
-					{
-						lastActorJsonSaveMessage_ = "Saved : " + filePath; // 保存成功メッセージを保持する
-					}
-					else
-					{
-						lastActorJsonSaveMessage_ = "Failed to save : " + filePath; // 保存失敗メッセージを保持する
-					}
+					lastActorJsonSaveMessage_ = succeeded
+						? "Saved : " + filePath
+						: "Save failed : " + filePath;
+				}
+
+				ImGui::SameLine();
+
+				if (ImGui::Button("Load Selected Actor JSON"))
+				{
+					const std::string actorName = saveTargetActor->GetName().empty()
+						? saveTargetActor->GetClassTypeName()
+						: saveTargetActor->GetName();
+
+					const std::string filePath = "Resources/ActorPrefabs/" + actorName + ".json";
+
+					selectedComponent_ = nullptr; // Componentは作り直されるので選択解除する
+
+					pendingReloadActor_ = saveTargetActor; // JSON読込予約を次フレームの安全なタイミングで処理する
+					pendingReloadFilePath_ = filePath;
+					hasPendingReloadActor_ = true;
+
+					lastActorJsonSaveMessage_ = "Reload requested : " + filePath;
 				}
 
 				if (!lastActorJsonSaveMessage_.empty())
@@ -319,6 +335,46 @@ namespace Ken4lowEngine
 		}
 
 		actor.SetPhysicsRegistered(false); // 登録済みフラグを下ろす
+	}
+
+	void ActorWorld::ProcessPendingActorReload()
+	{
+		if (!hasPendingReloadActor_ || !pendingReloadActor_)
+		{
+			return; // JSON読込予約が無い場合は何もしない
+		}
+
+		Actor* reloadActor = pendingReloadActor_;
+		const std::string reloadFilePath = pendingReloadFilePath_;
+
+		hasPendingReloadActor_ = false; // 次フレームで再度処理されないようにフラグを下ろす
+		pendingReloadActor_ = nullptr; // 次フレームで再度処理されないようにポインタをクリアする
+		pendingReloadFilePath_.clear(); // 次フレームで再度処理されないようにファイルパスをクリアする
+
+		selectedComponent_ = nullptr; // Componentは作り直されるので選択解除する
+
+		const bool succeeded = ReloadActorFromJson(*reloadActor, reloadFilePath);
+
+		lastActorJsonSaveMessage_ = succeeded
+			? "Loaded : " + reloadFilePath
+			: "Load failed : " + reloadFilePath;
+
+		selectedActor_ = reloadActor; // 読み込み後もActorを選択状態に戻す
+	}
+
+	bool ActorWorld::ReloadActorFromJson(Actor& actor, const std::string_view filePath)
+	{
+		UnregisterPhysicsComponents(actor); // JSON読み込み前にPhysicsWorld登録を解除する
+
+		const bool succeeded = ActorJsonSerializer::LoadActorFromFile(actor, filePath);
+		if (!succeeded)
+		{
+			RegisterPhysicsComponents(actor); // JSON読み込みに失敗した場合はPhysicsWorld登録を元に戻す
+			return false; // JSON読み込みに失敗した場合はfalseを返す
+		}
+
+		RegisterPhysicsComponents(actor); // JSON読み込み後にPhysicsWorld登録を再度行う
+		return true;
 	}
 
 }

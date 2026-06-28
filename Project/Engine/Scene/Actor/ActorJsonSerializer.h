@@ -20,5 +20,10 @@ namespace Ken4lowEngine
 		/// Actor構成をJSONファイルへ保存する。
 		/// </summary>
 		static bool SaveActorToFile(const Actor& actor, std::string_view filePath);
+
+		/// <summary>
+		/// JSONファイルからActorへComponent構成を読み込む
+		/// </summary>
+		static bool LoadActorFromFile(Actor& actor, std::string_view filePath);
 	};
 }

@@ -9,6 +9,11 @@ namespace Ken4lowEngine
 {
 	void Actor::Initialize()
 	{
+		InitializeComponents();
+	}
+
+	void Actor::InitializeComponents()
+	{
 		for (auto& component : components_)
 		{
 			// 初期化処理は各Componentに移譲する
@@ -20,6 +25,11 @@ namespace Ken4lowEngine
 	{
 		for (auto& component : components_)
 		{
+			if (!component)
+			{
+				continue; // nullptrのComponentは無視する
+			}
+
 			// Actorは更新順だけ管理し、処理内容はComponent側に任せる
 			component->Update(deltaTime);
 		}
@@ -190,6 +200,29 @@ namespace Ken4lowEngine
 			component->ToJson(componentJson);				// Componentの情報をJSONへ保存する
 			outJson["Components"].push_back(componentJson); // Component情報を配列へ追加する
 		}
+	}
+
+	void Actor::FromJson(const nlohmann::json& inJson)
+	{
+		if (inJson.contains("Name") && inJson["Name"].is_string())
+		{
+			SetName(inJson["Name"].get<std::string>()); // JSONに保存されたActor名を復元する。
+		}
+	}
+
+	void Actor::ClearComponents()
+	{
+		for (auto& component : components_)
+		{
+			if (component)
+			{
+				component->Finalize(); // Component破棄前に明示的な終了処理を流す
+			}
+		}
+
+		components_.clear();		  // ActorがComponentの寿命を管理するため、ここで破棄する
+		rootComponent_ = nullptr;	  // RootComponentをリセットする
+		isPhysicsRegistered_ = false; // PhysicsWorldへの登録状態をリセットする
 	}
 
 	ActorComponent* Actor::FindComponentByName(std::string_view name)

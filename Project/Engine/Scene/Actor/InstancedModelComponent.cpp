@@ -22,8 +22,24 @@ namespace Ken4lowEngine
 				std::abs(v1.y - v2.y) > kEpsilon ||
 				std::abs(v1.z - v2.z) > kEpsilon;
 		}
-	}
 
+		/// <summary>
+		/// JSONからVector3を読み取る
+		/// </summary>
+		Vector3 ReadVector3FromJson(const nlohmann::json& json, const char* key, const Vector3& defaultValue)
+		{
+			if (!json.contains(key) || !json[key].is_array() || json[key].size() != 3)
+			{
+				return defaultValue; // 配列が存在しない場合はデフォルト値を返す
+			}
+
+			return {
+				json[key][0].get<float>(),
+				json[key][1].get<float>(),
+				json[key][2].get<float>()
+			};
+		}
+	}
 
 	void InstancedModelComponent::Initialize()
 	{
@@ -163,6 +179,33 @@ namespace Ken4lowEngine
 		outJson["InstanceCount"] = instanceCount_;	// 描画するインスタンス数を保存する
 		outJson["Spacing"] = spacing_;				// インスタンス同士の間隔を保存する
 		outJson["InstanceScale"] = { instanceScale_.x, instanceScale_.y, instanceScale_.z };
+	}
+
+	void InstancedModelComponent::FromJson(const nlohmann::json& inJson)
+	{
+		SceneComponent::FromJson(inJson); // 親クラスの共通情報を復元する。
+
+		if (inJson.contains("ModelPath") && inJson["ModelPath"].is_string())
+		{
+			modelPath_ = inJson["ModelPath"].get<std::string>();
+		}
+
+		if (inJson.contains("InstanceCount") && inJson["InstanceCount"].is_number_integer())
+		{
+			SetInstanceCount(inJson["InstanceCount"].get<int>()); // インスタンス数を復元する
+		}
+
+		if (inJson.contains("Spacing") && inJson["Spacing"].is_number())
+		{
+			SetSpacing(inJson["Spacing"].get<float>()); // インスタンス間隔を復元する
+		}
+
+		if (inJson.contains("InstanceScale") && inJson["InstanceScale"].is_array())
+		{
+			SetInstanceScale(ReadVector3FromJson(inJson, "InstanceScale", { 1.0f, 1.0f, 1.0f })); // インスタンスごとのスケールを復元する
+		}
+
+		RequestRebuild(); // JSON復元後の設定でインスタンス配置を再構築する
 	}
 
 	void InstancedModelComponent::SetModelPath(std::string_view modelPath)

@@ -28,7 +28,7 @@ namespace Ken4lowEngine
 			static_assert(std::is_base_of_v<ActorComponent, T>, "T must inherit from ActorComponent.");
 
 			auto component = std::make_unique<T>(std::forward<Args>(args)...);
-			component->SetName(typeid(T).name()); // Componentの型名をデフォルト名として設定する
+			component->SetName(component->GetClassTypeName()); // Componentの型名をデフォルト名として設定する
 
 			auto& ref = *component;	   // push後も呼び出し側が追加したComponentを扱えるように参照を保持しておく
 			component->SetOwner(this); // Componentに所有者Actorを設定する
@@ -103,7 +103,7 @@ namespace Ken4lowEngine
 			static_assert(std::is_base_of_v<SceneComponent, T>, "T must inherit from SceneComponent.");
 
 			auto& root = AddComponent<T>(std::forward<Args>(args)...);
-			root.SetName(typeid(T).name()); // RootComponentの型名をデフォルト名として設定する
+			root.SetName(root.GetClassTypeName()); // RootComponentの型名をデフォルト名として設定する
 
 			if (!rootComponent_)
 			{
@@ -124,6 +124,11 @@ namespace Ken4lowEngine
 		/// Actorが持つ全Componentを初期化する
 		/// </summary>
 		virtual void Initialize();
+
+		/// <summary>
+		/// Actorが所有するComponentのみを初期化する
+		/// </summary>
+		void InitializeComponents();
 
 		/// <summary>
 		/// Actorが持つ全Componentを更新する
@@ -186,6 +191,16 @@ namespace Ken4lowEngine
 		/// Actorと所有Component情報をJSONへ保存する。
 		/// </summary>
 		virtual void ToJson(nlohmann::json& outJson) const;
+
+		/// <summary>
+		/// JSONからActor共通情報を復元する
+		/// </summary>
+		virtual void FromJson(const nlohmann::json& inJson);
+
+		/// <summary>
+		/// Actorが所有するComponentをすべて破棄する。
+		/// </summary>
+		void ClearComponents();
 
 	public: /// ---------- Actor破棄フラグ設定 ---------- ///
 

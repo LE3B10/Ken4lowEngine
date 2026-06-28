@@ -32,6 +32,49 @@ namespace Ken4lowEngine
 				return "None";
 			}
 		}
+
+		/// <summary>
+		/// JSON文字列からCollision形状を変換する
+		/// </summary>
+		ECollisionShapeType ShapeTypeFromString(const std::string& shapeType)
+		{
+			if (shapeType == "Sphere")
+			{
+				return ECollisionShapeType::Sphere;
+			}
+			else if (shapeType == "AABB")
+			{
+				return ECollisionShapeType::AABB;
+			}
+			else if (shapeType == "OBB")
+			{
+				return ECollisionShapeType::OBB;
+			}
+			else if (shapeType == "Capsule")
+			{
+				return ECollisionShapeType::Capsule;
+			}
+			else if (shapeType == "Segment")
+			{
+				return ECollisionShapeType::Segment;
+			}
+
+			return ECollisionShapeType::None;
+		}
+
+		Vector3 ReadVector3FromJson(const nlohmann::json& json, const std::string& key, const Vector3& defaultValue = Vector3{ 0.0f, 0.0f, 0.0f })
+		{
+			if (!json.contains(key) || !json[key].is_array() || json[key].size() != 3)
+			{
+				return defaultValue; // 値が存在しない場合はデフォルト値を返す
+			}
+
+			return {
+				json[key][0].get<float>(),
+				json[key][1].get<float>(),
+				json[key][2].get<float>()
+			};
+		}
 	}
 
 	void ColliderComponent::Initialize()
@@ -145,6 +188,32 @@ namespace Ken4lowEngine
 		outJson["HalfSize"] = { halfSize_.x, halfSize_.y, halfSize_.z };	// AABB / OBBの半サイズをJSONへ保存する
 		outJson["IsTrigger"] = isTrigger_;									// Trigger判定かどうかをJSONへ保存する
 		outJson["CollisionLayer"] = static_cast<uint32_t>(collisionLayer_); // Colliderの衝突レイヤーをJSONへ保存する
+	}
+
+	void ColliderComponent::FromJson(const nlohmann::json& inJson)
+	{
+		SceneComponent::FromJson(inJson); // SceneComponent共通情報をJSONから復元する
+
+		if (inJson.contains("ShapeType") && inJson["ShapeType"].is_string())
+		{
+			SetShapeType(ShapeTypeFromString(inJson["ShapeType"].get<std::string>())); // Collider形状を復元する。
+		}
+
+		if (inJson.contains("HalfSize") && inJson["HalfSize"].is_array())
+		{
+			SetHalfSize(ReadVector3FromJson(inJson, "HalfSize", halfSize_)); // AABBなどで使う半径サイズを復元する。
+		}
+
+		if (inJson.contains("IsTrigger") && inJson["IsTrigger"].is_boolean())
+		{
+			SetIsTrigger(inJson["IsTrigger"].get<bool>()); // Trigger設定を復元する。
+		}
+
+		if (inJson.contains("CollisionLayer") && inJson["CollisionLayer"].is_number_unsigned())
+		{
+			const uint32_t layer = inJson["CollisionLayer"].get<uint32_t>();
+			SetCollisionLayer(static_cast<PhysicsCollisionLayer>(layer)); // 衝突レイヤーを復元する。
+		}
 	}
 
 	void ColliderComponent::SetCollisionLayer(uint32_t layer)

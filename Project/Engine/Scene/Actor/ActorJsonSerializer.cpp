@@ -1,8 +1,14 @@
 #include "ActorJsonSerializer.h"
 #include "Actor.h"
+#include "ActorComponent.h"
+#include "SceneComponent.h"
+#include "ComponentFactory.h"
 
-#include <fstream>
 #include <filesystem>
+#include <fstream>
+#include <string>
+#include <unordered_map>
+#include <vector>
 #include <json.hpp>
 
 namespace Ken4lowEngine
@@ -29,4 +35,116 @@ namespace Ken4lowEngine
 		file << actorJson.dump(4); // JSONデータをフォーマットしてファイルに書き込む
 		return true;
 	}
+
+	bool ActorJsonSerializer::LoadActorFromFile(Actor& actor, std::string_view filePath)
+	{
+		const std::filesystem::path path{ std::string(filePath) }; // string_viewを安全にpathへ変換する。
+
+		std::ifstream file{ path }; // Most Vexing Parseを避けるため、波括弧でifstreamを生成する。
+		if (!file.is_open())
+		{
+			return false; // ファイルを開けなかった場合は読み込み失敗。
+		}
+
+		nlohmann::json actorJson;
+		file >> actorJson; // JSONファイルを読み込む。
+
+		if (!actorJson.is_object())
+		{
+			return false; // Actor用JSONではない場合は読み込まない。
+		}
+
+		if (!actorJson.contains("Components") || !actorJson["Components"].is_array())
+		{
+			return false; // Component配列が無い場合はActor構成として扱わない。
+		}
+
+		for (const auto& componentJson : actorJson["Components"])
+		{
+			if (!componentJson.is_object())
+			{
+				return false; // 不正なComponent要素がある場合は、Actorを壊す前に読み込みを中止する。
+			}
+
+			if (!componentJson.contains("Class") || !componentJson["Class"].is_string())
+			{
+				return false; // Classが無いComponentは復元できないため、Actorを壊す前に読み込みを中止する。
+			}
+		}
+
+		actor.ClearComponents(); // 既存Componentを破棄して、JSON構成で作り直す。
+		actor.FromJson(actorJson); // Actor名などの共通情報を復元する。
+
+		std::unordered_map<std::string, SceneComponent*> sceneComponentsByName;
+		std::vector<std::pair<SceneComponent*, std::string>> pendingAttachments;
+
+		for (const auto& componentJson : actorJson["Components"])
+		{
+			const std::string className = componentJson["Class"].get<std::string>();
+
+			std::string componentType = "ActorComponent";
+			if (componentJson.contains("Type") && componentJson["Type"].is_string())
+			{
+				componentType = componentJson["Type"].get<std::string>(); // SceneComponentかActorComponentかを取得する。
+			}
+
+			std::string parentName;
+			if (componentJson.contains("Parent") && componentJson["Parent"].is_string())
+			{
+				parentName = componentJson["Parent"].get<std::string>(); // 後でAttachToするため親名を保持する。
+			}
+
+			ActorComponent* createdComponent = nullptr;
+
+			if (componentType == "SceneComponent" && parentName.empty())
+			{
+				createdComponent = ComponentFactory::CreateRootSceneComponent(&actor, className); // 親が無いSceneComponentはRootとして生成する。
+			}
+			else
+			{
+				createdComponent = ComponentFactory::CreateComponent(&actor, className); // 通常Componentとして生成する。
+			}
+
+			if (!createdComponent)
+			{
+				continue; // 未対応Classなら無視する。
+			}
+
+			createdComponent->FromJson(componentJson); // Component固有情報を復元する。
+
+			if (SceneComponent* sceneComponent = dynamic_cast<SceneComponent*>(createdComponent))
+			{
+				sceneComponentsByName[sceneComponent->GetName()] = sceneComponent; // 親子接続用に名前で登録する。
+
+				if (!parentName.empty())
+				{
+					pendingAttachments.emplace_back(sceneComponent, parentName); // 全Component生成後に親子接続する。
+				}
+				else if (!actor.GetRootComponent())
+				{
+					actor.SetRootComponent(sceneComponent); // Rootが未設定なら親無しSceneComponentをRootにする。
+				}
+			}
+		}
+
+		for (const auto& [child, parentName] : pendingAttachments)
+		{
+			if (!child)
+			{
+				continue; // 子が無効なら接続しない。
+			}
+
+			const auto parentIt = sceneComponentsByName.find(parentName);
+			if (parentIt == sceneComponentsByName.end())
+			{
+				continue; // 親名に一致するSceneComponentが無い場合は接続しない。
+			}
+
+			child->AttachTo(parentIt->second); // JSONに保存されていた親子関係を復元する。
+		}
+
+		actor.InitializeComponents(); // 派生ActorのInitializeを呼ばず、復元したComponentだけを初期化する
+		return true;
+	}
+
 }
