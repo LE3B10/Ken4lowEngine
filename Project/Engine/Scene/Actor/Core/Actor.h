@@ -155,7 +155,6 @@ namespace Ken4lowEngine
 		/// </summary>
 		virtual void DrawImGui();
 
-#ifdef USE_IMGUI
 		/// <summary>
 		/// ActorWorld上にActorとComponent階層を表示する。
 		/// </summary>
@@ -170,7 +169,6 @@ namespace Ken4lowEngine
 		/// Detailsウィンドウに表示するActor詳細を描画する。
 		/// </summary>
 		void DrawInspectorImGui();
-#endif // USE_IMGUI
 
 		/// <summary>
 		/// Actorが持つ全Componentの終了処理を行う

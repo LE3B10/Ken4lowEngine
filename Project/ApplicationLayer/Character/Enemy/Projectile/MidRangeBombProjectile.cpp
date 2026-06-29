@@ -26,7 +26,7 @@ void MidRangeBombProjectile::Initialize()
     explosionDamageApplied_ = false;
 
     debugCube_ = std::make_unique<Object3D>();
-    debugCube_->Initialize("Test/cube.gltf");
+    debugCube_->Initialize("Sample/cube.gltf");
     debugCube_->SetColor({ 0.15f, 0.02f, 0.22f, 1.0f });
     UpdateDebugCube();
 }

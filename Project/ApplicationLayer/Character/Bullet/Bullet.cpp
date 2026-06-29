@@ -17,7 +17,7 @@ namespace
 {
 	constexpr uint32_t kRocketDebrisMeshId = 1000;
 	constexpr const char* kRocketDebrisEmitterName = "RocketDebrisMesh";
-	constexpr const char* kRocketDebrisMeshModelPath = "Test/cube.gltf";
+	constexpr const char* kRocketDebrisMeshModelPath = "Sample/cube.gltf";
 
 	float LengthSq(const K4E::Vector3& v)
 	{
