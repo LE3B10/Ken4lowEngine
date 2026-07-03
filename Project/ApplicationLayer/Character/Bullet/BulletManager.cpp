@@ -21,26 +21,16 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 	const Ken4lowEngine::Vector3& shooterPosition,
 	uint32_t shooterColliderId,
 	uint32_t typeId,
-	float splashRadius,
-	int splashDamage,
-	bool splashCanDamageSelf,
-	bool drawModel,
-	int32_t weaponID,
-	EWeaponCategory weaponCategory,
-	EDeathKnockbackType deathType,
-	float deathPower,
-	float deathUpPower,
-	float deathExplosionRadius,
-	float deathImpulseScale
+	const WeaponParams& weaponParams
 )
 {
 	auto b = std::make_unique<Bullet>();
 	b->Initialize(startPos, dirNormalized * speed, damage, lifeTimeSec, shooterPosition, shooterColliderId, typeId);
-	b->SetModelDrawEnabled(drawModel);
+	b->SetModelDrawEnabled(weaponParams.drawProjectileModel);
 	b->SetCollisionManager(collisionManager_);
 	b->SetWorldImpactCallback(worldImpactCallback_);
-	b->ConfigureSplashDamage(splashRadius, splashDamage, splashCanDamageSelf);
-	b->SetWeaponMetadata(weaponID, weaponCategory, deathType, deathPower, deathUpPower, deathExplosionRadius, deathImpulseScale);
+	b->ConfigureSplashDamage(weaponParams);
+	b->SetWeaponMetadata(weaponParams);
 	b->SetUsePhysicsTrigger(usePhysicsTriggerForNormalBullets_);
 	if (b->UsesPhysicsTrigger())
 	{

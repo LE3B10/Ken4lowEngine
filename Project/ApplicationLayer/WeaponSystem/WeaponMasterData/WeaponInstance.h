@@ -9,10 +9,10 @@ class CollisionManager;
 namespace Ken4lowEngine { class Camera; }
 namespace K4E = ::Ken4lowEngine;
 
-/// -------------------------------------------------------------
-///  WeaponRuntimeState
-///  - 実行時に変化する値（残弾/クールダウン/リロード/拡散など）
-/// -------------------------------------------------------------
+/// <summary>
+/// 武器ごとの実行時状態を保持する
+/// マスターデータ由来の固定値とは分け、残弾・クールダウン・リロード・拡散などゲーム中に変化する値だけを扱う
+/// </summary>
 struct WeaponRuntimeState
 {
 	int32_t magAmmo = 0;
@@ -29,18 +29,17 @@ struct WeaponRuntimeState
 	int32_t burstRemaining = 0;
 	float   burstTimer = 0.0f;
 
-	// 動的拡散（度）: baseHip/baseAds に加算される
+	// 射撃ごとに増える動的拡散。Hip/ADSの基礎拡散に加算して使用する
 	float spread = 0.0f;
 
-	// ✅ ADS状態（Player側から毎フレーム流す）
+	// ADS状態はPlayer側の入力結果を毎フレーム反映し、拡散やUI表示に使用する
 	bool isADS = false;
 };
 
-/// -------------------------------------------------------------
-///  WeaponInstance
-///  - Playerは入力を渡すだけ
-///  - 弾生成/クールダウン/リロード/バースト等はここで完結
-/// -------------------------------------------------------------
+/// <summary>
+/// 装備中武器1本分のランタイム処理を担当する。
+/// Playerから射撃入力とADS状態を受け取り、弾生成・クールダウン・リロード・バースト状態を更新する
+/// </summary>
 class WeaponInstance
 {
 public:
@@ -50,21 +49,23 @@ public:
 
 	void StartReload();
 
-	/// fireHeld: 押しっぱ / firePressed: 押した瞬間
+	/// <summary>
+	/// 入力状態に応じて射撃可能か判定し、可能であれば弾生成と弾薬・クールダウン更新を行う
+	/// </summary>
 	void TryFire(bool fireHeld, bool firePressed,
 		K4E::Camera* cam,
 		BulletManager* bulletMgr,
 		CollisionManager* colMgr);
 
-	// 発射モード（現在）
+	// 現在の発射モードをUIや入力処理へ返す
 	bool IsAutomatic() const { return fireModeAutomatic_; }
 	bool CanToggleFireMode() const { return params_.canToggleFireMode; }
 	bool ToggleFireMode();
 
-	// ADS状態を外から反映
+	// Player側で決定したADS状態を武器側の拡散計算へ反映する
 	void SetADS(bool v) { st_.isADS = v; }
 
-	// UI用に「今回のリロード時間」を返す
+	// 現在のマガジン状態に応じて、通常/タクティカル/空リロードの時間を返す
 	float GetCurrentReloadDurationSec() const;
 
 	const WeaponParams& Params() const { return params_; }
@@ -76,7 +77,7 @@ public:
 	int32_t GetReserveAmmo() const { return st_.reserveAmmo; }
 	int32_t GetMaxReserveAmmo() const { return params_.maxReserveAmmo; }
 
-	// リロードをキャンセルできる場合はキャンセルする
+	// 中断可能な武器だけ、リロード状態と予約状態を解除する
 	void CancelReload();
 
 private: /// ---------- メンバ関数 ---------- ///
@@ -92,12 +93,12 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	void FireShot(K4E::Camera* cam, BulletManager* bulletMgr, CollisionManager* colMgr);
 
-	// 現在の基礎拡散（Hip/ADS）
+	// ADS状態に応じて、腰だめ/ADSどちらの基礎拡散を使うか決める
 	float GetBaseSpreadDeg() const;
 
 private:
 	WeaponParams params_{};
 	WeaponRuntimeState st_{};
 
-	bool fireModeAutomatic_ = false; // 現在の発射モード（true: auto / false: semi）。切替可能な武器は params_.isAutomatic と同初期値
+	bool fireModeAutomatic_ = false; // trueなら押しっぱなし射撃、falseなら単発入力射撃として扱う
 };

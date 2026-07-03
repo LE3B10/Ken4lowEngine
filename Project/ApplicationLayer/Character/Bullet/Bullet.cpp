@@ -6,6 +6,7 @@
 #include "EnemyBase.h"
 #include "BossBase.h"
 #include "GpuParticleManager.h"
+#include "WeaponParams.h"
 
 #include <algorithm>
 #include <cmath>
@@ -247,11 +248,11 @@ void Bullet::Initialize(const K4E::Vector3& startPos,
 	contactRecord_.Clear();
 }
 
-void Bullet::ConfigureSplashDamage(float radius, int damage, bool canDamageSelf)
+void Bullet::ConfigureSplashDamage(const WeaponParams& params)
 {
-	splashRadius_ = std::max(0.0f, radius);
-	splashDamage_ = std::max(0, damage);
-	splashCanDamageSelf_ = canDamageSelf;
+	splashRadius_ = std::max(0.0f, params.splashRadius);
+	splashDamage_ = std::max(0, params.splashDamage);
+	splashCanDamageSelf_ = params.splashCanDamageSelf;
 
 	if (HasSplashDamage())
 	{
@@ -261,15 +262,15 @@ void Bullet::ConfigureSplashDamage(float radius, int damage, bool canDamageSelf)
 	}
 }
 
-void Bullet::SetWeaponMetadata(int32_t weaponID, EWeaponCategory category, EDeathKnockbackType deathType, float deathPower, float deathUpPower, float deathExplosionRadius, float deathImpulseScale)
+void Bullet::SetWeaponMetadata(const WeaponParams& params)
 {
-	weaponID_ = weaponID;
-	weaponCategory_ = category;
-	deathKnockbackType_ = deathType;
-	deathKnockbackPower_ = std::max(0.0f, deathPower);
-	deathKnockbackUpPower_ = std::max(0.0f, deathUpPower);
-	deathExplosionRadius_ = std::max(0.0f, deathExplosionRadius);
-	deathImpulseScale_ = std::max(0.01f, deathImpulseScale);
+	weaponID_ = params.weaponID;
+	weaponCategory_ = params.weaponCategory;
+	deathKnockbackType_ = params.deathKnockbackType;
+	deathKnockbackPower_ = std::max(0.0f, params.deathKnockbackPower);
+	deathKnockbackUpPower_ = std::max(0.0f, params.deathKnockbackUpPower);
+	deathExplosionRadius_ = std::max(0.0f, params.deathExplosionRadius);
+	deathImpulseScale_ = std::max(0.01f, params.deathImpulseScale);
 }
 
 void Bullet::SetUsePhysicsTrigger(bool enabled)

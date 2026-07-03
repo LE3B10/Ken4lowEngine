@@ -5,7 +5,6 @@
 #include <cmath>
 #include <random>
 
-// 既存プロジェクトのヘッダー
 #include "BulletManager.h"
 #include "Camera.h"
 #include "CollisionTypeIdDef.h"
@@ -16,7 +15,7 @@ using namespace Ken4lowEngine;
 static float Clamp01(float v) { return std::max(0.0f, std::min(1.0f, v)); }
 
 
-/// forward を「コーン状」にランダムに曲げる（簡易スプレッド）
+// 射撃方向を円錐内で面積一様にばらつかせ、画面中心からの拡散を自然に見せる
 static K4E::Vector3 ApplySpread(const K4E::Vector3& forward, float spreadDeg)
 {
 	if (spreadDeg <= 0.0f) return Vector3::Normalize(forward);
@@ -26,19 +25,19 @@ static K4E::Vector3 ApplySpread(const K4E::Vector3& forward, float spreadDeg)
 
 	const float spreadRad = spreadDeg * std::numbers::pi_v<float> / 180.0f;
 
-	// 角度をランダム（面積一様）
+	// cos(phi)を一様に取ることで、円錐内の弾方向が中心に偏りすぎないようにする
 	const float theta = 2.0f * std::numbers::pi_v<float> *u01(rng);
 	const float cosPhi = 1.0f - u01(rng) * (1.0f - std::cos(spreadRad));
 	const float sinPhi = std::sqrt(std::max(0.0f, 1.0f - cosPhi * cosPhi));
 
-	// forward に直交する basis を作る
+	// forwardを基準に直交基底を作り、カメラ方向に対して自然な散布方向を組み立てる
 	K4E::Vector3 f = Vector3::Normalize(forward);
-	K4E::Vector3 up = { 0,1,0 };
-	if (std::fabs(Vector3::Dot(f, up)) > 0.98f) up = { 1,0,0 };
+	K4E::Vector3 up = { 0, 1, 0 };
+	if (std::fabs(Vector3::Dot(f, up)) > 0.98f) up = { 1, 0, 0 };
 	K4E::Vector3 right = Vector3::Normalize(Vector3::Cross(up, f));
 	K4E::Vector3 realUp = Vector3::Cross(f, right);
 
-	// コーン方向
+	// 基準方向と横方向成分を合成し、最終的な弾の進行方向にする
 	K4E::Vector3 dir = Vector3::Add(
 		Vector3::Add(Vector3::Multiply(right, std::cos(theta) * sinPhi), Vector3::Multiply(realUp, std::sin(theta) * sinPhi)),
 		Vector3::Multiply(f, cosPhi)
@@ -77,7 +76,7 @@ bool WeaponInstance::ToggleFireMode()
 
 float WeaponInstance::GetCurrentReloadDurationSec() const
 {
-	// 空マガジン時は emptyReload、残弾ありは tacticalReload
+	// 空マガジンと残弾ありでリロード時間を分け、武器ごとの操作感を出す
 	if (st_.magAmmo <= 0 && params_.emptyReloadSec > 0.0f)
 		return params_.emptyReloadSec;
 
@@ -95,7 +94,7 @@ int32_t WeaponInstance::AddReserveAmmo(int32_t amount)
 	if (maxReserveAmmo <= 0) return 0;
 
 	const int32_t before = st_.reserveAmmo;
-	// AmmoSmallはマガジンではなく予備弾薬へ補充し、リロード処理で装填させる。
+	// AmmoSmallはマガジンではなく予備弾薬へ補充し、リロード処理で装填させる
 	st_.reserveAmmo = std::min<int32_t>(maxReserveAmmo, st_.reserveAmmo + amount);
 	return st_.reserveAmmo - before;
 }
@@ -153,7 +152,7 @@ void WeaponInstance::Tick(float dt)
 		}
 	}
 
-	// spreadRecoveryRate をそのまま使う（度/秒）
+	// 射撃で広がった照準を時間経過で戻し、連射後に徐々に精度が回復するようにする
 	st_.spread = std::max(0.0f, st_.spread - dt * std::max(0.0f, params_.spreadRecoveryRate));
 }
 
@@ -169,7 +168,7 @@ void WeaponInstance::StartReload()
 
 void WeaponInstance::CancelReload()
 {
-	// 中断不可なら何もしない
+	// 武器ごとの中断可否を守り、リロード演出やバランスを崩さないようにする
 	if (!params_.canInterruptReload) return;
 
 	st_.isReloading = false;
@@ -209,7 +208,7 @@ bool WeaponInstance::CanFire() const
 	if (st_.fireCooldown > 0.0f) return false;
 	if (st_.magAmmo < params_.ammoPerShot) return false;
 
-	// バースト中は burstTimer が 0以下のタイミングだけ撃てる
+	// バースト中は射撃間隔を守るため、次弾の予約時間が終わるまで発射を止める
 	if (st_.burstRemaining > 0 && st_.burstTimer > 0.0f) return false;
 
 	return true;
@@ -232,10 +231,7 @@ void WeaponInstance::FinishReload()
 	st_.reserveAmmo -= add;
 }
 
-void WeaponInstance::TryFire(bool fireHeld, bool firePressed,
-	K4E::Camera* cam,
-	BulletManager* bulletMgr,
-	CollisionManager* /*colMgr*/)
+void WeaponInstance::TryFire(bool fireHeld, bool firePressed, K4E::Camera* cam, BulletManager* bulletMgr, [[maybe_unused]] CollisionManager* colMgr)
 {
 	const bool want = WantFire(fireHeld, firePressed);
 	if (!want) return;
@@ -253,7 +249,7 @@ void WeaponInstance::TryFire(bool fireHeld, bool firePressed,
 
 	ConsumeAmmo();
 
-	// spreadIncrease / maxSpread を使う
+	// 連射時の拡散増加は基礎拡散を除いた動的分だけに制限する
 	const float baseSpread = GetBaseSpreadDeg();
 	const float maxDynamic = std::max(0.0f, params_.maxSpreadDeg - baseSpread);
 	st_.spread = std::min(maxDynamic, st_.spread + std::max(0.0f, params_.spreadIncrease));
@@ -279,11 +275,11 @@ void WeaponInstance::TryFire(bool fireHeld, bool firePressed,
 	}
 }
 
-void WeaponInstance::FireShot(K4E::Camera* cam, BulletManager* bulletMgr, CollisionManager* /*colMgr*/)
+void WeaponInstance::FireShot(K4E::Camera* cam, BulletManager* bulletMgr, [[maybe_unused]] CollisionManager* colMgr)
 {
 	if (!cam) return;
 
-	// いまはProjectile運用のみ
+	// 現在の実装では弾生成方式をProjectileに統一しているため、非Projectile武器はここでは発射しない
 	if (!params_.isProjectile) return;
 	if (!bulletMgr) return;
 
@@ -292,17 +288,17 @@ void WeaponInstance::FireShot(K4E::Camera* cam, BulletManager* bulletMgr, Collis
 
 	origin = Vector3::Add(origin, Vector3::Multiply(fwd, params_.muzzleForwardOffset));
 
-	// accuracyベースの仮計算ではなく、MasterDataの spread値を使う
+	// MasterData由来の基礎拡散と実行時拡散を合成し、武器ごとの精度差を発射方向へ反映する
 	const float baseSpreadDeg = GetBaseSpreadDeg();
 	const float totalSpreadDeg = std::min(params_.maxSpreadDeg, baseSpreadDeg + st_.spread);
 
-	// ペレット数対応（M4A1は1発なのでそのまま1回）
+	// 通常弾は1回、ショットガン系はペレット数ぶん弾を生成する
 	const int pelletCount = std::max(1, params_.pelletCount);
 	const float pelletExtraSpread = std::max(0.0f, params_.pelletSpreadAngle);
 
 	for (int i = 0; i < pelletCount; ++i)
 	{
-		// ペレット武器だけ少し追加で散らす（通常ARなら0）
+		// ペレット武器だけ追加拡散を乗せ、単発武器と散弾武器の撃ち味を分ける
 		const float spreadDeg = totalSpreadDeg + ((pelletCount > 1) ? pelletExtraSpread : 0.0f);
 		K4E::Vector3 dir = ApplySpread(fwd, spreadDeg);
 
@@ -315,17 +311,8 @@ void WeaponInstance::FireShot(K4E::Camera* cam, BulletManager* bulletMgr, Collis
 			origin,
 			0u,
 			static_cast<uint32_t>(CollisionTypeIdDef::kBullet),
-			params_.splashRadius,
-			params_.splashDamage,
-			params_.splashCanDamageSelf,
-			params_.drawProjectileModel,
-			params_.weaponID,
-			params_.weaponCategory,
-			params_.deathKnockbackType,
-			params_.deathKnockbackPower,
-			params_.deathKnockbackUpPower,
-			params_.deathExplosionRadius,
-			params_.deathImpulseScale);
+			params_
+		);
 	}
 }
 

@@ -56,7 +56,7 @@ enum class EFireMode : uint8_t
 enum class EReticleType : uint8_t
 {
 	None,	// なし
-	Dot,	// 
+	Dot,	// 点
 	Cross,
 	Circle,
 	Scope,
@@ -172,7 +172,7 @@ struct FWeaponHandling
 	float adsOutTime = 0.1f;					// ADSから出るまでの時間（秒）
 	float adsMoveSpeedMultiplier = 0.85f;		// ADS中の移動速度倍率
 
-	// 武器切替・スプリント繊維
+	// 武器切替・スプリント遷移
 	float equipTime = 0.35f;					// 装備時間（秒）
 	float unequipTime = 0.25f;					// しまう時間（秒）
 	float sprintToFireTime = 0.12f;				// スプリントから射撃までの時間
@@ -259,8 +259,7 @@ struct FWeaponReticleData
 	float reticleRecoverSpeed = 18.0f;              // 縮小速度
 
 	// ==========================================
-	// 移動時の拡散演出（APEXっぽい広がり用）
-	// ※ 実際の動きはランタイム側で使用
+	// 移動・空中・着地状態に応じたレティクル拡張演出
 	// ==========================================
 	bool bEnableMoveReticleExpand = true;           // 移動に応じて広がる
 	float moveExpandMultiplier = 1.15f;             // 歩き時の倍率
@@ -383,7 +382,10 @@ struct FWeaponDeathReaction
 	float impulseScale = 1.0f;
 };
 
-/// ---------- メイン構造体 ---------- ///
+/// <summary>
+/// JSONから読み書きする武器1本分のマスターデータ。
+/// エディタで編集した値を保持し、WeaponSystemで実行時用のWeaponParamsへ変換する。
+/// </summary>
 struct FWeaponMasterData
 {
 	/// ---------- 共通データ ---------- ///

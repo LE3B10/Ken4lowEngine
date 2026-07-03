@@ -1,5 +1,6 @@
 #pragma once
 #include "Bullet.h"
+#include "WeaponParams.h"
 
 #include <memory>
 #include <vector>
@@ -29,18 +30,8 @@ public: /// ---------- メンバ関数 ---------- ///
 		const Ken4lowEngine::Vector3& shooterPosition = { 0.0f, 0.0f, 0.0f },
 		uint32_t shooterColliderId = 0u,
 		uint32_t typeId = static_cast<uint32_t>(CollisionTypeIdDef::kBullet),
-		float splashRadius = 0.0f,
-		int splashDamage = 0,
-		bool splashCanDamageSelf = false,
-		bool drawModel = true,
-		int32_t weaponID = 0,
-		EWeaponCategory weaponCategory = EWeaponCategory::Primary,
-		EDeathKnockbackType deathType = EDeathKnockbackType::Default,
-		float deathPower = 8.0f,
-		float deathUpPower = 2.0f,
-		float deathExplosionRadius = 0.0f,
-		float deathImpulseScale = 1.0f
-		);
+		const WeaponParams& weaponParams = WeaponParams()
+	);
 
 	// 更新処理
 	void Update(float dt);

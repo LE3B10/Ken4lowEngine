@@ -105,7 +105,7 @@ bool WeaponSystem::EquipById(int32_t weaponId, std::string* outError)
 		return false;
 	}
 
-	// Runtime適用前にカテゴリ整形 + Validate（Editorで編集中の事故防止）
+	// エディタ編集中の不正値がそのままランタイムへ入らないよう、適用前に正規化と検証を行う
 	FWeaponMasterData md = *src;
 	WeaponMasterDataDatabase::NormalizeByCategory(md);
 
@@ -123,7 +123,7 @@ bool WeaponSystem::EquipById(int32_t weaponId, std::string* outError)
 	WeaponParams p = BuildParams(md);
 	weapon_.Equip(p);
 
-	// HUD用に現在武器のレティクル設定を保持
+	// HUDが装備中武器の照準画像や拡散表示を参照できるよう、レティクル設定を保持する
 	equippedReticleData_ = md.reticleData;
 
 	equippedWeaponId_ = weaponId;
@@ -160,7 +160,7 @@ bool WeaponSystem::EquipNext(std::string* outError)
 	++it;
 	if (it == ids.end())
 	{
-		it = ids.begin(); // 末尾なら先頭へループ
+		it = ids.begin(); // 末尾まで進んだら先頭へ戻し、武器切替を循環させる
 	}
 
 	return EquipById(*it, outError);
@@ -217,7 +217,7 @@ WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 	p.canToggleFireMode = md.bCanToggleFireMode;
 	p.drawProjectileModel = (md.coreData.category == EWeaponCategory::Heavy);
 
-	// Stats
+	// MasterDataの編集値を、実行時に扱いやすいWeaponParamsへ詰め替える
 	p.damage = md.stats.damage;
 
 	const float rpm = md.stats.fireRate;
@@ -227,22 +227,22 @@ WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 	p.ammoPerShot = std::max(1, md.stats.ammoPerShot);
 	p.maxReserveAmmo = std::max(0, md.stats.maxReserveAmmo);
 
-	// リロード詳細
+	// リロード時間は通常/残弾あり/空マガジンを分け、WeaponInstance側で状態に応じて選択する
 	p.reloadSec = std::max(0.0f, md.stats.reloadTime);
 	p.tacticalReloadSec = std::max(0.0f, md.stats.tacticalReloadTime);
 	p.emptyReloadSec = std::max(0.0f, md.stats.emptyReloadTime);
 	p.canInterruptReload = md.stats.bCanInterruptReload;
 
-	// ペレット
+	// ペレット数を1以上に丸め、通常弾と散弾を同じ発射処理で扱えるようにする
 	p.pelletCount = std::max(1, md.stats.pelletCount);
 	p.pelletSpreadAngle = std::max(0.0f, md.stats.pelletSpreadAngle);
 
-	// Handling
+	// 拡散・反動・ADSに関わる操作感の調整値を反映する
 	p.accuracy = md.handling.accuracy;
 	p.spreadIncrease = std::max(0.0f, md.handling.spreadIncrease);
 	p.recoilRecovery = std::max(0.0f, md.handling.recoilRecovery);
 
-	// 散布界（実際に使う）
+	// 実際の弾方向計算で使う散布界は度数として扱い、負値を入れないようにする
 	p.baseHipSpreadDeg = std::max(0.0f, md.handling.baseHipSpread);
 	p.baseAdsSpreadDeg = std::max(0.0f, md.handling.baseAdsSpread);
 	p.spreadRecoveryRate = std::max(0.0f, md.handling.spreadRecoveryRate);
@@ -265,7 +265,7 @@ WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 		p.splashDamage = (p.splashRadius > 0.0f) ? std::max(1, static_cast<int>(md.stats.damage)) : 0;
 		p.splashCanDamageSelf = md.projectileData->bCanDamageSelf;
 
-		// ✅ ここが重要（今まで固定値だった）
+		// 銃口前方オフセットをデータ化し、武器ごとに弾の発生位置を調整できるようにする
 		if (md.projectileData->spawnForwardOffset > 0.0f)
 			p.muzzleForwardOffset = md.projectileData->spawnForwardOffset;
 	}

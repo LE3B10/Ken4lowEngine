@@ -13,6 +13,7 @@
 namespace K4E = ::Ken4lowEngine;
 
 namespace Ken4lowEngine { class Input; }
+struct WeaponParams;
 class CollisionManager;
 
 /// -------------------------------------------------------------
@@ -75,11 +76,11 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsModelDrawEnabled() const { return drawModel_; }
 
 	// 範囲ダメージ設定。radius <= 0 の場合は通常弾として扱う。
-	void ConfigureSplashDamage(float radius, int damage, bool canDamageSelf = false);
+	void ConfigureSplashDamage(const WeaponParams& params);
 	bool HasSplashDamage() const { return splashRadius_ > 0.0f && splashDamage_ > 0; }
 	float GetSplashRadius() const { return splashRadius_; }
 	int GetSplashDamage() const { return splashDamage_; }
-	void SetWeaponMetadata(int32_t weaponID, EWeaponCategory category, EDeathKnockbackType deathType, float deathPower, float deathUpPower, float deathExplosionRadius, float deathImpulseScale);
+	void SetWeaponMetadata(const WeaponParams& params);
 	int32_t GetWeaponID() const { return weaponID_; }
 	EWeaponCategory GetWeaponCategory() const { return weaponCategory_; }
 	EDeathKnockbackType GetDeathKnockbackType() const { return deathKnockbackType_; }

@@ -6,29 +6,35 @@
 
 #include "WeaponInstance.h"
 
-// マスターデータ
 #include "WeaponMasterDataDatabase.h"
 #include "WeaponMasterData.h"
 #include "WeaponParams.h"
 
-/// -------------------------------------------------------------
-///  WeaponSystem
-///  - WeaponMasterDataDatabase をロード
-///  - MasterData -> WeaponParams へ変換して WeaponInstance に適用
-/// -------------------------------------------------------------
+/// <summary>
+/// 武器マスターデータを読み込み、装備中武器のランタイム状態へ適用するApplication層の管理クラス
+/// JSON由来のFWeaponMasterDataをWeaponParamsへ変換し、WeaponInstanceへ渡すことでデータ駆動の武器挙動を成立させる
+/// </summary>
 class WeaponSystem
 {
 public:
-	/// rootDir は "Resources/JSON/weapons" でも "Resources/JSON" でもOK（内部で補正）
+	/// <summary>
+	/// 武器JSONのルートを解決し、カテゴリ別に配置されたマスターデータを読み込む
+	/// </summary>
 	bool Load(const std::filesystem::path& rootDir, std::string* outError = nullptr);
 
-	/// DBを再読込して、装備中IDが残っていれば再装備。無ければ先頭を装備。
+	/// <summary>
+	/// エディタ保存後の再読み込み時に、可能な限り現在装備中の武器IDを維持して再装備する
+	/// </summary>
 	bool ReloadAndReequip(std::string* outError = nullptr);
 
-	/// 現在装備中のIDをDBから再構築して再適用（EditorのApplyボタン向け）
+	/// <summary>
+	/// 現在装備中の武器をDB上の最新データから再構築し、エディタ編集内容をランタイムへ反映する
+	/// </summary>
 	bool RebuildEquippedFromDatabase(std::string* outError = nullptr);
 
-	/// 最初の武器IDを装備（ロード後に呼ぶ）
+	/// <summary>
+	/// ロード済みDBの先頭IDを装備し、ゲーム開始時の初期武器を確定する
+	/// </summary>
 	bool EquipFirst(std::string* outError = nullptr);
 
 	bool EquipById(int32_t weaponId, std::string* outError = nullptr);
@@ -38,7 +44,7 @@ public:
 	WeaponInstance& Weapon() { return weapon_; }
 	const WeaponInstance& Weapon() const { return weapon_; }
 
-	/// Editor連携用（DBを直接触りたい時）
+	// エディタ側からマスターデータの追加・削除・編集を行うためにDB参照を公開する
 	WeaponMasterDataDatabase& Database() { return db_; }
 	const WeaponMasterDataDatabase& Database() const { return db_; }
 
@@ -46,7 +52,7 @@ public:
 
 	std::vector<int32_t> GetWeaponIdListSorted() const { return db_.GetSortedIDList(); }
 
-	// カテゴリ別のIDリスト（昇順）
+	// UI上でカテゴリ別に武器を並べるため、指定カテゴリのIDを昇順で返す
 	std::vector<int32_t> GetWeaponIdListSortedByCategory(EWeaponCategory category) const
 	{
 		return db_.GetSortedIDListByCategory(category);
