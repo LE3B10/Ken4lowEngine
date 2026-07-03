@@ -13,6 +13,7 @@
 #include "Capsule.h"
 #include "TransformationMatrix.h"
 
+#include "AnimationLoader.h"
 #include "AnimationPlayer.h"
 #include "AnimationModelLODBuilder.h"
 #include "AnimationModelSkinningCS.h"
@@ -313,9 +314,27 @@ namespace Ken4lowEngine
 
 		bool IsComputeSkinningEnabled() const { return useComputeSkinning_; }
 		void SetComputeSkinningEnabled(bool v) { useComputeSkinning_ = v; }
+		bool PlayAnimationByIndex(uint32_t index, bool resetTime = true);
+		bool PlayAnimationByName(const std::string& name, bool resetTime = true);
+		bool CrossFadeAnimationByIndex(uint32_t index, float fadeDuration = 0.2f);
+		bool CrossFadeAnimationByName(const std::string& name, float fadeDuration = 0.2f);
+		const std::vector<AnimationLoader::AnimationClip>& GetAnimationClips() const { return animationClips_; }
+		int GetCurrentAnimationIndex() const { return currentAnimationIndex_; }
+		std::string GetCurrentAnimationName() const;
+		int GetPreviousAnimationIndex() const { return previousAnimationIndex_; }
+		std::string GetPreviousAnimationName() const;
+		bool IsCrossFading() const { return isCrossFading_; }
+		float GetCrossFadeTime() const { return crossFadeTime_; }
+		float GetCrossFadeDuration() const { return crossFadeDuration_; }
+		float GetAnimationTime() const { return animationPlayer_.GetTime(); }
 		/// <summary>Debug検証などからアニメーション再生／停止だけを切り替えます。</summary>
 		void SetAnimationPlaying(bool playing) { animationPlayer_.SetPlaying(playing); }
 		bool IsAnimationPlaying() const { return animationPlayer_.IsPlaying(); }
+		void SetAnimationSpeed(float speed) { animationPlayer_.SetSpeed(speed); }
+		float GetAnimationSpeed() const { return animationPlayer_.GetSpeed(); }
+		void SetAnimationLoop(bool loop) { animationPlayer_.SetLoop(loop); }
+		bool IsAnimationLoop() const { return animationPlayer_.IsLoop(); }
+		void ResetAnimationTime() { animationPlayer_.SetTime(0.0f); }
 		/// <summary>Debug検証時だけ、スキニングWVPへProjectionまで含めます。既定OFFのため実ゲーム挙動は変えません。</summary>
 		void SetUseDebugSkinningViewProjection(bool enabled) { useDebugSkinningViewProjection_ = enabled; }
 
@@ -333,9 +352,9 @@ namespace Ken4lowEngine
 		/// <summary>DebugScene専用負荷検証として、時刻変化または強制指定がある場合だけ姿勢を更新します。</summary>
 		DebugBatchUpdateTimings UpdateForDebugBatchTest(bool playAnimation, bool forcePoseUpdate, float deltaTime);
 		/// <summary>DebugSceneの検証UIへ、読み込んだアニメーション長を公開します。</summary>
-		float GetAnimationDurationForDebugBatchTest() const { return animation.duration; }
+		float GetAnimationDurationForDebugBatchTest() const;
 		/// <summary>DebugSceneの検証UIで、アニメーションデータの読み込み成否を確認します。</summary>
-		bool HasAnimationForDebugBatchTest() const { return animation.duration > 0.0f && !animation.nodeAnimations.empty(); }
+		bool HasAnimationForDebugBatchTest() const;
 		/// <summary>DebugScene専用テストで、論理モデルパスに対応するSources側アニメーションを再読込します。</summary>
 		bool ReloadAnimationForDebugBatchTest();
 		/// <summary>現在LODのPalette SRVをDebugSceneの共有姿勢検証へ公開します。</summary>
@@ -383,6 +402,13 @@ namespace Ken4lowEngine
 
 		// カメラ距離（平方距離）
 		float CalcDistanceSqToCamera() const;
+		const Animation* GetCurrentAnimation() const;
+		Animation* GetCurrentAnimation();
+		void SyncCurrentAnimationForCompatibility();
+		void ClampAnimationTimeToCurrentDuration();
+		const Animation* GetAnimationByIndex(int index) const;
+		float AdvanceAnimationTime(float timeSeconds, float deltaTime, float duration) const;
+		void ResetCrossFadeState();
 
 		/// <summary>
 		/// 現在のアニメーション時刻に基づいて、ジョイント変換などを更新します。
@@ -430,6 +456,13 @@ namespace Ken4lowEngine
 		std::string fileName_;  // 読み込んだファイル名を保持
 
 		Animation animation; // アニメーションデータ
+		std::vector<AnimationLoader::AnimationClip> animationClips_;
+		int currentAnimationIndex_ = 0;
+		int previousAnimationIndex_ = -1;
+		bool isCrossFading_ = false;
+		float crossFadeTime_ = 0.0f;
+		float crossFadeDuration_ = 0.0f;
+		float previousAnimationTime_ = 0.0f;
 
 		AnimationPlayer animationPlayer_; // アニメーション再生管理
 

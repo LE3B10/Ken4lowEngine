@@ -388,6 +388,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationLoader.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationModel.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationPlayer.cpp" />
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationStateController.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Animation\DebugView\AnimationModelDebugView.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Animation\LOD\AnimationModelLODBuilder.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Animation\LOD\AnimationModelLODController.cpp" />
@@ -1143,6 +1144,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationModel.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationPlayer.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationSampler.h" />
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationStateController.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Animation\DebugView\AnimationModelDebugView.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Animation\LOD\AnimationModelLODBuilder.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Animation\LOD\AnimationModelLODController.h" />

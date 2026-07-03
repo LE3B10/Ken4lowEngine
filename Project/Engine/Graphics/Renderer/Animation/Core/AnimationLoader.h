@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <cstdint>
+#include <vector>
 #include "ModelData.h"
 
 
@@ -14,6 +15,12 @@ namespace Ken4lowEngine
 	{
 	public: /// ---------- 構造体 ---------- ///
 
+		struct AnimationClip
+		{
+			std::string name;
+			Animation animation;
+		};
+
 		// ロード設定
 		struct Settings
 		{
@@ -22,6 +29,9 @@ namespace Ken4lowEngine
 		};
 
 	public: /// ---------- メンバ関数 ---------- ///
+
+		// ファイル内の全アニメーションを読み込む
+		static std::vector<AnimationClip> LoadAllAnimations(const std::string& filePath, const Settings& settings = {});
 
 		// アニメーションファイルを読み込み、最初のアニメーションを返す
 		static Animation LoadFirstAnimation(const std::string& filePath, const Settings& settings = {});

@@ -5,6 +5,9 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
+#include <string>
+#include <utility>
+
 using namespace Ken4lowEngine;
 
 namespace Ken4lowEngine
@@ -91,7 +94,8 @@ namespace Ken4lowEngine
 /// -------------------------------------------------------------
 Animation Ken4lowEngine::AnimationLoader::LoadFirstAnimation(const std::string& filePath, const Settings& settings)
 {
-	return LoadByIndexAnimation(filePath, 0, settings);
+	const auto clips = LoadAllAnimations(filePath, settings);
+	return clips.empty() ? Animation{} : clips.front().animation;
 }
 
 /// -------------------------------------------------------------
@@ -99,12 +103,35 @@ Animation Ken4lowEngine::AnimationLoader::LoadFirstAnimation(const std::string& 
 /// -------------------------------------------------------------
 Animation Ken4lowEngine::AnimationLoader::LoadByIndexAnimation(const std::string& filePath, uint32_t animationIndex, const Settings& settings)
 {
+	const auto clips = LoadAllAnimations(filePath, settings);
+	if (animationIndex >= clips.size()) { return Animation{}; }
+	return clips[animationIndex].animation;
+}
+
+/// -------------------------------------------------------------
+///		アニメーションファイル内の全アニメーションを読み込む
+/// -------------------------------------------------------------
+std::vector<AnimationLoader::AnimationClip> Ken4lowEngine::AnimationLoader::LoadAllAnimations(const std::string& filePath, const Settings& settings)
+{
 	Assimp::Importer importer;
 	const std::string path = settings.animationFilePath + filePath;
 	const aiScene* scene = importer.ReadFile(path.c_str(), 0);
 
-	if (!scene || scene->mNumAnimations == 0) { return Animation{}; }
-	if (animationIndex >= scene->mNumAnimations) { return Animation{}; }
+	std::vector<AnimationClip> clips;
+	if (!scene || scene->mNumAnimations == 0) { return clips; }
 
-	return ParseAiAnimation(scene->mAnimations[animationIndex], settings);
+	clips.reserve(scene->mNumAnimations);
+	for (uint32_t animationIndex = 0; animationIndex < scene->mNumAnimations; ++animationIndex)
+	{
+		const aiAnimation* animationAssimp = scene->mAnimations[animationIndex];
+		if (!animationAssimp) { continue; }
+
+		AnimationClip clip{};
+		clip.name = animationAssimp->mName.length > 0
+			? animationAssimp->mName.C_Str()
+			: "Animation_" + std::to_string(animationIndex);
+		clip.animation = ParseAiAnimation(animationAssimp, settings);
+		clips.push_back(std::move(clip));
+	}
+	return clips;
 }

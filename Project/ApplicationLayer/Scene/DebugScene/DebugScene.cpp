@@ -11,12 +11,17 @@
 #include <GameTimer.h>
 #include <InstancedObject3DRenderer.h>
 #include <GpuParticleEffectEditor.h>
+#include <AnimationModel.h>
 
 #include "DebugActorRegistration.h"
 #include "TestActor.h"
 #include "TestGroundActor.h"
 
 #include <algorithm>
+#include <array>
+#include <cstdio>
+#include <exception>
+#include <filesystem>
 #include <cmath>
 #include <numbers>
 #include <random>
@@ -27,6 +32,52 @@
 #endif // USE_IMGUI
 
 using namespace Ken4lowEngine;
+
+namespace
+{
+	constexpr const char* kModelSourceRoot = "Resources/Models/Sources/";
+	constexpr const char* kModelRoot = "Resources/Models/";
+
+	void CopyToBuffer(const std::string& text, char* buffer, size_t bufferSize)
+	{
+		if (!buffer || bufferSize == 0) { return; }
+		std::snprintf(buffer, bufferSize, "%s", text.c_str());
+	}
+
+	bool StartsWith(const std::string& text, const char* prefix)
+	{
+		const std::string prefixString(prefix);
+		return text.rfind(prefixString, 0) == 0;
+	}
+
+	std::string ToLogicalModelPath(const std::string& inputPath)
+	{
+		if (StartsWith(inputPath, kModelSourceRoot))
+		{
+			return inputPath.substr(std::char_traits<char>::length(kModelSourceRoot));
+		}
+		if (StartsWith(inputPath, kModelRoot))
+		{
+			return inputPath.substr(std::char_traits<char>::length(kModelRoot));
+		}
+		return inputPath;
+	}
+
+	std::filesystem::path ToSourceModelPath(const std::string& logicalPath)
+	{
+		if (StartsWith(logicalPath, kModelSourceRoot) || StartsWith(logicalPath, kModelRoot))
+		{
+			return std::filesystem::path(logicalPath);
+		}
+		return std::filesystem::path(kModelSourceRoot) / logicalPath;
+	}
+
+	bool HasAnimationClipName(const Ken4lowEngine::AnimationModel& model, const std::string& name)
+	{
+		const auto& clips = model.GetAnimationClips();
+		return std::any_of(clips.begin(), clips.end(), [&](const auto& clip) { return clip.name == name; });
+	}
+}
 
 DebugScene::DebugScene() = default;
 DebugScene::~DebugScene() = default;
@@ -58,6 +109,25 @@ void DebugScene::Initialize()
 	// この検証はDebugScene内だけで所有し、実ゲームの敵・プレイヤー・ボスへ接続しない。
 	animationModelBatchTest_ = std::make_unique<AnimationModelBatchTest>();
 	animationModelBatchTest_->Initialize();
+
+	CopyToBuffer(animationModelTestPath_, animationModelTestPathBuffer_.data(), animationModelTestPathBuffer_.size());
+	for (size_t i = 0; i < animationModelTestLodPaths_.size(); ++i)
+	{
+		CopyToBuffer(animationModelTestLodPaths_[i], animationModelTestLodPathBuffers_[i].data(), animationModelTestLodPathBuffers_[i].size());
+	}
+	CopyToBuffer(animationModelIdleAnimationName_, animationModelIdleNameBuffer_.data(), animationModelIdleNameBuffer_.size());
+	CopyToBuffer(animationModelWalkAnimationName_, animationModelWalkNameBuffer_.data(), animationModelWalkNameBuffer_.size());
+	CopyToBuffer(animationModelRunAnimationName_, animationModelRunNameBuffer_.data(), animationModelRunNameBuffer_.size());
+	CopyToBuffer(animationModelAttackAnimationName_, animationModelAttackNameBuffer_.data(), animationModelAttackNameBuffer_.size());
+	CopyToBuffer(animationModelDamageAnimationName_, animationModelDamageNameBuffer_.data(), animationModelDamageNameBuffer_.size());
+	CopyToBuffer(animationModelDeathAnimationName_, animationModelDeathNameBuffer_.data(), animationModelDeathNameBuffer_.size());
+	animationStateController_.SetAnimationName(AnimationState::Idle, animationModelIdleAnimationName_);
+	animationStateController_.SetAnimationName(AnimationState::Walk, animationModelWalkAnimationName_);
+	animationStateController_.SetAnimationName(AnimationState::Run, animationModelRunAnimationName_);
+	animationStateController_.SetAnimationName(AnimationState::Attack, animationModelAttackAnimationName_);
+	animationStateController_.SetAnimationName(AnimationState::Damage, animationModelDamageAnimationName_);
+	animationStateController_.SetAnimationName(AnimationState::Death, animationModelDeathAnimationName_);
+	ReloadAnimationModelTest();
 
 	// 静的な3万行列を一度だけ用意し、毎フレームのObject3D生成・更新コストを発生させない。
 	instancingTestRenderer_ = std::make_unique<InstancedObject3DRenderer>();
@@ -95,6 +165,11 @@ void DebugScene::Update()
 	{
 		animationModelBatchTest_->Update(deltaTime);
 	}
+	if (animationModelTestLoaded_ && animationModelTest_)
+	{
+		UpdateAnimationModelInputTest(deltaTime);
+		animationModelTest_->Update();
+	}
 	if (gpuParticlePreviewController_)
 	{
 		// DebugScene上でプレビュー用Emitter設定と発生要求を更新する。
@@ -128,6 +203,10 @@ void DebugScene::UpdateEditor(float deltaTime)
 	{
 		animationModelBatchTest_->Update(deltaTime);
 	}
+	if (animationModelTestLoaded_ && animationModelTest_)
+	{
+		animationModelTest_->Update();
+	}
 	if (gpuParticlePreviewController_)
 	{
 		// EditorのPlay停止中もPreview操作を止めず、発生要求を次フレームの共通Runtime Updateへ渡す。
@@ -152,6 +231,10 @@ void DebugScene::Draw3DObjects()
 	if (animationModelBatchTest_)
 	{
 		animationModelBatchTest_->Draw();
+	}
+	if (animationModelTestLoaded_ && animationModelTest_)
+	{
+		animationModelTest_->Draw();
 	}
 
 	if (isInstancingTestEnabled_ && instancingTestRenderer_)
@@ -224,6 +307,11 @@ void DebugScene::Finalize()
 		animationModelBatchTest_->Finalize();
 		animationModelBatchTest_.reset();
 	}
+	if (animationModelTest_)
+	{
+		animationModelTest_->Clear();
+		animationModelTest_.reset();
+	}
 	instancingTestRenderer_.reset();
 	if (gpuParticlePreviewController_)
 	{
@@ -253,6 +341,7 @@ void DebugScene::DrawImGui()
 	{
 		animationModelBatchTest_->DrawImGui();
 	}
+	DrawAnimationModelTestImGui();
 
 	actorWorld_.DrawImGui();
 
@@ -331,6 +420,374 @@ void DebugScene::DrawImGui()
 			instancingTestRenderer_->GetMaxInstanceCount());
 	}
 
+#endif // USE_IMGUI
+}
+
+void DebugScene::UpdateAnimationModelInputTest(float deltaTime)
+{
+	if (!animationModelInputTestEnabled_ || !animationModelTestLoaded_ || !animationModelTest_ || !input_) { return; }
+	if (animationModelTest_->GetAnimationClips().empty()) { return; }
+
+	Vector3 move{};
+	if (input_->PushKey(DIK_A)) { move.x -= 1.0f; }
+	if (input_->PushKey(DIK_D)) { move.x += 1.0f; }
+	if (input_->PushKey(DIK_W)) { move.z += 1.0f; }
+	if (input_->PushKey(DIK_S)) { move.z -= 1.0f; }
+
+	const bool moving = Vector3::LengthSquared(move) > 0.0001f;
+	const bool sprinting = moving && (input_->PushKey(DIK_LSHIFT) || input_->PushKey(DIK_RSHIFT));
+	const AnimationState nextState = !moving
+		? AnimationState::Idle
+		: (sprinting ? AnimationState::Run : AnimationState::Walk);
+
+	if (animationStateControllerEnabled_)
+	{
+		animationStateController_.SetCrossFadeDuration(animationModelCrossFadeDuration_);
+		const std::string& nextAnimationName = animationStateController_.GetAnimationName(nextState);
+		if (animationStateController_.RequestState(nextState, *animationModelTest_))
+		{
+			animationModelRequestedAnimationName_ = nextAnimationName;
+		}
+		else if (animationModelRequestedAnimationName_ != nextAnimationName)
+		{
+			animationModelRequestedAnimationName_ = nextAnimationName;
+		}
+	}
+	else
+	{
+		const std::string& nextAnimationName = !moving
+			? animationModelIdleAnimationName_
+			: (sprinting ? animationModelRunAnimationName_ : animationModelWalkAnimationName_);
+
+		if (animationModelRequestedAnimationName_ != nextAnimationName)
+		{
+			// 入力状態が変わった瞬間に前後のアニメーションを短時間ブレンドして、切り替わりの硬さを抑える。
+			animationModelTest_->CrossFadeAnimationByName(nextAnimationName, animationModelCrossFadeDuration_);
+			animationModelRequestedAnimationName_ = nextAnimationName;
+		}
+	}
+
+	if (moving)
+	{
+		const Vector3 direction = Vector3::NormalizeSafe(move);
+		const float speed = sprinting ? animationModelRunSpeed_ : animationModelWalkSpeed_;
+		if (auto* wt = animationModelTest_->GetWorldTransformPtr())
+		{
+			wt->translate_ += direction * (speed * std::max(deltaTime, 0.0f));
+		}
+	}
+}
+
+void DebugScene::ReloadAnimationModelTest()
+{
+	animationModelTestPath_ = ToLogicalModelPath(std::string(animationModelTestPathBuffer_.data()));
+	for (size_t i = 0; i < animationModelTestLodPaths_.size(); ++i)
+	{
+		animationModelTestLodPaths_[i] = ToLogicalModelPath(std::string(animationModelTestLodPathBuffers_[i].data()));
+	}
+
+	animationModelTestLoaded_ = false;
+	animationModelTestLastOperationSucceeded_ = false;
+	animationModelRequestedAnimationName_.clear();
+	animationStateController_.Reset();
+	if (animationModelTest_)
+	{
+		animationModelTest_->Clear();
+		animationModelTest_.reset();
+	}
+
+	if (animationModelTestPath_.empty())
+	{
+		animationModelTestStatus_ = "Model path is empty.";
+		return;
+	}
+
+	const std::filesystem::path sourcePath = ToSourceModelPath(animationModelTestPath_);
+	if (!std::filesystem::exists(sourcePath))
+	{
+		animationModelTestStatus_ = "Model file not found: " + sourcePath.generic_string();
+		return;
+	}
+
+	std::vector<std::string> lodPaths;
+	if (animationModelTestUseLods_)
+	{
+		for (const std::string& lodPath : animationModelTestLodPaths_)
+		{
+			if (lodPath.empty()) { continue; }
+			const std::filesystem::path lodSourcePath = ToSourceModelPath(lodPath);
+			if (!std::filesystem::exists(lodSourcePath))
+			{
+				animationModelTestStatus_ = "LOD file not found: " + lodSourcePath.generic_string();
+				return;
+			}
+			lodPaths.push_back(lodPath);
+		}
+	}
+
+	try
+	{
+		auto model = std::make_unique<K4E::AnimationModel>();
+		if (animationModelTestUseLods_ && !lodPaths.empty())
+		{
+			model->Initialize(animationModelTestPath_, lodPaths, true);
+		}
+		else
+		{
+			model->Initialize(animationModelTestPath_, true);
+		}
+		model->ReloadAnimationForDebugBatchTest();
+		model->SetTranslate({ 0.0f, 0.0f, 5.0f });
+		model->SetScale({ 1.0f, 1.0f, 1.0f });
+		model->SetAnimationSpeed(animationModelTestSpeed_);
+		model->SetAnimationLoop(animationModelTestLoop_);
+		model->SetForceLOD(animationModelTestForceLod_, animationModelTestForcedLodIndex_);
+		model->SetUseDebugSkinningViewProjection(true);
+
+		animationModelTest_ = std::move(model);
+		animationModelTestLoaded_ = true;
+		animationModelTestLastOperationSucceeded_ = true;
+		animationModelTestStatus_ = "Loaded: " + animationModelTestPath_;
+	} catch (const std::exception& e)
+	{
+		animationModelTestStatus_ = std::string("Load failed: ") + e.what();
+	} catch (...)
+	{
+		animationModelTestStatus_ = "Load failed: unknown exception.";
+	}
+}
+
+void DebugScene::DrawAnimationModelTestImGui()
+{
+#ifdef USE_IMGUI
+	if (ImGui::Begin("AnimationModel Test"))
+	{
+		// 複数アニメーション対応をゲーム本編へ入れる前に、DebugScene上で切り替え確認する。
+		ImGui::TextWrapped("Status: %s", animationModelTestStatus_.c_str());
+		if (!animationModelTestLastOperationSucceeded_)
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.25f, 1.0f), "AnimationModel test model is not loaded.");
+		}
+
+		ImGui::SetNextItemWidth(-1.0f);
+		ImGui::InputText("Model Path", animationModelTestPathBuffer_.data(), animationModelTestPathBuffer_.size());
+		ImGui::Checkbox("Use LOD Models", &animationModelTestUseLods_);
+		if (animationModelTestUseLods_)
+		{
+			for (int i = 0; i < static_cast<int>(animationModelTestLodPathBuffers_.size()); ++i)
+			{
+				ImGui::PushID(i);
+				ImGui::SetNextItemWidth(-1.0f);
+				ImGui::InputText("LOD Path", animationModelTestLodPathBuffers_[i].data(), animationModelTestLodPathBuffers_[i].size());
+				ImGui::PopID();
+			}
+		}
+		if (ImGui::Button("Reload"))
+		{
+			ReloadAnimationModelTest();
+		}
+
+		ImGui::Separator();
+		ImGui::Text("Loaded Model Path: %s", animationModelTestPath_.c_str());
+		if (!animationModelTestLoaded_ || !animationModelTest_)
+		{
+			ImGui::TextUnformatted("No AnimationModel loaded.");
+			ImGui::End();
+			return;
+		}
+
+		const auto& clips = animationModelTest_->GetAnimationClips();
+		const int currentIndex = animationModelTest_->GetCurrentAnimationIndex();
+		ImGui::Text("Animation Count: %d", static_cast<int>(clips.size()));
+		ImGui::Text("Current Index: %d", currentIndex);
+		ImGui::Text("Current Name: %s", animationModelTest_->GetCurrentAnimationName().empty()
+			? "(none)"
+			: animationModelTest_->GetCurrentAnimationName().c_str());
+		ImGui::Text("Duration: %.3f", animationModelTest_->GetAnimationDurationForDebugBatchTest());
+		ImGui::Text("Playing: %s", animationModelTest_->IsAnimationPlaying() ? "true" : "false");
+		ImGui::Text("Previous Name: %s", animationModelTest_->GetPreviousAnimationName().empty()
+			? "(none)"
+			: animationModelTest_->GetPreviousAnimationName().c_str());
+		ImGui::Text("Is CrossFading: %s", animationModelTest_->IsCrossFading() ? "true" : "false");
+		ImGui::Text("CrossFade Time: %.3f", animationModelTest_->GetCrossFadeTime());
+		ImGui::Text("CrossFade Duration: %.3f", animationModelTest_->GetCrossFadeDuration());
+
+		if (clips.empty())
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.2f, 1.0f), "No Animation Clips");
+		}
+		else
+		{
+			const char* preview = (0 <= currentIndex && currentIndex < static_cast<int>(clips.size()) && !clips[currentIndex].name.empty())
+				? clips[currentIndex].name.c_str()
+				: "(none)";
+			if (ImGui::BeginCombo("Animation Combo", preview))
+			{
+				for (int i = 0; i < static_cast<int>(clips.size()); ++i)
+				{
+					const std::string fallbackName = "Animation_" + std::to_string(i);
+					const std::string& clipName = clips[i].name.empty() ? fallbackName : clips[i].name;
+					const bool selected = (i == currentIndex);
+					if (ImGui::Selectable(clipName.c_str(), selected))
+					{
+						if (0 <= i && i < static_cast<int>(clips.size()))
+						{
+							if (animationModelUseCrossFadeForCombo_)
+							{
+								animationModelTest_->CrossFadeAnimationByIndex(static_cast<uint32_t>(i), animationModelCrossFadeDuration_);
+							}
+							else
+							{
+								animationModelTest_->PlayAnimationByIndex(static_cast<uint32_t>(i), true);
+							}
+						}
+					}
+					if (selected) { ImGui::SetItemDefaultFocus(); }
+				}
+				ImGui::EndCombo();
+			}
+		}
+
+		ImGui::SeparatorText("CrossFade Input Test");
+		ImGui::Checkbox("Enable Input Animation Test", &animationModelInputTestEnabled_);
+		ImGui::Checkbox("Enable Animation State Controller", &animationStateControllerEnabled_);
+		ImGui::Checkbox("Use CrossFade For Combo", &animationModelUseCrossFadeForCombo_);
+		ImGui::DragFloat("CrossFade Duration", &animationModelCrossFadeDuration_, 0.01f, 0.0f, 2.0f, "%.2f");
+		animationStateController_.SetCrossFadeDuration(animationModelCrossFadeDuration_);
+		ImGui::DragFloat("Walk Move Speed", &animationModelWalkSpeed_, 0.05f, 0.0f, 20.0f, "%.2f");
+		ImGui::DragFloat("Run Move Speed", &animationModelRunSpeed_, 0.05f, 0.0f, 40.0f, "%.2f");
+		ImGui::Text("Requested Animation Name: %s", animationModelRequestedAnimationName_.empty()
+			? "(none)"
+			: animationModelRequestedAnimationName_.c_str());
+		ImGui::Text("Controller Current State: %s", animationStateController_.HasCurrentState()
+			? AnimationStateController::ToString(animationStateController_.GetCurrentState())
+			: "(none)");
+		ImGui::Text("Controller Requested State: %s", animationStateController_.HasCurrentState()
+			? AnimationStateController::ToString(animationStateController_.GetRequestedState())
+			: "(none)");
+		if (ImGui::InputText("Idle Name", animationModelIdleNameBuffer_.data(), animationModelIdleNameBuffer_.size()))
+		{
+			animationModelIdleAnimationName_ = animationModelIdleNameBuffer_.data();
+			animationStateController_.SetAnimationName(AnimationState::Idle, animationModelIdleAnimationName_);
+			animationModelRequestedAnimationName_.clear();
+			animationStateController_.Reset();
+		}
+		if (ImGui::InputText("Walk Name", animationModelWalkNameBuffer_.data(), animationModelWalkNameBuffer_.size()))
+		{
+			animationModelWalkAnimationName_ = animationModelWalkNameBuffer_.data();
+			animationStateController_.SetAnimationName(AnimationState::Walk, animationModelWalkAnimationName_);
+			animationModelRequestedAnimationName_.clear();
+			animationStateController_.Reset();
+		}
+		if (ImGui::InputText("Run Name", animationModelRunNameBuffer_.data(), animationModelRunNameBuffer_.size()))
+		{
+			animationModelRunAnimationName_ = animationModelRunNameBuffer_.data();
+			animationStateController_.SetAnimationName(AnimationState::Run, animationModelRunAnimationName_);
+			animationModelRequestedAnimationName_.clear();
+			animationStateController_.Reset();
+		}
+		if (ImGui::InputText("Attack Name", animationModelAttackNameBuffer_.data(), animationModelAttackNameBuffer_.size()))
+		{
+			animationModelAttackAnimationName_ = animationModelAttackNameBuffer_.data();
+			animationStateController_.SetAnimationName(AnimationState::Attack, animationModelAttackAnimationName_);
+			animationModelRequestedAnimationName_.clear();
+			animationStateController_.Reset();
+		}
+		if (ImGui::InputText("Damage Name", animationModelDamageNameBuffer_.data(), animationModelDamageNameBuffer_.size()))
+		{
+			animationModelDamageAnimationName_ = animationModelDamageNameBuffer_.data();
+			animationStateController_.SetAnimationName(AnimationState::Damage, animationModelDamageAnimationName_);
+			animationModelRequestedAnimationName_.clear();
+			animationStateController_.Reset();
+		}
+		if (ImGui::InputText("Death Name", animationModelDeathNameBuffer_.data(), animationModelDeathNameBuffer_.size()))
+		{
+			animationModelDeathAnimationName_ = animationModelDeathNameBuffer_.data();
+			animationStateController_.SetAnimationName(AnimationState::Death, animationModelDeathAnimationName_);
+			animationModelRequestedAnimationName_.clear();
+			animationStateController_.Reset();
+		}
+		if (animationModelInputTestEnabled_)
+		{
+			if (!HasAnimationClipName(*animationModelTest_, animationModelIdleAnimationName_))
+			{
+				ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.2f, 1.0f), "Warning: Idle animation name was not found.");
+			}
+			if (!HasAnimationClipName(*animationModelTest_, animationModelWalkAnimationName_))
+			{
+				ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.2f, 1.0f), "Warning: Walk animation name was not found.");
+			}
+			if (!HasAnimationClipName(*animationModelTest_, animationModelRunAnimationName_))
+			{
+				ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.2f, 1.0f), "Warning: Run animation name was not found.");
+			}
+			if (animationStateControllerEnabled_)
+			{
+				if (!animationModelAttackAnimationName_.empty() && !HasAnimationClipName(*animationModelTest_, animationModelAttackAnimationName_))
+				{
+					ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.2f, 1.0f), "Warning: Attack animation name was not found.");
+				}
+				if (!animationModelDamageAnimationName_.empty() && !HasAnimationClipName(*animationModelTest_, animationModelDamageAnimationName_))
+				{
+					ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.2f, 1.0f), "Warning: Damage animation name was not found.");
+				}
+				if (!animationModelDeathAnimationName_.empty() && !HasAnimationClipName(*animationModelTest_, animationModelDeathAnimationName_))
+				{
+					ImGui::TextColored(ImVec4(1.0f, 0.65f, 0.2f, 1.0f), "Warning: Death animation name was not found.");
+				}
+			}
+		}
+
+		if (ImGui::Button(animationModelTest_->IsAnimationPlaying() ? "Pause" : "Play"))
+		{
+			animationModelTest_->SetAnimationPlaying(!animationModelTest_->IsAnimationPlaying());
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Reset Time"))
+		{
+			animationModelTest_->ResetAnimationTime();
+		}
+
+		animationModelTestSpeed_ = animationModelTest_->GetAnimationSpeed();
+		if (ImGui::DragFloat("Animation Speed", &animationModelTestSpeed_, 0.01f, -4.0f, 4.0f, "%.2f"))
+		{
+			animationModelTest_->SetAnimationSpeed(animationModelTestSpeed_);
+		}
+		animationModelTestLoop_ = animationModelTest_->IsAnimationLoop();
+		if (ImGui::Checkbox("Loop", &animationModelTestLoop_))
+		{
+			animationModelTest_->SetAnimationLoop(animationModelTestLoop_);
+		}
+
+		ImGui::SeparatorText("LOD");
+		const int lodCount = static_cast<int>(animationModelTest_->GetLODs().size());
+		const int maxLodIndex = lodCount > 0 ? lodCount - 1 : 0;
+		ImGui::Text("Current LOD: %d / %d", animationModelTest_->GetLOD(), maxLodIndex);
+		if (ImGui::Checkbox("Force LOD", &animationModelTestForceLod_))
+		{
+			animationModelTest_->SetForceLOD(animationModelTestForceLod_, animationModelTestForcedLodIndex_);
+		}
+		if (ImGui::SliderInt("Forced LOD Index", &animationModelTestForcedLodIndex_, 0, maxLodIndex))
+		{
+			animationModelTest_->SetForceLOD(animationModelTestForceLod_, animationModelTestForcedLodIndex_);
+		}
+
+		ImGui::SeparatorText("Transform");
+		if (auto* wt = animationModelTest_->GetWorldTransformPtr())
+		{
+			ImGui::DragFloat3("Translate", reinterpret_cast<float*>(&wt->translate_), 0.01f);
+			ImGui::DragFloat3("Rotate", reinterpret_cast<float*>(&wt->rotate_), 0.01f);
+			ImGui::DragFloat3("Scale", reinterpret_cast<float*>(&wt->scale_), 0.01f, 0.01f, 100.0f);
+		}
+
+		ImGui::Checkbox("Open Detailed AnimationModel DebugView", &animationModelTestShowDetailedDebugView_);
+	}
+	ImGui::End();
+
+	if (animationModelTestShowDetailedDebugView_ && animationModelTestLoaded_ && animationModelTest_)
+	{
+		animationModelTest_->DrawImGui();
+	}
 #endif // USE_IMGUI
 }
 

@@ -1135,7 +1135,12 @@
     <ClCompile Include="Engine\Scene\Actor\Factory\ActorFactory.cpp">
       <Filter>Engine\Scene\Actor\Factory</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.cpp">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationStateController.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2338,7 +2343,12 @@
     <ClInclude Include="Engine\Scene\Actor\Factory\ActorFactory.h">
       <Filter>Engine\Scene\Actor\Factory</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.h" />
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.h">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationStateController.h">
+      <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

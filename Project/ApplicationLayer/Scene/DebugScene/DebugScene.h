@@ -2,14 +2,17 @@
 #include "BaseScene.h"
 #include "CollisionManager.h"
 #include "GpuParticleEffectDesc.h"
+#include "AnimationStateController.h"
 
 #include <ActorWorld.h>
 #include <PhysicsWorld.h>
 #include <PhysicsDebugDraw.h>
 
 #include <cstdint>
+#include <array>
 #include <memory>
 #include <string>
+#include <vector>
 
 class PhysicsDebugController;
 class AnimationModelBatchTest;
@@ -18,6 +21,7 @@ class GpuParticlePreviewController;
 /// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine
 {
+	class AnimationModel;
 	class Input;
 	class InstancedObject3DRenderer;
 }
@@ -63,6 +67,9 @@ private: /// ---------- メンバ関数 ---------- ///
 	void UpdateDebug();
 	// ImGui設定から大量配置データを再構築する。
 	void RebuildInstancingTest();
+	void ReloadAnimationModelTest();
+	void DrawAnimationModelTestImGui();
+	void UpdateAnimationModelInputTest(float deltaTime);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -73,6 +80,7 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<PhysicsDebugController> physicsDebugController_; // DebugScene専用の物理確認コントローラ
 	std::unique_ptr<AnimationModelBatchTest> animationModelBatchTest_; // AnimationModel大量描画のDebugScene専用テスト
+	std::unique_ptr<K4E::AnimationModel> animationModelTest_; // 複数アニメーション切り替え確認用の単体モデル
 
 	// 3万個のObject3Dを生成せず、専用GPUインスタンシング経路をON/OFFして負荷確認する。
 	std::unique_ptr<K4E::InstancedObject3DRenderer> instancingTestRenderer_;
@@ -102,6 +110,41 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool gpuParticlePreviewSelectedOnly_ = true;
 	K4E::Vector3 gpuParticlePreviewPosition_{ 0.0f, 1.0f, 0.0f };
 	uint32_t gpuParticlePreviewEmitCount_ = 32;
+
+	// DebugScene上でAnimationModelの複数clip・LOD・Skinningを単体確認するための設定。
+	std::string animationModelTestPath_ = "Animation/SampleHumanAnim.gltf";
+	std::array<std::string, 3> animationModelTestLodPaths_{ "", "", "" };
+	std::array<char, 260> animationModelTestPathBuffer_{};
+	std::array<std::array<char, 260>, 3> animationModelTestLodPathBuffers_{};
+	std::string animationModelTestStatus_ = "AnimationModel Test ready.";
+	bool animationModelTestLoaded_ = false;
+	bool animationModelTestLastOperationSucceeded_ = true;
+	bool animationModelTestUseLods_ = false;
+	bool animationModelTestForceLod_ = false;
+	int animationModelTestForcedLodIndex_ = 0;
+	float animationModelTestSpeed_ = 1.0f;
+	bool animationModelTestLoop_ = true;
+	bool animationModelTestShowDetailedDebugView_ = false;
+	bool animationModelInputTestEnabled_ = false;
+	bool animationStateControllerEnabled_ = false;
+	bool animationModelUseCrossFadeForCombo_ = true;
+	float animationModelCrossFadeDuration_ = 0.2f;
+	float animationModelWalkSpeed_ = 2.0f;
+	float animationModelRunSpeed_ = 5.0f;
+	std::string animationModelRequestedAnimationName_;
+	std::string animationModelIdleAnimationName_ = "Idle";
+	std::string animationModelWalkAnimationName_ = "Walk";
+	std::string animationModelRunAnimationName_ = "Run";
+	std::string animationModelAttackAnimationName_ = "Attack";
+	std::string animationModelDamageAnimationName_ = "Damage";
+	std::string animationModelDeathAnimationName_ = "Death";
+	std::array<char, 64> animationModelIdleNameBuffer_{};
+	std::array<char, 64> animationModelWalkNameBuffer_{};
+	std::array<char, 64> animationModelRunNameBuffer_{};
+	std::array<char, 64> animationModelAttackNameBuffer_{};
+	std::array<char, 64> animationModelDamageNameBuffer_{};
+	std::array<char, 64> animationModelDeathNameBuffer_{};
+	K4E::AnimationStateController animationStateController_{};
 
 private: /// ---------- テスト ---------- ///
 

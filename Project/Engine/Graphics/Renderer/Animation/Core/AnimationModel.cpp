@@ -12,6 +12,7 @@
 #include <GameTimer.h>
 #include <LightManager.h>
 #include <chrono>
+#include <cmath>
 
 #include "AnimationLoader.h"
 #include "AnimationSampler.h"
@@ -80,7 +81,9 @@ namespace Ken4lowEngine
 	void AnimationModel::LoadBaseModelAndAnimation()
 	{
 		modelData = AssimpLoader::LoadModel(fileName_);
-		animation = AnimationLoader::LoadByIndexAnimation(fileName_, 0);
+		animationClips_ = AnimationLoader::LoadAllAnimations(fileName_);
+		currentAnimationIndex_ = animationClips_.empty() ? -1 : 0;
+		SyncCurrentAnimationForCompatibility();
 	}
 
 	/// -------------------------------------------------------------
@@ -252,6 +255,174 @@ namespace Ken4lowEngine
 		return dx * dx + dy * dy + dz * dz;
 	}
 
+	const Animation* AnimationModel::GetCurrentAnimation() const
+	{
+		if (0 <= currentAnimationIndex_ && currentAnimationIndex_ < static_cast<int>(animationClips_.size()))
+		{
+			return &animationClips_[currentAnimationIndex_].animation;
+		}
+		return nullptr;
+	}
+
+	Animation* AnimationModel::GetCurrentAnimation()
+	{
+		if (0 <= currentAnimationIndex_ && currentAnimationIndex_ < static_cast<int>(animationClips_.size()))
+		{
+			return &animationClips_[currentAnimationIndex_].animation;
+		}
+		return nullptr;
+	}
+
+	void AnimationModel::SyncCurrentAnimationForCompatibility()
+	{
+		if (const Animation* currentAnimation = GetCurrentAnimation())
+		{
+			animation = *currentAnimation;
+		}
+		else
+		{
+			animation = {};
+		}
+	}
+
+	const Animation* AnimationModel::GetAnimationByIndex(int index) const
+	{
+		if (0 <= index && index < static_cast<int>(animationClips_.size()))
+		{
+			return &animationClips_[index].animation;
+		}
+		return nullptr;
+	}
+
+	void AnimationModel::ClampAnimationTimeToCurrentDuration()
+	{
+		const Animation* currentAnimation = GetCurrentAnimation();
+		if (!currentAnimation || currentAnimation->duration <= 0.0f)
+		{
+			animationPlayer_.SetTime(0.0f);
+			return;
+		}
+		animationPlayer_.SetTime(std::clamp(animationPlayer_.GetTime(), 0.0f, currentAnimation->duration));
+	}
+
+	float AnimationModel::AdvanceAnimationTime(float timeSeconds, float deltaTime, float duration) const
+	{
+		if (duration <= 0.0f || deltaTime <= 0.0f) { return 0.0f; }
+
+		float nextTime = timeSeconds + deltaTime * animationPlayer_.GetSpeed();
+		if (animationPlayer_.IsLoop())
+		{
+			nextTime = std::fmod(nextTime, duration);
+			if (nextTime < 0.0f) { nextTime += duration; }
+		}
+		else
+		{
+			nextTime = std::clamp(nextTime, 0.0f, duration);
+		}
+		return nextTime;
+	}
+
+	void AnimationModel::ResetCrossFadeState()
+	{
+		isCrossFading_ = false;
+		previousAnimationIndex_ = -1;
+		previousAnimationTime_ = 0.0f;
+		crossFadeTime_ = 0.0f;
+		crossFadeDuration_ = 0.0f;
+	}
+
+	bool AnimationModel::PlayAnimationByIndex(uint32_t index, bool resetTime)
+	{
+		if (index >= animationClips_.size()) { return false; }
+
+		ResetCrossFadeState();
+		currentAnimationIndex_ = static_cast<int>(index);
+		SyncCurrentAnimationForCompatibility();
+		if (resetTime)
+		{
+			animationPlayer_.SetTime(0.0f);
+		}
+		else
+		{
+			ClampAnimationTimeToCurrentDuration();
+		}
+		return true;
+	}
+
+	bool AnimationModel::PlayAnimationByName(const std::string& name, bool resetTime)
+	{
+		for (uint32_t index = 0; index < static_cast<uint32_t>(animationClips_.size()); ++index)
+		{
+			if (animationClips_[index].name == name)
+			{
+				return PlayAnimationByIndex(index, resetTime);
+			}
+		}
+		return false;
+	}
+
+	bool AnimationModel::CrossFadeAnimationByIndex(uint32_t index, float fadeDuration)
+	{
+		if (index >= animationClips_.size()) { return false; }
+		if (static_cast<int>(index) == currentAnimationIndex_ && !isCrossFading_) { return true; }
+		if (fadeDuration <= 0.0f || currentAnimationIndex_ < 0 || GetCurrentAnimation() == nullptr)
+		{
+			return PlayAnimationByIndex(index, true);
+		}
+
+		previousAnimationIndex_ = currentAnimationIndex_;
+		previousAnimationTime_ = animationPlayer_.GetTime();
+		currentAnimationIndex_ = static_cast<int>(index);
+		animationPlayer_.SetTime(0.0f);
+		crossFadeTime_ = 0.0f;
+		crossFadeDuration_ = fadeDuration;
+		isCrossFading_ = true;
+		SyncCurrentAnimationForCompatibility();
+		return true;
+	}
+
+	bool AnimationModel::CrossFadeAnimationByName(const std::string& name, float fadeDuration)
+	{
+		for (uint32_t index = 0; index < static_cast<uint32_t>(animationClips_.size()); ++index)
+		{
+			if (animationClips_[index].name == name)
+			{
+				return CrossFadeAnimationByIndex(index, fadeDuration);
+			}
+		}
+		return false;
+	}
+
+	std::string AnimationModel::GetCurrentAnimationName() const
+	{
+		if (0 <= currentAnimationIndex_ && currentAnimationIndex_ < static_cast<int>(animationClips_.size()))
+		{
+			return animationClips_[currentAnimationIndex_].name;
+		}
+		return {};
+	}
+
+	std::string AnimationModel::GetPreviousAnimationName() const
+	{
+		if (0 <= previousAnimationIndex_ && previousAnimationIndex_ < static_cast<int>(animationClips_.size()))
+		{
+			return animationClips_[previousAnimationIndex_].name;
+		}
+		return {};
+	}
+
+	float AnimationModel::GetAnimationDurationForDebugBatchTest() const
+	{
+		const Animation* currentAnimation = GetCurrentAnimation();
+		return currentAnimation ? currentAnimation->duration : 0.0f;
+	}
+
+	bool AnimationModel::HasAnimationForDebugBatchTest() const
+	{
+		const Animation* currentAnimation = GetCurrentAnimation();
+		return currentAnimation && currentAnimation->duration > 0.0f && !currentAnimation->nodeAnimations.empty();
+	}
+
 	/// -------------------------------------------------------------
 	///				　　複数 LOD を直接渡すオーバーロード
 	/// -------------------------------------------------------------
@@ -288,18 +459,40 @@ namespace Ken4lowEngine
 			return;
 		}
 
+		const Animation* currentAnimation = GetCurrentAnimation();
+
 		// アニメーション時間の更新
-		if (animationPlayer_.IsPlaying() && animation.duration > 0.0f)
+		if (animationPlayer_.IsPlaying() && currentAnimation && currentAnimation->duration > 0.0f)
 		{
 			const float dt = GameTimer::GetInstance()->GetDeltaTime();
-			animationPlayer_.Update(dt, animation.duration);
+			if (isCrossFading_)
+			{
+				const Animation* previousAnimation = GetAnimationByIndex(previousAnimationIndex_);
+				animationPlayer_.SetTime(AdvanceAnimationTime(animationPlayer_.GetTime(), dt, currentAnimation->duration));
+				if (previousAnimation)
+				{
+					previousAnimationTime_ = AdvanceAnimationTime(previousAnimationTime_, dt, previousAnimation->duration);
+				}
+				crossFadeTime_ += std::max(dt, 0.0f);
+				if (crossFadeDuration_ <= 0.0f || crossFadeTime_ >= crossFadeDuration_)
+				{
+					isCrossFading_ = false;
+					previousAnimationIndex_ = -1;
+					previousAnimationTime_ = 0.0f;
+					crossFadeTime_ = crossFadeDuration_;
+				}
+			}
+			else
+			{
+				animationPlayer_.Update(dt, currentAnimation->duration);
+			}
 		}
 
 		// LODごとの更新間引き（重い処理はスキップ可）
 		const bool doHeavy = lodController_.ShouldDoHeavyUpdate();
 
 		// スキニング処理（スケルトン更新は SkeletonAnimator に委譲）
-		if (doHeavy && skinningCS_.IsSkinningModel() && skeleton_)
+		if (doHeavy && skinningCS_.IsSkinningModel() && skeleton_ && currentAnimation)
 		{
 			SkinCluster* skinCluster = nullptr;
 			if (!skinClusterLOD_.empty() && 0 <= lodIndex && lodIndex < (int)skinClusterLOD_.size())
@@ -307,7 +500,21 @@ namespace Ken4lowEngine
 				skinCluster = skinClusterLOD_[lodIndex].get();
 			}
 
-			skeletonAnimator_.Update(*skeleton_, animation, animationPlayer_.GetTime(), skinCluster);
+			const Animation* previousAnimation = isCrossFading_ ? GetAnimationByIndex(previousAnimationIndex_) : nullptr;
+			if (previousAnimation)
+			{
+				const float blendRate = crossFadeDuration_ > 0.0f
+					? std::clamp(crossFadeTime_ / crossFadeDuration_, 0.0f, 1.0f)
+					: 1.0f;
+				// LODごとにメッシュは変えるが、再生アニメーションは共有する。
+				skeletonAnimator_.UpdateBlend(*skeleton_, *previousAnimation, previousAnimationTime_,
+					*currentAnimation, animationPlayer_.GetTime(), blendRate, skinCluster);
+			}
+			else
+			{
+				// LODごとにメッシュは変えるが、再生アニメーションは共有する。
+				skeletonAnimator_.Update(*skeleton_, *currentAnimation, animationPlayer_.GetTime(), skinCluster);
+			}
 		}
 
 		// アニメーション行列の更新
@@ -335,12 +542,35 @@ namespace Ken4lowEngine
 			skinningCS_.SetVertexCount(lods_[lodIndex].vertexCount);
 		}
 
+		const Animation* currentAnimation = GetCurrentAnimation();
+
 		animationPlayer_.SetPlaying(playAnimation);
-		if (!lodController_.IsCulled() && playAnimation && animation.duration > 0.0f)
+		if (!lodController_.IsCulled() && playAnimation && currentAnimation && currentAnimation->duration > 0.0f)
 		{
 			const auto animationBegin = std::chrono::steady_clock::now();
 			// Editor停止中もDebugSceneから渡された実フレーム時間で、AnimationPlayerを確実に進める。
-			animationPlayer_.Update(std::max(deltaTime, 0.0f), animation.duration);
+			const float dt = std::max(deltaTime, 0.0f);
+			if (isCrossFading_)
+			{
+				const Animation* previousAnimation = GetAnimationByIndex(previousAnimationIndex_);
+				animationPlayer_.SetTime(AdvanceAnimationTime(animationPlayer_.GetTime(), dt, currentAnimation->duration));
+				if (previousAnimation)
+				{
+					previousAnimationTime_ = AdvanceAnimationTime(previousAnimationTime_, dt, previousAnimation->duration);
+				}
+				crossFadeTime_ += dt;
+				if (crossFadeDuration_ <= 0.0f || crossFadeTime_ >= crossFadeDuration_)
+				{
+					isCrossFading_ = false;
+					previousAnimationIndex_ = -1;
+					previousAnimationTime_ = 0.0f;
+					crossFadeTime_ = crossFadeDuration_;
+				}
+			}
+			else
+			{
+				animationPlayer_.Update(dt, currentAnimation->duration);
+			}
 			timings.animationTimeMilliseconds =
 				std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - animationBegin).count();
 		}
@@ -351,7 +581,7 @@ namespace Ken4lowEngine
 		const bool shouldUpdatePose = playAnimation || forcePoseUpdate || lodChanged;
 		if (!lodController_.IsCulled() && shouldUpdatePose)
 		{
-			if (skinningCS_.IsSkinningModel() && skeleton_ && !lods_.empty())
+			if (skinningCS_.IsSkinningModel() && skeleton_ && currentAnimation && !lods_.empty())
 			{
 				SkinCluster* skinCluster = nullptr;
 				if (0 <= lodIndex && lodIndex < static_cast<int>(skinClusterLOD_.size()))
@@ -359,7 +589,19 @@ namespace Ken4lowEngine
 					skinCluster = skinClusterLOD_[lodIndex].get();
 				}
 				SkeletonAnimator::UpdateTimings skeletonTimings{};
-				skeletonAnimator_.Update(*skeleton_, animation, animationPlayer_.GetTime(), skinCluster, &skeletonTimings);
+				const Animation* previousAnimation = isCrossFading_ ? GetAnimationByIndex(previousAnimationIndex_) : nullptr;
+				if (previousAnimation)
+				{
+					const float blendRate = crossFadeDuration_ > 0.0f
+						? std::clamp(crossFadeTime_ / crossFadeDuration_, 0.0f, 1.0f)
+						: 1.0f;
+					skeletonAnimator_.UpdateBlend(*skeleton_, *previousAnimation, previousAnimationTime_,
+						*currentAnimation, animationPlayer_.GetTime(), blendRate, skinCluster, &skeletonTimings);
+				}
+				else
+				{
+					skeletonAnimator_.Update(*skeleton_, *currentAnimation, animationPlayer_.GetTime(), skinCluster, &skeletonTimings);
+				}
 				timings.skeletonMilliseconds = skeletonTimings.skeletonMilliseconds;
 				timings.paletteMilliseconds = skeletonTimings.paletteMilliseconds;
 				timings.poseUpdated = true;
@@ -386,8 +628,16 @@ namespace Ken4lowEngine
 		// 通常のAnimationModelロード規約は変えず、DebugSceneテストだけSourcesの論理パスを明示する。
 		AnimationLoader::Settings settings{};
 		settings.animationFilePath = "Resources/Models/Sources/";
-		animation = AnimationLoader::LoadByIndexAnimation(fileName_, 0, settings);
+		const std::string previousName = GetCurrentAnimationName();
+		animationClips_ = AnimationLoader::LoadAllAnimations(fileName_, settings);
+		currentAnimationIndex_ = animationClips_.empty() ? -1 : 0;
+		if (!previousName.empty())
+		{
+			PlayAnimationByName(previousName, false);
+		}
+		SyncCurrentAnimationForCompatibility();
 		animationPlayer_.Reset();
+		ResetCrossFadeState();
 		return HasAnimationForDebugBatchTest();
 	}
 
@@ -593,6 +843,9 @@ namespace Ken4lowEngine
 
 		modelData = {};
 		animation = {};
+		animationClips_.clear();
+		currentAnimationIndex_ = -1;
+		ResetCrossFadeState();
 		animationPlayer_.Reset();
 
 		colliderController_.Clear();
@@ -670,11 +923,30 @@ namespace Ken4lowEngine
 		}
 		else
 		{
-			// アニメーション無し（通常モデル用のWVP更新）
-			NodeAnimation& rootNodeAnimation = animation.nodeAnimations[modelData.rootNode.name]; // ルートノードのアニメーション取得
-			Vector3 translate = AnimationSampler::CalculateValue(rootNodeAnimation.translate, animationPlayer_.GetTime());	  // 座標系調整（Z軸反転で伸びを防ぐ）
-			Quaternion rotate = AnimationSampler::CalculateValue(rootNodeAnimation.rotate, animationPlayer_.GetTime());		  // 回転
-			Vector3 scale = AnimationSampler::CalculateValue(rootNodeAnimation.scale, animationPlayer_.GetTime());			  // 拡縮
+			const Animation* currentAnimation = GetCurrentAnimation();
+			Vector3 translate{ 0.0f, 0.0f, 0.0f };
+			Quaternion rotate{};
+			Vector3 scale{ 1.0f, 1.0f, 1.0f };
+			if (currentAnimation)
+			{
+				const auto rootIt = currentAnimation->nodeAnimations.find(modelData.rootNode.name);
+				if (rootIt != currentAnimation->nodeAnimations.end())
+				{
+					const NodeAnimation& rootNodeAnimation = rootIt->second; // ルートノードのアニメーション取得
+					if (!rootNodeAnimation.translate.empty())
+					{
+						translate = AnimationSampler::CalculateValue(rootNodeAnimation.translate, animationPlayer_.GetTime());
+					}
+					if (!rootNodeAnimation.rotate.empty())
+					{
+						rotate = AnimationSampler::CalculateValue(rootNodeAnimation.rotate, animationPlayer_.GetTime());
+					}
+					if (!rootNodeAnimation.scale.empty())
+					{
+						scale = AnimationSampler::CalculateValue(rootNodeAnimation.scale, animationPlayer_.GetTime());
+					}
+				}
+			}
 
 			// ローカル行列計算
 			Matrix4x4 localMatrix = Matrix4x4::MakeAffineMatrix(scale, rotate, translate);

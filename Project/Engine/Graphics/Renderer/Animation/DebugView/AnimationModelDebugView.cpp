@@ -43,6 +43,45 @@ void Ken4lowEngine::AnimationModelDebugView::DrawImGui(AnimationModel& model)
 		ImGui::Text("Visible: %s", model.IsVisible() ? "Yes" : "No");
 		ImGui::Text("LOD: %d / %d", model.GetLOD(), maxLodIndex);
 
+		// ---- Animation ----
+		if (ImGui::CollapsingHeader("Animation", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			const auto& clips = model.GetAnimationClips();
+			int currentIndex = model.GetCurrentAnimationIndex();
+			if (!clips.empty())
+			{
+				const char* previewName = (0 <= currentIndex && currentIndex < (int)clips.size())
+					? clips[currentIndex].name.c_str()
+					: "(none)";
+				if (ImGui::BeginCombo("Clip", previewName))
+				{
+					for (int i = 0; i < (int)clips.size(); ++i)
+					{
+						const bool selected = (i == currentIndex);
+						if (ImGui::Selectable(clips[i].name.c_str(), selected))
+						{
+							model.PlayAnimationByIndex((uint32_t)i, true);
+							currentIndex = i;
+						}
+						if (selected) { ImGui::SetItemDefaultFocus(); }
+					}
+					ImGui::EndCombo();
+				}
+			}
+			else
+			{
+				ImGui::TextUnformatted("Clip: (none)");
+			}
+
+			bool playing = model.IsAnimationPlaying();
+			if (ImGui::Checkbox("Playing", &playing))
+			{
+				model.SetAnimationPlaying(playing);
+			}
+			ImGui::Text("Time: %.3f / %.3f", model.GetAnimationTime(), model.GetAnimationDurationForDebugBatchTest());
+			ImGui::Text("Clip Count: %d", (int)clips.size());
+		}
+
 		// ---- Debug Draw ----
 		if (ImGui::CollapsingHeader("Debug Draw", ImGuiTreeNodeFlags_DefaultOpen))
 		{

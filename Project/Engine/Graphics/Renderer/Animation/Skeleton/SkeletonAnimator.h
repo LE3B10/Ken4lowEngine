@@ -36,5 +36,15 @@ namespace Ken4lowEngine
 		/// <param name="skinCluster">パレット更新したい場合のみ渡す（nullptr 可）</param>
 		void Update(Skeleton& skeleton, const Animation& animation, float timeSeconds, SkinCluster* skinCluster = nullptr,
 			UpdateTimings* timings = nullptr) const;
+
+		void UpdateBlend(
+			Skeleton& skeleton,
+			const Animation& fromAnimation,
+			float fromTimeSeconds,
+			const Animation& toAnimation,
+			float toTimeSeconds,
+			float blendRate,
+			SkinCluster* skinCluster = nullptr,
+			UpdateTimings* timings = nullptr) const;
 	};
 }
