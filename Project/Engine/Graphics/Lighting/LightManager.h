@@ -210,6 +210,11 @@ namespace Ken4lowEngine
 		// Editor Detailsから選択中ライトだけを書き換えるため、index検証付きヘルパー経由でのみ利用する。
 		std::vector<PunctualLightGPU>& GetMutablePunctualLightsForEditor() { return punctualLights_; }
 
+		/// <summary>
+		/// Actorに追加されたLightComponent由来のPointLight一覧を反映します。
+		/// </summary>
+		void SetLightComponentPointLights(const std::vector<PunctualLightGPU>& lights);
+
 	public: /// ---------- ParameterManager連携用の窓口 ---------- ///
 
 		/// <summary>
@@ -297,6 +302,7 @@ namespace Ken4lowEngine
 		DirectXCommon* dxCommon_ = nullptr;
 
 		std::vector<PunctualLightGPU> punctualLights_; // GPUに送るライト情報
+		std::vector<PunctualLightGPU> lightComponentPointLights_; // LightComponentから収集したPointLight情報
 
 		// GPU送信用バッファとSRV
 		Microsoft::WRL::ComPtr<ID3D12Resource> punctualBuffer_;

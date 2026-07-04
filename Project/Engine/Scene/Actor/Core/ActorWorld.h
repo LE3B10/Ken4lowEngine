@@ -138,6 +138,11 @@ namespace Ken4lowEngine
 		void UnregisterPhysicsComponents(Actor& actor);
 
 		/// <summary>
+		/// Actorが持つLightComponentを描画用ライトへ反映する
+		/// </summary>
+		void SyncLightComponentsToLightManager();
+
+		/// <summary>
 		/// Actor JSON読込予約を次フレームの安全なタイミングで処理する
 		/// </summary>
 		void ProcessPendingActorReload();

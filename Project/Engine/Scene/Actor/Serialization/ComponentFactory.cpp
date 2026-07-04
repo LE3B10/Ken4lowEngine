@@ -6,6 +6,7 @@
 #include "ColliderComponent.h"
 #include "RigidbodyComponent.h"
 #include "InstancedModelComponent.h"
+#include "LightComponent.h"
 
 #include <type_traits>
 #include <utility>
@@ -93,6 +94,12 @@ namespace Ken4lowEngine
 					"インスタンスモデルコンポーネント",
 					"描画",
 					"同じモデルを複数描画するためのインスタンシング機能を追加します。"),
+				MakeComponentTypeInfo<LightComponent>(
+					"LightComponent",
+					true,
+					"ライトコンポーネント",
+					"描画",
+					"Actorにライト情報を持たせるためのComponentです。"),
 		};
 	}
 

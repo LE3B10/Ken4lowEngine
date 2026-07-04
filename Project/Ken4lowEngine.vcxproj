@@ -124,6 +124,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Scene\Actor\Serialization\ActorJsonSerializer.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\ColliderComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\CameraComponent.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Components\LightComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\Actor.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\Effects\EnemyParticleEffectSystem.cpp" />
@@ -784,6 +785,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Physics\Collision\Core\PhysicsCollisionLayer.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\ColliderComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\CameraComponent.h" />
+    <ClInclude Include="Engine\Scene\Actor\Components\LightComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Core\ActorWorld.h" />
     <ClInclude Include="Engine\Scene\Actor\Core\Actor.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Effects\EnemyParticleEffectSystem.h" />

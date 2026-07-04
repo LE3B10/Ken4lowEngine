@@ -3,8 +3,10 @@
 #include "RigidbodyComponent.h"
 #include "ActorJsonSerializer.h"
 #include "CameraComponent.h"
+#include "LightComponent.h"
 
 #include "ComponentFactory.h"
+#include "LightManager.h"
 #include "SceneComponent.h"
 
 #include <algorithm>
@@ -84,6 +86,8 @@ namespace Ken4lowEngine
 			{
 				return actor->IsPendingDestroy(); // Destroy予約されたActorを更新後にまとめて削除する
 			});
+
+		SyncLightComponentsToLightManager(); // ActorのLightComponentを描画用ライトへ反映する
 	}
 
 	void ActorWorld::PostPhysicsUpdate(float deltaTime)
@@ -93,10 +97,14 @@ namespace Ken4lowEngine
 			// PhysicsWorld更新後の処理をActorへ流す。
 			actor->PostPhysicsUpdate(deltaTime);
 		}
+
+		SyncLightComponentsToLightManager(); // 物理更新後のWorld位置をライトへ反映する
 	}
 
 	void ActorWorld::Draw()
 	{
+		SyncLightComponentsToLightManager(); // 描画直前のLightComponent設定をLightManagerへ渡す
+
 		for (auto& actor : actors_)
 		{
 			// 通常描画を持つActorだけが内部Component経由で描画される
@@ -148,6 +156,7 @@ namespace Ken4lowEngine
 		ImGui::End();
 
 		DrawDetailsImGui(); // 選択中ActorまたはComponentのDetailsウィンドウを描画する
+		SyncLightComponentsToLightManager(); // ImGuiで編集したライト設定を次の描画へ反映する
 #endif // USE_IMGUI
 	}
 
@@ -318,6 +327,7 @@ namespace Ken4lowEngine
 		}
 
 		actors_.clear(); // Finalize後にActorを破棄し、古い状態が残らないようにする
+		LightManager::GetInstance()->SetLightComponentPointLights({}); // ActorWorld破棄時にComponent由来ライトを解除する
 
 		isInitialized_ = false; // 再Initialize時にSpawn済みActorを通常初期化できるように戻す
 	}
@@ -488,6 +498,43 @@ namespace Ken4lowEngine
 		}
 
 		actor.SetPhysicsRegistered(false); // 登録済みフラグを下ろす
+	}
+
+	void ActorWorld::SyncLightComponentsToLightManager()
+	{
+		std::vector<LightManager::PunctualLightGPU> pointLights;
+
+		for (const auto& actor : actors_)
+		{
+			if (!actor || actor->IsPendingDestroy())
+			{
+				continue; // 削除予定のActorはライト反映対象から外す
+			}
+
+			const auto lightComponents = actor->GetComponents<LightComponent>();
+			for (const LightComponent* lightComponent : lightComponents)
+			{
+				if (!lightComponent || !lightComponent->IsActiveInHierarchy() || !lightComponent->IsEnabled())
+				{
+					continue; // 無効なLightComponentは描画用ライトに登録しない
+				}
+
+				const Vector3& color = lightComponent->GetColor();
+
+				LightManager::PunctualLightGPU light{};
+				light.lightType = 2; // Point
+				light.color = { color.x, color.y, color.z, 1.0f };
+				light.intensity = lightComponent->GetIntensity();
+				light.position = lightComponent->GetWorldPosition();
+				light.radius = lightComponent->GetRange();
+				light.decay = 1.0f;
+				light.enabled = 1u;
+
+				pointLights.push_back(light);
+			}
+		}
+
+		LightManager::GetInstance()->SetLightComponentPointLights(pointLights);
 	}
 
 	void ActorWorld::ProcessPendingActorReload()

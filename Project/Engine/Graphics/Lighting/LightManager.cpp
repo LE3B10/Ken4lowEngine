@@ -156,10 +156,16 @@ namespace Ken4lowEngine
 
 		// CPU側データ
 		punctualLights_.clear();
+		lightComponentPointLights_.clear();
 		punctualType_ = 1;
 
 		// 借り物参照
 		dxCommon_ = nullptr;
+	}
+
+	void LightManager::SetLightComponentPointLights(const std::vector<PunctualLightGPU>& lights)
+	{
+		lightComponentPointLights_ = lights; // Actor上のLightComponentを描画用ライトとして反映する
 	}
 
 	void LightManager::EnsureDefaultLightForParameter()
@@ -278,9 +284,14 @@ namespace Ken4lowEngine
 	void LightManager::UpdatePunctualLight()
 	{
 		// ===== 有効ライトだけをGPU転送対象に ====
+		std::vector<PunctualLightGPU> sourceLights;
+		sourceLights.reserve(punctualLights_.size() + lightComponentPointLights_.size());
+		sourceLights.insert(sourceLights.end(), punctualLights_.begin(), punctualLights_.end());
+		sourceLights.insert(sourceLights.end(), lightComponentPointLights_.begin(), lightComponentPointLights_.end());
+
 		std::vector<PunctualLightGPU> gpuLights;
-		gpuLights.reserve(punctualLights_.size());
-		for (const auto& L : punctualLights_) {
+		gpuLights.reserve(sourceLights.size());
+		for (const auto& L : sourceLights) {
 			if (L.lightType == 0 || L.enabled == 0u) continue;           // 無効はスキップ
 			PunctualLightGPU C = L;
 			if (C.lightType == 1 || C.lightType == 3 || C.lightType == 4 || C.lightType == 5) // Dir/Spot/Area は方向を正規化
@@ -419,6 +430,15 @@ namespace Ken4lowEngine
 				}
 			default:
 				break;
+			}
+		}
+		for (const auto& L : lightComponentPointLights_)
+		{
+			if (L.enabled == 0u || L.lightType != 2) { continue; }
+			wf->DrawSphere(L.position, rGizmo, colPt);
+			if (L.radius > 0.0f)
+			{
+				wf->DrawSphere(L.position, L.radius, { colPt.x, colPt.y, colPt.z, 0.5f });
 			}
 		}
 #endif // _DEBUG
