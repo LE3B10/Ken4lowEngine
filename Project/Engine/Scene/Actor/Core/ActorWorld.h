@@ -64,6 +64,11 @@ namespace Ken4lowEngine
 		void Draw();
 
 		/// <summary>
+		/// ActorWorldが所有するScreen Space Spriteをまとめて描画する
+		/// </summary>
+		void DrawScreenSpaceSprites();
+
+		/// <summary>
 		/// ActorWorldが所有する全Actorのシャドウ描画を行う
 		/// </summary>
 		void DrawShadow();

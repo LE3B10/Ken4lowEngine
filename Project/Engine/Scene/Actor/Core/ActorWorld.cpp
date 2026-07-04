@@ -4,10 +4,12 @@
 #include "ActorJsonSerializer.h"
 #include "CameraComponent.h"
 #include "LightComponent.h"
+#include "SpriteComponent.h"
 
 #include "ComponentFactory.h"
 #include "LightManager.h"
 #include "SceneComponent.h"
+#include "SpriteManager.h"
 
 #include <algorithm>
 #include <array>
@@ -109,6 +111,48 @@ namespace Ken4lowEngine
 		{
 			// 通常描画を持つActorだけが内部Component経由で描画される
 			actor->Draw();
+		}
+	}
+
+	void ActorWorld::DrawScreenSpaceSprites()
+	{
+		std::vector<SpriteComponent*> spriteComponents;
+
+		for (auto& actor : actors_)
+		{
+			if (!actor || actor->IsPendingDestroy())
+			{
+				continue; // 削除予定のActorはSprite描画対象から外す
+			}
+
+			const auto components = actor->GetComponents<SpriteComponent>();
+			for (SpriteComponent* spriteComponent : components)
+			{
+				if (!spriteComponent || !spriteComponent->CanDrawScreenSpace())
+				{
+					continue; // 非表示または無効なSpriteComponentは描画しない
+				}
+
+				spriteComponents.push_back(spriteComponent);
+			}
+		}
+
+		std::stable_sort(spriteComponents.begin(), spriteComponents.end(),
+			[](const SpriteComponent* a, const SpriteComponent* b)
+			{
+				return a->GetDrawOrder() < b->GetDrawOrder(); // DrawOrderが小さいSpriteから先に描画する
+			});
+
+		if (spriteComponents.empty())
+		{
+			return; // 描画対象のSpriteComponentが無い場合は何もしない
+		}
+
+		SpriteManager::GetInstance()->SetRenderSetting_UI();
+
+		for (SpriteComponent* spriteComponent : spriteComponents)
+		{
+			spriteComponent->DrawScreenSpace();
 		}
 	}
 

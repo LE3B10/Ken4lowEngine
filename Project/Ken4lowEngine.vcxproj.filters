@@ -1120,6 +1120,9 @@
     <ClCompile Include="Engine\Scene\Actor\Components\LightComponent.cpp">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\SpriteComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Components\InstancedModelComponent.cpp">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClCompile>
@@ -2329,6 +2332,9 @@
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Components\LightComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\SpriteComponent.h">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Components\InstancedModelComponent.h">

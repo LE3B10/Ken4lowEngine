@@ -284,9 +284,8 @@ void DebugScene::Draw2DSprites()
 
 #pragma region UIの描画
 
-	// UI用の共通描画設定
-	SpriteManager::GetInstance()->SetRenderSetting_UI();
-
+	// Actorに追加されたScreen Space Spriteを3D描画後にまとめて描画する
+	actorWorld_.DrawScreenSpaceSprites();
 
 #pragma endregion
 }
