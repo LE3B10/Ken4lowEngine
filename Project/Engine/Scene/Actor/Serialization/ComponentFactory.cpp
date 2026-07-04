@@ -1,6 +1,7 @@
 #include "ComponentFactory.h"
 
 #include "Actor.h"
+#include "AnimatedModelComponent.h"
 #include "AudioComponent.h"
 #include "BillboardComponent.h"
 #include "CameraComponent.h"
@@ -72,6 +73,8 @@ namespace Ken4lowEngine
 			MakeComponentTypeInfo<SceneComponent>("SceneComponent", true, "シーンコンポーネント", "基本", "Actorに位置・回転・スケールと親子関係を持たせる基本Componentです。"),
 
 			MakeComponentTypeInfo<ModelComponent>("ModelComponent", true, "モデルコンポーネント", "描画", "Actorに3Dモデルの描画機能を追加します。"),
+
+			MakeComponentTypeInfo<AnimatedModelComponent>("AnimatedModelComponent", true, "アニメーションモデルコンポーネント", "描画", "ボーンを使わない3Dモデルアニメーションを再生するComponentです。"),
 
 			MakeComponentTypeInfo<InstancedModelComponent>("InstancedModelComponent", true, "インスタンスモデルコンポーネント", "描画", "同じモデルを複数まとめて描画するためのComponentです。"),
 

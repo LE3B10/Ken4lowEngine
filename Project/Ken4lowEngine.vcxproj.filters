@@ -1165,6 +1165,9 @@
     <ClCompile Include="Engine\Scene\Actor\Components\InstancedModelComponent.cpp">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\AnimatedModelComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Components\SkeletalMeshComponent.cpp">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClCompile>
@@ -2434,6 +2437,9 @@
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Components\InstancedModelComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\AnimatedModelComponent.h">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Components\SkeletalMeshComponent.h">

@@ -505,6 +505,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Platform\Windows\ResolutionManager.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Sprite\Utility\SpriteFactory.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActor.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Components\AnimatedModelComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\ModelComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\SceneComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\RigidbodyComponent.cpp" />
@@ -1313,6 +1314,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Platform\Windows\ResolutionManager.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Sprite\Utility\SpriteFactory.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActor.h" />
+    <ClInclude Include="Engine\Scene\Actor\Components\AnimatedModelComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\ModelComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\SceneComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\RigidbodyComponent.h" />
