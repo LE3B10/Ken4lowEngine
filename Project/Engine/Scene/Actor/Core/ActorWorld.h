@@ -217,6 +217,11 @@ namespace Ken4lowEngine
 		/// </summary>
 		void DeleteSelectedComponent();
 
+		/// <summary>
+		/// 選択中Componentを複製する
+		/// </summary>
+		void DuplicateSelectedComponent();
+
 	private: /// ---------- メンバ変数 ---------- ///
 
 		// ActorWorldがActorの寿命を管理する

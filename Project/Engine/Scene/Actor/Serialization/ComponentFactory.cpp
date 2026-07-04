@@ -9,6 +9,90 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		const std::vector<ComponentFactory::ComponentTypeInfo> kRegisteredComponentTypes =
+		{
+			{
+				"SceneComponent",
+				true,
+				[](Actor* owner) -> ActorComponent*
+			{
+				if (!owner)
+				{
+					return nullptr; // 所有Actorが無い場合はComponentを生成できない
+				}
+
+				return &owner->AddComponent<SceneComponent>();
+			}
+			},
+			{
+				"ModelComponent",
+				true,
+				[](Actor* owner) -> ActorComponent*
+			{
+				if (!owner)
+				{
+					return nullptr; // 所有Actorが無い場合はComponentを生成できない
+				}
+
+				return &owner->AddComponent<ModelComponent>();
+			}
+			},
+			{
+				"CameraComponent",
+				false,
+				[](Actor* owner) -> ActorComponent*
+			{
+				if (!owner)
+				{
+					return nullptr; // 所有Actorが無い場合はComponentを生成できない
+				}
+
+				return &owner->AddComponent<CameraComponent>();
+			}
+			},
+			{
+				"ColliderComponent",
+				true,
+				[](Actor* owner) -> ActorComponent*
+			{
+				if (!owner)
+				{
+					return nullptr; // 所有Actorが無い場合はComponentを生成できない
+				}
+
+				return &owner->AddComponent<ColliderComponent>();
+			}
+			},
+			{
+				"RigidbodyComponent",
+				false,
+				[](Actor* owner) -> ActorComponent*
+			{
+				if (!owner)
+				{
+					return nullptr; // 所有Actorが無い場合はComponentを生成できない
+				}
+
+				return &owner->AddComponent<RigidbodyComponent>();
+			}
+			},
+			{
+				"InstancedModelComponent",
+				true,
+				[](Actor* owner) -> ActorComponent*
+			{
+				if (!owner)
+				{
+					return nullptr; // 所有Actorが無い場合はComponentを生成できない
+				}
+
+				return &owner->AddComponent<InstancedModelComponent>();
+			}
+			},
+		};
+	}
 
 	ActorComponent* ComponentFactory::CreateComponent(Actor* owner, std::string_view className)
 	{
@@ -17,32 +101,14 @@ namespace Ken4lowEngine
 			return nullptr; // Actorがnullptrの場合はComponentを生成しない
 		}
 
-		if (className == "SceneComponent")
+		const ComponentTypeInfo* typeInfo = FindComponentType(className);
+
+		if (!typeInfo)
 		{
-			return &owner->AddComponent<SceneComponent>();			// SceneComponentをActorへ追加して返す
-		}
-		else if (className == "ModelComponent")
-		{
-			return &owner->AddComponent<ModelComponent>();			// ModelComponentをActorへ追加して返す
-		}
-		else if (className == "CameraComponent")
-		{
-			return &owner->AddComponent<CameraComponent>();			// CameraComponentをActorへ追加して返す
-		}
-		else if (className == "ColliderComponent")
-		{
-			return &owner->AddComponent<ColliderComponent>();		// ColliderComponentをActorへ追加して返す
-		}
-		else if (className == "RigidbodyComponent")
-		{
-			return &owner->AddComponent<RigidbodyComponent>();		// RigidbodyComponentをActorへ追加して返す
-		}
-		else if (className == "InstancedModelComponent")
-		{
-			return &owner->AddComponent<InstancedModelComponent>(); // InstancedModelComponentをActorへ追加して返す
+			return nullptr; // 未登録のComponentClass名の場合は生成しない
 		}
 
-		return nullptr; // 未知のComponentクラス名の場合はnullptrを返す
+		return typeInfo->createFunc(owner);
 	}
 
 	SceneComponent* ComponentFactory::CreateRootSceneComponent(Actor* owner, std::string_view className)
@@ -74,6 +140,37 @@ namespace Ken4lowEngine
 		}
 
 		return nullptr; // RootにできないComponent、又は未対応のClassなら生成しない
+	}
+
+	const std::vector<ComponentFactory::ComponentTypeInfo>& ComponentFactory::GetRegisteredComponentTypes()
+	{
+		// Add Component UIとFactory生成対象を同じ一覧に揃える
+		return kRegisteredComponentTypes;
+	}
+
+	bool ComponentFactory::IsAllowMultiple(std::string_view className)
+	{
+		const ComponentTypeInfo* typeInfo = FindComponentType(className);
+
+		if (!typeInfo)
+		{
+			return false; // 未登録のComponentClass名の場合は複数追加不可とする
+		}
+
+		return typeInfo->allowMultiple; // 同一Actorに複数追加可能かどうかを返す
+	}
+
+	const ComponentFactory::ComponentTypeInfo* ComponentFactory::FindComponentType(std::string_view className)
+	{
+		for (const ComponentFactory::ComponentTypeInfo& typeInfo : kRegisteredComponentTypes)
+		{
+			if (typeInfo.className == className)
+			{
+				return &typeInfo; // Class名が一致するComponent情報を返す
+			}
+		}
+
+		return nullptr; // 一致するComponent情報がない場合はnullptrを返す
 	}
 
 }

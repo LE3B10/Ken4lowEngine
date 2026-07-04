@@ -122,6 +122,21 @@ namespace Ken4lowEngine
 		RefreshWorldTransform(); // 復元したLocalTransformをWorldTransformへ反映する
 	}
 
+	bool SceneComponent::IsActiveInHierarchy() const
+	{
+		if (!IsActive())
+		{
+			return false; // 自身が非アクティブなら階層的にも非アクティブ扱い
+		}
+
+		if (!parent_)
+		{
+			return true; // 親がいない場合は自身の有効状態が階層的な有効状態となる
+		}
+
+		return parent_->IsActiveInHierarchy(); // 親の階層的有効状態を再帰的に確認する
+	}
+
 	void SceneComponent::AttachTo(SceneComponent* parent)
 	{
 		if (parent_ == parent)

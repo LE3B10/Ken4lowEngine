@@ -2,8 +2,10 @@
     "Class": "TestActor",
     "Components": [
         {
+            "Active": true,
             "Class": "ColliderComponent",
             "CollisionLayer": 1,
+            "DrawOrder": 0,
             "HalfSize": [
                 1.0,
                 1.0,
@@ -11,8 +13,8 @@
             ],
             "IsTrigger": false,
             "LocalPosition": [
-                3.0,
-                -1.0,
+                0.0,
+                -1.0000001192092896,
                 0.0
             ],
             "LocalRotation": [
@@ -28,10 +30,13 @@
             "Name": "Root Collider Component",
             "Parent": "",
             "ShapeType": "AABB",
-            "Type": "SceneComponent"
+            "Type": "SceneComponent",
+            "UpdateOrder": 0
         },
         {
+            "Active": true,
             "Class": "ModelComponent",
+            "DrawOrder": 0,
             "LocalPosition": [
                 0.0,
                 0.0,
@@ -50,11 +55,14 @@
             "ModelPath": "Sample/cube.gltf",
             "Name": "Model Component",
             "Parent": "Root Collider Component",
-            "Type": "SceneComponent"
+            "Type": "SceneComponent",
+            "UpdateOrder": 0
         },
         {
-            "AutoRegisterMainCamera": false,
+            "Active": true,
+            "AutoRegisterMainCamera": true,
             "Class": "CameraComponent",
+            "DrawOrder": 0,
             "LocalPosition": [
                 0.0,
                 2.0,
@@ -72,14 +80,18 @@
             ],
             "Name": "Camera Component",
             "Parent": "Root Collider Component",
-            "Type": "SceneComponent"
+            "Type": "SceneComponent",
+            "UpdateOrder": 0
         },
         {
+            "Active": true,
             "BodyType": "Dynamic",
             "Class": "RigidbodyComponent",
+            "DrawOrder": 0,
             "Mass": 1.0,
             "Name": "Rigidbody Component",
             "Type": "ActorComponent",
+            "UpdateOrder": 0,
             "UseGravity": true,
             "Velocity": [
                 0.0,

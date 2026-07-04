@@ -1,5 +1,7 @@
 #include "Actor.h"
 
+#include <algorithm>
+
 #ifdef USE_IMGUI
 #include <imgui.h>
 #include <typeinfo>
@@ -23,11 +25,29 @@ namespace Ken4lowEngine
 
 	void Actor::Update(float deltaTime)
 	{
+		std::vector<ActorComponent*> updateComponents;
+
 		for (auto& component : components_)
+		{
+			if (!component || !component->IsActiveInHierarchy())
+			{
+				continue; // 無効化されたComponentはUpdate対象から外す
+			}
+
+			updateComponents.push_back(component.get());
+		}
+
+		std::sort(updateComponents.begin(), updateComponents.end(),
+			[](const ActorComponent* a, const ActorComponent* b)
+			{
+				return a->GetUpdateOrder() < b->GetUpdateOrder(); // UpdateOrderの昇順でソートする
+			});
+
+		for (ActorComponent* component : updateComponents)
 		{
 			if (!component)
 			{
-				continue; // nullptrのComponentは無視する
+				continue; // 無効化されたComponentはUpdate対象から外す
 			}
 
 			// Actorは更新順だけ管理し、処理内容はComponent側に任せる
@@ -37,26 +57,95 @@ namespace Ken4lowEngine
 
 	void Actor::PostPhysicsUpdate(float deltaTime)
 	{
+		std::vector<ActorComponent*> updateComponents;
+
 		for (auto& component : components_)
 		{
+			if (!component || !component->IsActiveInHierarchy())
+			{
+				continue; // 無効化されたComponentはPostPhysicsUpdate対象から外す
+			}
+
 			// 物理更新後のTransform反映処理をComponent側へ流す。
+			updateComponents.push_back(component.get());
+		}
+
+		std::sort(updateComponents.begin(), updateComponents.end(),
+			[](const ActorComponent* a, const ActorComponent* b)
+			{
+				return a->GetUpdateOrder() < b->GetUpdateOrder(); // UpdateOrderの昇順でソートする
+			});
+
+		for (ActorComponent* component : updateComponents)
+		{
+			if (!component)
+			{
+				continue; // 無効化されたComponentはPostPhysicsUpdate対象から外す
+			}
+
 			component->PostPhysicsUpdate(deltaTime);
 		}
 	}
 
 	void Actor::Draw()
 	{
+		std::vector<ActorComponent*> drawComponents;
+
 		for (auto& component : components_)
 		{
+			if (!component || !component->IsActiveInHierarchy())
+			{
+				continue; // 無効化されたComponentはDraw対象から外す
+			}
+
 			// 描画を持つComponentだけがDrawを実装する
+			drawComponents.push_back(component.get());
+		}
+
+		std::sort(drawComponents.begin(), drawComponents.end(),
+			[](const ActorComponent* a, const ActorComponent* b)
+			{
+				return a->GetDrawOrder() < b->GetDrawOrder(); // DrawOrderの昇順でソートする
+			});
+
+		for (ActorComponent* component : drawComponents)
+		{
+			if (!component)
+			{
+				continue; // 無効化されたComponentはDraw対象から外す
+			}
+
 			component->Draw();
 		}
 	}
 
 	void Actor::DrawShadow()
 	{
+		std::vector<ActorComponent*> drawComponents;
+
 		for (auto& component : components_)
 		{
+			if (!component || !component->IsActiveInHierarchy())
+			{
+				continue; // 無効化されたComponentはShadow描画対象から外す
+			}
+
+			drawComponents.push_back(component.get());
+		}
+
+		std::sort(drawComponents.begin(), drawComponents.end(),
+			[](const ActorComponent* a, const ActorComponent* b)
+			{
+				return a->GetDrawOrder() < b->GetDrawOrder(); // DrawOrderの昇順でソートする
+			});
+
+		for (ActorComponent* component : drawComponents)
+		{
+			if (!component)
+			{
+				continue; // 無効化されたComponentはShadow描画対象から外す
+			}
+
 			// 影を落とすComponentだけがShadow描画を実装する
 			component->DrawShadow();
 		}
@@ -284,6 +373,24 @@ namespace Ken4lowEngine
 
 		components_.erase(removeIt, components_.end());
 		return true;
+	}
+
+	bool Actor::HasComponentClass(const std::string& className) const
+	{
+		for (const auto& component : components_)
+		{
+			if (!component)
+			{
+				continue; // nullptrのComponentは無視する
+			}
+
+			if (component->GetClassTypeName() == className)
+			{
+				return true; // 指定されたclass名のComponentが見つかった場合はtrueを返す
+			}
+		}
+
+		return false;
 	}
 
 	ActorComponent* Actor::FindComponentByName(std::string_view name)

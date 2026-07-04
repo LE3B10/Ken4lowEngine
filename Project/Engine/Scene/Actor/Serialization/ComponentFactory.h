@@ -1,5 +1,8 @@
 #pragma once
+#include <functional>
 #include <string_view>
+#include <string>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -13,6 +16,15 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	class ComponentFactory
 	{
+	public: /// ---------- 構造体 ---------- ///
+
+		struct ComponentTypeInfo
+		{
+			std::string className; // JSON保存用のComponentクラス名
+			bool allowMultiple;	   // 同一Actorに複数追加可能かどうか
+			std::function<ActorComponent* (Actor*)> createFunc; // Component生成関数
+		};
+
 	public: /// ---------- 静的メンバ関数 ---------- ///
 
 		/// <summary>
@@ -24,5 +36,22 @@ namespace Ken4lowEngine
 		/// 指定されたClass名に対応するSceneComponentをRootComponentとして生成する
 		/// </summary>
 		static SceneComponent* CreateRootSceneComponent(Actor* owner, std::string_view className);
+
+		/// <summary>
+		/// Add Component UIに表示するComponent一覧を取得する
+		/// </summary>
+		static const std::vector<ComponentTypeInfo>& GetRegisteredComponentTypes();
+
+		/// <summary>
+		/// 指定したComponentが同一Actorに複数追加可能かどうかを取得する
+		/// </summary>
+		static bool IsAllowMultiple(std::string_view className);
+
+	private: /// ---------- 静的メンバ関数 ---------- ///
+
+		/// <summary>
+		/// 登録済みComponent一覧から。Class名が一致するComponent情報を検索する
+		/// </summary>
+		static const ComponentTypeInfo* FindComponentType(std::string_view className);
 	};
 }

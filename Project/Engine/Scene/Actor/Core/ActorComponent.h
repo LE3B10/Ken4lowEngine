@@ -3,6 +3,10 @@
 #include <string_view>
 #include <json.hpp>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
+
 namespace Ken4lowEngine
 {
 	/// ---------- 前方宣言 ---------- ///
@@ -64,6 +68,25 @@ namespace Ken4lowEngine
 		/// </summary>
 		virtual void DrawInspectorImGui()
 		{
+#ifdef USE_IMGUI
+			bool active = IsActive();
+			if (ImGui::Checkbox("Active", &active))
+			{
+				SetActive(active); // Componentの有効状態を更新する
+			}
+
+			int updateOrder = GetUpdateOrder();
+			if (ImGui::DragInt("Update Order", &updateOrder, 1.0f))
+			{
+				SetUpdateOrder(updateOrder); // Updateの実行順を更新する
+			}
+
+			int drawOrder = GetDrawOrder();
+			if (ImGui::DragInt("Draw Order", &drawOrder, 1.0f))
+			{
+				SetDrawOrder(drawOrder); // Drawの実行順を更新する
+			}
+#endif // USE_IMGUI
 			DrawImGui(); // 既存のImGui描画をDetails表示に流用する
 		}
 
@@ -110,6 +133,66 @@ namespace Ken4lowEngine
 			return name_; // Editor表示やComponent検索に使う名前を返すc 
 		}
 
+	public: /// ---------- 有効状態 ---------- ///
+
+		/// <summary>
+		/// Componentの有効状態を設定する
+		/// </summary>
+		void SetActive(bool active)
+		{
+			isActive_ = active; // Editor上で一時的にComponentの更新・描画を止めるためのフラグ
+		}
+
+		/// <summary>
+		/// Componentが有効かどうかを取得する
+		/// </summary>
+		bool IsActive() const
+		{
+			return isActive_; // Editor上で一時的にComponentの更新・描画を止めるためのフラグ
+		}
+
+		/// <summary>
+		/// 親子階層を含めたComponentの有効状態を取得する
+		/// </summary>
+		virtual bool IsActiveInHierarchy() const
+		{
+			return IsActive(); // SceneComponent以外は自分自身のActiveだけを見る
+		}
+
+	public: /// ---------- 実行順 ---------- ///
+
+		/// <summary>
+		/// Updateの実行順を設定する。値が小さいほど先に更新される
+		/// </summary>
+		void SetUpdateOrder(int order)
+		{
+			updateOrder_ = order; // Updateの実行順を設定する
+		}
+
+		/// <summary>
+		/// Updateの実行順を取得する
+		/// </summary>
+		int GetUpdateOrder() const
+		{
+			return updateOrder_; // Updateの実行順を取得する
+		}
+
+		/// <summary>
+		/// Drawの実行順を設定する。値が小さいほど先に描画される
+		/// </summary>
+		void SetDrawOrder(int order)
+		{
+			drawOrder_ = order; // Drawの実行順を設定する
+		}
+
+		/// <summary>
+		/// Drawの実行順を取得する
+		/// </summary>
+		int GetDrawOrder() const
+		{
+			return drawOrder_; // Drawの実行順を取得する
+		}
+
 	public: /// ---------- JSONシリアライズ / デシリアライズ ---------- ///
 
 		/// <summary>
@@ -128,6 +211,9 @@ namespace Ken4lowEngine
 			outJson["Name"] = GetName();			// Component名を保存する
 			outJson["Class"] = GetClassTypeName();  // Componentの種類を保存する
 			outJson["Type"] = "ActorComponent";		// ActorComponent系であることを保存する
+			outJson["Active"] = IsActive();			// Componentの有効状態を保存する
+			outJson["UpdateOrder"] = GetUpdateOrder();	// Updateの実行順を保存する
+			outJson["DrawOrder"] = GetDrawOrder();		// Drawの実行順を保存する
 		}
 
 		/// <summary>
@@ -139,6 +225,18 @@ namespace Ken4lowEngine
 			{
 				SetName(inJson["Name"].get<std::string>()); // Actor名を復元する
 			}
+			if (inJson.contains("Active") && inJson["Active"].is_boolean())
+			{
+				SetActive(inJson["Active"].get<bool>()); // Componentの有効状態を復元する
+			}
+			if (inJson.contains("UpdateOrder") && inJson["UpdateOrder"].is_number_integer())
+			{
+				SetUpdateOrder(inJson["UpdateOrder"].get<int>()); // Updateの実行順を復元する
+			}
+			if (inJson.contains("DrawOrder") && inJson["DrawOrder"].is_number_integer())
+			{
+				SetDrawOrder(inJson["DrawOrder"].get<int>()); // Drawの実行順を復元する
+			}
 		}
 
 
@@ -149,5 +247,14 @@ namespace Ken4lowEngine
 
 		// Editor上でComponentを識別するための名前
 		std::string name_ = "ActorComponent";
+
+		// falseの場合はUpdate/Drawなどの実行対象から外す
+		bool isActive_ = true;
+
+		// Update実行順。小さい値ほど先に更新する
+		int updateOrder_ = 0;
+
+		// Draw実行順。小さい値ほど先に描画する
+		int drawOrder_ = 0;
 	};
-}
+} // namespace Scene

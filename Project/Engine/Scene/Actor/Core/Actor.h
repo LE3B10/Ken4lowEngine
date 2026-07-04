@@ -205,6 +205,10 @@ namespace Ken4lowEngine
 		/// </summary>
 		bool RemoveComponent(ActorComponent* component);
 
+		/// <summary>
+		/// 指定class名のComponentを既に持っているか確認する
+		bool HasComponentClass(const std::string& className) const;
+
 	public: /// ---------- Actor破棄フラグ設定 ---------- ///
 
 		/// <summary>

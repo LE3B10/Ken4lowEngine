@@ -64,6 +64,13 @@ namespace Ken4lowEngine
 		/// </summary>
 		void FromJson(const nlohmann::json& inJson) override;
 
+	public: /// ---------- 
+
+		/// <summary>
+		/// 親SceneComponentも含めて有効かどうかを取得する
+		/// </summary>
+		bool IsActiveInHierarchy() const override;
+
 	public: /// ---------- 親子関係 ---------- ///
 
 		/// <summary>

@@ -239,10 +239,17 @@ namespace Ken4lowEngine
 
 				if (isRootComponent)
 				{
-					ImGui::TextDisabled("RootComponent cannot be deleted.");
+					ImGui::TextDisabled("RootComponent cannot be deleted or duplicated.");
 				}
 				else
 				{
+					if (ImGui::Button("Duplicate Selected Component"))
+					{
+						DuplicateSelectedComponent();
+					}
+
+					ImGui::SameLine();
+
 					if (ImGui::Button("Delete Selected Component"))
 					{
 						ImGui::OpenPopup("Delete Component?");
@@ -797,30 +804,78 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		static constexpr const char* kComponentTypeNames[] =
+		const auto& componentTypes = ComponentFactory::GetRegisteredComponentTypes();
+
+		if (componentTypes.empty())
 		{
-			"SceneComponent",
-			"ModelComponent",
-			"CameraComponent",
-			"ColliderComponent",
-			"RigidbodyComponent",
-			"InstancedModelComponent",
-		};
+			ImGui::TextDisabled("No registered Component types.");
+			return;
+		}
 
-		constexpr int kComponentTypeCount =
-			static_cast<int>(sizeof(kComponentTypeNames) / sizeof(kComponentTypeNames[0]));
+		if (selectedAddComponentTypeIndex_ < 0 ||
+		selectedAddComponentTypeIndex_ >= static_cast<int>(componentTypes.size()))
+		{
+			selectedAddComponentTypeIndex_ = 0;
+		}
 
-		ImGui::Combo(
-			"Component Type",
-			&selectedAddComponentTypeIndex_,
-			kComponentTypeNames,
-			kComponentTypeCount
-		);
+		const ComponentFactory::ComponentTypeInfo& selectedType = componentTypes[selectedAddComponentTypeIndex_];
+
+		if (ImGui::BeginCombo("Component Type", selectedType.className.c_str()))
+		{
+			for (int index = 0; index < static_cast<int>(componentTypes.size()); ++index)
+			{
+				const ComponentFactory::ComponentTypeInfo& typeInfo = componentTypes[index];
+
+				const bool alreadyExists = targetActor->HasComponentClass(typeInfo.className);
+				const bool disabled = !typeInfo.allowMultiple && alreadyExists;
+
+				if (disabled)
+				{
+					ImGui::BeginDisabled();
+				}
+
+				const bool isSelected = selectedAddComponentTypeIndex_ == index;
+
+				if (ImGui::Selectable(typeInfo.className.c_str(), isSelected))
+				{
+					selectedAddComponentTypeIndex_ = index;
+				}
+
+				if (isSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+
+				if (disabled)
+				{
+					ImGui::EndDisabled();
+				}
+			}
+
+			ImGui::EndCombo();
+		}
+
+		const bool alreadyExists = targetActor->HasComponentClass(selectedType.className);
+		const bool canAdd = selectedType.allowMultiple || !alreadyExists;
+
+		if (!canAdd)
+		{
+			ImGui::TextDisabled("This Component can only be added once.");
+		}
+
+		if (!canAdd)
+		{
+			ImGui::BeginDisabled();
+		}
 
 		if (ImGui::Button("Add Component"))
 		{
-			const char* componentClassName = kComponentTypeNames[selectedAddComponentTypeIndex_];
-			AddComponentToSelectedActor(componentClassName);
+			AddComponentToSelectedActor(selectedType.className);
+		}
+
+		if (!canAdd)
+		{
+			ImGui::EndDisabled();
 		}
 #endif // USE_IMGUI
 	}
@@ -838,6 +893,14 @@ namespace Ken4lowEngine
 		{
 			lastActorJsonSaveMessage_ = "Add Component failed : no selected Actor";
 			return;
+		}
+
+		const std::string className{ componentClassName };
+
+		if (!ComponentFactory::IsAllowMultiple(className) && targetActor->HasComponentClass(className))
+		{
+			lastActorJsonSaveMessage_ = "Add Component failed : already exists" + className;
+			return; // alloMutiple = false のComponentはUI以外の経路からも重複追加させない
 		}
 
 		// 既にPhysicsWorldへ登録済みなら、一度解除してからComponentを追加する
@@ -1153,6 +1216,113 @@ namespace Ken4lowEngine
 		hasPendingDeleteComponent_ = true;
 
 		lastActorJsonSaveMessage_ = "Delete Component requested : " + selectedComponent_->GetName();
+	}
+
+	void ActorWorld::DuplicateSelectedComponent()
+	{
+		if (!selectedComponent_)
+		{
+			lastActorJsonSaveMessage_ = "Duplicate Component failed : no selected Component";
+			return;
+		}
+
+		Actor* owner = selectedComponent_->GetOwner();
+		if (!owner)
+		{
+			lastActorJsonSaveMessage_ = "Duplicate Component failed : no owner Actor";
+			return;
+		}
+
+		if (selectedComponent_ == owner->GetRootComponent())
+		{
+			lastActorJsonSaveMessage_ = "Duplicate Component failed : RootComponent cannot be duplicated";
+			return;
+		}
+
+		const bool wasPhysicsRegistered = owner->IsPhysicsRegistered();
+		if (wasPhysicsRegistered)
+		{
+			UnregisterPhysicsComponents(*owner); // Physics登録済みのときだけ一度解除する
+		}
+
+		nlohmann::json sourceJson;
+		selectedComponent_->ToJson(sourceJson); // Serialize / Deserializeを使ってComponent設定を安全に複製する
+
+		if (!sourceJson.contains("Class") || !sourceJson["Class"].is_string())
+		{
+			if (wasPhysicsRegistered)
+			{
+				RegisterPhysicsComponents(*owner);
+			}
+
+			lastActorJsonSaveMessage_ = "Duplicate Component failed : invalid Component class";
+			return;
+		}
+
+		const std::string className = sourceJson["Class"].get<std::string>();
+
+		if (!ComponentFactory::IsAllowMultiple(className) && owner->HasComponentClass(className))
+		{
+			if (wasPhysicsRegistered)
+			{
+				RegisterPhysicsComponents(*owner);
+			}
+
+			lastActorJsonSaveMessage_ = "Duplicate Component failed : already exists " + className;
+			return; // Camera / Rigidbodyなど１つだけのComponentは複製させない
+		}
+
+		ActorComponent* duplicatedComponent = ComponentFactory::CreateComponent(owner, className);
+		if (!duplicatedComponent)
+		{
+			if (wasPhysicsRegistered)
+			{
+				RegisterPhysicsComponents(*owner); // 追加失敗時は元のPhysics登録状態へ戻す
+			}
+
+			lastActorJsonSaveMessage_ = "Duplicate Component failed : " + className;
+			return;
+		}
+
+		duplicatedComponent->FromJson(sourceJson);
+
+		const std::string baseName = selectedComponent_->GetName().empty()
+			? className
+			: selectedComponent_->GetName();
+
+		duplicatedComponent->SetName(MakeUniqueComponentName(*owner, baseName + "_Copy"));
+
+		if (SceneComponent* duplicatedScene = dynamic_cast<SceneComponent*>(duplicatedComponent))
+		{
+			SceneComponent* sourceScene = dynamic_cast<SceneComponent*>(selectedComponent_);
+
+			if (sourceScene && sourceScene->GetParent())
+			{
+				duplicatedScene->AttachTo(sourceScene->GetParent());
+			}
+			else if (owner->GetRootComponent() && owner->GetRootComponent() != duplicatedScene)
+			{
+				duplicatedScene->AttachTo(owner->GetRootComponent());
+			}
+
+			duplicatedScene->RefreshWorldTransform();
+		}
+
+		if (isInitialized_)
+		{
+			duplicatedComponent->Initialize();
+		}
+
+		if (wasPhysicsRegistered)
+		{
+			RegisterPhysicsComponents(*owner); // 複製後のCollider/Rigidbodyを再登録する
+		}
+
+		selectedActor_ = nullptr;
+		selectedComponent_ = duplicatedComponent;
+		requestFocusActorDetails_ = true;
+
+		lastActorJsonSaveMessage_ = "Duplicated Component : " + duplicatedComponent->GetName();
 	}
 
 }
