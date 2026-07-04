@@ -36,6 +36,10 @@ namespace Ken4lowEngine
 		Point = 0,
 		Sphere,
 		Box,
+		Cone,
+		Circle,
+		Ring,
+		Hemisphere,
 	};
 
 	/// <summary>

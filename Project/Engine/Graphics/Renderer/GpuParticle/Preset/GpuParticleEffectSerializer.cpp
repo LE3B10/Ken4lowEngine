@@ -102,6 +102,10 @@ namespace Ken4lowEngine
 		{
 		case GpuParticleSpawnShape::Sphere: return "Sphere";
 		case GpuParticleSpawnShape::Box: return "Box";
+		case GpuParticleSpawnShape::Cone: return "Cone";
+		case GpuParticleSpawnShape::Circle: return "Circle";
+		case GpuParticleSpawnShape::Ring: return "Ring";
+		case GpuParticleSpawnShape::Hemisphere: return "Hemisphere";
 		case GpuParticleSpawnShape::Point:
 		default: return "Point";
 		}
@@ -111,6 +115,10 @@ namespace Ken4lowEngine
 	{
 		if (text == "Sphere") return GpuParticleSpawnShape::Sphere;
 		if (text == "Box") return GpuParticleSpawnShape::Box;
+		if (text == "Cone") return GpuParticleSpawnShape::Cone;
+		if (text == "Circle") return GpuParticleSpawnShape::Circle;
+		if (text == "Ring") return GpuParticleSpawnShape::Ring;
+		if (text == "Hemisphere") return GpuParticleSpawnShape::Hemisphere;
 		return GpuParticleSpawnShape::Point;
 	}
 

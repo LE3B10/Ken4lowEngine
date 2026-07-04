@@ -1,9 +1,12 @@
 #pragma once
 #include "SceneComponent.h"
+#include "ComponentProperty.h"
+#include "Vector2.h"
 #include "Vector3.h"
 #include "Vector4.h"
 
 #include <string>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -38,6 +41,10 @@ namespace Ken4lowEngine
 		void Restart();
 		bool IsPlaying() const;
 
+	public: /// ---------- ミニリフレクション ---------- ///
+
+		std::vector<ComponentProperty> CreateProperties(bool includeAssetPaths = true);
+
 	public: /// ---------- 設定取得 ---------- ///
 
 		const std::string& GetEffectName() const { return effectName_; }
@@ -70,11 +77,15 @@ namespace Ken4lowEngine
 		Vector3 CalculateEmitterPosition() const;
 		GpuParticleEmitter* EnsureEmitter();
 		void SyncEmitterPosition();
+		void ApplyPreset(const std::string& presetName);
+		uint32_t CalculateBurstCount() const;
 
 	private: /// ---------- メンバ変数 ---------- ///
 
 		std::string effectName_ = "Smoke";
 		std::string emitterName_;
+		std::string presetName_ = "Smoke";
+		std::string particleType_ = "Sprite";
 		bool playOnStart_ = false;
 		bool loop_ = false;
 		bool visible_ = true;
@@ -90,8 +101,78 @@ namespace Ken4lowEngine
 		float endSize_ = 1.0f;
 		float velocityScale_ = 1.0f;
 
+		std::string texturePath_ = "Effects/white.dds";
+		std::string billboardMode_ = "Camera";
+		std::string blendMode_ = "Alpha";
+		std::string sortMode_ = "None";
+		Vector2 startSize2D_{ 1.0f, 1.0f };
+		Vector2 midSize2D_{ 1.0f, 1.0f };
+		Vector2 endSize2D_{ 1.0f, 1.0f };
+		float startRotation_ = 0.0f;
+		float rotationSpeed_ = 0.0f;
+		float rotationRandom_ = 0.0f;
+		bool useSpriteSheet_ = false;
+		int spriteSheetRows_ = 1;
+		int spriteSheetColumns_ = 1;
+		float spriteSheetFrameRate_ = 0.0f;
+
+		std::string meshPath_;
+		int meshId_ = 1000;
+		Vector3 meshStartScale_{ 1.0f, 1.0f, 1.0f };
+		Vector3 meshEndScale_{ 1.0f, 1.0f, 1.0f };
+		Vector3 meshScaleRandom_{ 0.0f, 0.0f, 0.0f };
+		Vector3 meshAngularVelocity_{ 0.0f, 0.0f, 0.0f };
+		Vector3 meshAngularVelocityRandom_{ 0.0f, 0.0f, 0.0f };
+		std::string meshAlignMode_ = "None";
+		Vector4 meshTint_{ 1.0f, 1.0f, 1.0f, 1.0f };
+
+		std::string emitterShape_ = "Point";
+		float spawnRadius_ = 0.0f;
+		Vector3 spawnBoxSize_{ 0.0f, 0.0f, 0.0f };
+		float coneAngle_ = 30.0f;
+		float coneLength_ = 1.0f;
+		float ringRadius_ = 1.0f;
+		float ringThickness_ = 0.1f;
+
+		Vector3 baseVelocity_{ 0.0f, 1.0f, 0.0f };
+		Vector3 velocityRandom_{ 0.0f, 0.0f, 0.0f };
+		Vector3 direction_{ 0.0f, 1.0f, 0.0f };
+		float speed_ = 0.0f;
+		float speedRandom_ = 0.0f;
+		float randomAngle_ = 0.0f;
+		float outwardVelocity_ = 0.0f;
+		float tangentialVelocity_ = 0.0f;
+		float inheritActorVelocity_ = 0.0f;
+
+		bool burstEnabled_ = true;
+		int burstCount_ = 16;
+		int burstRandom_ = 0;
+		int burstRepeat_ = 1;
+		float burstInterval_ = 0.0f;
+
+		Vector4 midColor_{ 1.0f, 1.0f, 1.0f, 0.5f };
+		float midTime_ = 0.5f;
+		bool alphaFade_ = true;
+		float lifeTimeRandom_ = 0.0f;
+		Vector3 acceleration_{ 0.0f, 0.0f, 0.0f };
+		Vector3 gravity_{ 0.0f, 0.0f, 0.0f };
+		float damping_ = 0.0f;
+
+		bool trailEnabled_ = false;
+		std::string trailTexturePath_;
+		float trailLength_ = 1.0f;
+		float trailWidth_ = 0.1f;
+		Vector4 trailColor_{ 1.0f, 1.0f, 1.0f, 0.6f };
+		float trailFadeTime_ = 0.25f;
+		float trailLifeTime_ = 0.25f;
+		int trailSegments_ = 8;
+
 		bool playing_ = false;
 		std::string activeEmitterName_;
 		Vector3 lockedPosition_{ 0.0f, 0.0f, 0.0f };
+		float burstTimer_ = 0.0f;
+		int burstRepeatRemaining_ = 0;
+		Vector3 previousWorldPosition_{ 0.0f, 0.0f, 0.0f };
+		Vector3 actorVelocity_{ 0.0f, 0.0f, 0.0f };
 	};
 }
