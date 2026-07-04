@@ -85,6 +85,7 @@ namespace Ken4lowEngine
 			DestroyVoice(active.voice);
 		}
 		activeVoices_.clear();
+		nextAudioHandle_ = 1;
 
 		// BGM 用 Voice も停止して破棄する
 		DestroyVoice(bgmVoice_);
@@ -218,6 +219,19 @@ namespace Ken4lowEngine
 		PlayOneShot(AudioCategory::SE, filePath, volume, pitch, loop);
 	}
 
+	AudioManager::AudioHandle AudioManager::PlaySEWithHandle(const std::string& filePath, float volume, float pitch, bool loop)
+	{
+		// 未初期化ならここで初期化を試みる
+		if (!EnsureInitialized())
+		{
+			return InvalidAudioHandle;
+		}
+
+		std::lock_guard<std::mutex> lock(mutex_);
+
+		return PlayOneShot(AudioCategory::SE, filePath, volume, pitch, loop);
+	}
+
 	void AudioManager::PlayVoice(const std::string& filePath, float volume, float pitch, bool loop)
 	{
 		// 未初期化ならここで初期化を試みる
@@ -230,6 +244,83 @@ namespace Ken4lowEngine
 
 		// ボイスカテゴリとしてワンショット再生する
 		PlayOneShot(AudioCategory::Voice, filePath, volume, pitch, loop);
+	}
+
+	void AudioManager::Stop(AudioHandle handle)
+	{
+		if (handle == InvalidAudioHandle)
+		{
+			return;
+		}
+
+		std::lock_guard<std::mutex> lock(mutex_);
+
+		auto it = std::find_if(activeVoices_.begin(), activeVoices_.end(),
+			[handle](const ActiveVoice& active)
+			{
+				return active.handle == handle;
+			});
+
+		if (it == activeVoices_.end())
+		{
+			return;
+		}
+
+		DestroyVoice(it->voice);
+		it->clip.reset();
+		activeVoices_.erase(it);
+	}
+
+	bool AudioManager::IsPlaying(AudioHandle handle) const
+	{
+		if (handle == InvalidAudioHandle)
+		{
+			return false;
+		}
+
+		std::lock_guard<std::mutex> lock(mutex_);
+
+		auto it = std::find_if(activeVoices_.begin(), activeVoices_.end(),
+			[handle](const ActiveVoice& active)
+			{
+				return active.handle == handle;
+			});
+
+		if (it == activeVoices_.end() || !it->voice)
+		{
+			return false;
+		}
+
+		if (it->loop)
+		{
+			return true;
+		}
+
+		XAUDIO2_VOICE_STATE state{};
+		it->voice->GetState(&state, kVoiceReadFlags);
+		return state.BuffersQueued > 0;
+	}
+
+	void AudioManager::SetVoiceVolume(AudioHandle handle, float volume)
+	{
+		if (handle == InvalidAudioHandle)
+		{
+			return;
+		}
+
+		std::lock_guard<std::mutex> lock(mutex_);
+
+		for (ActiveVoice& active : activeVoices_)
+		{
+			if (active.handle != handle || !active.voice)
+			{
+				continue;
+			}
+
+			active.baseVolume = std::clamp(volume, 0.0f, 4.0f);
+			active.voice->SetVolume(BuildActualVolume(active.category, active.baseVolume));
+			return;
+		}
 	}
 
 	void AudioManager::StopBGM()
@@ -284,6 +375,14 @@ namespace Ken4lowEngine
 		if (category == AudioCategory::BGM && bgmVoice_)
 		{
 			bgmVoice_->SetVolume(BuildActualVolume(AudioCategory::BGM, bgmBaseVolume_));
+		}
+
+		for (ActiveVoice& active : activeVoices_)
+		{
+			if (active.category == category && active.voice)
+			{
+				active.voice->SetVolume(BuildActualVolume(category, active.baseVolume));
+			}
 		}
 	}
 
@@ -361,20 +460,20 @@ namespace Ken4lowEngine
 		return voice;
 	}
 
-	void AudioManager::PlayOneShot(AudioCategory category, const std::string& filePath, float volume, float pitch, bool loop)
+	AudioManager::AudioHandle AudioManager::PlayOneShot(AudioCategory category, const std::string& filePath, float volume, float pitch, bool loop)
 	{
 		// 再生対象のクリップを取得する
 		auto clip = LoadClip(filePath);
 		if (!clip)
 		{
-			return;
+			return InvalidAudioHandle;
 		}
 
 		// そのクリップ専用の SourceVoice を作成する
 		IXAudio2SourceVoice* voice = CreateVoiceForClip(*clip);
 		if (!voice)
 		{
-			return;
+			return InvalidAudioHandle;
 		}
 
 		// PCM データ全体を 1 回分の再生バッファとして登録する
@@ -398,11 +497,13 @@ namespace Ken4lowEngine
 		{
 			DestroyVoice(voice);
 			OutputDebugStringA("AudioManager: one shot start failed\n");
-			return;
+			return InvalidAudioHandle;
 		}
 
 		// 再生中に PCM データが消えないよう clip を保持しつつ管理リストに登録する
-		activeVoices_.push_back({ voice, std::move(clip), loop });
+		const AudioHandle handle = nextAudioHandle_++;
+		activeVoices_.push_back({ voice, std::move(clip), handle, category, std::clamp(volume, 0.0f, 4.0f), loop });
+		return handle;
 	}
 
 	void AudioManager::DestroyVoice(IXAudio2SourceVoice*& voice)

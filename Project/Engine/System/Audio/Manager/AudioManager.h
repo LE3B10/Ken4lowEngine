@@ -4,6 +4,7 @@
 
 #include <xaudio2.h>
 #include <wrl/client.h>
+#include <cstdint>
 #include <unordered_map>
 #include <vector>
 #include <memory>
@@ -21,6 +22,10 @@ namespace Ken4lowEngine
 	/// ・再生終了したワンショット Voice の回収をまとめて担当する。
 	class AudioManager
 	{
+	public:
+		using AudioHandle = uint64_t;
+		static constexpr AudioHandle InvalidAudioHandle = 0;
+
 	private: /// ---------- 内部構造体 ---------- ///
 
 		/// <summary>
@@ -40,6 +45,9 @@ namespace Ken4lowEngine
 		{
 			IXAudio2SourceVoice* voice = nullptr;
 			std::shared_ptr<CachedClip> clip;
+			AudioHandle handle = InvalidAudioHandle;
+			AudioCategory category = AudioCategory::SE;
+			float baseVolume = 1.0f;
 			bool loop = false;
 		};
 
@@ -86,9 +94,29 @@ namespace Ken4lowEngine
 		void PlaySE(const std::string& filePath, float volume = 1.0f, float pitch = 1.0f, bool loop = false);
 
 		/// <summary>
+		/// 効果音を再生し、後から停止や音量変更に使えるハンドルを返す。
+		/// </summary>
+		AudioHandle PlaySEWithHandle(const std::string& filePath, float volume = 1.0f, float pitch = 1.0f, bool loop = false);
+
+		/// <summary>
 		/// ボイスをワンショット再生する。
 		/// </summary>
 		void PlayVoice(const std::string& filePath, float volume = 1.0f, float pitch = 1.0f, bool loop = false);
+
+		/// <summary>
+		/// 指定したハンドルの音声を停止する。
+		/// </summary>
+		void Stop(AudioHandle handle);
+
+		/// <summary>
+		/// 指定したハンドルの音声が再生中か確認する。
+		/// </summary>
+		bool IsPlaying(AudioHandle handle) const;
+
+		/// <summary>
+		/// 指定したハンドルの音量を更新する。
+		/// </summary>
+		void SetVoiceVolume(AudioHandle handle, float volume);
 
 		/// <summary>
 		/// 現在再生中の BGM を停止する。
@@ -148,7 +176,7 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// SE / Voice などのワンショット再生を行う共通処理。
 		/// </summary>
-		void PlayOneShot(AudioCategory category, const std::string& filePath, float volume, float pitch, bool loop);
+		AudioHandle PlayOneShot(AudioCategory category, const std::string& filePath, float volume, float pitch, bool loop);
 
 		/// <summary>
 		/// SourceVoice を安全に停止・破棄する。
@@ -179,6 +207,9 @@ namespace Ken4lowEngine
 
 		/// 再生中のワンショット Voice 一覧
 		std::vector<ActiveVoice> activeVoices_;
+
+		/// AudioComponentなどから個別制御するための再生ハンドル
+		AudioHandle nextAudioHandle_ = 1;
 
 		/// BGM 専用 Voice
 		IXAudio2SourceVoice* bgmVoice_ = nullptr;

@@ -1,6 +1,7 @@
 #include "ComponentFactory.h"
 
 #include "Actor.h"
+#include "AudioComponent.h"
 #include "BillboardComponent.h"
 #include "ModelComponent.h"
 #include "CameraComponent.h"
@@ -101,6 +102,12 @@ namespace Ken4lowEngine
 					"剛体コンポーネント",
 					"物理",
 					"Actorに速度や重力などの物理挙動を追加します。"),
+				MakeComponentTypeInfo<AudioComponent>(
+					"AudioComponent",
+					true,
+					"オーディオコンポーネント",
+					"オーディオ",
+					"Actorに音声再生機能を持たせるためのComponentです。"),
 				MakeComponentTypeInfo<InstancedModelComponent>(
 					"InstancedModelComponent",
 					true,

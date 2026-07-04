@@ -1120,6 +1120,9 @@
     <ClCompile Include="Engine\Scene\Actor\Components\LightComponent.cpp">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\AudioComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Components\BillboardComponent.cpp">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClCompile>
@@ -2350,6 +2353,9 @@
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Components\LightComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\AudioComponent.h">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Components\BillboardComponent.h">
