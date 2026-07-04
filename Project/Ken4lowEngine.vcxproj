@@ -122,6 +122,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Scene\Actor\Factory\ActorFactory.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Serialization\ComponentFactory.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Serialization\ActorJsonSerializer.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Components\BillboardComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\ColliderComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\CameraComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\GaugeComponent.cpp" />
@@ -789,6 +790,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Scene\Actor\Serialization\ComponentFactory.h" />
     <ClInclude Include="Engine\Scene\Actor\Serialization\ActorJsonSerializer.h" />
     <ClInclude Include="Engine\Physics\Collision\Core\PhysicsCollisionLayer.h" />
+    <ClInclude Include="Engine\Scene\Actor\Components\BillboardComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\ColliderComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\CameraComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\GaugeComponent.h" />

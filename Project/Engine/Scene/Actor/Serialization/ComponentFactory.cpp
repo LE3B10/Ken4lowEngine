@@ -1,6 +1,7 @@
 #include "ComponentFactory.h"
 
 #include "Actor.h"
+#include "BillboardComponent.h"
 #include "ModelComponent.h"
 #include "CameraComponent.h"
 #include "ColliderComponent.h"
@@ -70,12 +71,18 @@ namespace Ken4lowEngine
 				"シーンコンポーネント",
 				"トランスフォーム",
 				"位置・回転・スケールと親子関係を持つ基本Componentです。"),
-				MakeComponentTypeInfo<ModelComponent>(
-					"ModelComponent",
+			MakeComponentTypeInfo<ModelComponent>(
+				"ModelComponent",
+				true,
+				"モデルコンポーネント",
+				"描画",
+				"Actorに3Dモデルの描画機能を追加します。"),
+				MakeComponentTypeInfo<BillboardComponent>(
+					"BillboardComponent",
 					true,
-					"モデルコンポーネント",
+					"ビルボードコンポーネント",
 					"描画",
-					"Actorに3Dモデルの描画機能を追加します。"),
+					"3D空間上で常にカメラ方向を向く板ポリ表示用Componentです。"),
 				MakeComponentTypeInfo<CameraComponent>(
 					"CameraComponent",
 					false,
