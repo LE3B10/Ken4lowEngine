@@ -1120,10 +1120,22 @@
     <ClCompile Include="Engine\Scene\Actor\Components\LightComponent.cpp">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\GaugeComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Components\SpriteComponent.cpp">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\TextComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\WorldGaugeComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Components\WorldSpriteComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\WorldTextComponent.cpp">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Components\InstancedModelComponent.cpp">
@@ -2337,10 +2349,22 @@
     <ClInclude Include="Engine\Scene\Actor\Components\LightComponent.h">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\GaugeComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Components\SpriteComponent.h">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\TextComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\WorldGaugeComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Components\WorldSpriteComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\WorldTextComponent.h">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Components\InstancedModelComponent.h">

@@ -4,11 +4,15 @@
 #include "ModelComponent.h"
 #include "CameraComponent.h"
 #include "ColliderComponent.h"
+#include "GaugeComponent.h"
 #include "RigidbodyComponent.h"
 #include "InstancedModelComponent.h"
 #include "LightComponent.h"
 #include "SpriteComponent.h"
+#include "TextComponent.h"
+#include "WorldGaugeComponent.h"
 #include "WorldSpriteComponent.h"
+#include "WorldTextComponent.h"
 
 #include <type_traits>
 #include <utility>
@@ -114,6 +118,30 @@ namespace Ken4lowEngine
 					"ワールドスプライトコンポーネント",
 					"描画",
 					"Actorの3D位置を画面座標へ変換してSpriteを表示するComponentです。"),
+				MakeComponentTypeInfo<TextComponent>(
+					"TextComponent",
+					true,
+					"テキストコンポーネント",
+					"UI",
+					"画面上に文字を表示するためのComponentです。"),
+				MakeComponentTypeInfo<WorldTextComponent>(
+					"WorldTextComponent",
+					true,
+					"ワールドテキストコンポーネント",
+					"UI",
+					"Actorの3D位置を画面座標へ変換して文字を表示するComponentです。"),
+				MakeComponentTypeInfo<GaugeComponent>(
+					"GaugeComponent",
+					true,
+					"ゲージコンポーネント",
+					"UI",
+					"画面上にHPバーや進行度バーを表示するためのComponentです。"),
+				MakeComponentTypeInfo<WorldGaugeComponent>(
+					"WorldGaugeComponent",
+					true,
+					"ワールドゲージコンポーネント",
+					"UI",
+					"Actorの3D位置を画面座標へ変換してゲージを表示するComponentです。"),
 		};
 	}
 

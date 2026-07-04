@@ -3,9 +3,13 @@
 #include "RigidbodyComponent.h"
 #include "ActorJsonSerializer.h"
 #include "CameraComponent.h"
+#include "GaugeComponent.h"
 #include "LightComponent.h"
 #include "SpriteComponent.h"
+#include "TextComponent.h"
+#include "WorldGaugeComponent.h"
 #include "WorldSpriteComponent.h"
+#include "WorldTextComponent.h"
 
 #include "ComponentFactory.h"
 #include "LightManager.h"
@@ -168,6 +172,78 @@ namespace Ken4lowEngine
 					}
 				});
 			}
+
+			const auto textComponents = actor->GetComponents<TextComponent>();
+			for (TextComponent* textComponent : textComponents)
+			{
+				if (!textComponent || !textComponent->CanDrawScreenSpace())
+				{
+					continue; // 非表示または無効なTextComponentは描画しない
+				}
+
+				spriteComponents.push_back({
+					textComponent,
+					textComponent->GetDrawOrder(),
+					[](ActorComponent* component)
+					{
+						static_cast<TextComponent*>(component)->DrawScreenSpace();
+					}
+				});
+			}
+
+			const auto worldTextComponents = actor->GetComponents<WorldTextComponent>();
+			for (WorldTextComponent* worldTextComponent : worldTextComponents)
+			{
+				if (!worldTextComponent || !worldTextComponent->CanDrawScreenSpace())
+				{
+					continue; // 非表示または無効なWorldTextComponentは描画しない
+				}
+
+				spriteComponents.push_back({
+					worldTextComponent,
+					worldTextComponent->GetDrawOrder(),
+					[](ActorComponent* component)
+					{
+						static_cast<WorldTextComponent*>(component)->DrawScreenSpace();
+					}
+				});
+			}
+
+			const auto gaugeComponents = actor->GetComponents<GaugeComponent>();
+			for (GaugeComponent* gaugeComponent : gaugeComponents)
+			{
+				if (!gaugeComponent || !gaugeComponent->CanDrawScreenSpace())
+				{
+					continue; // 非表示または無効なGaugeComponentは描画しない
+				}
+
+				spriteComponents.push_back({
+					gaugeComponent,
+					gaugeComponent->GetDrawOrder(),
+					[](ActorComponent* component)
+					{
+						static_cast<GaugeComponent*>(component)->DrawScreenSpace();
+					}
+				});
+			}
+
+			const auto worldGaugeComponents = actor->GetComponents<WorldGaugeComponent>();
+			for (WorldGaugeComponent* worldGaugeComponent : worldGaugeComponents)
+			{
+				if (!worldGaugeComponent || !worldGaugeComponent->CanDrawScreenSpace())
+				{
+					continue; // 非表示または無効なWorldGaugeComponentは描画しない
+				}
+
+				spriteComponents.push_back({
+					worldGaugeComponent,
+					worldGaugeComponent->GetDrawOrder(),
+					[](ActorComponent* component)
+					{
+						static_cast<WorldGaugeComponent*>(component)->DrawScreenSpace();
+					}
+				});
+			}
 		}
 
 		std::stable_sort(spriteComponents.begin(), spriteComponents.end(),
@@ -178,7 +254,7 @@ namespace Ken4lowEngine
 
 		if (spriteComponents.empty())
 		{
-			return; // 描画対象のSpriteComponentが無い場合は何もしない
+			return; // 描画対象のUI Componentが無い場合は何もしない
 		}
 
 		SpriteManager::GetInstance()->SetRenderSetting_UI();
