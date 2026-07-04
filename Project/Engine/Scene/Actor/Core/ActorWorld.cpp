@@ -5,6 +5,7 @@
 #include "CameraComponent.h"
 #include "LightComponent.h"
 #include "SpriteComponent.h"
+#include "WorldSpriteComponent.h"
 
 #include "ComponentFactory.h"
 #include "LightManager.h"
@@ -116,7 +117,14 @@ namespace Ken4lowEngine
 
 	void ActorWorld::DrawScreenSpaceSprites()
 	{
-		std::vector<SpriteComponent*> spriteComponents;
+		struct ScreenSpaceSpriteDrawEntry
+		{
+			ActorComponent* component = nullptr;
+			int drawOrder = 0;
+			void (*draw)(ActorComponent*) = nullptr;
+		};
+
+		std::vector<ScreenSpaceSpriteDrawEntry> spriteComponents;
 
 		for (auto& actor : actors_)
 		{
@@ -133,14 +141,39 @@ namespace Ken4lowEngine
 					continue; // 非表示または無効なSpriteComponentは描画しない
 				}
 
-				spriteComponents.push_back(spriteComponent);
+				spriteComponents.push_back({
+					spriteComponent,
+					spriteComponent->GetDrawOrder(),
+					[](ActorComponent* component)
+					{
+						static_cast<SpriteComponent*>(component)->DrawScreenSpace();
+					}
+				});
+			}
+
+			const auto worldSpriteComponents = actor->GetComponents<WorldSpriteComponent>();
+			for (WorldSpriteComponent* worldSpriteComponent : worldSpriteComponents)
+			{
+				if (!worldSpriteComponent || !worldSpriteComponent->CanDrawScreenSpace())
+				{
+					continue; // 非表示または無効なWorldSpriteComponentは描画しない
+				}
+
+				spriteComponents.push_back({
+					worldSpriteComponent,
+					worldSpriteComponent->GetDrawOrder(),
+					[](ActorComponent* component)
+					{
+						static_cast<WorldSpriteComponent*>(component)->DrawScreenSpace();
+					}
+				});
 			}
 		}
 
 		std::stable_sort(spriteComponents.begin(), spriteComponents.end(),
-			[](const SpriteComponent* a, const SpriteComponent* b)
+			[](const ScreenSpaceSpriteDrawEntry& a, const ScreenSpaceSpriteDrawEntry& b)
 			{
-				return a->GetDrawOrder() < b->GetDrawOrder(); // DrawOrderが小さいSpriteから先に描画する
+				return a.drawOrder < b.drawOrder; // DrawOrderが小さいSpriteから先に描画する
 			});
 
 		if (spriteComponents.empty())
@@ -150,9 +183,12 @@ namespace Ken4lowEngine
 
 		SpriteManager::GetInstance()->SetRenderSetting_UI();
 
-		for (SpriteComponent* spriteComponent : spriteComponents)
+		for (const ScreenSpaceSpriteDrawEntry& entry : spriteComponents)
 		{
-			spriteComponent->DrawScreenSpace();
+			if (entry.component && entry.draw)
+			{
+				entry.draw(entry.component);
+			}
 		}
 	}
 

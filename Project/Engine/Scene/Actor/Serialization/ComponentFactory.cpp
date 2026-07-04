@@ -8,6 +8,7 @@
 #include "InstancedModelComponent.h"
 #include "LightComponent.h"
 #include "SpriteComponent.h"
+#include "WorldSpriteComponent.h"
 
 #include <type_traits>
 #include <utility>
@@ -95,18 +96,24 @@ namespace Ken4lowEngine
 					"インスタンスモデルコンポーネント",
 					"描画",
 					"同じモデルを複数描画するためのインスタンシング機能を追加します。"),
-			MakeComponentTypeInfo<LightComponent>(
-				"LightComponent",
-				true,
-				"ライトコンポーネント",
-				"描画",
-				"Actorにライト情報を持たせるためのComponentです。"),
-			MakeComponentTypeInfo<SpriteComponent>(
-				"SpriteComponent",
-				true,
-				"スプライトコンポーネント",
-				"描画",
-				"画面上に2D画像を表示するためのComponentです。"),
+				MakeComponentTypeInfo<LightComponent>(
+					"LightComponent",
+					true,
+					"ライトコンポーネント",
+					"描画",
+					"Actorにライト情報を持たせるためのComponentです。"),
+				MakeComponentTypeInfo<SpriteComponent>(
+					"SpriteComponent",
+					true,
+					"スプライトコンポーネント",
+					"描画",
+					"画面上に2D画像を表示するためのComponentです。"),
+				MakeComponentTypeInfo<WorldSpriteComponent>(
+					"WorldSpriteComponent",
+					true,
+					"ワールドスプライトコンポーネント",
+					"描画",
+					"Actorの3D位置を画面座標へ変換してSpriteを表示するComponentです。"),
 		};
 	}
 
