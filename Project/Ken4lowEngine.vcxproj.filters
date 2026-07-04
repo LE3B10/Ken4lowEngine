@@ -1183,6 +1183,21 @@
     <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationStateController.cpp">
       <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_ComponentEdit.cpp">
+      <Filter>Engine\Scene\Actor\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_Draw.cpp">
+      <Filter>Engine\Scene\Actor\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_ImGui.cpp">
+      <Filter>Engine\Scene\Actor\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_Prefab.cpp">
+      <Filter>Engine\Scene\Actor\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_Pysics.cpp">
+      <Filter>Engine\Scene\Actor\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">

@@ -119,6 +119,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_ComponentEdit.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_Draw.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_ImGui.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_Prefab.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_Pysics.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Factory\ActorFactory.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Serialization\ComponentFactory.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Serialization\ComponentProperty.cpp" />
