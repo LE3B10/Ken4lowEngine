@@ -1,9 +1,11 @@
 #include "WorldSpriteComponent.h"
 
+#include "AssetPathSelector.h"
 #include "CameraManager.h"
 #include "GameViewportConstants.h"
 #include "Matrix4x4.h"
 #include "Sprite.h"
+#include "SpriteManager.h"
 
 #include <array>
 #include <cmath>
@@ -55,6 +57,12 @@ namespace Ken4lowEngine
 		EnsureSprite();
 	}
 
+	void WorldSpriteComponent::Update(float deltaTime)
+	{
+		SceneComponent::Update(deltaTime);
+		EnsureSprite();
+	}
+
 	void WorldSpriteComponent::Draw()
 	{
 		// WorldSpriteComponentはActorWorldの2D描画パスでまとめて描画する
@@ -73,13 +81,13 @@ namespace Ken4lowEngine
 			return; // カメラ背面など描画できない位置の場合は描画しない
 		}
 
-		EnsureSprite();
 		if (!sprite_)
 		{
 			return; // Spriteが生成できない場合は描画しない
 		}
 
 		ApplySpriteSettings(screenPosition);
+		SpriteManager::GetInstance()->SetRenderSetting_UI();
 		sprite_->Draw();
 	}
 
@@ -100,6 +108,12 @@ namespace Ken4lowEngine
 		if (ImGui::InputText("テクスチャパス", texturePathBuffer.data(), texturePathBuffer.size()))
 		{
 			SetTexturePath(texturePathBuffer.data());
+		}
+
+		std::string selectedTexturePath = texturePath_;
+		if (AssetPathSelector::DrawAssetSelector("一覧から選択##WorldSpriteComponentTexturePath", selectedTexturePath, AssetType::Texture))
+		{
+			SetTexturePath(selectedTexturePath);
 		}
 
 		ImGui::DragFloat2("スクリーンオフセット", &screenOffset_.x, 1.0f);

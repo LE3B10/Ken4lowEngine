@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "SkeletalMeshComponent.h"
+#include "AssetPathSelector.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -22,7 +23,8 @@ namespace Ken4lowEngine
 	void SkeletalMeshComponent::Initialize()
 	{
 		SceneComponent::Initialize();
-		CreateAnimationModel();
+		hasInitialized_ = true;
+		ReloadSkeletalModel();
 
 		if (playOnStart_)
 		{
@@ -88,6 +90,25 @@ namespace Ken4lowEngine
 			SetModelPath(modelPathBuffer);
 		}
 
+		std::string selectedModelPath = modelPath_;
+		if (AssetPathSelector::DrawAssetSelector("一覧から選択##SkeletalMeshComponentModelPath", selectedModelPath, AssetType::Model))
+		{
+			SetModelPath(selectedModelPath);
+		}
+
+		char animationPathBuffer[256]{};
+		std::snprintf(animationPathBuffer, sizeof(animationPathBuffer), "%s", animationPath_.c_str());
+		if (ImGui::InputText("アニメーションパス", animationPathBuffer, sizeof(animationPathBuffer)))
+		{
+			SetAnimationPath(animationPathBuffer);
+		}
+
+		std::string selectedAnimationPath = animationPath_;
+		if (AssetPathSelector::DrawAssetSelector("一覧から選択##SkeletalMeshComponentAnimationPath", selectedAnimationPath, AssetType::Animation))
+		{
+			SetAnimationPath(selectedAnimationPath);
+		}
+
 		char animationNameBuffer[128]{};
 		std::snprintf(animationNameBuffer, sizeof(animationNameBuffer), "%s", animationName_.c_str());
 		if (ImGui::InputText("アニメーション名", animationNameBuffer, sizeof(animationNameBuffer)))
@@ -118,6 +139,12 @@ namespace Ken4lowEngine
 		ImGui::Text("現在時刻: %.3f", animationModel_ ? animationModel_->GetAnimationTime() : 0.0f);
 		ImGui::Text("再生状態: %s", IsPlaying() ? "再生中" : "停止中");
 		ImGui::Text("モデル状態: %s", animationModel_ ? "読み込み済み" : "未読み込み");
+		ImGui::Text("ロード状態: %s", modelStatus_.c_str());
+		ImGui::Text("メッシュ: %s", hasMesh_ ? "あり" : "なし");
+		ImGui::Text("Skeleton: %s", hasSkeleton_ ? "あり" : "なし");
+		ImGui::Text("AnimationPath: %s", animationPath_.empty() ? "(ModelPathを使用)" : animationPath_.c_str());
+		ImGui::Text("Clip数: %zu", animationModel_ ? animationModel_->GetAnimationClips().size() : 0);
+		ImGui::Text("選択中Clip: %s", animationModel_ ? animationModel_->GetCurrentAnimationName().c_str() : "");
 
 		if (animationModel_)
 		{
@@ -167,6 +194,8 @@ namespace Ken4lowEngine
 		animationModel_.reset();
 		isPlaying_ = false;
 		isPaused_ = false;
+		hasInitialized_ = false;
+		modelStatus_ = modelPath_.empty() ? "Empty" : "Finalized";
 	}
 
 	void SkeletalMeshComponent::ToJson(nlohmann::json& outJson) const
@@ -175,6 +204,7 @@ namespace Ken4lowEngine
 
 		outJson["Class"] = GetClassTypeName();
 		outJson["ModelPath"] = modelPath_;
+		outJson["AnimationPath"] = animationPath_;
 		outJson["AnimationName"] = animationName_;
 		outJson["Visible"] = visible_;
 		outJson["Loop"] = loop_;
@@ -186,13 +216,20 @@ namespace Ken4lowEngine
 	{
 		SceneComponent::FromJson(inJson);
 
+		bool hasRestoredModelPath = false;
+		std::string restoredModelPath;
 		if (inJson.contains("ModelPath") && inJson["ModelPath"].is_string())
 		{
-			modelPath_ = inJson["ModelPath"].get<std::string>();
+			restoredModelPath = inJson["ModelPath"].get<std::string>();
+			hasRestoredModelPath = true;
 		}
 		if (inJson.contains("AnimationName") && inJson["AnimationName"].is_string())
 		{
 			animationName_ = inJson["AnimationName"].get<std::string>();
+		}
+		if (inJson.contains("AnimationPath") && inJson["AnimationPath"].is_string())
+		{
+			animationPath_ = inJson["AnimationPath"].get<std::string>();
 		}
 		if (inJson.contains("Visible") && inJson["Visible"].is_boolean())
 		{
@@ -210,6 +247,16 @@ namespace Ken4lowEngine
 		{
 			playbackSpeed_ = ClampPlaybackSpeed(inJson["PlaybackSpeed"].get<float>());
 		}
+
+		if (hasRestoredModelPath)
+		{
+			SetModelPath(restoredModelPath);
+		}
+		else if (animationModel_)
+		{
+			EnsureAnimationSelection(true);
+			ApplyPlaybackSettings();
+		}
 	}
 
 	void SkeletalMeshComponent::SetModelPath(std::string_view modelPath)
@@ -217,11 +264,41 @@ namespace Ken4lowEngine
 		const std::string newModelPath(modelPath);
 		if (modelPath_ == newModelPath)
 		{
+			if (!animationModel_ && hasInitialized_)
+			{
+				ReloadSkeletalModel();
+				if (playOnStart_)
+				{
+					Play();
+				}
+			}
 			return;
 		}
 
 		modelPath_ = newModelPath;
-		CreateAnimationModel();
+		const bool shouldResume = playOnStart_ || isPlaying_ || (animationModel_ && animationModel_->IsAnimationPlaying());
+		ReloadSkeletalModel();
+		if (shouldResume)
+		{
+			Play();
+		}
+	}
+
+	void SkeletalMeshComponent::SetAnimationPath(std::string_view animationPath)
+	{
+		const std::string newAnimationPath(animationPath);
+		if (animationPath_ == newAnimationPath)
+		{
+			return;
+		}
+
+		animationPath_ = newAnimationPath;
+		const bool shouldResume = playOnStart_ || isPlaying_ || (animationModel_ && animationModel_->IsAnimationPlaying());
+		ReloadSkeletalModel();
+		if (shouldResume)
+		{
+			Play();
+		}
 	}
 
 	void SkeletalMeshComponent::SetAnimationName(std::string_view animationName)
@@ -256,7 +333,7 @@ namespace Ken4lowEngine
 	{
 		if (!animationModel_)
 		{
-			CreateAnimationModel();
+			ReloadSkeletalModel();
 		}
 		if (!animationModel_)
 		{
@@ -265,7 +342,7 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		SelectConfiguredAnimation(false);
+		EnsureAnimationSelection(false);
 		ApplyPlaybackSettings();
 		animationModel_->SetAnimationPlaying(true);
 		isPlaying_ = true;
@@ -299,7 +376,7 @@ namespace Ken4lowEngine
 	{
 		if (!animationModel_)
 		{
-			CreateAnimationModel();
+			ReloadSkeletalModel();
 		}
 		if (!animationModel_)
 		{
@@ -308,7 +385,7 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		SelectConfiguredAnimation(true);
+		EnsureAnimationSelection(true);
 		animationModel_->ResetAnimationTime();
 		Play();
 	}
@@ -318,34 +395,64 @@ namespace Ken4lowEngine
 		return animationModel_ ? animationModel_->IsAnimationPlaying() : isPlaying_;
 	}
 
-	void SkeletalMeshComponent::CreateAnimationModel()
+	bool SkeletalMeshComponent::ReloadSkeletalModel()
 	{
 		animationModel_.reset();
 		isPlaying_ = false;
 		isPaused_ = false;
+		hasMesh_ = false;
+		hasSkeleton_ = false;
 
 		if (modelPath_.empty())
 		{
-			return;
+			modelStatus_ = "Empty";
+			return false;
+		}
+
+		if (!hasInitialized_)
+		{
+			modelStatus_ = "Waiting Initialize";
+			return false;
 		}
 
 		try
 		{
 			animationModel_ = std::make_unique<AnimationModel>();
-			animationModel_->Initialize(modelPath_, true);
+			if (animationPath_.empty())
+			{
+				animationModel_->Initialize(modelPath_, true);
+			}
+			else
+			{
+				animationModel_->Initialize(modelPath_, animationPath_, true);
+			}
 			SyncTransformToAnimationModel();
-			SelectConfiguredAnimation(true);
+			hasMesh_ = animationModel_->HasMesh();
+			hasSkeleton_ = animationModel_->HasSkeleton();
+			if (!hasMesh_)
+			{
+				modelStatus_ = "No Mesh";
+				animationModel_.reset();
+				return false;
+			}
+			EnsureAnimationSelection(true);
 			ApplyPlaybackSettings();
 			animationModel_->SetAnimationPlaying(false);
+			modelStatus_ = "Loaded";
+			return true;
 		}
-		catch (const std::exception&)
+		catch (const std::exception& e)
 		{
 			animationModel_.reset();
+			modelStatus_ = std::string("Failed: ") + e.what();
 		}
 		catch (...)
 		{
 			animationModel_.reset();
+			modelStatus_ = "Failed";
 		}
+
+		return false;
 	}
 
 	void SkeletalMeshComponent::ApplyPlaybackSettings()
@@ -379,5 +486,28 @@ namespace Ken4lowEngine
 		}
 
 		return animationModel_->PlayAnimationByName(animationName_, resetTime);
+	}
+
+	bool SkeletalMeshComponent::EnsureAnimationSelection(bool resetTime)
+	{
+		if (!animationModel_)
+		{
+			return false;
+		}
+
+		if (SelectConfiguredAnimation(resetTime))
+		{
+			return true;
+		}
+
+		const auto& clips = animationModel_->GetAnimationClips();
+		if (clips.empty())
+		{
+			animationName_.clear();
+			return false;
+		}
+
+		animationName_ = clips.front().name;
+		return animationModel_->PlayAnimationByIndex(0, resetTime);
 	}
 }

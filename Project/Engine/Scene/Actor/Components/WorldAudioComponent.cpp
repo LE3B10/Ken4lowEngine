@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "WorldAudioComponent.h"
 
+#include "AssetPathSelector.h"
 #include "CameraManager.h"
 
 #include <algorithm>
@@ -64,6 +65,12 @@ namespace Ken4lowEngine
 		if (ImGui::InputText("サウンドパス", soundPathBuffer.data(), soundPathBuffer.size()))
 		{
 			SetSoundPath(soundPathBuffer.data());
+		}
+
+		std::string selectedSoundPath = soundPath_;
+		if (AssetPathSelector::DrawAssetSelector("一覧から選択##WorldAudioComponentSoundPath", selectedSoundPath, AssetType::Audio))
+		{
+			SetSoundPath(selectedSoundPath);
 		}
 
 		float volume = volume_;

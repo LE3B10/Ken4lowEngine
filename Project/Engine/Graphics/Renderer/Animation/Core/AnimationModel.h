@@ -73,6 +73,11 @@ namespace Ken4lowEngine
 		void Initialize(const std::string& fileName, bool isSkinning = true);
 
 		/// <summary>
+		/// モデル本体とアニメーションを別ファイルから読み込んで初期化します。
+		/// </summary>
+		void Initialize(const std::string& modelFileName, const std::string& animationFileName, bool isSkinning = true);
+
+		/// <summary>
 		/// 複数の LOD 用モデルファイルを指定して初期化します。
 		/// </summary>
 		/// <param name="fileName">基準となるモデルファイル名（LOD0 など）。</param>
@@ -129,6 +134,9 @@ namespace Ken4lowEngine
 		/// 読み込まれたモデルデータ（メッシュ階層情報など）を取得します。
 		/// </summary>
 		const ModelData& GetModelData() const { return modelData; }
+
+		bool HasMesh() const { return !modelData.subMeshes.empty(); }
+		bool HasSkeleton() const { return skeleton_ && !skeleton_->GetJoints().empty(); }
 
 		/// <summary>
 		/// AnimationModel 用のデバッグ ImGui ウィンドウを描画します。
@@ -454,6 +462,7 @@ namespace Ken4lowEngine
 
 		ModelData modelData;	// モデルデータ
 		std::string fileName_;  // 読み込んだファイル名を保持
+		std::string animationFileName_; // AnimationClipを読み込むファイル名
 
 		Animation animation; // アニメーションデータ
 		std::vector<AnimationLoader::AnimationClip> animationClips_;

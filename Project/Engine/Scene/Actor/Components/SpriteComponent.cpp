@@ -1,5 +1,6 @@
 #include "SpriteComponent.h"
 
+#include "AssetPathSelector.h"
 #include "Sprite.h"
 #include "SpriteManager.h"
 
@@ -52,6 +53,12 @@ namespace Ken4lowEngine
 		ApplySpriteSettings();
 	}
 
+	void SpriteComponent::Update([[maybe_unused]] float deltaTime)
+	{
+		EnsureSprite();
+		ApplySpriteSettings();
+	}
+
 	void SpriteComponent::Draw()
 	{
 		// Screen Space SpriteはActorWorldの2D描画パスでまとめて描画する
@@ -64,13 +71,13 @@ namespace Ken4lowEngine
 			return; // 非表示またはTexture未設定の場合は描画しない
 		}
 
-		EnsureSprite();
 		if (!sprite_)
 		{
 			return; // Spriteが生成できない場合は描画しない
 		}
 
 		ApplySpriteSettings();
+		SpriteManager::GetInstance()->SetRenderSetting_UI();
 		sprite_->Draw();
 	}
 
@@ -89,6 +96,12 @@ namespace Ken4lowEngine
 		if (ImGui::InputText("テクスチャパス", texturePathBuffer.data(), texturePathBuffer.size()))
 		{
 			SetTexturePath(texturePathBuffer.data());
+		}
+
+		std::string selectedTexturePath = texturePath_;
+		if (AssetPathSelector::DrawAssetSelector("一覧から選択##SpriteComponentTexturePath", selectedTexturePath, AssetType::Texture))
+		{
+			SetTexturePath(selectedTexturePath);
 		}
 
 		ImGui::DragFloat2("位置", &position_.x, 1.0f);

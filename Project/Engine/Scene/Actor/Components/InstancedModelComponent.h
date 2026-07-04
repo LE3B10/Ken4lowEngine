@@ -96,6 +96,11 @@ namespace Ken4lowEngine
 		void RebuildInstances();
 
 		/// <summary>
+		/// 現在のmodelPathからRendererを作成し直す。
+		/// </summary>
+		bool RebuildRenderer();
+
+		/// <summary>
 		/// 設定が変更された時に再構築を予約する。
 		/// </summary>
 		void RequestRebuild();
@@ -104,6 +109,7 @@ namespace Ken4lowEngine
 
 		std::unique_ptr<InstancedObject3DRenderer> renderer_; // GPUインスタンシング描画を担当するRenderer
 		std::string modelPath_;                               // 描画に使用するモデルファイルパス
+		std::string rendererStatus_ = "Empty";                // Renderer生成状態の説明
 
 		int instanceCount_ = 100;      // 描画するインスタンス数
 		float spacing_ = 2.0f;         // インスタンス同士の間隔
@@ -111,6 +117,7 @@ namespace Ken4lowEngine
 
 		bool isRebuildRequested_ = true; // 配置再構築が必要かどうか
 		bool isInitializedRenderer_ = false; // Renderer初期化済みかどうか
+		bool hasInitialized_ = false; // Component初期化済みかどうか
 
 		Vector3 lastWorldPosition_{};		 // 前回のワールド位置
 		Vector3 lastWorldRotation_{};		 // 前回のワールド回転

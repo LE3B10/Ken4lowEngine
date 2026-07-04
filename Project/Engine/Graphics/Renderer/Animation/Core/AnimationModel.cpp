@@ -31,6 +31,7 @@ namespace Ken4lowEngine
 		Clear();
 
 		fileName_ = fileName; // ファイル名保存
+		animationFileName_.clear();
 
 		// 共通セットアップ
 		InitializeCommon();
@@ -66,6 +67,26 @@ namespace Ken4lowEngine
 		SyncSkinningVertexCountToCurrentLOD();
 	}
 
+	void AnimationModel::Initialize(const std::string& modelFileName, const std::string& animationFileName, bool isSkinning)
+	{
+		Clear();
+
+		fileName_ = modelFileName;
+		animationFileName_ = animationFileName;
+
+		InitializeCommon();
+		LoadBaseModelAndAnimation();
+		CreateSkeletonFromModel();
+		InitializeMaterialAndMeshes();
+		InitializeEnvironmentMap();
+		CreateConstantBuffers();
+		BuildBodyPartColliders();
+		BuildLODsAndSkinClusters();
+		InitializeSkinningResources(isSkinning);
+		SetupLODControllerDefaults();
+		SyncSkinningVertexCountToCurrentLOD();
+	}
+
 	/// -------------------------------------------------------------
 	///				　共通セットアップ
 	/// -------------------------------------------------------------
@@ -81,7 +102,8 @@ namespace Ken4lowEngine
 	void AnimationModel::LoadBaseModelAndAnimation()
 	{
 		modelData = AssimpLoader::LoadModel(fileName_);
-		animationClips_ = AnimationLoader::LoadAllAnimations(fileName_);
+		const std::string& animationSource = animationFileName_.empty() ? fileName_ : animationFileName_;
+		animationClips_ = AnimationLoader::LoadAllAnimations(animationSource);
 		currentAnimationIndex_ = animationClips_.empty() ? -1 : 0;
 		SyncCurrentAnimationForCompatibility();
 	}

@@ -114,6 +114,30 @@ namespace Ken4lowEngine
 			effectName_ = effectNameBuffer.data();
 		}
 
+		if (ImGui::BeginCombo("プリセットから選択##GpuParticleComponentEffectName", effectName_.empty() ? "未選択" : effectName_.c_str()))
+		{
+			if (ImGui::Selectable("未選択", effectName_.empty()))
+			{
+				effectName_.clear();
+			}
+
+			for (uint32_t index = 0; index < GpuParticleEmitterPresetTable::GetSpritePresetCount(); ++index)
+			{
+				const GpuParticleType type = GpuParticleEmitterPresetTable::GetSpriteTypeByIndex(index);
+				const char* presetName = GpuParticleEmitterPresetTable::GetSpriteDisplayName(type);
+				const bool selected = effectName_ == presetName;
+				if (ImGui::Selectable(presetName, selected))
+				{
+					effectName_ = presetName;
+				}
+				if (selected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+
 		std::array<char, 128> emitterNameBuffer{};
 		std::snprintf(emitterNameBuffer.data(), emitterNameBuffer.size(), "%s", emitterName_.c_str());
 		if (ImGui::InputText("エミッター名", emitterNameBuffer.data(), emitterNameBuffer.size()))

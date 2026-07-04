@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "BillboardComponent.h"
 
+#include "AssetPathSelector.h"
 #include "CameraManager.h"
 #include "Matrix4x4.h"
 #include "Object3D.h"
@@ -63,11 +64,13 @@ namespace Ken4lowEngine
 	void BillboardComponent::Update(float deltaTime)
 	{
 		SceneComponent::Update(deltaTime);
+		EnsureObject3D();
 		ApplyBillboardTransform();
 	}
 
 	void BillboardComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
 	{
+		EnsureObject3D();
 		ApplyBillboardTransform();
 	}
 
@@ -78,7 +81,6 @@ namespace Ken4lowEngine
 			return; // 非表示または無効なBillboardComponentは描画しない
 		}
 
-		EnsureObject3D();
 		if (!object3D_)
 		{
 			return; // 描画対象が生成できない場合は描画しない
@@ -100,6 +102,12 @@ namespace Ken4lowEngine
 		if (ImGui::InputText("テクスチャパス", texturePathBuffer.data(), texturePathBuffer.size()))
 		{
 			SetTexturePath(texturePathBuffer.data());
+		}
+
+		std::string selectedTexturePath = texturePath_;
+		if (AssetPathSelector::DrawAssetSelector("一覧から選択##BillboardComponentTexturePath", selectedTexturePath, AssetType::Texture))
+		{
+			SetTexturePath(selectedTexturePath);
 		}
 
 		ImGui::DragFloat2("サイズ", &size_.x, 0.01f, 0.0f, 1000.0f);

@@ -1114,6 +1114,9 @@
     <ClCompile Include="Engine\Scene\Actor\Serialization\ComponentProperty.cpp">
       <Filter>Engine\Scene\Actor\Serialization</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Serialization\AssetPathSelector.cpp">
+      <Filter>Engine\Scene\Actor\Serialization</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Components\CameraComponent.cpp">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClCompile>
@@ -2359,6 +2362,9 @@
       <Filter>Engine\Scene\Actor\Serialization</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Serialization\ComponentProperty.h">
+      <Filter>Engine\Scene\Actor\Serialization</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Serialization\AssetPathSelector.h">
       <Filter>Engine\Scene\Actor\Serialization</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Components\CameraComponent.h">

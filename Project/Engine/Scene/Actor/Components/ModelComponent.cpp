@@ -1,6 +1,11 @@
 #include "ModelComponent.h"
 #include "SceneComponent.h"
 #include "Actor.h"
+#include "AssetPathSelector.h"
+
+#include <array>
+#include <cstdio>
+#include <exception>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -18,8 +23,21 @@ namespace Ken4lowEngine
 			return; // モデルパス未設定の場合は、描画対象を生成しない。
 		}
 
-		object3D_ = std::make_unique<Object3D>();
-		object3D_->Initialize(modelPath_);
+		try
+		{
+			object3D_ = std::make_unique<Object3D>();
+			object3D_->Initialize(modelPath_);
+		}
+		catch (const std::exception&)
+		{
+			object3D_.reset();
+			return;
+		}
+		catch (...)
+		{
+			object3D_.reset();
+			return;
+		}
 
 		SyncTransformToObject3D();
 	}
@@ -76,7 +94,19 @@ namespace Ken4lowEngine
 
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("Model Component");
-		ImGui::Text("Model Path: %s", modelPath_.empty() ? "None" : modelPath_.c_str());
+		std::array<char, 256> modelPathBuffer{};
+		std::snprintf(modelPathBuffer.data(), modelPathBuffer.size(), "%s", modelPath_.c_str());
+		if (ImGui::InputText("モデルパス", modelPathBuffer.data(), modelPathBuffer.size()))
+		{
+			SetModelPath(modelPathBuffer.data());
+		}
+
+		std::string selectedModelPath = modelPath_;
+		if (AssetPathSelector::DrawAssetSelector("一覧から選択##ModelComponentModelPath", selectedModelPath, AssetType::Model))
+		{
+			SetModelPath(selectedModelPath);
+		}
+
 		ImGui::Text("Object3D: %s", object3D_ ? "Created" : "Not Created");
 #endif // USE_IMGUI
 	}
@@ -106,7 +136,39 @@ namespace Ken4lowEngine
 
 	void ModelComponent::SetModelPath(std::string_view modelPath)
 	{
-		modelPath_ = std::string(modelPath); // string_viewは保持せず、内部ではstd::stringとして所有する。
+		const std::string newModelPath(modelPath);
+		if (modelPath_ == newModelPath)
+		{
+			return; // 同じモデルパスなら再生成しない
+		}
+
+		modelPath_ = newModelPath; // string_viewは保持せず、内部ではstd::stringとして所有する。
+		const bool hadObject = object3D_ != nullptr;
+		object3D_.reset();
+
+		if (!hadObject || modelPath_.empty())
+		{
+			return;
+		}
+
+		try
+		{
+			object3D_ = std::make_unique<Object3D>();
+			object3D_->Initialize(modelPath_);
+		}
+		catch (const std::exception&)
+		{
+			object3D_.reset();
+			return;
+		}
+		catch (...)
+		{
+			object3D_.reset();
+			return;
+		}
+
+		object3D_->SetCamera(camera_);
+		SyncTransformToObject3D();
 	}
 
 	void ModelComponent::SetCamera(Camera* camera)

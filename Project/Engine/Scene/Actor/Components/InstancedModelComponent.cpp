@@ -1,8 +1,12 @@
 #define NOMINMAX
 #include "InstancedModelComponent.h"
+#include "AssetPathSelector.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <cstdio>
+#include <exception>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -44,18 +48,9 @@ namespace Ken4lowEngine
 	void InstancedModelComponent::Initialize()
 	{
 		SceneComponent::Initialize(); // 親子関係を考慮したWorldTransformを初期計算する。
+		hasInitialized_ = true;
 
-		if (modelPath_.empty())
-		{
-			return; // モデルパス未設定の場合はRendererを作らない。
-		}
-
-		renderer_ = std::make_unique<InstancedObject3DRenderer>();
-		renderer_->Initialize(modelPath_, static_cast<size_t>(std::max(instanceCount_, 1)));
-		renderer_->SetDebugIndexBudget(50'000'000ull);
-
-		isInitializedRenderer_ = true;
-		RebuildInstances();
+		RebuildRenderer();
 	}
 
 	void InstancedModelComponent::Update(float deltaTime)
@@ -124,8 +119,21 @@ namespace Ken4lowEngine
 
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("Instanced Model Component");
-		ImGui::Text("Model Path: %s", modelPath_.empty() ? "None" : modelPath_.c_str());
+		std::array<char, 256> modelPathBuffer{};
+		std::snprintf(modelPathBuffer.data(), modelPathBuffer.size(), "%s", modelPath_.c_str());
+		if (ImGui::InputText("モデルパス", modelPathBuffer.data(), modelPathBuffer.size()))
+		{
+			SetModelPath(modelPathBuffer.data());
+		}
+
+		std::string selectedModelPath = modelPath_;
+		if (AssetPathSelector::DrawAssetSelector("一覧から選択##InstancedModelComponentModelPath", selectedModelPath, AssetType::Model))
+		{
+			SetModelPath(selectedModelPath);
+		}
+
 		ImGui::Text("Renderer: %s", renderer_ ? "Created" : "None");
+		ImGui::Text("Model: %s", rendererStatus_.c_str());
 
 		if (ImGui::SliderInt("Instance Count", &instanceCount_, 1, 30000))
 		{
@@ -167,6 +175,8 @@ namespace Ken4lowEngine
 
 		isInitializedRenderer_ = false;
 		isRebuildRequested_ = true;
+		rendererStatus_ = modelPath_.empty() ? "Empty" : "Finalized";
+		hasInitialized_ = false;
 	}
 
 	void InstancedModelComponent::ToJson(nlohmann::json& outJson) const
@@ -187,7 +197,7 @@ namespace Ken4lowEngine
 
 		if (inJson.contains("ModelPath") && inJson["ModelPath"].is_string())
 		{
-			modelPath_ = inJson["ModelPath"].get<std::string>();
+			SetModelPath(inJson["ModelPath"].get<std::string>());
 		}
 
 		if (inJson.contains("InstanceCount") && inJson["InstanceCount"].is_number_integer())
@@ -210,7 +220,27 @@ namespace Ken4lowEngine
 
 	void InstancedModelComponent::SetModelPath(std::string_view modelPath)
 	{
-		modelPath_ = std::string(modelPath); // string_viewは保持せず、内部で所有する。
+		const std::string newModelPath(modelPath);
+		if (modelPath_ == newModelPath)
+		{
+			if (!renderer_ && hasInitialized_)
+			{
+				RebuildRenderer();
+				RequestRebuild();
+			}
+			return; // 同じモデルパスなら再生成しない
+		}
+
+		modelPath_ = newModelPath; // string_viewは保持せず、内部で所有する。
+		if (renderer_)
+		{
+			renderer_->Finalize();
+			renderer_.reset();
+		}
+
+		isInitializedRenderer_ = false;
+		RebuildRenderer();
+		RequestRebuild();
 	}
 
 	void InstancedModelComponent::SetInstanceCount(int instanceCount)
@@ -272,6 +302,53 @@ namespace Ken4lowEngine
 
 		renderer_->SetTransforms(transforms); // 構築したTransform配列をGPUインスタンスデータへ転送する。
 		isRebuildRequested_ = false;
+	}
+
+	bool InstancedModelComponent::RebuildRenderer()
+	{
+		if (renderer_)
+		{
+			renderer_->Finalize();
+			renderer_.reset();
+		}
+
+		isInitializedRenderer_ = false;
+
+		if (modelPath_.empty())
+		{
+			rendererStatus_ = "Empty";
+			return false;
+		}
+
+		if (!hasInitialized_)
+		{
+			rendererStatus_ = "Waiting Initialize";
+			return false;
+		}
+
+		try
+		{
+			renderer_ = std::make_unique<InstancedObject3DRenderer>();
+			renderer_->Initialize(modelPath_, static_cast<size_t>(std::max(instanceCount_, 1)));
+			renderer_->SetDebugIndexBudget(50'000'000ull);
+			isInitializedRenderer_ = true;
+			rendererStatus_ = "Loaded";
+			RebuildInstances();
+			return true;
+		}
+		catch (const std::exception& e)
+		{
+			renderer_.reset();
+			rendererStatus_ = std::string("Failed: ") + e.what();
+		}
+		catch (...)
+		{
+			renderer_.reset();
+			rendererStatus_ = "Failed";
+		}
+
+		isInitializedRenderer_ = false;
+		return false;
 	}
 
 	void InstancedModelComponent::RequestRebuild()

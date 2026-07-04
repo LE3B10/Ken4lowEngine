@@ -25,6 +25,8 @@ namespace Ken4lowEngine
 		/// </summary>
 		void Initialize() override;
 
+		void Update(float deltaTime) override;
+
 		/// <summary>
 		/// SpriteComponentの通常描画処理。
 		/// </summary>

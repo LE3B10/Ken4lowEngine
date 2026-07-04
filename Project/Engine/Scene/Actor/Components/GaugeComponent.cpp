@@ -1,6 +1,8 @@
 #define NOMINMAX
 #include "GaugeComponent.h"
 
+#include "SpriteManager.h"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -201,6 +203,7 @@ namespace Ken4lowEngine
 			return; // ゲージ描画用Spriteが生成できない場合は描画しない
 		}
 
+		SpriteManager::GetInstance()->SetRenderSetting_UI();
 		DrawColoredRect(*backgroundSprite_, screenPosition, size_, backgroundColor_);
 
 		Vector2 fillPosition{};

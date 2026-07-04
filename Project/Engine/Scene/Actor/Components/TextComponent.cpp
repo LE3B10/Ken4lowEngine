@@ -2,6 +2,7 @@
 #include "TextComponent.h"
 
 #include "FontAtlasLoader.h"
+#include "SpriteManager.h"
 #include "TextSpriteDrawer.h"
 
 #include <algorithm>
@@ -87,6 +88,7 @@ namespace Ken4lowEngine
 		textDrawer_->Reset();
 		textDrawer_->SetColor(color_);
 		textDrawer_->SetScale(std::max(fontSize_, 1.0f) / kDefaultFontBaseSize);
+		SpriteManager::GetInstance()->SetRenderSetting_UI();
 		textDrawer_->DrawTextLeftAligned(text_, ApplyAnchor(position_));
 	}
 
