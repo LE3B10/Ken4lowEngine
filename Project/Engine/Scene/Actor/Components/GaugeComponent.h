@@ -1,5 +1,6 @@
 #pragma once
 #include "ActorComponent.h"
+#include "ComponentProperty.h"
 #include "Sprite.h"
 #include "Vector2.h"
 #include "Vector4.h"
@@ -7,6 +8,7 @@
 #include <array>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -59,7 +61,7 @@ namespace Ken4lowEngine
 		void SetPosition(const Vector2& position) { position_ = position; }
 
 		const Vector2& GetSize() const { return size_; }
-		void SetSize(const Vector2& size) { size_ = size; }
+		void SetSize(const Vector2& size);
 
 		const Vector4& GetBackgroundColor() const { return backgroundColor_; }
 		void SetBackgroundColor(const Vector4& color) { backgroundColor_ = color; }
@@ -71,7 +73,7 @@ namespace Ken4lowEngine
 		void SetBorderColor(const Vector4& color) { borderColor_ = color; }
 
 		float GetBorderThickness() const { return borderThickness_; }
-		void SetBorderThickness(float thickness) { borderThickness_ = thickness; }
+		void SetBorderThickness(float thickness);
 
 		FillDirection GetFillDirection() const { return fillDirection_; }
 		void SetFillDirection(FillDirection direction) { fillDirection_ = direction; }
@@ -90,6 +92,7 @@ namespace Ken4lowEngine
 		void DrawColoredRect(Sprite& sprite, const Vector2& position, const Vector2& size, const Vector4& color, const Vector2& anchor = { 0.0f, 0.0f });
 		void DrawBorder(const Vector2& position, const Vector2& size);
 		void CalculateFillRect(Vector2& outPosition, Vector2& outSize) const;
+		std::vector<ComponentProperty> CreateProperties();
 
 		static const char* FillDirectionToString(FillDirection direction);
 		static FillDirection FillDirectionFromString(const std::string& value, FillDirection defaultValue);

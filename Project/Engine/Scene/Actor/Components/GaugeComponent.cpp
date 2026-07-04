@@ -7,6 +7,7 @@
 #include <array>
 #include <cmath>
 #include <string>
+#include <vector>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -81,24 +82,8 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("ゲージコンポーネント");
 
-		ImGui::DragFloat("値", &value_, 1.0f, 0.0f, maxValue_);
-		ImGui::DragFloat("最大値", &maxValue_, 1.0f, kMinMaxValue, 1000000.0f);
+		ComponentPropertyUtility::DrawImGui(CreateProperties());
 		NormalizeValues();
-
-		ImGui::DragFloat2("位置", &position_.x, 1.0f);
-		ImGui::DragFloat2("サイズ", &size_.x, 1.0f, 0.0f, 4096.0f);
-		ImGui::ColorEdit4("背景色", &backgroundColor_.x);
-		ImGui::ColorEdit4("塗り色", &fillColor_.x);
-		ImGui::ColorEdit4("枠色", &borderColor_.x);
-		ImGui::DragFloat("枠の太さ", &borderThickness_, 0.1f, 0.0f, 64.0f);
-		ImGui::Checkbox("表示", &visible_);
-
-		const char* fillDirectionItems[] = { "左から右", "右から左", "上から下", "下から上" };
-		int fillDirectionIndex = static_cast<int>(fillDirection_);
-		if (ImGui::Combo("塗り方向", &fillDirectionIndex, fillDirectionItems, static_cast<int>(std::size(fillDirectionItems))))
-		{
-			fillDirection_ = static_cast<FillDirection>(std::clamp(fillDirectionIndex, 0, static_cast<int>(std::size(fillDirectionItems)) - 1));
-		}
 #endif // USE_IMGUI
 	}
 
@@ -131,52 +116,14 @@ namespace Ken4lowEngine
 		ActorComponent::ToJson(outJson); // ActorComponent共通情報をJSONへ保存する
 
 		outJson["Class"] = GetClassTypeName(); // GaugeComponentとして保存する
-		outJson["Value"] = value_;
-		outJson["MaxValue"] = maxValue_;
-		outJson["Position"] = { position_.x, position_.y };
-		outJson["Size"] = { size_.x, size_.y };
-		outJson["BackgroundColor"] = { backgroundColor_.x, backgroundColor_.y, backgroundColor_.z, backgroundColor_.w };
-		outJson["FillColor"] = { fillColor_.x, fillColor_.y, fillColor_.z, fillColor_.w };
-		outJson["BorderColor"] = { borderColor_.x, borderColor_.y, borderColor_.z, borderColor_.w };
-		outJson["BorderThickness"] = borderThickness_;
-		outJson["FillDirection"] = FillDirectionToString(fillDirection_);
-		outJson["Visible"] = visible_;
+		ComponentPropertyUtility::ToJson(const_cast<GaugeComponent*>(this)->CreateProperties(), outJson);
 	}
 
 	void GaugeComponent::FromJson(const nlohmann::json& inJson)
 	{
 		ActorComponent::FromJson(inJson); // ActorComponent共通情報をJSONから復元する
 
-		if (inJson.contains("Value") && inJson["Value"].is_number())
-		{
-			value_ = inJson["Value"].get<float>();
-		}
-
-		if (inJson.contains("MaxValue") && inJson["MaxValue"].is_number())
-		{
-			maxValue_ = inJson["MaxValue"].get<float>();
-		}
-
-		position_ = ReadVector2FromJson(inJson, "Position", position_);
-		size_ = ReadVector2FromJson(inJson, "Size", size_);
-		backgroundColor_ = ReadVector4FromJson(inJson, "BackgroundColor", backgroundColor_);
-		fillColor_ = ReadVector4FromJson(inJson, "FillColor", fillColor_);
-		borderColor_ = ReadVector4FromJson(inJson, "BorderColor", borderColor_);
-
-		if (inJson.contains("BorderThickness") && inJson["BorderThickness"].is_number())
-		{
-			borderThickness_ = inJson["BorderThickness"].get<float>();
-		}
-
-		if (inJson.contains("FillDirection") && inJson["FillDirection"].is_string())
-		{
-			fillDirection_ = FillDirectionFromString(inJson["FillDirection"].get<std::string>(), fillDirection_);
-		}
-
-		if (inJson.contains("Visible") && inJson["Visible"].is_boolean())
-		{
-			visible_ = inJson["Visible"].get<bool>();
-		}
+		ComponentPropertyUtility::FromJson(CreateProperties(), inJson);
 
 		NormalizeValues();
 	}
@@ -190,6 +137,18 @@ namespace Ken4lowEngine
 	void GaugeComponent::SetMaxValue(float maxValue)
 	{
 		maxValue_ = maxValue;
+		NormalizeValues();
+	}
+
+	void GaugeComponent::SetSize(const Vector2& size)
+	{
+		size_ = size;
+		NormalizeValues();
+	}
+
+	void GaugeComponent::SetBorderThickness(float thickness)
+	{
+		borderThickness_ = thickness;
 		NormalizeValues();
 	}
 
@@ -343,5 +302,21 @@ namespace Ken4lowEngine
 		}
 
 		return defaultValue;
+	}
+
+	std::vector<ComponentProperty> GaugeComponent::CreateProperties()
+	{
+		return {
+			{ "MaxValue", "最大値", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return maxValue_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetMaxValue(*typedValue); } }, kMinMaxValue, 1000000.0f, 1.0f, true },
+			{ "Value", "値", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return value_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetValue(*typedValue); } }, 0.0f, maxValue_, 1.0f, true },
+			{ "Position", "位置", ComponentPropertyType::Vector2, [this]() -> ComponentPropertyValue { return position_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector2>(&value)) { SetPosition(*typedValue); } }, 0.0f, 0.0f, 1.0f },
+			{ "Size", "サイズ", ComponentPropertyType::Vector2, [this]() -> ComponentPropertyValue { return size_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector2>(&value)) { SetSize(*typedValue); } }, 0.0f, 4096.0f, 1.0f, true },
+			{ "BackgroundColor", "背景色", ComponentPropertyType::Vector4, [this]() -> ComponentPropertyValue { return backgroundColor_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector4>(&value)) { SetBackgroundColor(*typedValue); } }, 0.0f, 1.0f, 0.01f, true, {}, ComponentPropertyDisplay::Color },
+			{ "FillColor", "塗り色", ComponentPropertyType::Vector4, [this]() -> ComponentPropertyValue { return fillColor_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector4>(&value)) { SetFillColor(*typedValue); } }, 0.0f, 1.0f, 0.01f, true, {}, ComponentPropertyDisplay::Color },
+			{ "BorderColor", "枠色", ComponentPropertyType::Vector4, [this]() -> ComponentPropertyValue { return borderColor_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector4>(&value)) { SetBorderColor(*typedValue); } }, 0.0f, 1.0f, 0.01f, true, {}, ComponentPropertyDisplay::Color },
+			{ "BorderThickness", "枠の太さ", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return borderThickness_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetBorderThickness(*typedValue); } }, 0.0f, 64.0f, 0.1f, true },
+			{ "FillDirection", "塗り方向", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return std::string(FillDirectionToString(fillDirection_)); }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) { SetFillDirection(FillDirectionFromString(*typedValue, fillDirection_)); } }, 0.0f, 0.0f, 0.1f, false, { { "LeftToRight", "左から右" }, { "RightToLeft", "右から左" }, { "TopToBottom", "上から下" }, { "BottomToTop", "下から上" } } },
+			{ "Visible", "表示", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return visible_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetVisible(*typedValue); } } },
+		};
 	}
 }

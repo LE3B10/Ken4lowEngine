@@ -30,6 +30,31 @@ namespace Ken4lowEngine
 				json[key][1].get<float>()
 			};
 		}
+
+		const char* FillDirectionToString(GaugeComponent::FillDirection direction)
+		{
+			switch (direction)
+			{
+			case GaugeComponent::FillDirection::RightToLeft:
+				return "RightToLeft";
+			case GaugeComponent::FillDirection::TopToBottom:
+				return "TopToBottom";
+			case GaugeComponent::FillDirection::BottomToTop:
+				return "BottomToTop";
+			case GaugeComponent::FillDirection::LeftToRight:
+			default:
+				return "LeftToRight";
+			}
+		}
+
+		GaugeComponent::FillDirection FillDirectionFromString(const std::string& value, GaugeComponent::FillDirection defaultValue)
+		{
+			if (value == "LeftToRight") { return GaugeComponent::FillDirection::LeftToRight; }
+			if (value == "RightToLeft") { return GaugeComponent::FillDirection::RightToLeft; }
+			if (value == "TopToBottom") { return GaugeComponent::FillDirection::TopToBottom; }
+			if (value == "BottomToTop") { return GaugeComponent::FillDirection::BottomToTop; }
+			return defaultValue;
+		}
 	}
 
 	WorldGaugeComponent::~WorldGaugeComponent() = default;
@@ -72,59 +97,7 @@ namespace Ken4lowEngine
 		SceneComponent::DrawImGui();
 
 		ImGui::SeparatorText("ワールドゲージコンポーネント");
-
-		float value = GetValue();
-		float maxValue = GetMaxValue();
-		if (ImGui::DragFloat("値", &value, 1.0f, 0.0f, maxValue))
-		{
-			SetValue(value);
-		}
-		if (ImGui::DragFloat("最大値", &maxValue, 1.0f, 0.0001f, 1000000.0f))
-		{
-			SetMaxValue(maxValue);
-		}
-
-		ImGui::DragFloat2("スクリーンオフセット", &screenOffset_.x, 1.0f);
-
-		Vector2 size = GetSize();
-		if (ImGui::DragFloat2("サイズ", &size.x, 1.0f, 0.0f, 4096.0f))
-		{
-			SetSize(size);
-		}
-
-		Vector4 backgroundColor = GetBackgroundColor();
-		if (ImGui::ColorEdit4("背景色", &backgroundColor.x))
-		{
-			SetBackgroundColor(backgroundColor);
-		}
-
-		Vector4 fillColor = GetFillColor();
-		if (ImGui::ColorEdit4("塗り色", &fillColor.x))
-		{
-			SetFillColor(fillColor);
-		}
-
-		Vector4 borderColor = GetBorderColor();
-		if (ImGui::ColorEdit4("枠色", &borderColor.x))
-		{
-			SetBorderColor(borderColor);
-		}
-
-		float borderThickness = GetBorderThickness();
-		if (ImGui::DragFloat("枠の太さ", &borderThickness, 0.1f, 0.0f, 64.0f))
-		{
-			SetBorderThickness(borderThickness);
-		}
-
-		ImGui::Checkbox("表示", &visible_);
-		ImGui::Checkbox("カメラ背面で非表示", &hideWhenBehindCamera_);
-
-		const char* fillDirectionItems[] = { "左から右", "右から左", "上から下", "下から上" };
-		int fillDirectionIndex = static_cast<int>(GetFillDirection());
-		if (ImGui::Combo("塗り方向", &fillDirectionIndex, fillDirectionItems, static_cast<int>(std::size(fillDirectionItems))))
-		{
-			SetFillDirection(static_cast<GaugeComponent::FillDirection>(std::clamp(fillDirectionIndex, 0, static_cast<int>(std::size(fillDirectionItems)) - 1)));
-		}
+		ComponentPropertyUtility::DrawImGui(CreateProperties());
 #endif // USE_IMGUI
 	}
 
@@ -137,44 +110,15 @@ namespace Ken4lowEngine
 	{
 		SceneComponent::ToJson(outJson); // SceneComponent共通情報をJSONへ保存する
 
-		nlohmann::json gaugeJson;
-		gauge_.ToJson(gaugeJson);
-
 		outJson["Class"] = GetClassTypeName(); // WorldGaugeComponentとして保存する
-		outJson["Value"] = gaugeJson.value("Value", GetValue());
-		outJson["MaxValue"] = gaugeJson.value("MaxValue", GetMaxValue());
-		outJson["ScreenOffset"] = { screenOffset_.x, screenOffset_.y };
-		outJson["Size"] = gaugeJson.value("Size", nlohmann::json::array({ GetSize().x, GetSize().y }));
-		outJson["BackgroundColor"] = gaugeJson.value("BackgroundColor", nlohmann::json::array({ GetBackgroundColor().x, GetBackgroundColor().y, GetBackgroundColor().z, GetBackgroundColor().w }));
-		outJson["FillColor"] = gaugeJson.value("FillColor", nlohmann::json::array({ GetFillColor().x, GetFillColor().y, GetFillColor().z, GetFillColor().w }));
-		outJson["BorderColor"] = gaugeJson.value("BorderColor", nlohmann::json::array({ GetBorderColor().x, GetBorderColor().y, GetBorderColor().z, GetBorderColor().w }));
-		outJson["BorderThickness"] = gaugeJson.value("BorderThickness", GetBorderThickness());
-		outJson["FillDirection"] = gaugeJson.value("FillDirection", std::string("LeftToRight"));
-		outJson["Visible"] = visible_;
-		outJson["HideWhenBehindCamera"] = hideWhenBehindCamera_;
+		ComponentPropertyUtility::ToJson(const_cast<WorldGaugeComponent*>(this)->CreateProperties(), outJson);
 	}
 
 	void WorldGaugeComponent::FromJson(const nlohmann::json& inJson)
 	{
 		SceneComponent::FromJson(inJson); // SceneComponent共通情報をJSONから復元する
 
-		nlohmann::json gaugeJson = inJson;
-		gaugeJson["Class"] = "GaugeComponent";
-		gaugeJson["Position"] = { 0.0f, 0.0f };
-		gaugeJson["Visible"] = true;
-		gauge_.FromJson(gaugeJson);
-
-		screenOffset_ = ReadVector2FromJson(inJson, "ScreenOffset", screenOffset_);
-
-		if (inJson.contains("Visible") && inJson["Visible"].is_boolean())
-		{
-			visible_ = inJson["Visible"].get<bool>();
-		}
-
-		if (inJson.contains("HideWhenBehindCamera") && inJson["HideWhenBehindCamera"].is_boolean())
-		{
-			hideWhenBehindCamera_ = inJson["HideWhenBehindCamera"].get<bool>();
-		}
+		ComponentPropertyUtility::FromJson(CreateProperties(), inJson);
 	}
 
 	bool WorldGaugeComponent::UpdateScreenPosition(Vector2& outScreenPosition) const
@@ -207,5 +151,22 @@ namespace Ken4lowEngine
 		outScreenPosition.y = (1.0f - ndcY) * 0.5f * screenHeight + screenOffset_.y - size.y * 0.5f;
 
 		return true;
+	}
+
+	std::vector<ComponentProperty> WorldGaugeComponent::CreateProperties()
+	{
+		return {
+			{ "MaxValue", "最大値", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return GetMaxValue(); }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetMaxValue(*typedValue); } }, 0.0001f, 1000000.0f, 1.0f, true },
+			{ "Value", "値", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return GetValue(); }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetValue(*typedValue); } }, 0.0f, GetMaxValue(), 1.0f, true },
+			{ "ScreenOffset", "スクリーンオフセット", ComponentPropertyType::Vector2, [this]() -> ComponentPropertyValue { return screenOffset_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector2>(&value)) { SetScreenOffset(*typedValue); } }, 0.0f, 0.0f, 1.0f },
+			{ "Size", "サイズ", ComponentPropertyType::Vector2, [this]() -> ComponentPropertyValue { return GetSize(); }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector2>(&value)) { SetSize(*typedValue); } }, 0.0f, 4096.0f, 1.0f, true },
+			{ "BackgroundColor", "背景色", ComponentPropertyType::Vector4, [this]() -> ComponentPropertyValue { return GetBackgroundColor(); }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector4>(&value)) { SetBackgroundColor(*typedValue); } }, 0.0f, 1.0f, 0.01f, true, {}, ComponentPropertyDisplay::Color },
+			{ "FillColor", "塗り色", ComponentPropertyType::Vector4, [this]() -> ComponentPropertyValue { return GetFillColor(); }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector4>(&value)) { SetFillColor(*typedValue); } }, 0.0f, 1.0f, 0.01f, true, {}, ComponentPropertyDisplay::Color },
+			{ "BorderColor", "枠色", ComponentPropertyType::Vector4, [this]() -> ComponentPropertyValue { return GetBorderColor(); }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector4>(&value)) { SetBorderColor(*typedValue); } }, 0.0f, 1.0f, 0.01f, true, {}, ComponentPropertyDisplay::Color },
+			{ "BorderThickness", "枠の太さ", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return GetBorderThickness(); }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetBorderThickness(*typedValue); } }, 0.0f, 64.0f, 0.1f, true },
+			{ "FillDirection", "塗り方向", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return std::string(FillDirectionToString(GetFillDirection())); }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) { SetFillDirection(FillDirectionFromString(*typedValue, GetFillDirection())); } }, 0.0f, 0.0f, 0.1f, false, { { "LeftToRight", "左から右" }, { "RightToLeft", "右から左" }, { "TopToBottom", "上から下" }, { "BottomToTop", "下から上" } } },
+			{ "Visible", "表示", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return visible_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetVisible(*typedValue); } } },
+			{ "HideWhenBehindCamera", "カメラ背面で非表示", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return hideWhenBehindCamera_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetHideWhenBehindCamera(*typedValue); } } },
+		};
 	}
 }

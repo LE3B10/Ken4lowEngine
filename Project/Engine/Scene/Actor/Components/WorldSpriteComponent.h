@@ -1,4 +1,5 @@
 #pragma once
+#include "ComponentProperty.h"
 #include "SceneComponent.h"
 #include "Sprite.h"
 #include "Vector2.h"
@@ -6,6 +7,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -81,7 +83,7 @@ namespace Ken4lowEngine
 		void SetScreenOffset(const Vector2& screenOffset) { screenOffset_ = screenOffset; }
 
 		const Vector2& GetSize() const { return size_; }
-		void SetSize(const Vector2& size) { size_ = size; }
+		void SetSize(const Vector2& size);
 
 		const Vector4& GetColor() const { return color_; }
 		void SetColor(const Vector4& color) { color_ = color; }
@@ -97,6 +99,7 @@ namespace Ken4lowEngine
 		bool UpdateScreenPosition(Vector2& outScreenPosition) const;
 		void EnsureSprite();
 		void ApplySpriteSettings(const Vector2& screenPosition);
+		std::vector<ComponentProperty> CreateProperties();
 
 	private: /// ---------- メンバ変数 ---------- ///
 

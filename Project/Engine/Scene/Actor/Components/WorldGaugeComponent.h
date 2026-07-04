@@ -1,9 +1,11 @@
 #pragma once
+#include "ComponentProperty.h"
 #include "GaugeComponent.h"
 #include "SceneComponent.h"
 #include "Vector2.h"
 
 #include <string>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -73,6 +75,7 @@ namespace Ken4lowEngine
 	private: /// ---------- 内部処理 ---------- ///
 
 		bool UpdateScreenPosition(Vector2& outScreenPosition) const;
+		std::vector<ComponentProperty> CreateProperties();
 
 	private: /// ---------- メンバ変数 ---------- ///
 

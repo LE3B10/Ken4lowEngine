@@ -69,114 +69,41 @@ namespace Ken4lowEngine
 
 		const std::vector<ComponentFactory::ComponentTypeInfo> kRegisteredComponentTypes =
 		{
-			MakeComponentTypeInfo<SceneComponent>(
-				"SceneComponent",
-				true,
-				"シーンコンポーネント",
-				"基本",
-				"Actorに位置・回転・スケールと親子関係を持たせる基本Componentです。"),
-				MakeComponentTypeInfo<ModelComponent>(
-					"ModelComponent",
-					true,
-					"モデルコンポーネント",
-					"描画",
-					"Actorに3Dモデルの描画機能を追加します。"),
-				MakeComponentTypeInfo<InstancedModelComponent>(
-					"InstancedModelComponent",
-					true,
-					"インスタンスモデルコンポーネント",
-					"描画",
-					"同じモデルを複数まとめて描画するためのComponentです。"),
-				MakeComponentTypeInfo<SkeletalMeshComponent>(
-					"SkeletalMeshComponent",
-					true,
-					"スケルタルメッシュコンポーネント",
-					"描画",
-					"Actorにボーン付き3Dモデルを表示し、アニメーションを再生するためのComponentです。"),
-				MakeComponentTypeInfo<BillboardComponent>(
-					"BillboardComponent",
-					true,
-					"ビルボードコンポーネント",
-					"描画",
-					"3D空間上で常にカメラ方向を向く板ポリを表示するComponentです。"),
-				MakeComponentTypeInfo<LightComponent>(
-					"LightComponent",
-					true,
-					"ライトコンポーネント",
-					"描画",
-					"Actorにライト情報を持たせるためのComponentです。"),
-				MakeComponentTypeInfo<CameraComponent>(
-					"CameraComponent",
-					false,
-					"カメラコンポーネント",
-					"カメラ",
-					"Actorを視点として使うためのカメラ機能を追加します。"),
-				MakeComponentTypeInfo<ColliderComponent>(
-					"ColliderComponent",
-					true,
-					"コライダーコンポーネント",
-					"物理",
-					"Actorに衝突判定用の形状と当たり判定設定を追加します。"),
-				MakeComponentTypeInfo<RigidbodyComponent>(
-					"RigidbodyComponent",
-					false,
-					"剛体コンポーネント",
-					"物理",
-					"Actorに速度や重力などの物理挙動を追加します。"),
-				MakeComponentTypeInfo<SpriteComponent>(
-					"SpriteComponent",
-					true,
-					"スプライトコンポーネント",
-					"UI",
-					"画面上に2D画像を表示するためのComponentです。"),
-				MakeComponentTypeInfo<WorldSpriteComponent>(
-					"WorldSpriteComponent",
-					true,
-					"ワールドスプライトコンポーネント",
-					"UI",
-					"Actorの3D位置を画面座標へ変換して画像を表示するComponentです。"),
-				MakeComponentTypeInfo<TextComponent>(
-					"TextComponent",
-					true,
-					"テキストコンポーネント",
-					"UI",
-					"画面上に文字を表示するためのComponentです。"),
-				MakeComponentTypeInfo<WorldTextComponent>(
-					"WorldTextComponent",
-					true,
-					"ワールドテキストコンポーネント",
-					"UI",
-					"Actorの3D位置を画面座標へ変換して文字を表示するComponentです。"),
-				MakeComponentTypeInfo<GaugeComponent>(
-					"GaugeComponent",
-					true,
-					"ゲージコンポーネント",
-					"UI",
-					"画面上にHPバーや進行度バーを表示するためのComponentです。"),
-				MakeComponentTypeInfo<WorldGaugeComponent>(
-					"WorldGaugeComponent",
-					true,
-					"ワールドゲージコンポーネント",
-					"UI",
-					"Actorの3D位置を画面座標へ変換してゲージを表示するComponentです。"),
-				MakeComponentTypeInfo<AudioComponent>(
-					"AudioComponent",
-					true,
-					"オーディオコンポーネント",
-					"オーディオ",
-					"Actorに音声再生機能を持たせるためのComponentです。"),
-				MakeComponentTypeInfo<WorldAudioComponent>(
-					"WorldAudioComponent",
-					true,
-					"ワールドオーディオコンポーネント",
-					"オーディオ",
-					"Actorの3D位置に基づいて距離減衰する音声を再生するためのComponentです。"),
-				MakeComponentTypeInfo<GpuParticleComponent>(
-					"GpuParticleComponent",
-					true,
-					"GPUパーティクルコンポーネント",
-					"演出",
-					"ActorにGPUパーティクル演出を持たせるためのComponentです。"),
+			MakeComponentTypeInfo<SceneComponent>("SceneComponent", true, "シーンコンポーネント", "基本", "Actorに位置・回転・スケールと親子関係を持たせる基本Componentです。"),
+
+			MakeComponentTypeInfo<ModelComponent>("ModelComponent", true, "モデルコンポーネント", "描画", "Actorに3Dモデルの描画機能を追加します。"),
+
+			MakeComponentTypeInfo<InstancedModelComponent>("InstancedModelComponent", true, "インスタンスモデルコンポーネント", "描画", "同じモデルを複数まとめて描画するためのComponentです。"),
+
+			MakeComponentTypeInfo<SkeletalMeshComponent>("SkeletalMeshComponent", true, "スケルタルメッシュコンポーネント", "描画", "Actorにボーン付き3Dモデルを表示し、アニメーションを再生するためのComponentです。"),
+
+			MakeComponentTypeInfo<BillboardComponent>("BillboardComponent", true, "ビルボードコンポーネント", "描画", "3D空間上で常にカメラ方向を向く板ポリを表示するComponentです。"),
+
+			MakeComponentTypeInfo<LightComponent>("LightComponent", true, "ライトコンポーネント", "描画", "Actorにライト情報を持たせるためのComponentです。"),
+
+			MakeComponentTypeInfo<CameraComponent>("CameraComponent", false, "カメラコンポーネント", "カメラ", "Actorを視点として使うためのカメラ機能を追加します。"),
+
+			MakeComponentTypeInfo<ColliderComponent>("ColliderComponent", true, "コライダーコンポーネント", "物理", "Actorに衝突判定用の形状と当たり判定設定を追加します。"),
+
+			MakeComponentTypeInfo<RigidbodyComponent>("RigidbodyComponent", false, "剛体コンポーネント", "物理", "Actorに速度や重力などの物理挙動を追加します。"),
+
+			MakeComponentTypeInfo<SpriteComponent>("SpriteComponent", true, "スプライトコンポーネント", "UI", "画面上に2D画像を表示するためのComponentです。"),
+
+			MakeComponentTypeInfo<WorldSpriteComponent>("WorldSpriteComponent", true, "ワールドスプライトコンポーネント", "UI", "Actorの3D位置を画面座標へ変換して画像を表示するComponentです。"),
+
+			MakeComponentTypeInfo<TextComponent>("TextComponent", true, "テキストコンポーネント", "UI", "画面上に文字を表示するためのComponentです。"),
+
+			MakeComponentTypeInfo<WorldTextComponent>("WorldTextComponent", true, "ワールドテキストコンポーネント", "UI", "Actorの3D位置を画面座標へ変換して文字を表示するComponentです。"),
+
+			MakeComponentTypeInfo<GaugeComponent>("GaugeComponent", true, "ゲージコンポーネント", "UI", "画面上にHPバーや進行度バーを表示するためのComponentです。"),
+
+			MakeComponentTypeInfo<WorldGaugeComponent>("WorldGaugeComponent", true, "ワールドゲージコンポーネント", "UI", "Actorの3D位置を画面座標へ変換してゲージを表示するComponentです。"),
+
+			MakeComponentTypeInfo<AudioComponent>("AudioComponent", true, "オーディオコンポーネント", "オーディオ", "Actorに音声再生機能を持たせるためのComponentです。"),
+
+			MakeComponentTypeInfo<WorldAudioComponent>("WorldAudioComponent", true, "ワールドオーディオコンポーネント", "オーディオ", "Actorの3D位置に基づいて距離減衰する音声を再生するためのComponentです。"),
+
+			MakeComponentTypeInfo<GpuParticleComponent>("GpuParticleComponent", true, "GPUパーティクルコンポーネント", "演出", "ActorにGPUパーティクル演出を持たせるためのComponentです。"),
 		};
 	}
 

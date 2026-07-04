@@ -102,25 +102,7 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("テキストコンポーネント");
 
-		std::array<char, 512> textBuffer{};
-		std::snprintf(textBuffer.data(), textBuffer.size(), "%s", text_.c_str());
-		if (ImGui::InputText("テキスト", textBuffer.data(), textBuffer.size()))
-		{
-			text_ = textBuffer.data();
-		}
-
-		std::array<char, 128> fontNameBuffer{};
-		std::snprintf(fontNameBuffer.data(), fontNameBuffer.size(), "%s", fontName_.c_str());
-		if (ImGui::InputText("フォント名", fontNameBuffer.data(), fontNameBuffer.size()))
-		{
-			SetFontName(fontNameBuffer.data());
-		}
-
-		ImGui::DragFloat2("位置", &position_.x, 1.0f);
-		ImGui::DragFloat("フォントサイズ", &fontSize_, 1.0f, 1.0f, 256.0f);
-		ImGui::ColorEdit4("色", &color_.x);
-		ImGui::Checkbox("表示", &visible_);
-		ImGui::DragFloat2("アンカー", &anchor_.x, 0.01f, 0.0f, 1.0f);
+		ComponentPropertyUtility::DrawImGui(CreateProperties());
 #endif // USE_IMGUI
 	}
 
@@ -141,42 +123,27 @@ namespace Ken4lowEngine
 		ActorComponent::ToJson(outJson); // ActorComponent共通情報をJSONへ保存する
 
 		outJson["Class"] = GetClassTypeName(); // TextComponentとして保存する
-		outJson["Text"] = text_;
-		outJson["Position"] = { position_.x, position_.y };
-		outJson["FontSize"] = fontSize_;
-		outJson["Color"] = { color_.x, color_.y, color_.z, color_.w };
-		outJson["Visible"] = visible_;
-		outJson["Anchor"] = { anchor_.x, anchor_.y };
-		outJson["FontName"] = fontName_;
+		ComponentPropertyUtility::ToJson(const_cast<TextComponent*>(this)->CreateProperties(), outJson);
 	}
 
 	void TextComponent::FromJson(const nlohmann::json& inJson)
 	{
 		ActorComponent::FromJson(inJson); // ActorComponent共通情報をJSONから復元する
 
-		if (inJson.contains("Text") && inJson["Text"].is_string())
-		{
-			text_ = inJson["Text"].get<std::string>();
-		}
+		ComponentPropertyUtility::FromJson(CreateProperties(), inJson);
+	}
 
-		if (inJson.contains("FontName") && inJson["FontName"].is_string())
-		{
-			SetFontName(inJson["FontName"].get<std::string>());
-		}
+	void TextComponent::SetFontSize(float fontSize)
+	{
+		fontSize_ = std::clamp(fontSize, 1.0f, 256.0f);
+	}
 
-		position_ = ReadVector2FromJson(inJson, "Position", position_);
-		color_ = ReadVector4FromJson(inJson, "Color", color_);
-		anchor_ = ReadVector2FromJson(inJson, "Anchor", anchor_);
-
-		if (inJson.contains("FontSize") && inJson["FontSize"].is_number())
-		{
-			fontSize_ = inJson["FontSize"].get<float>();
-		}
-
-		if (inJson.contains("Visible") && inJson["Visible"].is_boolean())
-		{
-			visible_ = inJson["Visible"].get<bool>();
-		}
+	void TextComponent::SetAnchor(const Vector2& anchor)
+	{
+		anchor_ = {
+			std::clamp(anchor.x, 0.0f, 1.0f),
+			std::clamp(anchor.y, 0.0f, 1.0f)
+		};
 	}
 
 	void TextComponent::SetFontName(const std::string& fontName)
@@ -230,6 +197,19 @@ namespace Ken4lowEngine
 		return {
 			position.x - textDrawer_->MeasureWidth(text_) * anchor_.x,
 			position.y - std::max(fontSize_, 1.0f) * anchor_.y
+		};
+	}
+
+	std::vector<ComponentProperty> TextComponent::CreateProperties()
+	{
+		return {
+			{ "Text", "テキスト", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return text_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) { SetText(*typedValue); } }, 0.0f, 0.0f, 0.1f, false, {}, ComponentPropertyDisplay::MultilineText },
+			{ "FontName", "フォント名", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return fontName_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) { SetFontName(*typedValue); } } },
+			{ "Position", "位置", ComponentPropertyType::Vector2, [this]() -> ComponentPropertyValue { return position_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector2>(&value)) { SetPosition(*typedValue); } }, 0.0f, 0.0f, 1.0f },
+			{ "FontSize", "フォントサイズ", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return fontSize_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetFontSize(*typedValue); } }, 1.0f, 256.0f, 1.0f, true },
+			{ "Color", "色", ComponentPropertyType::Vector4, [this]() -> ComponentPropertyValue { return color_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector4>(&value)) { SetColor(*typedValue); } }, 0.0f, 1.0f, 0.01f, true, {}, ComponentPropertyDisplay::Color },
+			{ "Visible", "表示", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return visible_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetVisible(*typedValue); } } },
+			{ "Anchor", "アンカー", ComponentPropertyType::Vector2, [this]() -> ComponentPropertyValue { return anchor_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector2>(&value)) { SetAnchor(*typedValue); } }, 0.0f, 1.0f, 0.01f, true },
 		};
 	}
 }

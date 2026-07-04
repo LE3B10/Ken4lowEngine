@@ -1,11 +1,13 @@
 #pragma once
 #include "ActorComponent.h"
+#include "ComponentProperty.h"
 #include "Sprite.h"
 #include "Vector2.h"
 #include "Vector4.h"
 
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -81,7 +83,7 @@ namespace Ken4lowEngine
 		void SetPosition(const Vector2& position) { position_ = position; }
 
 		const Vector2& GetSize() const { return size_; }
-		void SetSize(const Vector2& size) { size_ = size; }
+		void SetSize(const Vector2& size);
 
 		const Vector4& GetColor() const { return color_; }
 		void SetColor(const Vector4& color) { color_ = color; }
@@ -90,7 +92,7 @@ namespace Ken4lowEngine
 		void SetRotation(float rotation) { rotation_ = rotation; }
 
 		const Vector2& GetAnchor() const { return anchor_; }
-		void SetAnchor(const Vector2& anchor) { anchor_ = anchor; }
+		void SetAnchor(const Vector2& anchor);
 
 		bool IsVisible() const { return visible_; }
 		void SetVisible(bool visible) { visible_ = visible; }
@@ -99,6 +101,7 @@ namespace Ken4lowEngine
 
 		void EnsureSprite();
 		void ApplySpriteSettings();
+		std::vector<ComponentProperty> CreateProperties();
 
 	private: /// ---------- メンバ変数 ---------- ///
 

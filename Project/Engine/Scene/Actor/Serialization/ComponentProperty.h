@@ -24,6 +24,13 @@ namespace Ken4lowEngine
 		Vector4, // 4次元ベクトル
 	};
 
+	enum class ComponentPropertyDisplay
+	{
+		Default,
+		Color,
+		MultilineText,
+	};
+
 	// ComponentPropertyValue は、コンポーネントのプロパティの値を表すために使用される
 	using ComponentPropertyValue = std::variant<bool, int, float, std::string, Vector2, Vector3, Vector4>;
 
@@ -46,6 +53,7 @@ namespace Ken4lowEngine
 		float speed = 0.1f;										   // プロパティの変化速度
 		bool hasRange = false;									   // プロパティに範囲があるかどうか
 		std::vector<ComponentPropertyChoice> choices;			   // 選択式プロパティの候補
+		ComponentPropertyDisplay display = ComponentPropertyDisplay::Default; // ImGui上の表示方法
 	};
 
 	/// -------------------------------------------------------------

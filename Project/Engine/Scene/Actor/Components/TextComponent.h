@@ -1,11 +1,13 @@
 #pragma once
 #include "ActorComponent.h"
+#include "ComponentProperty.h"
 #include "TextSpriteDrawer.h"
 #include "Vector2.h"
 #include "Vector4.h"
 
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -69,7 +71,7 @@ namespace Ken4lowEngine
 		void SetPosition(const Vector2& position) { position_ = position; }
 
 		float GetFontSize() const { return fontSize_; }
-		void SetFontSize(float fontSize) { fontSize_ = fontSize; }
+		void SetFontSize(float fontSize);
 
 		const Vector4& GetColor() const { return color_; }
 		void SetColor(const Vector4& color) { color_ = color; }
@@ -78,7 +80,7 @@ namespace Ken4lowEngine
 		void SetVisible(bool visible) { visible_ = visible; }
 
 		const Vector2& GetAnchor() const { return anchor_; }
-		void SetAnchor(const Vector2& anchor) { anchor_ = anchor; }
+		void SetAnchor(const Vector2& anchor);
 
 		const std::string& GetFontName() const { return fontName_; }
 		void SetFontName(const std::string& fontName);
@@ -87,6 +89,7 @@ namespace Ken4lowEngine
 
 		void EnsureTextDrawer();
 		Vector2 ApplyAnchor(const Vector2& position);
+		std::vector<ComponentProperty> CreateProperties();
 
 	private: /// ---------- メンバ変数 ---------- ///
 

@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "WorldSpriteComponent.h"
 
 #include "AssetPathSelector.h"
@@ -7,6 +8,7 @@
 #include "Sprite.h"
 #include "SpriteManager.h"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 #include <cstdio>
@@ -103,24 +105,13 @@ namespace Ken4lowEngine
 
 		ImGui::SeparatorText("ワールドスプライトコンポーネント");
 
-		std::array<char, 256> texturePathBuffer{};
-		std::snprintf(texturePathBuffer.data(), texturePathBuffer.size(), "%s", texturePath_.c_str());
-		if (ImGui::InputText("テクスチャパス", texturePathBuffer.data(), texturePathBuffer.size()))
-		{
-			SetTexturePath(texturePathBuffer.data());
-		}
+		ComponentPropertyUtility::DrawImGui(CreateProperties());
 
 		std::string selectedTexturePath = texturePath_;
 		if (AssetPathSelector::DrawAssetSelector("一覧から選択##WorldSpriteComponentTexturePath", selectedTexturePath, AssetType::Texture))
 		{
 			SetTexturePath(selectedTexturePath);
 		}
-
-		ImGui::DragFloat2("スクリーンオフセット", &screenOffset_.x, 1.0f);
-		ImGui::DragFloat2("サイズ", &size_.x, 1.0f, 0.0f, 4096.0f);
-		ImGui::ColorEdit4("色", &color_.x);
-		ImGui::Checkbox("表示", &visible_);
-		ImGui::Checkbox("カメラ背面で非表示", &hideWhenBehindCamera_);
 #endif // USE_IMGUI
 	}
 
@@ -140,36 +131,14 @@ namespace Ken4lowEngine
 		SceneComponent::ToJson(outJson); // SceneComponent共通情報をJSONへ保存する
 
 		outJson["Class"] = GetClassTypeName(); // WorldSpriteComponentとして保存する
-		outJson["TexturePath"] = texturePath_;
-		outJson["ScreenOffset"] = { screenOffset_.x, screenOffset_.y };
-		outJson["Size"] = { size_.x, size_.y };
-		outJson["Color"] = { color_.x, color_.y, color_.z, color_.w };
-		outJson["Visible"] = visible_;
-		outJson["HideWhenBehindCamera"] = hideWhenBehindCamera_;
+		ComponentPropertyUtility::ToJson(const_cast<WorldSpriteComponent*>(this)->CreateProperties(), outJson);
 	}
 
 	void WorldSpriteComponent::FromJson(const nlohmann::json& inJson)
 	{
 		SceneComponent::FromJson(inJson); // SceneComponent共通情報をJSONから復元する
 
-		if (inJson.contains("TexturePath") && inJson["TexturePath"].is_string())
-		{
-			SetTexturePath(inJson["TexturePath"].get<std::string>()); // SpriteのTextureパスを復元する
-		}
-
-		screenOffset_ = ReadVector2FromJson(inJson, "ScreenOffset", screenOffset_);
-		size_ = ReadVector2FromJson(inJson, "Size", size_);
-		color_ = ReadVector4FromJson(inJson, "Color", color_);
-
-		if (inJson.contains("Visible") && inJson["Visible"].is_boolean())
-		{
-			visible_ = inJson["Visible"].get<bool>(); // Spriteの表示状態を復元する
-		}
-
-		if (inJson.contains("HideWhenBehindCamera") && inJson["HideWhenBehindCamera"].is_boolean())
-		{
-			hideWhenBehindCamera_ = inJson["HideWhenBehindCamera"].get<bool>();
-		}
+		ComponentPropertyUtility::FromJson(CreateProperties(), inJson);
 	}
 
 	void WorldSpriteComponent::SetTexturePath(const std::string& texturePath)
@@ -186,6 +155,11 @@ namespace Ken4lowEngine
 			sprite_.reset();
 			loadedTexturePath_.clear();
 		}
+	}
+
+	void WorldSpriteComponent::SetSize(const Vector2& size)
+	{
+		size_ = { std::max(size.x, 0.0f), std::max(size.y, 0.0f) };
 	}
 
 	bool WorldSpriteComponent::UpdateScreenPosition(Vector2& outScreenPosition) const
@@ -249,5 +223,17 @@ namespace Ken4lowEngine
 		sprite_->SetColor(color_);
 		sprite_->SetAnchorPoint({ 0.5f, 0.5f });
 		sprite_->Update();
+	}
+
+	std::vector<ComponentProperty> WorldSpriteComponent::CreateProperties()
+	{
+		return {
+			{ "TexturePath", "テクスチャパス", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return texturePath_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) { SetTexturePath(*typedValue); } } },
+			{ "ScreenOffset", "スクリーンオフセット", ComponentPropertyType::Vector2, [this]() -> ComponentPropertyValue { return screenOffset_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector2>(&value)) { SetScreenOffset(*typedValue); } }, 0.0f, 0.0f, 1.0f },
+			{ "Size", "サイズ", ComponentPropertyType::Vector2, [this]() -> ComponentPropertyValue { return size_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector2>(&value)) { SetSize(*typedValue); } }, 0.0f, 4096.0f, 1.0f, true },
+			{ "Color", "色", ComponentPropertyType::Vector4, [this]() -> ComponentPropertyValue { return color_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector4>(&value)) { SetColor(*typedValue); } }, 0.0f, 1.0f, 0.01f, true, {}, ComponentPropertyDisplay::Color },
+			{ "Visible", "表示", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return visible_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetVisible(*typedValue); } } },
+			{ "HideWhenBehindCamera", "カメラ背面で非表示", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return hideWhenBehindCamera_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetHideWhenBehindCamera(*typedValue); } } },
+		};
 	}
 }

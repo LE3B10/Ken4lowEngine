@@ -229,7 +229,10 @@ namespace Ken4lowEngine
 					{
 						std::array<char, 256> buffer{};
 						std::snprintf(buffer.data(), buffer.size(), "%s", typedValue->c_str());
-						if (ImGui::InputText(label, buffer.data(), buffer.size()))
+						const bool edited = property.display == ComponentPropertyDisplay::MultilineText
+							? ImGui::InputTextMultiline(label, buffer.data(), buffer.size())
+							: ImGui::InputText(label, buffer.data(), buffer.size());
+						if (edited)
 						{
 							property.setter(std::string(buffer.data()));
 							changed = true;
@@ -263,7 +266,10 @@ namespace Ken4lowEngine
 				if (const Vector4* typedValue = std::get_if<Vector4>(&value))
 				{
 					float editValue[4] = { typedValue->x, typedValue->y, typedValue->z, typedValue->w };
-					if (ImGui::DragFloat4(label, editValue, property.speed, property.min, property.max))
+					const bool edited = property.display == ComponentPropertyDisplay::Color
+						? ImGui::ColorEdit4(label, editValue)
+						: ImGui::DragFloat4(label, editValue, property.speed, property.min, property.max);
+					if (edited)
 					{
 						property.setter(Vector4{ editValue[0], editValue[1], editValue[2], editValue[3] });
 						changed = true;
