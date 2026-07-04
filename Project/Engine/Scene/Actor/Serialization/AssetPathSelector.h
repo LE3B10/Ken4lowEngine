@@ -10,6 +10,7 @@ namespace Ken4lowEngine
 	{
 		Texture,	// 画像ファイル
 		Model,		// 3Dモデルファイル
+		SkeletalMesh, // スケルタルメッシュファイル
 		Audio,		// 音声ファイル
 		Font,		// フォントファイル
 		Particle,	// パーティクル設定ファイル

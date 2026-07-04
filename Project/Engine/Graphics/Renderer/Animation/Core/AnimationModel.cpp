@@ -547,6 +547,18 @@ namespace Ken4lowEngine
 		material_.Update();
 	}
 
+	void AnimationModel::RefreshWorldTransform()
+	{
+		if (!dxCommon_ || !wvpData_)
+		{
+			return;
+		}
+
+		UpdateAnimation();
+		UpdateShadowParameters();
+		material_.Update();
+	}
+
 	/// -------------------------------------------------------------
 	/// 			DebugScene専用の区間別更新処理
 	/// -------------------------------------------------------------
@@ -925,9 +937,7 @@ namespace Ken4lowEngine
 			if (camera_)
 			{
 				// カメラ行列取得
-				const Matrix4x4 viewProjectionMatrix = useDebugSkinningViewProjection_
-					? CameraManager::GetInstance()->GetActiveViewProjectionMatrix()
-					: CameraManager::GetInstance()->GetActiveViewMatrix();
+				const Matrix4x4 viewProjectionMatrix = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
 
 				// ワールドビュー射影行列計算
 				worldViewProjectionMatrix = Matrix4x4::Multiply(worldMatrix, viewProjectionMatrix);

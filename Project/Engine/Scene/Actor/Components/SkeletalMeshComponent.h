@@ -30,7 +30,6 @@ namespace Ken4lowEngine
 		void FromJson(const nlohmann::json& inJson) override;
 
 		void SetModelPath(std::string_view modelPath);
-		void SetAnimationPath(std::string_view animationPath);
 		void SetAnimationName(std::string_view animationName);
 		void SetVisible(bool visible);
 		void SetLoop(bool loop);
@@ -45,6 +44,9 @@ namespace Ken4lowEngine
 
 	private:
 		bool ReloadSkeletalModel();
+		void RequestReload();
+		void ProcessReloadRequest();
+		void ReleaseAnimationModel();
 		void ApplyPlaybackSettings();
 		void SyncTransformToAnimationModel();
 		bool SelectConfiguredAnimation(bool resetTime);
@@ -53,7 +55,6 @@ namespace Ken4lowEngine
 	private:
 		std::unique_ptr<AnimationModel> animationModel_;
 		std::string modelPath_;
-		std::string animationPath_;
 		std::string animationName_;
 		std::string modelStatus_ = "Empty";
 		bool hasMesh_ = false;
@@ -65,5 +66,7 @@ namespace Ken4lowEngine
 		bool isPlaying_ = false;
 		bool isPaused_ = false;
 		bool hasInitialized_ = false;
+		bool reloadRequested_ = false;
+		bool resumeAfterReload_ = false;
 	};
 }

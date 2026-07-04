@@ -92,6 +92,11 @@ namespace Ken4lowEngine
 		void Update();
 
 		/// <summary>
+		/// 現在のWorldTransformを描画用定数バッファへ反映します。
+		/// </summary>
+		void RefreshWorldTransform();
+
+		/// <summary>
 		/// 単体のアニメーションモデルを描画します。
 		/// Compute スキニング → Graphics の順にパイプラインを設定して描画します。
 		/// </summary>

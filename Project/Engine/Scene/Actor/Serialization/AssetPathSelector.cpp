@@ -27,7 +27,7 @@ namespace Ken4lowEngine
 			std::vector<std::string> files;
 		};
 
-		std::array<AssetCache, 7> g_assetCaches{};
+		std::array<AssetCache, 8> g_assetCaches{};
 
 		size_t ToCacheIndex(AssetType type)
 		{
@@ -69,6 +69,8 @@ namespace Ken4lowEngine
 				return { { "Resources/Textures/Compiled", { ".dds" } } };
 			case AssetType::Model:
 				return { { "Resources/Models/Sources", { ".obj", ".gltf", ".glb" } } };
+			case AssetType::SkeletalMesh:
+				return { { "Resources/Models/Sources", { ".gltf", ".glb", ".fbx" } } };
 			case AssetType::Audio:
 				return { { "Resources/Sounds", { ".wav", ".mp3", ".ogg" } } };
 			case AssetType::Font:

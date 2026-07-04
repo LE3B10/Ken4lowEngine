@@ -24,7 +24,7 @@ namespace Ken4lowEngine
 		// ロード設定
 		struct Settings
 		{
-			std::string animationFilePath = "Resources/Models/"; ///< アニメーションファイルのパス
+			std::string animationFilePath = "Resources/Models/Sources/"; ///< アニメーションファイルのパス
 			bool rightHandToLeftHand = true; ///< 右手座標系を左手座標系に変換するか
 		};
 
