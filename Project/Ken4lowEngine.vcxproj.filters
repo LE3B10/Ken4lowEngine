@@ -1141,6 +1141,9 @@
     <ClCompile Include="Engine\Scene\Actor\Components\WorldGaugeComponent.cpp">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Components\WorldAudioComponent.cpp">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Components\WorldSpriteComponent.cpp">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClCompile>
@@ -2380,6 +2383,9 @@
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Components\WorldGaugeComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\WorldAudioComponent.h">
       <Filter>Engine\Scene\Actor\Components</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Components\WorldSpriteComponent.h">

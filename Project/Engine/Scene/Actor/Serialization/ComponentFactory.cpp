@@ -15,6 +15,7 @@
 #include "SpriteComponent.h"
 #include "TextComponent.h"
 #include "WorldGaugeComponent.h"
+#include "WorldAudioComponent.h"
 #include "WorldSpriteComponent.h"
 #include "WorldTextComponent.h"
 
@@ -164,6 +165,12 @@ namespace Ken4lowEngine
 					"オーディオコンポーネント",
 					"オーディオ",
 					"Actorに音声再生機能を持たせるためのComponentです。"),
+				MakeComponentTypeInfo<WorldAudioComponent>(
+					"WorldAudioComponent",
+					true,
+					"ワールドオーディオコンポーネント",
+					"オーディオ",
+					"Actorの3D位置に基づいて距離減衰する音声を再生するためのComponentです。"),
 				MakeComponentTypeInfo<GpuParticleComponent>(
 					"GpuParticleComponent",
 					true,

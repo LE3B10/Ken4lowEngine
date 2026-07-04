@@ -131,6 +131,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Scene\Actor\Components\LightComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\SpriteComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\TextComponent.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Components\WorldAudioComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\WorldGaugeComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\WorldSpriteComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\WorldTextComponent.cpp" />
@@ -802,6 +803,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Scene\Actor\Components\LightComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\SpriteComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\TextComponent.h" />
+    <ClInclude Include="Engine\Scene\Actor\Components\WorldAudioComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\WorldGaugeComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\WorldSpriteComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\WorldTextComponent.h" />
