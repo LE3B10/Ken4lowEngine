@@ -18,11 +18,17 @@ namespace Ken4lowEngine
 	{
 	public: /// ---------- 構造体 ---------- ///
 
+		/// ---------- コンポーネント群の情報を保持する構造体 ---------- ///
 		struct ComponentTypeInfo
 		{
-			std::string className; // JSON保存用のComponentクラス名
-			bool allowMultiple;	   // 同一Actorに複数追加可能かどうか
-			std::function<ActorComponent* (Actor*)> createFunc; // Component生成関数
+			std::string className;									// JSON保存用のComponentクラス名
+			std::string displayName;								// ImGui表示用のComponent名
+			std::string category;									// ImGui上で分類するためのカテゴリ名
+			std::string description;								// Componentの役割を説明する表示文
+			bool allowMultiple;										// 同一Actorに複数追加可能かどうか
+			bool canBeRoot;											// RootComponentとして生成できるかどうか
+			std::function<ActorComponent* (Actor*)> createFunc;		// Component生成関数
+			std::function<SceneComponent* (Actor*)> createRootFunc; // RootComponent生成関数
 		};
 
 	public: /// ---------- 静的メンバ関数 ---------- ///

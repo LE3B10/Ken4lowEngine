@@ -796,11 +796,11 @@ namespace Ken4lowEngine
 			targetActor = selectedComponent_->GetOwner(); // Component選択中なら所有Actorを対象にする。
 		}
 
-		ImGui::SeparatorText("Add Component");
+		ImGui::SeparatorText("コンポーネント追加");
 
 		if (!targetActor)
 		{
-			ImGui::TextDisabled("No selected Actor.");
+			ImGui::TextDisabled("Actorが選択されていません。");
 			return;
 		}
 
@@ -808,7 +808,7 @@ namespace Ken4lowEngine
 
 		if (componentTypes.empty())
 		{
-			ImGui::TextDisabled("No registered Component types.");
+			ImGui::TextDisabled("登録済みのComponentがありません。");
 			return;
 		}
 
@@ -820,11 +820,19 @@ namespace Ken4lowEngine
 
 		const ComponentFactory::ComponentTypeInfo& selectedType = componentTypes[selectedAddComponentTypeIndex_];
 
-		if (ImGui::BeginCombo("Component Type", selectedType.className.c_str()))
+		if (ImGui::BeginCombo("種類", selectedType.displayName.c_str()))
 		{
+			std::string currentCategory;
+
 			for (int index = 0; index < static_cast<int>(componentTypes.size()); ++index)
 			{
 				const ComponentFactory::ComponentTypeInfo& typeInfo = componentTypes[index];
+
+				if (currentCategory != typeInfo.category)
+				{
+					currentCategory = typeInfo.category;
+					ImGui::TextDisabled("%s", currentCategory.c_str());
+				}
 
 				const bool alreadyExists = targetActor->HasComponentClass(typeInfo.className);
 				const bool disabled = !typeInfo.allowMultiple && alreadyExists;
@@ -835,10 +843,16 @@ namespace Ken4lowEngine
 				}
 
 				const bool isSelected = selectedAddComponentTypeIndex_ == index;
+				const std::string selectableLabel = typeInfo.displayName + "##" + typeInfo.className;
 
-				if (ImGui::Selectable(typeInfo.className.c_str(), isSelected))
+				if (ImGui::Selectable(selectableLabel.c_str(), isSelected))
 				{
 					selectedAddComponentTypeIndex_ = index;
+				}
+
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+				{
+					ImGui::SetTooltip("%s", typeInfo.description.c_str());
 				}
 
 				if (isSelected)
@@ -858,9 +872,12 @@ namespace Ken4lowEngine
 		const bool alreadyExists = targetActor->HasComponentClass(selectedType.className);
 		const bool canAdd = selectedType.allowMultiple || !alreadyExists;
 
+		ImGui::Text("カテゴリ: %s", selectedType.category.c_str());
+		ImGui::TextWrapped("%s", selectedType.description.c_str());
+
 		if (!canAdd)
 		{
-			ImGui::TextDisabled("This Component can only be added once.");
+			ImGui::TextDisabled("このComponentは1つだけ追加できます。");
 		}
 
 		if (!canAdd)
@@ -868,7 +885,7 @@ namespace Ken4lowEngine
 			ImGui::BeginDisabled();
 		}
 
-		if (ImGui::Button("Add Component"))
+		if (ImGui::Button("追加##AddComponent"))
 		{
 			AddComponentToSelectedActor(selectedType.className);
 		}
@@ -913,11 +930,12 @@ namespace Ken4lowEngine
 		ActorComponent* newComponent = nullptr;
 
 		// RootComponentが無いActorにSceneComponent系を追加する場合はRootとして生成する
-		if (!targetActor->GetRootComponent() && componentClassName != "RigidbodyComponent")
+		if (!targetActor->GetRootComponent())
 		{
 			newComponent = ComponentFactory::CreateRootSceneComponent(targetActor, componentClassName);
 		}
-		else
+
+		if (!newComponent)
 		{
 			newComponent = ComponentFactory::CreateComponent(targetActor, componentClassName);
 		}

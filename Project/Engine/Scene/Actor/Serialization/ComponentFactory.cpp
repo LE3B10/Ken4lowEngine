@@ -7,90 +7,92 @@
 #include "RigidbodyComponent.h"
 #include "InstancedModelComponent.h"
 
+#include <type_traits>
+#include <utility>
+
 namespace Ken4lowEngine
 {
 	namespace
 	{
+		template<class T>
+		ComponentFactory::ComponentTypeInfo MakeComponentTypeInfo(std::string className, bool allowMultiple, std::string displayName, std::string category, std::string description)
+		{
+			static_assert(std::is_base_of_v<ActorComponent, T>, "T must inherit from ActorComponent.");
+
+			ComponentFactory::ComponentTypeInfo typeInfo{};
+			typeInfo.className = std::move(className);
+			typeInfo.displayName = std::move(displayName);
+			typeInfo.category = std::move(category);
+			typeInfo.description = std::move(description);
+			typeInfo.allowMultiple = allowMultiple;
+			typeInfo.canBeRoot = std::is_base_of_v<SceneComponent, T>;
+			typeInfo.createFunc = [](Actor* owner) -> ActorComponent*
+				{
+					if (!owner)
+					{
+						return nullptr; // 所有Actorが無い場合はComponentを生成できない
+					}
+
+					return &owner->AddComponent<T>(); // ComponentをActorに追加する
+				};
+			typeInfo.createRootFunc = [](Actor* owner) -> SceneComponent*
+				{
+					if (!owner)
+					{
+						return nullptr; // 所有Actorが無い場合はComponentを生成できない
+					}
+
+					if constexpr (std::is_base_of_v<SceneComponent, T>)
+					{
+						return &owner->CreateRootComponent<T>(); // ComponentをRootComponentとして生成する
+					}
+					else
+					{
+						return nullptr; // SceneComponentではないComponentはRootにできない
+					}
+				};
+
+			return typeInfo;
+		}
+
 		const std::vector<ComponentFactory::ComponentTypeInfo> kRegisteredComponentTypes =
 		{
-			{
+			MakeComponentTypeInfo<SceneComponent>(
 				"SceneComponent",
 				true,
-				[](Actor* owner) -> ActorComponent*
-			{
-				if (!owner)
-				{
-					return nullptr; // 所有Actorが無い場合はComponentを生成できない
-				}
-
-				return &owner->AddComponent<SceneComponent>();
-			}
-			},
-			{
-				"ModelComponent",
-				true,
-				[](Actor* owner) -> ActorComponent*
-			{
-				if (!owner)
-				{
-					return nullptr; // 所有Actorが無い場合はComponentを生成できない
-				}
-
-				return &owner->AddComponent<ModelComponent>();
-			}
-			},
-			{
-				"CameraComponent",
-				false,
-				[](Actor* owner) -> ActorComponent*
-			{
-				if (!owner)
-				{
-					return nullptr; // 所有Actorが無い場合はComponentを生成できない
-				}
-
-				return &owner->AddComponent<CameraComponent>();
-			}
-			},
-			{
-				"ColliderComponent",
-				true,
-				[](Actor* owner) -> ActorComponent*
-			{
-				if (!owner)
-				{
-					return nullptr; // 所有Actorが無い場合はComponentを生成できない
-				}
-
-				return &owner->AddComponent<ColliderComponent>();
-			}
-			},
-			{
-				"RigidbodyComponent",
-				false,
-				[](Actor* owner) -> ActorComponent*
-			{
-				if (!owner)
-				{
-					return nullptr; // 所有Actorが無い場合はComponentを生成できない
-				}
-
-				return &owner->AddComponent<RigidbodyComponent>();
-			}
-			},
-			{
-				"InstancedModelComponent",
-				true,
-				[](Actor* owner) -> ActorComponent*
-			{
-				if (!owner)
-				{
-					return nullptr; // 所有Actorが無い場合はComponentを生成できない
-				}
-
-				return &owner->AddComponent<InstancedModelComponent>();
-			}
-			},
+				"シーンコンポーネント",
+				"トランスフォーム",
+				"位置・回転・スケールと親子関係を持つ基本Componentです。"),
+				MakeComponentTypeInfo<ModelComponent>(
+					"ModelComponent",
+					true,
+					"モデルコンポーネント",
+					"描画",
+					"Actorに3Dモデルの描画機能を追加します。"),
+				MakeComponentTypeInfo<CameraComponent>(
+					"CameraComponent",
+					false,
+					"カメラコンポーネント",
+					"カメラ",
+					"Actorを視点として使うためのカメラ機能を追加します。"),
+				MakeComponentTypeInfo<ColliderComponent>(
+					"ColliderComponent",
+					true,
+					"コライダーコンポーネント",
+					"物理",
+					"Actorに衝突判定用の形状と当たり判定設定を追加します。"),
+				MakeComponentTypeInfo<RigidbodyComponent>(
+					"RigidbodyComponent",
+					false,
+					"剛体コンポーネント",
+					"物理",
+					"Actorに速度や重力などの物理挙動を追加します。"),
+				MakeComponentTypeInfo<InstancedModelComponent>(
+					"InstancedModelComponent",
+					true,
+					"インスタンスモデルコンポーネント",
+					"描画",
+					"同じモデルを複数描画するためのインスタンシング機能を追加します。"),
 		};
 	}
 
@@ -118,28 +120,14 @@ namespace Ken4lowEngine
 			return nullptr; // Actorがnullptrの場合はComponentを生成しない
 		}
 
-		if (className == "SceneComponent")
+		const ComponentTypeInfo* typeInfo = FindComponentType(className);
+
+		if (!typeInfo || !typeInfo->canBeRoot)
 		{
-			return &owner->CreateRootComponent<SceneComponent>(); // SceneComponentをRootComponentとして生成して返す
-		}
-		else if (className == "ModelComponent")
-		{
-			return &owner->CreateRootComponent<ModelComponent>(); // ModelComponentをRootComponentとして生成して返す
-		}
-		else if (className == "CameraComponent")
-		{
-			return &owner->CreateRootComponent<CameraComponent>(); // CameraComponentをRootComponentとして生成して返す
-		}
-		else if (className == "ColliderComponent")
-		{
-			return &owner->CreateRootComponent<ColliderComponent>(); // ColliderComponentをRootComponentとして生成して返す
-		}
-		else if (className == "InstancedModelComponent")
-		{
-			return &owner->CreateRootComponent<InstancedModelComponent>(); // InstancedModelComponentをRootComponentとして生成して返す
+			return nullptr; // RootComponentとして使用できるSceneComponentか確認する
 		}
 
-		return nullptr; // RootにできないComponent、又は未対応のClassなら生成しない
+		return typeInfo->createRootFunc(owner);
 	}
 
 	const std::vector<ComponentFactory::ComponentTypeInfo>& ComponentFactory::GetRegisteredComponentTypes()
