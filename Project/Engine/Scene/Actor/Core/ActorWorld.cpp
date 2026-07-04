@@ -18,8 +18,10 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdio>
 #include <filesystem>
+#include <numbers>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -745,7 +747,7 @@ namespace Ken4lowEngine
 
 	void ActorWorld::SyncLightComponentsToLightManager()
 	{
-		std::vector<LightManager::PunctualLightGPU> pointLights;
+		std::vector<LightManager::PunctualLightGPU> componentLights;
 
 		for (const auto& actor : actors_)
 		{
@@ -757,7 +759,8 @@ namespace Ken4lowEngine
 			const auto lightComponents = actor->GetComponents<LightComponent>();
 			for (const LightComponent* lightComponent : lightComponents)
 			{
-				if (!lightComponent || !lightComponent->IsActiveInHierarchy() || !lightComponent->IsEnabled())
+				if (!lightComponent || !lightComponent->IsActiveInHierarchy() || !lightComponent->IsEnabled() ||
+					lightComponent->GetLightType() == LightComponent::LightType::None)
 				{
 					continue; // 無効なLightComponentは描画用ライトに登録しない
 				}
@@ -765,19 +768,26 @@ namespace Ken4lowEngine
 				const Vector3& color = lightComponent->GetColor();
 
 				LightManager::PunctualLightGPU light{};
-				light.lightType = 2; // Point
+				light.lightType = lightComponent->GetLightTypeValue();
 				light.color = { color.x, color.y, color.z, 1.0f };
 				light.intensity = lightComponent->GetIntensity();
 				light.position = lightComponent->GetWorldPosition();
 				light.radius = lightComponent->GetRange();
-				light.decay = 1.0f;
+				light.decay = lightComponent->GetDecay();
+				light.direction = lightComponent->CalculateDirection();
+				light.distance = lightComponent->GetRange();
+				const float outerAngle = std::clamp(lightComponent->GetOuterAngle(), 0.1f, 179.0f);
+				const float innerAngle = std::clamp(lightComponent->GetInnerAngle(), 0.0f, outerAngle);
+				light.cosAngle = std::cos(outerAngle * std::numbers::pi_v<float> / 180.0f);
+				light.cosFalloffStart = std::cos(innerAngle * std::numbers::pi_v<float> / 180.0f);
+				light.areaSize = lightComponent->GetAreaSize();
 				light.enabled = 1u;
 
-				pointLights.push_back(light);
+				componentLights.push_back(light);
 			}
 		}
 
-		LightManager::GetInstance()->SetLightComponentPointLights(pointLights);
+		LightManager::GetInstance()->SetLightComponentPointLights(componentLights);
 	}
 
 	void ActorWorld::ProcessPendingActorReload()

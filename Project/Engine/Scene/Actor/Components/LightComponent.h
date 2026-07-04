@@ -1,7 +1,10 @@
 #pragma once
 #include "SceneComponent.h"
+#include "ComponentProperty.h"
 
 #include "Vector3.h"
+#include <cstdint>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -39,6 +42,16 @@ namespace Ken4lowEngine
 
 	public: /// ---------- 設定取得 ---------- ///
 
+		enum class LightType : uint32_t
+		{
+			None = 0,
+			Directional = 1,
+			Point = 2,
+			Spot = 3,
+			RectArea = 4,
+			SphereArea = 5,
+		};
+
 		const Vector3& GetColor() const { return color_; }
 		void SetColor(const Vector3& color) { color_ = color; }
 
@@ -51,11 +64,29 @@ namespace Ken4lowEngine
 		bool IsEnabled() const { return enabled_; }
 		void SetEnabled(bool enabled) { enabled_ = enabled; }
 
+		LightType GetLightType() const { return lightType_; }
+		uint32_t GetLightTypeValue() const { return static_cast<uint32_t>(lightType_); }
+		void SetLightType(LightType lightType) { lightType_ = lightType; }
+
+		float GetDecay() const { return decay_; }
+		float GetInnerAngle() const { return innerAngle_; }
+		float GetOuterAngle() const { return outerAngle_; }
+		const Vector3& GetAreaSize() const { return areaSize_; }
+		Vector3 CalculateDirection() const;
+
 	private: /// ---------- メンバ変数 ---------- ///
 
+		std::vector<ComponentProperty> CreateProperties(bool includeAll = false);
+		void Sanitize();
+
+		LightType lightType_ = LightType::Point;
 		Vector3 color_ = { 1.0f, 1.0f, 1.0f };
 		float intensity_ = 1.0f;
 		float range_ = 10.0f;
+		float decay_ = 1.0f;
+		float innerAngle_ = 15.0f;
+		float outerAngle_ = 30.0f;
+		Vector3 areaSize_ = { 2.0f, 2.0f, 1.0f };
 		bool enabled_ = true;
 	};
 }

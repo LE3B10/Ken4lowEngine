@@ -121,6 +121,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Factory\ActorFactory.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Serialization\ComponentFactory.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Serialization\ComponentProperty.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Serialization\ActorJsonSerializer.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\AudioComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\BillboardComponent.cpp" />
@@ -792,6 +793,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Scene\Actor\Factory\ActorFactory.h" />
     <ClInclude Include="Engine\Scene\Actor\Core\ActorSpawnOptions.h" />
     <ClInclude Include="Engine\Scene\Actor\Serialization\ComponentFactory.h" />
+    <ClInclude Include="Engine\Scene\Actor\Serialization\ComponentProperty.h" />
     <ClInclude Include="Engine\Scene\Actor\Serialization\ActorJsonSerializer.h" />
     <ClInclude Include="Engine\Physics\Collision\Core\PhysicsCollisionLayer.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\AudioComponent.h" />
