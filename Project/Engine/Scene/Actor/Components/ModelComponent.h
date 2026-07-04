@@ -1,10 +1,12 @@
 #pragma once
 #include "SceneComponent.h"
 #include "Object3D.h"
+#include "ComponentProperty.h"
 
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -79,11 +81,14 @@ namespace Ken4lowEngine
 		/// 描画するモデルファイルを設定する。
 		/// </summary>
 		void SetModelPath(std::string_view modelPath);
+		void SetVisible(bool visible) { visible_ = visible; }
 
 		/// <summary>
 		/// 描画時に使用するカメラを設定する。
 		/// </summary>
 		void SetCamera(Camera* camera);
+
+		std::vector<ComponentProperty> CreateProperties(bool includeModelPath = true);
 
 	private: /// ---------- 内部処理 ---------- ///
 
@@ -97,5 +102,6 @@ namespace Ken4lowEngine
 		std::unique_ptr<Object3D> object3D_; // 実際の3Dモデル描画を担当するObject3D。
 		std::string modelPath_;              // Object3Dに読み込ませるモデルファイルパス。
 		Camera* camera_ = nullptr;           // 描画に使用するカメラ。所有権は持たない。
+		bool visible_ = true;                // 描画するかどうか
 	};
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include "SceneComponent.h"
+#include "ComponentProperty.h"
 #include <InstancedObject3DRenderer.h>
 
 #include <memory>
@@ -87,6 +88,9 @@ namespace Ken4lowEngine
 		/// インスタンス全体のスケールを設定する
 		/// </summary>
 		void SetInstanceScale(const Vector3& scale);
+		void SetVisible(bool visible) { visible_ = visible; }
+
+		std::vector<ComponentProperty> CreateProperties(bool includeModelPath = true);
 
 	private: /// ---------- 内部処理 ---------- ///
 
@@ -114,6 +118,7 @@ namespace Ken4lowEngine
 		int instanceCount_ = 100;      // 描画するインスタンス数
 		float spacing_ = 2.0f;         // インスタンス同士の間隔
 		Vector3 instanceScale_{ 1.0f, 1.0f, 1.0f }; // 各インスタンスの基本スケール
+		bool visible_ = true; // 描画するかどうか
 
 		bool isRebuildRequested_ = true; // 配置再構築が必要かどうか
 		bool isInitializedRenderer_ = false; // Renderer初期化済みかどうか

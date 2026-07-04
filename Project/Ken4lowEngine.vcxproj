@@ -488,7 +488,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Scene\Level\StageInstancingManager.cpp" />
     <ClCompile Include="Engine\Scene\Level\StageAssetLoader.cpp" />
     <ClCompile Include="Engine\Scene\Level\StageCollisionBuilder.cpp" />
+    <ClCompile Include="Engine\System\Audio\Listener\AudioListener.cpp" />
     <ClCompile Include="Engine\System\Audio\Manager\AudioManager.cpp" />
+    <ClCompile Include="Engine\System\Audio\Reverb\AudioReverbZone.cpp" />
     <ClCompile Include="Engine\System\Input\Input.cpp" />
     <ClCompile Include="Engine\System\Input\InputSnapshot.cpp" />
     <ClCompile Include="Engine\System\Parameters\ParameterManager.cpp" />
@@ -1291,7 +1293,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Scene\Level\StageInstancingManager.h" />
     <ClInclude Include="Engine\System\Audio\Data\AudioCategory.h" />
     <ClInclude Include="Engine\System\Audio\Data\AudioStructs.h" />
+    <ClInclude Include="Engine\System\Audio\Listener\AudioListener.h" />
     <ClInclude Include="Engine\System\Audio\Manager\AudioManager.h" />
+    <ClInclude Include="Engine\System\Audio\Reverb\AudioReverbZone.h" />
     <ClInclude Include="Engine\System\Input\Input.h" />
     <ClInclude Include="Engine\System\Input\InputSnapshot.h" />
     <ClInclude Include="Engine\System\Parameters\ParameterManager.h" />

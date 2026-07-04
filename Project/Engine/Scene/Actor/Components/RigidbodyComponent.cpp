@@ -2,6 +2,8 @@
 #include "Actor.h"
 #include "SceneComponent.h"
 
+#include <algorithm>
+
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif // USE_IMGUI
@@ -46,22 +48,6 @@ namespace Ken4lowEngine
 			return BodyType::Dynamic; // デフォルトはDynamicにする
 		}
 
-		/// <summary>
-		/// JSONからVector3を読み取る
-		/// </summary>
-		Vector3 ReadVector3FromJson(const nlohmann::json& json, const char* key, const Vector3& defaultValue)
-		{
-			if (!json.contains(key) || !json[key].is_array() || json[key].size() != 3)
-			{
-				return defaultValue; // 配列が存在しない場合はデフォルト値を返す
-			}
-
-			return {
-				json[key][0].get<float>(),
-				json[key][1].get<float>(),
-				json[key][2].get<float>()
-			};
-		}
 	}
 
 	void RigidbodyComponent::Initialize()
@@ -72,6 +58,9 @@ namespace Ken4lowEngine
 		rigidbody_->SetUseGravity(useGravity_);
 		rigidbody_->SetVelocity(velocity_);
 		rigidbody_->SetSleepEnabled(sleepEnabled_); // Editor上でDebug操作するためSleep機能は無効化する
+		rigidbody_->SetRestitution(restitution_);
+		rigidbody_->SetStaticFriction(staticFriction_);
+		rigidbody_->SetDynamicFriction(dynamicFriction_);
 	}
 
 	void RigidbodyComponent::Update([[maybe_unused]] float deltaTime)
@@ -99,28 +88,7 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("Rigidbody Component");
 
-		const char* bodyTypeNames[] = { "Static", "Dynamic", "Kinematic" };
-		int bodyTypeIndex = static_cast<int>(bodyType_);
-
-		if (ImGui::Combo("Body Type", &bodyTypeIndex, bodyTypeNames, IM_ARRAYSIZE(bodyTypeNames)))
-		{
-			SetBodyType(static_cast<BodyType>(bodyTypeIndex)); // ImGuiで選択したBodyTypeをRigidbodyへ反映する
-		}
-
-		if (ImGui::DragFloat("Mass", &mass_, 0.05f, 0.01f, 1000.0f))
-		{
-			SetMass(mass_); // ImGuiで変更した質量をRigidbodyへ反映する
-		}
-
-		if (ImGui::Checkbox("Use Gravity", &useGravity_))
-		{
-			SetUseGravity(useGravity_); // ImGuiで変更した重力フラグをRigidbodyへ反映する
-		}
-
-		if (ImGui::DragFloat3("Velocity", &velocity_.x, 0.05f))
-		{
-			SetVelocity(velocity_); // ImGuiで変更した速度をRigidbodyへ反映する
-		}
+		ComponentPropertyUtility::DrawImGui(CreateProperties());
 
 		if (rigidbody_ && ImGui::Button("Wake Up Rigidbody"))
 		{
@@ -147,43 +115,14 @@ namespace Ken4lowEngine
 
 		outJson["Class"] = GetClassTypeName(); // RigidbodyComponentとして保存する
 
-		if (!rigidbody_)
-		{
-			return; // Rigidbody未生成の場合は保存しない
-		}
-
-		outJson["BodyType"] = ToString(bodyType_); // BodyTypeを文字列で保存する
-		outJson["Mass"] = mass_;                   // 質量を保存する
-		outJson["UseGravity"] = useGravity_;       // 重力フラグを保存する
-
-		const Vector3 velocity = rigidbody_->GetVelocity(); // Rigidbodyから現在速度を取得する
-		outJson["Velocity"] = { velocity.x, velocity.y, velocity.z }; // 速度を配列で保存する
+		ComponentPropertyUtility::ToJson(const_cast<RigidbodyComponent*>(this)->CreateProperties(), outJson);
 	}
 
 	void RigidbodyComponent::FromJson(const nlohmann::json& inJson)
 	{
 		ActorComponent::FromJson(inJson); // 基底クラスの共通情報を復元する
 
-		if (inJson.contains("BodyType") && inJson["BodyType"].is_string())
-		{
-			SetBodyType(BodyTypeFromString(inJson["BodyType"].get<std::string>())); // BodyTypeを復元する。
-		}
-
-		if (inJson.contains("Mass") && inJson["Mass"].is_number())
-		{
-			SetMass(inJson["Mass"].get<float>()); // 質量を復元する。
-		}
-
-		if (inJson.contains("UseGravity") && inJson["UseGravity"].is_boolean())
-		{
-			SetUseGravity(inJson["UseGravity"].get<bool>()); // 重力設定を復元する。
-		}
-
-		if (inJson.contains("Velocity") && inJson["Velocity"].is_array())
-		{
-			const Vector3 velocity = ReadVector3FromJson(inJson, "Velocity", Vector3{ 0.0f, 0.0f, 0.0f });
-			SetVelocity(velocity); // Rigidbody生成前なら保持値に、生成後なら実体にも反映する。
-		}
+		ComponentPropertyUtility::FromJson(CreateProperties(), inJson);
 	}
 
 	void RigidbodyComponent::SetBodyType(BodyType bodyType)
@@ -198,7 +137,7 @@ namespace Ken4lowEngine
 
 	void RigidbodyComponent::SetMass(float mass)
 	{
-		mass_ = mass; // ImGui表示用の質量も更新する
+		mass_ = std::max(mass, 0.0001f); // ImGui表示用の質量も更新する
 
 		if (rigidbody_)
 		{
@@ -253,6 +192,33 @@ namespace Ken4lowEngine
 		}
 	}
 
+	void RigidbodyComponent::SetRestitution(float restitution)
+	{
+		restitution_ = std::clamp(restitution, 0.0f, 1.0f);
+		if (rigidbody_)
+		{
+			rigidbody_->SetRestitution(restitution_);
+		}
+	}
+
+	void RigidbodyComponent::SetStaticFriction(float staticFriction)
+	{
+		staticFriction_ = std::max(staticFriction, 0.0f);
+		if (rigidbody_)
+		{
+			rigidbody_->SetStaticFriction(staticFriction_);
+		}
+	}
+
+	void RigidbodyComponent::SetDynamicFriction(float dynamicFriction)
+	{
+		dynamicFriction_ = std::max(dynamicFriction, 0.0f);
+		if (rigidbody_)
+		{
+			rigidbody_->SetDynamicFriction(dynamicFriction_);
+		}
+	}
+
 	SceneComponent* RigidbodyComponent::GetTargetRootComponent() const
 	{
 		const Actor* owner = GetOwner();
@@ -262,6 +228,20 @@ namespace Ken4lowEngine
 		}
 
 		return owner->GetRootComponent(); // 所有者ActorのRootComponentを返す
+	}
+
+	std::vector<ComponentProperty> RigidbodyComponent::CreateProperties()
+	{
+		return {
+			{ "BodyType", "Body Type", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return std::string(ToString(bodyType_)); }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) { SetBodyType(BodyTypeFromString(*typedValue)); } }, 0.0f, 0.0f, 0.1f, false, { { "Static", "Static" }, { "Dynamic", "Dynamic" }, { "Kinematic", "Kinematic" } } },
+			{ "Mass", "Mass", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return mass_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetMass(*typedValue); } }, 0.0001f, 1000.0f, 0.05f, true },
+			{ "UseGravity", "Use Gravity", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return useGravity_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetUseGravity(*typedValue); } } },
+			{ "Velocity", "Velocity", ComponentPropertyType::Vector3, [this]() -> ComponentPropertyValue { return velocity_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector3>(&value)) { SetVelocity(*typedValue); } }, 0.0f, 0.0f, 0.05f },
+			{ "SleepEnabled", "Sleep Enabled", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return sleepEnabled_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetSleepEnabled(*typedValue); } } },
+			{ "Restitution", "Restitution", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return restitution_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetRestitution(*typedValue); } }, 0.0f, 1.0f, 0.01f, true },
+			{ "StaticFriction", "Static Friction", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return staticFriction_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetStaticFriction(*typedValue); } }, 0.0f, 10.0f, 0.01f, true },
+			{ "DynamicFriction", "Dynamic Friction", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return dynamicFriction_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetDynamicFriction(*typedValue); } }, 0.0f, 10.0f, 0.01f, true }
+		};
 	}
 
 }

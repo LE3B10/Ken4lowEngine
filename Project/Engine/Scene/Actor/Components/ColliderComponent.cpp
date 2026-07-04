@@ -2,6 +2,8 @@
 #include <Actor.h>
 #include <SceneComponent.h>
 
+#include <algorithm>
+
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif
@@ -62,19 +64,6 @@ namespace Ken4lowEngine
 			return ECollisionShapeType::None;
 		}
 
-		Vector3 ReadVector3FromJson(const nlohmann::json& json, const std::string& key, const Vector3& defaultValue = Vector3{ 0.0f, 0.0f, 0.0f })
-		{
-			if (!json.contains(key) || !json[key].is_array() || json[key].size() != 3)
-			{
-				return defaultValue; // 値が存在しない場合はデフォルト値を返す
-			}
-
-			return {
-				json[key][0].get<float>(),
-				json[key][1].get<float>(),
-				json[key][2].get<float>()
-			};
-		}
 	}
 
 	void ColliderComponent::Initialize()
@@ -144,32 +133,8 @@ namespace Ken4lowEngine
 
 #ifdef USE_IMGUI
 
-		const char* shapeNames[] =
-		{
-			"None",
-			"Sphere",
-			"AABB",
-			"OBB",
-			"Capsule",
-			"Segment",
-		};
-
-		int shapeIndex = static_cast<int>(shapeType_);
-
 		ImGui::SeparatorText("Collider Component");
-		if (ImGui::Combo("Shape Type", &shapeIndex, shapeNames, IM_ARRAYSIZE(shapeNames)))
-		{
-			shapeType_ = static_cast<ECollisionShapeType>(shapeIndex);
-		}
-
-		if (shapeType_ == ECollisionShapeType::Sphere)
-		{
-			ImGui::DragFloat("Radius", &radius_, 0.1f, 0.0f, 100.0f);
-		}
-		else if (shapeType_ == ECollisionShapeType::AABB || shapeType_ == ECollisionShapeType::OBB)
-		{
-			ImGui::DragFloat3("Half Size", &halfSize_.x, 0.1f, 0.0f, 100.0f);
-		}
+		ComponentPropertyUtility::DrawImGui(CreateProperties());
 
 #endif
 	}
@@ -184,36 +149,40 @@ namespace Ken4lowEngine
 		SceneComponent::ToJson(outJson); // SceneComponent共通情報をJSONへ保存する
 
 		outJson["Class"] = GetClassTypeName();								// ColliderComponentのクラス種別をJSONへ保存する
-		outJson["ShapeType"] = Tostring(shapeType_);						// Colliderの形状種別をJSONへ保存する
-		outJson["HalfSize"] = { halfSize_.x, halfSize_.y, halfSize_.z };	// AABB / OBBの半サイズをJSONへ保存する
-		outJson["IsTrigger"] = isTrigger_;									// Trigger判定かどうかをJSONへ保存する
-		outJson["CollisionLayer"] = static_cast<uint32_t>(collisionLayer_); // Colliderの衝突レイヤーをJSONへ保存する
+		ComponentPropertyUtility::ToJson(const_cast<ColliderComponent*>(this)->CreateProperties(), outJson);
 	}
 
 	void ColliderComponent::FromJson(const nlohmann::json& inJson)
 	{
 		SceneComponent::FromJson(inJson); // SceneComponent共通情報をJSONから復元する
 
-		if (inJson.contains("ShapeType") && inJson["ShapeType"].is_string())
-		{
-			SetShapeType(ShapeTypeFromString(inJson["ShapeType"].get<std::string>())); // Collider形状を復元する。
-		}
-
-		if (inJson.contains("HalfSize") && inJson["HalfSize"].is_array())
-		{
-			SetHalfSize(ReadVector3FromJson(inJson, "HalfSize", halfSize_)); // AABBなどで使う半径サイズを復元する。
-		}
-
-		if (inJson.contains("IsTrigger") && inJson["IsTrigger"].is_boolean())
-		{
-			SetIsTrigger(inJson["IsTrigger"].get<bool>()); // Trigger設定を復元する。
-		}
-
+		ComponentPropertyUtility::FromJson(CreateProperties(), inJson);
 		if (inJson.contains("CollisionLayer") && inJson["CollisionLayer"].is_number_unsigned())
 		{
-			const uint32_t layer = inJson["CollisionLayer"].get<uint32_t>();
-			SetCollisionLayer(static_cast<PhysicsCollisionLayer>(layer)); // 衝突レイヤーを復元する。
+			SetCollisionLayer(inJson["CollisionLayer"].get<uint32_t>());
 		}
+	}
+
+	void ColliderComponent::SetRadius(float radius)
+	{
+		radius_ = std::clamp(radius, 0.0f, 100.0f);
+		SyncFromSceneTransform();
+	}
+
+	void ColliderComponent::SetShapeType(ECollisionShapeType shapeType)
+	{
+		shapeType_ = shapeType;
+		SyncFromSceneTransform();
+	}
+
+	void ColliderComponent::SetHalfSize(const Vector3& halfSize)
+	{
+		halfSize_ = {
+			std::clamp(halfSize.x, 0.0f, 100.0f),
+			std::clamp(halfSize.y, 0.0f, 100.0f),
+			std::clamp(halfSize.z, 0.0f, 100.0f)
+		};
+		SyncFromSceneTransform();
 	}
 
 	void ColliderComponent::SetCollisionLayer(uint32_t layer)
@@ -277,5 +246,16 @@ namespace Ken4lowEngine
 		default:
 			break;
 		}
+	}
+
+	std::vector<ComponentProperty> ColliderComponent::CreateProperties()
+	{
+		return {
+			{ "ShapeType", "形状", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return std::string(Tostring(shapeType_)); }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) { SetShapeType(ShapeTypeFromString(*typedValue)); } }, 0.0f, 0.0f, 0.1f, false, { { "None", "None" }, { "Sphere", "Sphere" }, { "AABB", "AABB" }, { "OBB", "OBB" }, { "Capsule", "Capsule" }, { "Segment", "Segment" } } },
+			{ "Radius", "半径", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return radius_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetRadius(*typedValue); } }, 0.0f, 100.0f, 0.1f, true },
+			{ "HalfSize", "半サイズ", ComponentPropertyType::Vector3, [this]() -> ComponentPropertyValue { return halfSize_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector3>(&value)) { SetHalfSize(*typedValue); } }, 0.0f, 100.0f, 0.1f, true },
+			{ "IsTrigger", "トリガー", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return isTrigger_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetIsTrigger(*typedValue); } } },
+			{ "CollisionLayer", "Collision Layer", ComponentPropertyType::Int, [this]() -> ComponentPropertyValue { return static_cast<int>(collisionLayer_); }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<int>(&value)) { SetCollisionLayer(static_cast<uint32_t>(std::max(*typedValue, 0))); } }, 0.0f, 31.0f, 1.0f, true }
+		};
 	}
 }

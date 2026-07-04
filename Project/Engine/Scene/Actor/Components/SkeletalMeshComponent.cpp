@@ -4,7 +4,6 @@
 #include "DirectXCommon.h"
 
 #include <algorithm>
-#include <cstdio>
 #include <exception>
 
 #ifdef USE_IMGUI
@@ -90,12 +89,7 @@ namespace Ken4lowEngine
 		ImGui::SeparatorText("スケルタルメッシュコンポーネント");
 
 		ImGui::SeparatorText("モデル");
-		char modelPathBuffer[256]{};
-		std::snprintf(modelPathBuffer, sizeof(modelPathBuffer), "%s", modelPath_.c_str());
-		if (ImGui::InputText("モデルパス", modelPathBuffer, sizeof(modelPathBuffer)))
-		{
-			SetModelPath(modelPathBuffer);
-		}
+		ImGui::Text("現在のモデル: %s", modelPath_.empty() ? "未選択" : modelPath_.c_str());
 
 		std::string selectedModelPath = modelPath_;
 		if (AssetPathSelector::DrawAssetSelector("一覧から選択##SkeletalMeshComponentModelPath", selectedModelPath, AssetType::SkeletalMesh))
@@ -126,34 +120,11 @@ namespace Ken4lowEngine
 		}
 		else
 		{
-			char animationNameBuffer[128]{};
-			std::snprintf(animationNameBuffer, sizeof(animationNameBuffer), "%s", animationName_.c_str());
-			if (ImGui::InputText("アニメーション名", animationNameBuffer, sizeof(animationNameBuffer)))
-			{
-				SetAnimationName(animationNameBuffer);
-			}
+			ImGui::Text("アニメーション名: %s", animationName_.empty() ? "未選択" : animationName_.c_str());
 		}
 
 		ImGui::SeparatorText("再生");
-		if (ImGui::Checkbox("表示", &visible_))
-		{
-			SetVisible(visible_);
-		}
-
-		if (ImGui::Checkbox("ループ再生", &loop_))
-		{
-			SetLoop(loop_);
-		}
-
-		if (ImGui::Checkbox("開始時に再生", &playOnStart_))
-		{
-			SetPlayOnStart(playOnStart_);
-		}
-
-		if (ImGui::DragFloat("再生速度", &playbackSpeed_, 0.01f, 0.0f, 10.0f))
-		{
-			SetPlaybackSpeed(playbackSpeed_);
-		}
+		ComponentPropertyUtility::DrawImGui(CreateProperties(false, false));
 
 		const size_t clipCount = animationModel_ ? animationModel_->GetAnimationClips().size() : 0;
 		const Vector3 componentWorldPosition = GetWorldPosition();
@@ -217,12 +188,7 @@ namespace Ken4lowEngine
 		SceneComponent::ToJson(outJson);
 
 		outJson["Class"] = GetClassTypeName();
-		outJson["ModelPath"] = modelPath_;
-		outJson["AnimationName"] = animationName_;
-		outJson["Visible"] = visible_;
-		outJson["Loop"] = loop_;
-		outJson["PlayOnStart"] = playOnStart_;
-		outJson["PlaybackSpeed"] = playbackSpeed_;
+		ComponentPropertyUtility::ToJson(const_cast<SkeletalMeshComponent*>(this)->CreateProperties(), outJson);
 	}
 
 	void SkeletalMeshComponent::FromJson(const nlohmann::json& inJson)
@@ -241,26 +207,7 @@ namespace Ken4lowEngine
 			restoredModelPath = inJson["AnimationPath"].get<std::string>();
 			hasRestoredModelPath = !restoredModelPath.empty();
 		}
-		if (inJson.contains("AnimationName") && inJson["AnimationName"].is_string())
-		{
-			animationName_ = inJson["AnimationName"].get<std::string>();
-		}
-		if (inJson.contains("Visible") && inJson["Visible"].is_boolean())
-		{
-			visible_ = inJson["Visible"].get<bool>();
-		}
-		if (inJson.contains("Loop") && inJson["Loop"].is_boolean())
-		{
-			loop_ = inJson["Loop"].get<bool>();
-		}
-		if (inJson.contains("PlayOnStart") && inJson["PlayOnStart"].is_boolean())
-		{
-			playOnStart_ = inJson["PlayOnStart"].get<bool>();
-		}
-		if (inJson.contains("PlaybackSpeed") && inJson["PlaybackSpeed"].is_number())
-		{
-			playbackSpeed_ = ClampPlaybackSpeed(inJson["PlaybackSpeed"].get<float>());
-		}
+		ComponentPropertyUtility::FromJson(CreateProperties(false, true), inJson);
 
 		if (hasRestoredModelPath)
 		{
@@ -549,5 +496,29 @@ namespace Ken4lowEngine
 
 		animationName_ = clips.front().name;
 		return animationModel_->PlayAnimationByIndex(0, resetTime);
+	}
+
+	std::vector<ComponentProperty> SkeletalMeshComponent::CreateProperties(bool includeModelPath, bool includeAnimationName)
+	{
+		std::vector<ComponentProperty> properties = {
+			{ "Visible", "表示", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return visible_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetVisible(*typedValue); } } },
+			{ "Loop", "ループ再生", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return loop_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetLoop(*typedValue); } } },
+			{ "PlayOnStart", "開始時に再生", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return playOnStart_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetPlayOnStart(*typedValue); } } },
+			{ "PlaybackSpeed", "再生速度", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return playbackSpeed_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetPlaybackSpeed(*typedValue); } }, 0.0f, 10.0f, 0.01f, true }
+		};
+
+		if (includeAnimationName)
+		{
+			properties.insert(properties.begin(),
+				{ "AnimationName", "アニメーション名", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return animationName_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) { SetAnimationName(*typedValue); } } });
+		}
+
+		if (includeModelPath)
+		{
+			properties.insert(properties.begin(),
+				{ "ModelPath", "モデルパス", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return modelPath_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) { SetModelPath(*typedValue); } } });
+		}
+
+		return properties;
 	}
 }

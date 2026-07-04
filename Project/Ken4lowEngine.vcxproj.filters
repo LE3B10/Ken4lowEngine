@@ -697,6 +697,12 @@
     <ClCompile Include="Engine\System\Audio\Manager\AudioManager.cpp">
       <Filter>Engine\System\Audio\Manager</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\System\Audio\Listener\AudioListener.cpp">
+      <Filter>Engine\System\Audio\Listener</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\System\Audio\Reverb\AudioReverbZone.cpp">
+      <Filter>Engine\System\Audio\Reverb</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Misc\Audio\MFAudioDecoder.cpp">
       <Filter>Engine\Misc\Audio</Filter>
     </ClCompile>
@@ -1842,6 +1848,12 @@
     <ClInclude Include="Engine\System\Audio\Manager\AudioManager.h">
       <Filter>Engine\System\Audio\Manager</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\System\Audio\Listener\AudioListener.h">
+      <Filter>Engine\System\Audio\Listener</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\System\Audio\Reverb\AudioReverbZone.h">
+      <Filter>Engine\System\Audio\Reverb</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Misc\Audio\MFAudioDecoder.h">
       <Filter>Engine\Misc\Audio</Filter>
     </ClInclude>
@@ -2740,6 +2752,12 @@
     </Filter>
     <Filter Include="Engine\System\Audio\Manager">
       <UniqueIdentifier>{f491d90e-2653-48f7-b123-12c667a8cff8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\System\Audio\Listener">
+      <UniqueIdentifier>{b3e19060-579d-4f96-a8fd-0c38f8c4f8d1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\System\Audio\Reverb">
+      <UniqueIdentifier>{8f31565e-d6e3-49b4-86f5-b7d3611129f7}</UniqueIdentifier>
     </Filter>
     <Filter Include="Engine\Graphics\Camera">
       <UniqueIdentifier>{cd133ea6-e64e-4da7-888d-94985388f1cd}</UniqueIdentifier>

@@ -2,6 +2,8 @@
 #include "Camera.h"
 #include "DebugCamera.h"
 
+#include <cmath>
+
 namespace Ken4lowEngine
 {
 	CameraManager* CameraManager::GetInstance()
@@ -31,6 +33,29 @@ namespace Ken4lowEngine
 			debugCamera_->Update();
 		}
 #endif
+	}
+
+	void CameraManager::UpdateAudioListener(float deltaTime)
+	{
+		const Vector3 position = GetActiveCameraPosition();
+		Vector3 forward{ 0.0f, 0.0f, 1.0f };
+
+#ifdef _DEBUG
+		if (useDebugCamera_ && debugCamera_)
+		{
+			forward = Vector3::Transform({ 0.0f, 0.0f, 1.0f }, Matrix4x4::MakeRotateMatrix(debugCamera_->GetRotate()));
+		}
+		else
+#endif
+			if (mainCamera_)
+			{
+				forward = mainCamera_->GetForward();
+			}
+
+		forward = Vector3::NormalizeSafe(forward, { 0.0f, 0.0f, 1.0f });
+		Vector3 right = Vector3::NormalizeSafe(Vector3::Cross({ 0.0f, 1.0f, 0.0f }, forward), { 1.0f, 0.0f, 0.0f });
+		Vector3 up = Vector3::NormalizeSafe(Vector3::Cross(forward, right), { 0.0f, 1.0f, 0.0f });
+		audioListener_.UpdateFromTransform(position, forward, right, up, deltaTime);
 	}
 
 	void CameraManager::SetMainCamera(Camera* camera)

@@ -1,9 +1,11 @@
 #pragma once
 #include "SceneComponent.h"
+#include "ComponentProperty.h"
 #include <Collider.h>
 #include <PhysicsCollisionLayer.h>
 
 #include <memory>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -64,7 +66,7 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// Sphere判定の半径を設定する
 		/// </summary>
-		void SetRadius(float radius) { radius_ = radius; }
+		void SetRadius(float radius);
 
 		/// <summary>
 		/// PhysicWorldへ登録するColliderを取得する
@@ -73,7 +75,7 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// Colliderの形状種別を設定する
 		/// </summary>
-		void SetShapeType(ECollisionShapeType shapeType) { shapeType_ = shapeType; }
+		void SetShapeType(ECollisionShapeType shapeType);
 
 		/// <summary>
 		/// Colliderの形状種別を取得する
@@ -93,7 +95,7 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// AABB / OBB 判定に使う半サイズを設定する
 		/// </summary>
-		void SetHalfSize(const Vector3& halfSize) { halfSize_ = halfSize; }
+		void SetHalfSize(const Vector3& halfSize);
 
 		/// <summary>
 		/// AABB / OBB 判定に使う半サイズを取得する
@@ -112,6 +114,8 @@ namespace Ken4lowEngine
 				collider_->SetTrigger(isTrigger_); // ColliderのTrigger設定を反映する
 			}
 		}
+
+		std::vector<ComponentProperty> CreateProperties();
 
 	private: /// ---------- 内部処理 ---------- ///
 

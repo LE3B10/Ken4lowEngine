@@ -323,6 +323,50 @@ namespace Ken4lowEngine
 		}
 	}
 
+	void AudioManager::SetVoicePan(AudioHandle handle, float pan)
+	{
+		if (handle == InvalidAudioHandle)
+		{
+			return;
+		}
+
+		std::lock_guard<std::mutex> lock(mutex_);
+
+		for (ActiveVoice& active : activeVoices_)
+		{
+			if (active.handle != handle || !active.voice)
+			{
+				continue;
+			}
+
+			active.pan = std::clamp(pan, -1.0f, 1.0f);
+			ApplyVoicePan(active);
+			return;
+		}
+	}
+
+	void AudioManager::SetVoicePitch(AudioHandle handle, float pitch)
+	{
+		if (handle == InvalidAudioHandle)
+		{
+			return;
+		}
+
+		std::lock_guard<std::mutex> lock(mutex_);
+
+		for (ActiveVoice& active : activeVoices_)
+		{
+			if (active.handle != handle || !active.voice)
+			{
+				continue;
+			}
+
+			active.pitch = std::clamp(pitch, 0.25f, 4.0f);
+			active.voice->SetFrequencyRatio(active.pitch);
+			return;
+		}
+	}
+
 	void AudioManager::StopBGM()
 	{
 		// BGM 用 Voice が存在するなら停止して破棄する
@@ -490,7 +534,8 @@ namespace Ken4lowEngine
 
 		// カテゴリ別音量とピッチを適用する
 		voice->SetVolume(BuildActualVolume(category, volume));
-		voice->SetFrequencyRatio(pitch);
+		const float clampedPitch = std::clamp(pitch, 0.25f, 4.0f);
+		voice->SetFrequencyRatio(clampedPitch);
 
 		// バッファ登録または再生開始に失敗したら Voice を破棄する
 		if (FAILED(voice->SubmitSourceBuffer(&buffer)) || FAILED(voice->Start(0)))
@@ -502,8 +547,35 @@ namespace Ken4lowEngine
 
 		// 再生中に PCM データが消えないよう clip を保持しつつ管理リストに登録する
 		const AudioHandle handle = nextAudioHandle_++;
-		activeVoices_.push_back({ voice, std::move(clip), handle, category, std::clamp(volume, 0.0f, 4.0f), loop });
+		activeVoices_.push_back({ voice, std::move(clip), handle, category, std::clamp(volume, 0.0f, 4.0f), 0.0f, clampedPitch, loop });
 		return handle;
+	}
+
+	void AudioManager::ApplyVoicePan(ActiveVoice& active)
+	{
+		if (!active.voice || !active.clip)
+		{
+			return;
+		}
+
+		const float clampedPan = std::clamp(active.pan, -1.0f, 1.0f);
+		const float leftVolume = clampedPan <= 0.0f ? 1.0f : 1.0f - clampedPan;
+		const float rightVolume = clampedPan >= 0.0f ? 1.0f : 1.0f + clampedPan;
+		const UINT32 sourceChannels = std::max<UINT32>(1, active.clip->data.waveFormat.nChannels);
+		std::vector<float> matrix(sourceChannels * 2, 0.0f);
+
+		if (sourceChannels == 1)
+		{
+			matrix[0] = leftVolume;
+			matrix[1] = rightVolume;
+		}
+		else
+		{
+			matrix[0] = leftVolume;
+			matrix[3] = rightVolume;
+		}
+
+		active.voice->SetOutputMatrix(nullptr, sourceChannels, 2, matrix.data());
 	}
 
 	void AudioManager::DestroyVoice(IXAudio2SourceVoice*& voice)

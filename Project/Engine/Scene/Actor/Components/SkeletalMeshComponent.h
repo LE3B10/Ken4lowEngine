@@ -1,10 +1,12 @@
 #pragma once
 #include "SceneComponent.h"
 #include "AnimationModel.h"
+#include "ComponentProperty.h"
 
 #include <memory>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -41,6 +43,7 @@ namespace Ken4lowEngine
 		void Pause();
 		void Restart();
 		bool IsPlaying() const;
+		std::vector<ComponentProperty> CreateProperties(bool includeModelPath = true, bool includeAnimationName = true);
 
 	private:
 		bool ReloadSkeletalModel();

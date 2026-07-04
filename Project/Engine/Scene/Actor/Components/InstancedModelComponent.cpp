@@ -3,9 +3,7 @@
 #include "AssetPathSelector.h"
 
 #include <algorithm>
-#include <array>
 #include <cmath>
-#include <cstdio>
 #include <exception>
 
 #ifdef USE_IMGUI
@@ -105,7 +103,7 @@ namespace Ken4lowEngine
 
 	void InstancedModelComponent::Draw()
 	{
-		if (!renderer_)
+		if (!visible_ || !renderer_)
 		{
 			return; // Renderer未生成の場合は描画しない。
 		}
@@ -119,12 +117,7 @@ namespace Ken4lowEngine
 
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("Instanced Model Component");
-		std::array<char, 256> modelPathBuffer{};
-		std::snprintf(modelPathBuffer.data(), modelPathBuffer.size(), "%s", modelPath_.c_str());
-		if (ImGui::InputText("モデルパス", modelPathBuffer.data(), modelPathBuffer.size()))
-		{
-			SetModelPath(modelPathBuffer.data());
-		}
+		ImGui::Text("現在のモデル: %s", modelPath_.empty() ? "未選択" : modelPath_.c_str());
 
 		std::string selectedModelPath = modelPath_;
 		if (AssetPathSelector::DrawAssetSelector("一覧から選択##InstancedModelComponentModelPath", selectedModelPath, AssetType::Model))
@@ -132,23 +125,10 @@ namespace Ken4lowEngine
 			SetModelPath(selectedModelPath);
 		}
 
+		ComponentPropertyUtility::DrawImGui(CreateProperties(false));
+
 		ImGui::Text("Renderer: %s", renderer_ ? "Created" : "None");
 		ImGui::Text("Model: %s", rendererStatus_.c_str());
-
-		if (ImGui::SliderInt("Instance Count", &instanceCount_, 1, 30000))
-		{
-			RequestRebuild(); // インスタンス数変更時は配置を作り直す。
-		}
-
-		if (ImGui::DragFloat("Spacing", &spacing_, 0.05f, 0.1f, 50.0f))
-		{
-			RequestRebuild(); // 間隔変更時は配置を作り直す。
-		}
-
-		if (ImGui::DragFloat3("Instance Scale", &instanceScale_.x, 0.05f, 0.01f, 100.0f))
-		{
-			RequestRebuild(); // スケール変更時は配置を作り直す。
-		}
 
 		if (renderer_)
 		{
@@ -185,35 +165,14 @@ namespace Ken4lowEngine
 
 		outJson["Class"] = GetClassTypeName(); // InstancedModelComponentとして保存する
 
-		outJson["ModelPath"] = modelPath_;			// 使用しているモデルパスを保存する
-		outJson["InstanceCount"] = instanceCount_;	// 描画するインスタンス数を保存する
-		outJson["Spacing"] = spacing_;				// インスタンス同士の間隔を保存する
-		outJson["InstanceScale"] = { instanceScale_.x, instanceScale_.y, instanceScale_.z };
+		ComponentPropertyUtility::ToJson(const_cast<InstancedModelComponent*>(this)->CreateProperties(), outJson);
 	}
 
 	void InstancedModelComponent::FromJson(const nlohmann::json& inJson)
 	{
 		SceneComponent::FromJson(inJson); // 親クラスの共通情報を復元する。
 
-		if (inJson.contains("ModelPath") && inJson["ModelPath"].is_string())
-		{
-			SetModelPath(inJson["ModelPath"].get<std::string>());
-		}
-
-		if (inJson.contains("InstanceCount") && inJson["InstanceCount"].is_number_integer())
-		{
-			SetInstanceCount(inJson["InstanceCount"].get<int>()); // インスタンス数を復元する
-		}
-
-		if (inJson.contains("Spacing") && inJson["Spacing"].is_number())
-		{
-			SetSpacing(inJson["Spacing"].get<float>()); // インスタンス間隔を復元する
-		}
-
-		if (inJson.contains("InstanceScale") && inJson["InstanceScale"].is_array())
-		{
-			SetInstanceScale(ReadVector3FromJson(inJson, "InstanceScale", { 1.0f, 1.0f, 1.0f })); // インスタンスごとのスケールを復元する
-		}
+		ComponentPropertyUtility::FromJson(CreateProperties(), inJson);
 
 		RequestRebuild(); // JSON復元後の設定でインスタンス配置を再構築する
 	}
@@ -257,7 +216,11 @@ namespace Ken4lowEngine
 
 	void InstancedModelComponent::SetInstanceScale(const Vector3& scale)
 	{
-		instanceScale_ = scale; // 各インスタンスの基本スケールを更新する。
+		instanceScale_ = {
+			std::max(scale.x, 0.01f),
+			std::max(scale.y, 0.01f),
+			std::max(scale.z, 0.01f)
+		};
 		RequestRebuild();
 	}
 
@@ -335,13 +298,11 @@ namespace Ken4lowEngine
 			rendererStatus_ = "Loaded";
 			RebuildInstances();
 			return true;
-		}
-		catch (const std::exception& e)
+		} catch (const std::exception& e)
 		{
 			renderer_.reset();
 			rendererStatus_ = std::string("Failed: ") + e.what();
-		}
-		catch (...)
+		} catch (...)
 		{
 			renderer_.reset();
 			rendererStatus_ = "Failed";
@@ -354,5 +315,23 @@ namespace Ken4lowEngine
 	void InstancedModelComponent::RequestRebuild()
 	{
 		isRebuildRequested_ = true; // 次回Updateで安全に配置を再構築する。
+	}
+
+	std::vector<ComponentProperty> InstancedModelComponent::CreateProperties(bool includeModelPath)
+	{
+		std::vector<ComponentProperty> properties = {
+			{ "Visible", "表示", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return visible_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetVisible(*typedValue); } } },
+			{ "InstanceCount", "インスタンス数", ComponentPropertyType::Int, [this]() -> ComponentPropertyValue { return instanceCount_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<int>(&value)) { SetInstanceCount(*typedValue); } }, 1.0f, 30000.0f, 1.0f, true },
+			{ "Spacing", "間隔", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return spacing_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetSpacing(*typedValue); } }, 0.1f, 50.0f, 0.05f, true },
+			{ "InstanceScale", "インスタンススケール", ComponentPropertyType::Vector3, [this]() -> ComponentPropertyValue { return instanceScale_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector3>(&value)) { SetInstanceScale(*typedValue); } }, 0.01f, 100.0f, 0.05f, true }
+		};
+
+		if (includeModelPath)
+		{
+			properties.insert(properties.begin(),
+				{ "ModelPath", "モデルパス", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return modelPath_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) { SetModelPath(*typedValue); } } });
+		}
+
+		return properties;
 	}
 }

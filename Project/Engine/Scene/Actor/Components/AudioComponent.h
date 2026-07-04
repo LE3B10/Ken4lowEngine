@@ -1,8 +1,10 @@
 #pragma once
 #include "ActorComponent.h"
 #include "AudioManager.h"
+#include "ComponentProperty.h"
 
 #include <string>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -43,7 +45,7 @@ namespace Ken4lowEngine
 		void SetVolume(float volume);
 
 		float GetPitch() const { return pitch_; }
-		void SetPitch(float pitch) { pitch_ = pitch; }
+		void SetPitch(float pitch);
 
 		bool IsLoop() const { return loop_; }
 		void SetLoop(bool loop) { loop_ = loop; }
@@ -53,6 +55,8 @@ namespace Ken4lowEngine
 
 		bool IsEnabled() const { return enabled_; }
 		void SetEnabled(bool enabled);
+
+		std::vector<ComponentProperty> CreateProperties(bool includeSoundPath = true);
 
 	private: /// ---------- メンバ変数 ---------- ///
 

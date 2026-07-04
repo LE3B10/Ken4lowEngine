@@ -39,12 +39,7 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("オーディオコンポーネント");
 
-		std::array<char, 256> soundPathBuffer{};
-		std::snprintf(soundPathBuffer.data(), soundPathBuffer.size(), "%s", soundPath_.c_str());
-		if (ImGui::InputText("サウンドパス", soundPathBuffer.data(), soundPathBuffer.size()))
-		{
-			SetSoundPath(soundPathBuffer.data());
-		}
+		ImGui::Text("現在の音声: %s", soundPath_.empty() ? "未選択" : soundPath_.c_str());
 
 		std::string selectedSoundPath = soundPath_;
 		if (AssetPathSelector::DrawAssetSelector("一覧から選択##AudioComponentSoundPath", selectedSoundPath, AssetType::Audio))
@@ -52,21 +47,7 @@ namespace Ken4lowEngine
 			SetSoundPath(selectedSoundPath);
 		}
 
-		float volume = volume_;
-		if (ImGui::DragFloat("音量", &volume, 0.01f, 0.0f, 4.0f))
-		{
-			SetVolume(volume);
-		}
-
-		ImGui::DragFloat("ピッチ", &pitch_, 0.01f, 0.01f, 4.0f);
-		ImGui::Checkbox("ループ", &loop_);
-		ImGui::Checkbox("開始時に再生", &playOnStart_);
-
-		bool enabled = enabled_;
-		if (ImGui::Checkbox("有効", &enabled))
-		{
-			SetEnabled(enabled);
-		}
+		ComponentPropertyUtility::DrawImGui(CreateProperties(false));
 
 		if (ImGui::Button("再生"))
 		{
@@ -94,47 +75,14 @@ namespace Ken4lowEngine
 		ActorComponent::ToJson(outJson); // ActorComponent共通情報をJSONへ保存する
 
 		outJson["Class"] = GetClassTypeName(); // AudioComponentとして保存する
-		outJson["SoundPath"] = soundPath_;
-		outJson["Volume"] = volume_;
-		outJson["Pitch"] = pitch_;
-		outJson["Loop"] = loop_;
-		outJson["PlayOnStart"] = playOnStart_;
-		outJson["Enabled"] = enabled_;
+		ComponentPropertyUtility::ToJson(const_cast<AudioComponent*>(this)->CreateProperties(), outJson);
 	}
 
 	void AudioComponent::FromJson(const nlohmann::json& inJson)
 	{
 		ActorComponent::FromJson(inJson); // ActorComponent共通情報をJSONから復元する
 
-		if (inJson.contains("SoundPath") && inJson["SoundPath"].is_string())
-		{
-			soundPath_ = inJson["SoundPath"].get<std::string>();
-		}
-
-		if (inJson.contains("Volume") && inJson["Volume"].is_number())
-		{
-			volume_ = std::clamp(inJson["Volume"].get<float>(), 0.0f, 4.0f);
-		}
-
-		if (inJson.contains("Pitch") && inJson["Pitch"].is_number())
-		{
-			pitch_ = std::clamp(inJson["Pitch"].get<float>(), 0.01f, 4.0f);
-		}
-
-		if (inJson.contains("Loop") && inJson["Loop"].is_boolean())
-		{
-			loop_ = inJson["Loop"].get<bool>();
-		}
-
-		if (inJson.contains("PlayOnStart") && inJson["PlayOnStart"].is_boolean())
-		{
-			playOnStart_ = inJson["PlayOnStart"].get<bool>();
-		}
-
-		if (inJson.contains("Enabled") && inJson["Enabled"].is_boolean())
-		{
-			enabled_ = inJson["Enabled"].get<bool>();
-		}
+		ComponentPropertyUtility::FromJson(CreateProperties(), inJson);
 	}
 
 	void AudioComponent::Play()
@@ -184,6 +132,34 @@ namespace Ken4lowEngine
 		{
 			AudioManager::GetInstance()->SetVoiceVolume(audioHandle_, volume_);
 		}
+	}
+
+	void AudioComponent::SetPitch(float pitch)
+	{
+		pitch_ = std::clamp(pitch, 0.25f, 4.0f);
+		if (audioHandle_ != AudioManager::InvalidAudioHandle)
+		{
+			AudioManager::GetInstance()->SetVoicePitch(audioHandle_, pitch_);
+		}
+	}
+
+	std::vector<ComponentProperty> AudioComponent::CreateProperties(bool includeSoundPath)
+	{
+		std::vector<ComponentProperty> properties = {
+			{ "Enabled", "有効", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return enabled_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetEnabled(*typedValue); } } },
+			{ "Volume", "音量", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return volume_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetVolume(*typedValue); } }, 0.0f, 4.0f, 0.01f, true },
+			{ "Pitch", "ピッチ", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return pitch_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetPitch(*typedValue); } }, 0.25f, 4.0f, 0.01f, true },
+			{ "Loop", "ループ", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return loop_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetLoop(*typedValue); } } },
+			{ "PlayOnStart", "開始時に再生", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return playOnStart_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetPlayOnStart(*typedValue); } } }
+		};
+
+		if (includeSoundPath)
+		{
+			properties.insert(properties.begin() + 1,
+				{ "SoundPath", "サウンドパス", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return soundPath_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) { SetSoundPath(*typedValue); } } });
+		}
+
+		return properties;
 	}
 
 	void AudioComponent::SetEnabled(bool enabled)

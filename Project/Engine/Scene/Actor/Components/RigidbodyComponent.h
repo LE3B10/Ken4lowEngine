@@ -1,8 +1,10 @@
 #pragma once
 #include "ActorComponent.h"
+#include "ComponentProperty.h"
 #include <Rigidbody.h>
 
 #include <memory>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -107,6 +109,10 @@ namespace Ken4lowEngine
 		/// RigidbodyのSleep機能を有効にするか設定する
 		/// </summary>
 		void SetSleepEnabled(bool enabled);
+		void SetRestitution(float restitution);
+		void SetStaticFriction(float staticFriction);
+		void SetDynamicFriction(float dynamicFriction);
+		std::vector<ComponentProperty> CreateProperties();
 
 	private: /// ---------- 内部処理 ---------- ///
 
@@ -123,6 +129,9 @@ namespace Ken4lowEngine
 		bool useGravity_ = false;              // ImGui編集用に保持する重力フラグ
 		Vector3 velocity_{};                   // ImGui表示・編集用に保持する速度
 		bool sleepEnabled_ = false;             // ImGui編集用に保持するSleep機能の有効状態
+		float restitution_ = 0.0f;              // 反発係数
+		float staticFriction_ = 0.5f;           // 静止摩擦係数
+		float dynamicFriction_ = 0.2f;          // 動摩擦係数
 	};
 
 }

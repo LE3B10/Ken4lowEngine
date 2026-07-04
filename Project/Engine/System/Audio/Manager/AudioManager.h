@@ -48,6 +48,8 @@ namespace Ken4lowEngine
 			AudioHandle handle = InvalidAudioHandle;
 			AudioCategory category = AudioCategory::SE;
 			float baseVolume = 1.0f;
+			float pan = 0.0f;
+			float pitch = 1.0f;
 			bool loop = false;
 		};
 
@@ -119,6 +121,16 @@ namespace Ken4lowEngine
 		void SetVoiceVolume(AudioHandle handle, float volume);
 
 		/// <summary>
+		/// 指定したハンドルの左右パンを更新する。
+		/// </summary>
+		void SetVoicePan(AudioHandle handle, float pan);
+
+		/// <summary>
+		/// 指定したハンドルの再生ピッチを更新する。
+		/// </summary>
+		void SetVoicePitch(AudioHandle handle, float pitch);
+
+		/// <summary>
 		/// 現在再生中の BGM を停止する。
 		/// </summary>
 		void StopBGM();
@@ -161,6 +173,11 @@ namespace Ken4lowEngine
 		/// 呼び出し側の音量とカテゴリ音量を掛け合わせ、実際の再生音量を作る。
 		/// </summary>
 		float BuildActualVolume(AudioCategory category, float volume) const;
+
+		/// <summary>
+		/// SourceVoiceへ左右パンを反映する。
+		/// </summary>
+		void ApplyVoicePan(ActiveVoice& active);
 
 		/// <summary>
 		/// 音声ファイルを読み込み、デコード済みクリップを取得する。

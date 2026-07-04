@@ -1,4 +1,5 @@
 #pragma once
+#include "Engine/System/Audio/Listener/AudioListener.h"
 #include "Matrix4x4.h"
 #include "Vector3.h"
 
@@ -20,6 +21,7 @@ namespace Ken4lowEngine
 		void Initialize();
 		void Finalize();
 		void Update();
+		void UpdateAudioListener(float deltaTime);
 
 	public: /// ---------- セッタ ---------- ///
 
@@ -38,6 +40,7 @@ namespace Ken4lowEngine
 		Matrix4x4 GetActiveProjectionMatrix() const;
 		Matrix4x4 GetActiveViewProjectionMatrix() const;
 		Vector3 GetActiveCameraPosition() const;
+		const AudioListener& GetAudioListener() const { return audioListener_; }
 
 		// Object3D や FPS など「Camera* が欲しい側」用
 		// DebugCamera は型が違うので、通常カメラが必要な場所では main を返す
@@ -55,5 +58,6 @@ namespace Ken4lowEngine
 		Camera* mainCamera_ = nullptr;
 		DebugCamera* debugCamera_ = nullptr;
 		bool useDebugCamera_ = false;
+		AudioListener audioListener_;
 	};
 }

@@ -3,8 +3,6 @@
 #include "Actor.h"
 #include "AssetPathSelector.h"
 
-#include <array>
-#include <cstdio>
 #include <exception>
 
 #ifdef USE_IMGUI
@@ -27,13 +25,11 @@ namespace Ken4lowEngine
 		{
 			object3D_ = std::make_unique<Object3D>();
 			object3D_->Initialize(modelPath_);
-		}
-		catch (const std::exception&)
+		} catch (const std::exception&)
 		{
 			object3D_.reset();
 			return;
-		}
-		catch (...)
+		} catch (...)
 		{
 			object3D_.reset();
 			return;
@@ -69,7 +65,7 @@ namespace Ken4lowEngine
 
 	void ModelComponent::Draw()
 	{
-		if (!object3D_)
+		if (!visible_ || !object3D_)
 		{
 			return; // 描画対象がない場合は描画しない。
 		}
@@ -79,7 +75,7 @@ namespace Ken4lowEngine
 
 	void ModelComponent::DrawShadow()
 	{
-		if (!object3D_)
+		if (!visible_ || !object3D_)
 		{
 			return; // 影描画対象がない場合は描画しない。
 		}
@@ -94,18 +90,15 @@ namespace Ken4lowEngine
 
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("Model Component");
-		std::array<char, 256> modelPathBuffer{};
-		std::snprintf(modelPathBuffer.data(), modelPathBuffer.size(), "%s", modelPath_.c_str());
-		if (ImGui::InputText("モデルパス", modelPathBuffer.data(), modelPathBuffer.size()))
-		{
-			SetModelPath(modelPathBuffer.data());
-		}
+		ImGui::Text("現在のモデル: %s", modelPath_.empty() ? "未選択" : modelPath_.c_str());
 
 		std::string selectedModelPath = modelPath_;
 		if (AssetPathSelector::DrawAssetSelector("一覧から選択##ModelComponentModelPath", selectedModelPath, AssetType::Model))
 		{
 			SetModelPath(selectedModelPath);
 		}
+
+		ComponentPropertyUtility::DrawImGui(CreateProperties(false));
 
 		ImGui::Text("Object3D: %s", object3D_ ? "Created" : "Not Created");
 #endif // USE_IMGUI
@@ -121,17 +114,14 @@ namespace Ken4lowEngine
 		SceneComponent::ToJson(outJson); // SceneComponent共通情報をJSONへ保存する
 
 		outJson["Class"] = GetClassTypeName(); // ModelComponentとして保存する
-		outJson["ModelPath"] = modelPath_;     // モデルパスをJSONへ保存する
+		ComponentPropertyUtility::ToJson(const_cast<ModelComponent*>(this)->CreateProperties(), outJson);
 	}
 
 	void ModelComponent::FromJson(const nlohmann::json& inJson)
 	{
 		SceneComponent::FromJson(inJson); // SceneComponent共通情報をJSONから復元する
 
-		if (inJson.contains("ModelPath") && inJson["ModelPath"].is_string())
-		{
-			modelPath_ = inJson["ModelPath"].get<std::string>(); // モデルパスをJSONから復元する
-		}
+		ComponentPropertyUtility::FromJson(CreateProperties(), inJson);
 	}
 
 	void ModelComponent::SetModelPath(std::string_view modelPath)
@@ -155,13 +145,11 @@ namespace Ken4lowEngine
 		{
 			object3D_ = std::make_unique<Object3D>();
 			object3D_->Initialize(modelPath_);
-		}
-		catch (const std::exception&)
+		} catch (const std::exception&)
 		{
 			object3D_.reset();
 			return;
-		}
-		catch (...)
+		} catch (...)
 		{
 			object3D_.reset();
 			return;
@@ -191,5 +179,20 @@ namespace Ken4lowEngine
 		object3D_->SetTranslate(GetWorldPosition());
 		object3D_->SetRotate(GetWorldRotation());
 		object3D_->SetScale(GetWorldScale());
+	}
+
+	std::vector<ComponentProperty> ModelComponent::CreateProperties(bool includeModelPath)
+	{
+		std::vector<ComponentProperty> properties = {
+			{ "Visible", "表示", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return visible_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetVisible(*typedValue); } } }
+		};
+
+		if (includeModelPath)
+		{
+			properties.insert(properties.begin(),
+				{ "ModelPath", "モデルパス", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return modelPath_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) { SetModelPath(*typedValue); } } });
+		}
+
+		return properties;
 	}
 }
