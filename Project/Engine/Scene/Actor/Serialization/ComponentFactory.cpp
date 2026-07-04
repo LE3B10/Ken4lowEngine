@@ -11,6 +11,7 @@
 #include "LightComponent.h"
 #include "ModelComponent.h"
 #include "RigidbodyComponent.h"
+#include "SkeletalMeshComponent.h"
 #include "SpriteComponent.h"
 #include "TextComponent.h"
 #include "WorldGaugeComponent.h"
@@ -85,6 +86,12 @@ namespace Ken4lowEngine
 					"インスタンスモデルコンポーネント",
 					"描画",
 					"同じモデルを複数まとめて描画するためのComponentです。"),
+				MakeComponentTypeInfo<SkeletalMeshComponent>(
+					"SkeletalMeshComponent",
+					true,
+					"スケルタルメッシュコンポーネント",
+					"描画",
+					"Actorにボーン付き3Dモデルを表示し、アニメーションを再生するためのComponentです。"),
 				MakeComponentTypeInfo<BillboardComponent>(
 					"BillboardComponent",
 					true,

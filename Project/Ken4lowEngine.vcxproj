@@ -498,6 +498,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Scene\Actor\Components\ModelComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\SceneComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\RigidbodyComponent.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Components\SkeletalMeshComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\InstancedModelComponent.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestGroundActor.cpp" />
     <ClCompile Include="WinMain.cpp">
@@ -1300,6 +1301,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Scene\Actor\Components\ModelComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\SceneComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\RigidbodyComponent.h" />
+    <ClInclude Include="Engine\Scene\Actor\Components\SkeletalMeshComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\InstancedModelComponent.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestGroundActor.h" />
   </ItemGroup>
