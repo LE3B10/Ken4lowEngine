@@ -127,6 +127,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Scene\Actor\Components\ColliderComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\CameraComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\GaugeComponent.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Components\GpuParticleComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\LightComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\SpriteComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Components\TextComponent.cpp" />
@@ -796,6 +797,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Scene\Actor\Components\ColliderComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\CameraComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\GaugeComponent.h" />
+    <ClInclude Include="Engine\Scene\Actor\Components\GpuParticleComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\LightComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\SpriteComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Components\TextComponent.h" />

@@ -7,6 +7,7 @@
 #include "CameraComponent.h"
 #include "ColliderComponent.h"
 #include "GaugeComponent.h"
+#include "GpuParticleComponent.h"
 #include "RigidbodyComponent.h"
 #include "InstancedModelComponent.h"
 #include "LightComponent.h"
@@ -120,6 +121,12 @@ namespace Ken4lowEngine
 					"ライトコンポーネント",
 					"描画",
 					"Actorにライト情報を持たせるためのComponentです。"),
+				MakeComponentTypeInfo<GpuParticleComponent>(
+					"GpuParticleComponent",
+					true,
+					"GPUパーティクルコンポーネント",
+					"演出",
+					"ActorにGPUパーティクル演出を持たせるためのComponentです。"),
 				MakeComponentTypeInfo<SpriteComponent>(
 					"SpriteComponent",
 					true,

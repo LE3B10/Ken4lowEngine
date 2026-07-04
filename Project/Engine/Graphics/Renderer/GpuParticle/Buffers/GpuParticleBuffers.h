@@ -92,9 +92,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <summary>
 	/// 毎フレームの更新処理。<br/>
 	/// ・PerFrame の deltaTime / time を更新<br/>
-	/// ・カメラから View / Projection を取得して ViewProjection を計算<br/>
-	/// ・ビルボード用行列（回転のみ）を計算し、逆転置行列として書き込み<br/>
-	/// ・デバッグカメラが有効な場合は DebugCamera の ViewProjection を使用<br/>
+	/// ・現在の描画カメラから View / Projection を取得して ViewProjection を計算<br/>
+	/// ・ビルボード用行列（回転のみ）を現在の描画カメラから計算して書き込み<br/>
 	/// といった処理を行います。
 	/// </summary>
 	/// <param name="deltaTime">前フレームからの経過時間（秒）。</param>
@@ -176,7 +175,7 @@ public: /// ---------- ゲッター ---------- ///
 	GpuEmitterCBData* GetEmitterCBData(uint32_t slot);
 	D3D12_GPU_VIRTUAL_ADDRESS GetEmitterCBAddress(uint32_t slot);
 
-	// デバッグカメラの有効化・無効化
+	// 現在はCameraManagerの有効カメラを使用するため、互換用に状態だけ保持する
 	void SetDebugCameraEnabled(bool enabled) { isDebugCamera_ = enabled; }
 
 private: /// ---------- 内部メンバ関数 ---------- ///

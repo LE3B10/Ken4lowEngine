@@ -5,7 +5,7 @@
 #include <SRVManager.h>
 #include <UAVManager.h>
 #include <Camera.h>
-#include <DebugCamera.h>
+#include <CameraManager.h>
 
 namespace Ken4lowEngine
 {
@@ -54,23 +54,12 @@ void GpuParticleBuffers::Update(float deltaTime)
 {
 	perFrameData_->deltaTime = deltaTime; // 
 
-	// ビュー行列とプロジェクション行列をカメラから取得
-	Matrix4x4 cameraMatrix = Matrix4x4::MakeAffineMatrix({ 1.0f, 1.0f, 1.0f }, camera_->GetRotate(), camera_->GetTranslate());
-	Matrix4x4 viewMatrix = Matrix4x4::Inverse(cameraMatrix);
-	Matrix4x4 projectionMatrix = camera_->GetProjectionMatrix();
-	Matrix4x4 viewProjectionMatrix = Matrix4x4::Multiply(viewMatrix, projectionMatrix);
+	const Matrix4x4 viewMatrix = CameraManager::GetInstance()->GetActiveViewMatrix();
+	const Matrix4x4 projectionMatrix = CameraManager::GetInstance()->GetActiveProjectionMatrix();
+	const Matrix4x4 viewProjectionMatrix = Matrix4x4::Multiply(viewMatrix, projectionMatrix);
 
-	// デバッグカメラが有効ならそちらを使う
-	if (isDebugCamera_)
-	{
-#ifdef _DEBUG
-		debugViewProjectionMatrix_ = DebugCamera::GetInstance()->GetViewProjectionMatrix();
-		viewProjectionMatrix = debugViewProjectionMatrix_;
-#endif
-	}
-
-	// ビルボード用行列（回転行列のみ）
-	Matrix4x4 billboardMatrix = cameraMatrix;
+	// 現在の描画カメラの向きに合わせてBillboard用の回転行列を更新する
+	Matrix4x4 billboardMatrix = Matrix4x4::Inverse(viewMatrix);
 	billboardMatrix.m[3][0] = billboardMatrix.m[3][1] = billboardMatrix.m[3][2] = 0.0f;
 
 	perViewData_->viewProjectionMatrix = viewProjectionMatrix;
