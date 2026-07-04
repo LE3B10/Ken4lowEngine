@@ -64,7 +64,12 @@ namespace Ken4lowEngine
 		void Draw();
 
 		/// <summary>
-		/// ActorWorldが所有するScreen Space Spriteをまとめて描画する
+		/// ActorWorldが所有するScreen Space UI Componentをまとめて描画する
+		/// </summary>
+		void DrawScreenSpaceUI();
+
+		/// <summary>
+		/// 既存呼び出しとの互換用にScreen Space UI描画へ転送する
 		/// </summary>
 		void DrawScreenSpaceSprites();
 

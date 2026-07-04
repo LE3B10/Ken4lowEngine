@@ -285,7 +285,7 @@ void DebugScene::Draw2DSprites()
 #pragma region UIの描画
 
 	// Actorに追加されたScreen Space Spriteを3D描画後にまとめて描画する
-	actorWorld_.DrawScreenSpaceSprites();
+	actorWorld_.DrawScreenSpaceUI();
 
 #pragma endregion
 }

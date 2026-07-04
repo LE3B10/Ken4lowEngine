@@ -119,22 +119,22 @@ namespace Ken4lowEngine
 		}
 	}
 
-	void ActorWorld::DrawScreenSpaceSprites()
+	void ActorWorld::DrawScreenSpaceUI()
 	{
-		struct ScreenSpaceSpriteDrawEntry
+		struct ScreenSpaceUIDrawEntry
 		{
 			ActorComponent* component = nullptr;
 			int drawOrder = 0;
 			void (*draw)(ActorComponent*) = nullptr;
 		};
 
-		std::vector<ScreenSpaceSpriteDrawEntry> spriteComponents;
+		std::vector<ScreenSpaceUIDrawEntry> uiComponents;
 
 		for (auto& actor : actors_)
 		{
 			if (!actor || actor->IsPendingDestroy())
 			{
-				continue; // 削除予定のActorはSprite描画対象から外す
+				continue; // 削除予定のActorはUI描画対象から外す
 			}
 
 			const auto components = actor->GetComponents<SpriteComponent>();
@@ -145,7 +145,7 @@ namespace Ken4lowEngine
 					continue; // 非表示または無効なSpriteComponentは描画しない
 				}
 
-				spriteComponents.push_back({
+				uiComponents.push_back({
 					spriteComponent,
 					spriteComponent->GetDrawOrder(),
 					[](ActorComponent* component)
@@ -163,7 +163,7 @@ namespace Ken4lowEngine
 					continue; // 非表示または無効なWorldSpriteComponentは描画しない
 				}
 
-				spriteComponents.push_back({
+				uiComponents.push_back({
 					worldSpriteComponent,
 					worldSpriteComponent->GetDrawOrder(),
 					[](ActorComponent* component)
@@ -181,7 +181,7 @@ namespace Ken4lowEngine
 					continue; // 非表示または無効なTextComponentは描画しない
 				}
 
-				spriteComponents.push_back({
+				uiComponents.push_back({
 					textComponent,
 					textComponent->GetDrawOrder(),
 					[](ActorComponent* component)
@@ -199,7 +199,7 @@ namespace Ken4lowEngine
 					continue; // 非表示または無効なWorldTextComponentは描画しない
 				}
 
-				spriteComponents.push_back({
+				uiComponents.push_back({
 					worldTextComponent,
 					worldTextComponent->GetDrawOrder(),
 					[](ActorComponent* component)
@@ -217,7 +217,7 @@ namespace Ken4lowEngine
 					continue; // 非表示または無効なGaugeComponentは描画しない
 				}
 
-				spriteComponents.push_back({
+				uiComponents.push_back({
 					gaugeComponent,
 					gaugeComponent->GetDrawOrder(),
 					[](ActorComponent* component)
@@ -235,7 +235,7 @@ namespace Ken4lowEngine
 					continue; // 非表示または無効なWorldGaugeComponentは描画しない
 				}
 
-				spriteComponents.push_back({
+				uiComponents.push_back({
 					worldGaugeComponent,
 					worldGaugeComponent->GetDrawOrder(),
 					[](ActorComponent* component)
@@ -246,26 +246,31 @@ namespace Ken4lowEngine
 			}
 		}
 
-		std::stable_sort(spriteComponents.begin(), spriteComponents.end(),
-			[](const ScreenSpaceSpriteDrawEntry& a, const ScreenSpaceSpriteDrawEntry& b)
+		std::stable_sort(uiComponents.begin(), uiComponents.end(),
+			[](const ScreenSpaceUIDrawEntry& a, const ScreenSpaceUIDrawEntry& b)
 			{
-				return a.drawOrder < b.drawOrder; // DrawOrderが小さいSpriteから先に描画する
+				return a.drawOrder < b.drawOrder; // DrawOrderが小さいUI Componentから先に描画する
 			});
 
-		if (spriteComponents.empty())
+		if (uiComponents.empty())
 		{
 			return; // 描画対象のUI Componentが無い場合は何もしない
 		}
 
 		SpriteManager::GetInstance()->SetRenderSetting_UI();
 
-		for (const ScreenSpaceSpriteDrawEntry& entry : spriteComponents)
+		for (const ScreenSpaceUIDrawEntry& entry : uiComponents)
 		{
 			if (entry.component && entry.draw)
 			{
 				entry.draw(entry.component);
 			}
 		}
+	}
+
+	void ActorWorld::DrawScreenSpaceSprites()
+	{
+		DrawScreenSpaceUI();
 	}
 
 	void ActorWorld::DrawShadow()

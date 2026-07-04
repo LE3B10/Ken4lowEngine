@@ -3,14 +3,14 @@
 #include "Actor.h"
 #include "AudioComponent.h"
 #include "BillboardComponent.h"
-#include "ModelComponent.h"
 #include "CameraComponent.h"
 #include "ColliderComponent.h"
 #include "GaugeComponent.h"
 #include "GpuParticleComponent.h"
-#include "RigidbodyComponent.h"
 #include "InstancedModelComponent.h"
 #include "LightComponent.h"
+#include "ModelComponent.h"
+#include "RigidbodyComponent.h"
 #include "SpriteComponent.h"
 #include "TextComponent.h"
 #include "WorldGaugeComponent.h"
@@ -71,20 +71,32 @@ namespace Ken4lowEngine
 				"SceneComponent",
 				true,
 				"シーンコンポーネント",
-				"トランスフォーム",
-				"位置・回転・スケールと親子関係を持つ基本Componentです。"),
-			MakeComponentTypeInfo<ModelComponent>(
-				"ModelComponent",
-				true,
-				"モデルコンポーネント",
-				"描画",
-				"Actorに3Dモデルの描画機能を追加します。"),
+				"基本",
+				"Actorに位置・回転・スケールと親子関係を持たせる基本Componentです。"),
+				MakeComponentTypeInfo<ModelComponent>(
+					"ModelComponent",
+					true,
+					"モデルコンポーネント",
+					"描画",
+					"Actorに3Dモデルの描画機能を追加します。"),
+				MakeComponentTypeInfo<InstancedModelComponent>(
+					"InstancedModelComponent",
+					true,
+					"インスタンスモデルコンポーネント",
+					"描画",
+					"同じモデルを複数まとめて描画するためのComponentです。"),
 				MakeComponentTypeInfo<BillboardComponent>(
 					"BillboardComponent",
 					true,
 					"ビルボードコンポーネント",
 					"描画",
-					"3D空間上で常にカメラ方向を向く板ポリ表示用Componentです。"),
+					"3D空間上で常にカメラ方向を向く板ポリを表示するComponentです。"),
+				MakeComponentTypeInfo<LightComponent>(
+					"LightComponent",
+					true,
+					"ライトコンポーネント",
+					"描画",
+					"Actorにライト情報を持たせるためのComponentです。"),
 				MakeComponentTypeInfo<CameraComponent>(
 					"CameraComponent",
 					false,
@@ -103,42 +115,18 @@ namespace Ken4lowEngine
 					"剛体コンポーネント",
 					"物理",
 					"Actorに速度や重力などの物理挙動を追加します。"),
-				MakeComponentTypeInfo<AudioComponent>(
-					"AudioComponent",
-					true,
-					"オーディオコンポーネント",
-					"オーディオ",
-					"Actorに音声再生機能を持たせるためのComponentです。"),
-				MakeComponentTypeInfo<InstancedModelComponent>(
-					"InstancedModelComponent",
-					true,
-					"インスタンスモデルコンポーネント",
-					"描画",
-					"同じモデルを複数描画するためのインスタンシング機能を追加します。"),
-				MakeComponentTypeInfo<LightComponent>(
-					"LightComponent",
-					true,
-					"ライトコンポーネント",
-					"描画",
-					"Actorにライト情報を持たせるためのComponentです。"),
-				MakeComponentTypeInfo<GpuParticleComponent>(
-					"GpuParticleComponent",
-					true,
-					"GPUパーティクルコンポーネント",
-					"演出",
-					"ActorにGPUパーティクル演出を持たせるためのComponentです。"),
 				MakeComponentTypeInfo<SpriteComponent>(
 					"SpriteComponent",
 					true,
 					"スプライトコンポーネント",
-					"描画",
+					"UI",
 					"画面上に2D画像を表示するためのComponentです。"),
 				MakeComponentTypeInfo<WorldSpriteComponent>(
 					"WorldSpriteComponent",
 					true,
 					"ワールドスプライトコンポーネント",
-					"描画",
-					"Actorの3D位置を画面座標へ変換してSpriteを表示するComponentです。"),
+					"UI",
+					"Actorの3D位置を画面座標へ変換して画像を表示するComponentです。"),
 				MakeComponentTypeInfo<TextComponent>(
 					"TextComponent",
 					true,
@@ -163,6 +151,18 @@ namespace Ken4lowEngine
 					"ワールドゲージコンポーネント",
 					"UI",
 					"Actorの3D位置を画面座標へ変換してゲージを表示するComponentです。"),
+				MakeComponentTypeInfo<AudioComponent>(
+					"AudioComponent",
+					true,
+					"オーディオコンポーネント",
+					"オーディオ",
+					"Actorに音声再生機能を持たせるためのComponentです。"),
+				MakeComponentTypeInfo<GpuParticleComponent>(
+					"GpuParticleComponent",
+					true,
+					"GPUパーティクルコンポーネント",
+					"演出",
+					"ActorにGPUパーティクル演出を持たせるためのComponentです。"),
 		};
 	}
 
