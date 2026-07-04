@@ -1,6 +1,8 @@
 #include "Actor.h"
 
 #include <algorithm>
+#include <array>
+#include <cstdio>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -25,6 +27,11 @@ namespace Ken4lowEngine
 
 	void Actor::Update(float deltaTime)
 	{
+		if (!isActive_)
+		{
+			return; // 無効なActorはUpdate対象から外す
+		}
+
 		std::vector<ActorComponent*> updateComponents;
 
 		for (auto& component : components_)
@@ -57,6 +64,11 @@ namespace Ken4lowEngine
 
 	void Actor::PostPhysicsUpdate(float deltaTime)
 	{
+		if (!isActive_)
+		{
+			return; // 無効なActorはPostPhysicsUpdate対象から外す
+		}
+
 		std::vector<ActorComponent*> updateComponents;
 
 		for (auto& component : components_)
@@ -89,6 +101,11 @@ namespace Ken4lowEngine
 
 	void Actor::Draw()
 	{
+		if (!isActive_)
+		{
+			return; // 無効なActorはDraw対象から外す
+		}
+
 		std::vector<ActorComponent*> drawComponents;
 
 		for (auto& component : components_)
@@ -121,6 +138,11 @@ namespace Ken4lowEngine
 
 	void Actor::DrawShadow()
 	{
+		if (!isActive_)
+		{
+			return; // 無効なActorはShadow描画対象から外す
+		}
+
 		std::vector<ActorComponent*> drawComponents;
 
 		for (auto& component : components_)
@@ -253,9 +275,58 @@ namespace Ken4lowEngine
 	void Actor::DrawInspectorImGui()
 	{
 #ifdef USE_IMGUI
+		static Actor* editingTagActor = nullptr;
+		static std::array<char, 128> newTagBuffer{};
+		if (editingTagActor != this)
+		{
+			editingTagActor = this;
+			newTagBuffer.fill('\0');
+		}
+
 		ImGui::SeparatorText("Actor");
 		ImGui::Text("Component Count : %zu", components_.size());
 		ImGui::Text("Root Component : %s", rootComponent_ ? rootComponent_->GetName().c_str() : "None");
+
+		bool active = IsActive();
+		if (ImGui::Checkbox("有効", &active))
+		{
+			SetActive(active); // Actor単位の有効状態を更新する
+		}
+
+		std::array<char, 128> layerBuffer{};
+		std::snprintf(layerBuffer.data(), layerBuffer.size(), "%s", layer_.c_str());
+		if (ImGui::InputText("レイヤー", layerBuffer.data(), layerBuffer.size()))
+		{
+			SetLayer(layerBuffer.data());
+		}
+
+		ImGui::SeparatorText("タグ");
+		if (tags_.empty())
+		{
+			ImGui::Text("タグなし");
+		}
+
+		for (size_t index = 0; index < tags_.size(); ++index)
+		{
+			ImGui::PushID(static_cast<int>(index));
+			ImGui::Text("%s", tags_[index].c_str());
+			ImGui::SameLine();
+			if (ImGui::Button("削除"))
+			{
+				RemoveTag(tags_[index]);
+				ImGui::PopID();
+				break; // 削除で配列が変わるため次フレームに描画を続ける
+			}
+			ImGui::PopID();
+		}
+
+		ImGui::InputText("追加タグ", newTagBuffer.data(), newTagBuffer.size());
+		ImGui::SameLine();
+		if (ImGui::Button("追加"))
+		{
+			AddTag(newTagBuffer.data());
+			newTagBuffer.fill('\0');
+		}
 #endif // USE_IMGUI
 
 	}
@@ -275,6 +346,9 @@ namespace Ken4lowEngine
 	{
 		outJson["Name"] = GetName();		// Actor名を保存する
 		outJson["Class"] = GetClassTypeName();  // Actorの種類を保存する
+		outJson["Active"] = IsActive(); // Actorの有効状態を保存する
+		outJson["Layer"] = GetLayer(); // Actorの管理Layerを保存する
+		outJson["Tags"] = tags_; // Actor検索用Tag一覧を保存する
 
 		outJson["Components"] = nlohmann::json::array(); // Component一覧を保存するための配列を作成する
 
@@ -293,9 +367,31 @@ namespace Ken4lowEngine
 
 	void Actor::FromJson(const nlohmann::json& inJson)
 	{
+		isActive_ = true;
+		tags_.clear();
+		layer_ = "Default";
+
 		if (inJson.contains("Name") && inJson["Name"].is_string())
 		{
 			SetName(inJson["Name"].get<std::string>()); // JSONに保存されたActor名を復元する。
+		}
+		if (inJson.contains("Active") && inJson["Active"].is_boolean())
+		{
+			SetActive(inJson["Active"].get<bool>()); // Actorの有効状態を復元する
+		}
+		if (inJson.contains("Layer") && inJson["Layer"].is_string())
+		{
+			SetLayer(inJson["Layer"].get<std::string>()); // Actorの管理Layerを復元する
+		}
+		if (inJson.contains("Tags") && inJson["Tags"].is_array())
+		{
+			for (const auto& tagJson : inJson["Tags"])
+			{
+				if (tagJson.is_string())
+				{
+					AddTag(tagJson.get<std::string>()); // 不正なTag要素は無視して復元する
+				}
+			}
 		}
 	}
 
@@ -391,6 +487,31 @@ namespace Ken4lowEngine
 		}
 
 		return false;
+	}
+
+	void Actor::AddTag(const std::string& tag)
+	{
+		if (tag.empty() || HasTag(tag))
+		{
+			return; // 空Tagや重複Tagは追加しない
+		}
+
+		tags_.push_back(tag);
+	}
+
+	void Actor::RemoveTag(const std::string& tag)
+	{
+		std::erase(tags_, tag); // 存在しないTag指定なら何もしない
+	}
+
+	bool Actor::HasTag(const std::string& tag) const
+	{
+		return std::find(tags_.begin(), tags_.end(), tag) != tags_.end();
+	}
+
+	void Actor::SetLayer(const std::string& layer)
+	{
+		layer_ = layer.empty() ? "Default" : layer; // 空LayerはDefaultへ戻す
 	}
 
 	ActorComponent* Actor::FindComponentByName(std::string_view name)

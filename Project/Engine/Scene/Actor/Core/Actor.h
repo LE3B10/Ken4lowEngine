@@ -255,6 +255,60 @@ namespace Ken4lowEngine
 			return name_; // Actor検索に使う名前を返す
 		}
 
+	public: /// ---------- Actor管理情報 ---------- ///
+
+		/// <summary>
+		/// Actorの有効状態を設定する。
+		/// </summary>
+		void SetActive(bool active)
+		{
+			isActive_ = active; // Actor単位でUpdate/Draw対象に含めるかを切り替える
+		}
+
+		/// <summary>
+		/// Actorが有効かどうかを取得する。
+		/// </summary>
+		bool IsActive() const
+		{
+			return isActive_; // ActorWorld側の更新・描画判定に使う
+		}
+
+		/// <summary>
+		/// ActorにTagを追加する。
+		/// </summary>
+		void AddTag(const std::string& tag);
+
+		/// <summary>
+		/// ActorからTagを削除する。
+		/// </summary>
+		void RemoveTag(const std::string& tag);
+
+		/// <summary>
+		/// Actorが指定Tagを持つか確認する。
+		/// </summary>
+		bool HasTag(const std::string& tag) const;
+
+		/// <summary>
+		/// Actorが持つTag一覧を取得する。
+		/// </summary>
+		const std::vector<std::string>& GetTags() const
+		{
+			return tags_;
+		}
+
+		/// <summary>
+		/// Actorの管理Layerを設定する。
+		/// </summary>
+		void SetLayer(const std::string& layer);
+
+		/// <summary>
+		/// Actorの管理Layerを取得する。
+		/// </summary>
+		const std::string& GetLayer() const
+		{
+			return layer_;
+		}
+
 		/// <summary>
 		/// 名前からComponentを検索する。
 		/// </summary>
@@ -311,6 +365,15 @@ namespace Ken4lowEngine
 
 		// ActorWorldやEditor上で識別するための名前
 		std::string name_ = "Actor";
+
+		// Actor単位の有効状態
+		bool isActive_ = true;
+
+		// Actorを分類・検索するためのTag一覧
+		std::vector<std::string> tags_;
+
+		// Actorを管理用に分類するLayer名
+		std::string layer_ = "Default";
 
 		// 更新中に即削除せず、ActorWorld側で安全に破棄するためのフラグ
 		bool isPendingDestroy_ = false;

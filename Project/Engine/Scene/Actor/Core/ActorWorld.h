@@ -97,7 +97,17 @@ namespace Ken4lowEngine
 		/// 名前からActorを検索する
 		/// </summary>
 		/// <param name="name">検索するActorの名前</param>
-		Actor* FindActorByName(std::string_view name);
+		Actor* FindActorByName(std::string_view name, bool includeInactive = true);
+
+		/// <summary>
+		/// 指定Tagを持つActorを検索する
+		/// </summary>
+		std::vector<Actor*> FindActorsWithTag(std::string_view tag, bool includeInactive = true);
+
+		/// <summary>
+		/// 指定Layerに所属するActorを検索する
+		/// </summary>
+		std::vector<Actor*> FindActorsByLayer(std::string_view layer, bool includeInactive = true);
 
 		/// <summary>
 		/// JSONファイルからActorを生成してActorWorldに追加する

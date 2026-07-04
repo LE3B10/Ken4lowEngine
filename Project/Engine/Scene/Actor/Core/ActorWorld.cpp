@@ -79,6 +79,22 @@ namespace Ken4lowEngine
 
 		for (auto& actor : actors_)
 		{
+			if (!actor)
+			{
+				continue; // nullptrのActorは無視する
+			}
+
+			if (!actor->IsActive())
+			{
+				UnregisterPhysicsComponents(*actor); // 無効なActorは物理登録から外す
+				continue;
+			}
+
+			if (!actor->IsPhysicsRegistered())
+			{
+				RegisterPhysicsComponents(*actor); // 再有効化されたActorの物理登録を戻す
+			}
+
 			// ActorWorldは更新順だけ管理し、処理内容はActor/Component側に任せる
 			actor->Update(deltaTime);
 
@@ -101,6 +117,11 @@ namespace Ken4lowEngine
 	{
 		for (auto& actor : actors_)
 		{
+			if (!actor || !actor->IsActive())
+			{
+				continue; // 無効なActorは物理後更新対象から外す
+			}
+
 			// PhysicsWorld更新後の処理をActorへ流す。
 			actor->PostPhysicsUpdate(deltaTime);
 		}
@@ -114,6 +135,11 @@ namespace Ken4lowEngine
 
 		for (auto& actor : actors_)
 		{
+			if (!actor || !actor->IsActive())
+			{
+				continue; // 無効なActorは通常描画対象から外す
+			}
+
 			// 通常描画を持つActorだけが内部Component経由で描画される
 			actor->Draw();
 		}
@@ -132,9 +158,9 @@ namespace Ken4lowEngine
 
 		for (auto& actor : actors_)
 		{
-			if (!actor || actor->IsPendingDestroy())
+			if (!actor || actor->IsPendingDestroy() || !actor->IsActive())
 			{
-				continue; // 削除予定のActorはUI描画対象から外す
+				continue; // 削除予定または無効なActorはUI描画対象から外す
 			}
 
 			const auto components = actor->GetComponents<SpriteComponent>();
@@ -277,6 +303,11 @@ namespace Ken4lowEngine
 	{
 		for (auto& actor : actors_)
 		{
+			if (!actor || !actor->IsActive())
+			{
+				continue; // 無効なActorはShadow描画対象から外す
+			}
+
 			// 影を落とすActorだけが内部Component経由でShadow描画される
 			actor->DrawShadow();
 		}
@@ -493,10 +524,15 @@ namespace Ken4lowEngine
 		isInitialized_ = false; // 再Initialize時にSpawn済みActorを通常初期化できるように戻す
 	}
 
-	Actor* ActorWorld::FindActorByName(std::string_view name)
+	Actor* ActorWorld::FindActorByName(std::string_view name, bool includeInactive)
 	{
 		for (auto& actor : actors_)
 		{
+			if (!actor || (!includeInactive && !actor->IsActive()))
+			{
+				continue; // 無効なActorを除外する指定なら検索対象から外す
+			}
+
 			// Actor名が一致した最初のActorを返す
 			if (actor->GetName() == name)
 			{
@@ -505,6 +541,52 @@ namespace Ken4lowEngine
 		}
 
 		return nullptr; // 名前が一致するActorが見つからなかった場合はnullptrを返す
+	}
+
+	std::vector<Actor*> ActorWorld::FindActorsWithTag(std::string_view tag, bool includeInactive)
+	{
+		std::vector<Actor*> results;
+		if (tag.empty())
+		{
+			return results; // 空Tagでは検索しない
+		}
+
+		const std::string tagString{ tag };
+		for (auto& actor : actors_)
+		{
+			if (!actor || (!includeInactive && !actor->IsActive()))
+			{
+				continue; // nullptrや除外対象のInactive Actorは無視する
+			}
+
+			if (actor->HasTag(tagString))
+			{
+				results.push_back(actor.get());
+			}
+		}
+
+		return results;
+	}
+
+	std::vector<Actor*> ActorWorld::FindActorsByLayer(std::string_view layer, bool includeInactive)
+	{
+		std::vector<Actor*> results;
+		const std::string layerString = layer.empty() ? "Default" : std::string(layer);
+
+		for (auto& actor : actors_)
+		{
+			if (!actor || (!includeInactive && !actor->IsActive()))
+			{
+				continue; // nullptrや除外対象のInactive Actorは無視する
+			}
+
+			if (actor->GetLayer() == layerString)
+			{
+				results.push_back(actor.get());
+			}
+		}
+
+		return results;
 	}
 
 	Actor* ActorWorld::SpawnActorFromJson(std::string_view filePath, const ActorSpawnOptions& options)
@@ -599,9 +681,9 @@ namespace Ken4lowEngine
 
 	void ActorWorld::RegisterPhysicsComponents(Actor& actor)
 	{
-		if (!physicsWorld_ || actor.IsPhysicsRegistered())
+		if (!physicsWorld_ || actor.IsPhysicsRegistered() || !actor.IsActive())
 		{
-			return; // PhysicsWorldが無い、または登録済みの場合は何もしない
+			return; // PhysicsWorldが無い、登録済み、または無効なActorの場合は何もしない
 		}
 
 		auto colliders = actor.GetComponents<ColliderComponent>();
@@ -667,9 +749,9 @@ namespace Ken4lowEngine
 
 		for (const auto& actor : actors_)
 		{
-			if (!actor || actor->IsPendingDestroy())
+			if (!actor || actor->IsPendingDestroy() || !actor->IsActive())
 			{
-				continue; // 削除予定のActorはライト反映対象から外す
+				continue; // 削除予定または無効なActorはライト反映対象から外す
 			}
 
 			const auto lightComponents = actor->GetComponents<LightComponent>();
