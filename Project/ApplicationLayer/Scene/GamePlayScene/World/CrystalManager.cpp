@@ -5,6 +5,7 @@
 #include "CameraManager.h"
 #include "CollisionManager.h"
 #include "EnemyBase.h"
+#include "Player.h"
 #include "SkyBox.h"
 
 #include <algorithm>
@@ -14,6 +15,23 @@
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif
+
+namespace
+{
+	float Clamp01(float value)
+	{
+		return std::clamp(value, 0.0f, 1.0f);
+	}
+
+	float SaturateInverseLerp(float minValue, float maxValue, float value)
+	{
+		if (std::fabs(maxValue - minValue) <= 0.0001f)
+		{
+			return value >= maxValue ? 1.0f : 0.0f;
+		}
+		return Clamp01((value - minValue) / (maxValue - minValue));
+	}
+}
 
 CrystalManager::~CrystalManager()
 {
@@ -66,6 +84,9 @@ void CrystalManager::Initialize(const std::vector<CrystalSpawnPoint>& spawnPoint
 	nextSpawnCrystalIndex_ = 0;
 	enableCrystalEnemySpawn_ = true;
 	maxSpawnPerInterval_ = 1;
+	difficultyRuntime_ = {};
+	difficultyRuntime_.maxAliveEnemiesPerCrystal = difficultySettings_.normalMaxAlivePerCrystal;
+	difficultyRuntime_.maxAliveEnemiesTotal = difficultySettings_.normalMaxAliveEnemiesTotal;
 	hasCrystalBroken_ = false;
 	isFinalPhaseReady_ = false;
 	requestBossAppear_ = false;
@@ -112,6 +133,8 @@ void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 	{
 		crystal.Update(characters, deltaTime, reactionSettings_);
 	}
+	UpdateDifficultyDirector(characters, deltaTime);
+	ApplyDifficultyDirectorToCrystals();
 	HandleCrystalBreakEvents();
 	UpdateWorldColorChange(deltaTime);
 	UpdateSkyColorChange(deltaTime);
@@ -131,6 +154,12 @@ void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 	// 各クリスタルのTransformをスポーン基準にして、個別の間隔/初回遅延で敵を補充する。
 	for (int spawnedCount = 0; spawnedCount < maxSpawnPerInterval_; ++spawnedCount)
 	{
+		// 全体敵数上限で画面内の敵数を抑え、Pressure上昇時も無限増殖しないようにする。
+		if (characters.GetAliveNormalEnemyCount() >= difficultyRuntime_.maxAliveEnemiesTotal)
+		{
+			break;
+		}
+
 		EnemySpawnCrystal* crystal = FindNextSpawnableCrystal();
 		if (!crystal)
 		{
@@ -139,14 +168,22 @@ void CrystalManager::Update(CharacterWorld& characters, float deltaTime)
 
 		if (crystal->GetSpawnPattern() == "Burst")
 		{
-			while (crystal->CanSpawnEnemy())
+			while (crystal->CanSpawnEnemy() && characters.GetAliveNormalEnemyCount() < difficultyRuntime_.maxAliveEnemiesTotal)
 			{
-				crystal->SpawnEnemy(characters);
+				crystal->SpawnEnemy(
+					characters,
+					difficultyRuntime_.enemyMoveSpeedMultiplier,
+					difficultyRuntime_.attackCooldownMultiplier,
+					difficultyRuntime_.damageMultiplier);
 			}
 		}
 		else
 		{
-			crystal->SpawnEnemy(characters);
+			crystal->SpawnEnemy(
+				characters,
+				difficultyRuntime_.enemyMoveSpeedMultiplier,
+				difficultyRuntime_.attackCooldownMultiplier,
+				difficultyRuntime_.damageMultiplier);
 		}
 		crystal->ConsumeSpawnTimer();
 	}
@@ -302,11 +339,159 @@ void CrystalManager::ApplyStage1BeginnerBalance(CrystalSpawnPoint& spawnPoint)
 	spawnPoint.maxHp = 350;
 	spawnPoint.spawnInterval = 7.0f;
 	spawnPoint.initialDelay = 7.0f;
-	spawnPoint.maxSpawnCount = 2;
-	spawnPoint.maxAliveEnemies = 2;
+	spawnPoint.maxSpawnCount = 0;
+	spawnPoint.maxAliveEnemies = difficultyRuntime_.maxAliveEnemiesPerCrystal;
 	spawnPoint.spawnRadius = 4.0f;
 	spawnPoint.spawnPattern = "Interval";
 	spawnPoint.enableInfiniteSpawn = spawnPoint.isActive;
+}
+
+void CrystalManager::UpdateDifficultyDirector(CharacterWorld& characters, float deltaTime)
+{
+	if (!stage1BeginnerBalanceEnabled_ || !difficultyDirectorEnabled_)
+	{
+		difficultyRuntime_.level = PressureLevel::NormalPressure;
+		difficultyRuntime_.pressureScore = 0.0f;
+		difficultyRuntime_.maxAliveEnemiesPerCrystal = difficultySettings_.normalMaxAlivePerCrystal;
+		difficultyRuntime_.maxAliveEnemiesTotal = difficultySettings_.normalMaxAliveEnemiesTotal;
+		difficultyRuntime_.spawnIntervalMultiplier = difficultySettings_.normalSpawnIntervalMultiplier;
+		difficultyRuntime_.enemyMoveSpeedMultiplier = difficultySettings_.normalEnemyMoveSpeedMultiplier;
+		difficultyRuntime_.attackCooldownMultiplier = difficultySettings_.normalAttackCooldownMultiplier;
+		difficultyRuntime_.damageMultiplier = difficultySettings_.normalDamageMultiplier;
+		return;
+	}
+
+	Player* player = characters.GetPlayer();
+	const float previousHpRate = difficultyRuntime_.playerHpRate;
+	difficultyRuntime_.playerHpRate = player && player->GetMaxHP() > 0.0f
+		? std::clamp(player->GetHP() / player->GetMaxHP(), 0.0f, 1.0f)
+		: 1.0f;
+
+	if (difficultyRuntime_.playerHpRate < previousHpRate - 0.001f)
+	{
+		difficultyRuntime_.noDamageTimer = 0.0f;
+	}
+	else
+	{
+		difficultyRuntime_.noDamageTimer += deltaTime;
+	}
+
+	const int aliveEnemies = characters.GetAliveNormalEnemyCount();
+	if (aliveEnemies < difficultyRuntime_.previousAliveEnemyCount)
+	{
+		difficultyRuntime_.recentKillCount += difficultyRuntime_.previousAliveEnemyCount - aliveEnemies;
+		difficultyRuntime_.fastKillTimer = 0.0f;
+	}
+	else
+	{
+		difficultyRuntime_.fastKillTimer += deltaTime;
+		if (difficultyRuntime_.fastKillTimer > difficultySettings_.fastKillWindow)
+		{
+			difficultyRuntime_.recentKillCount = 0;
+			difficultyRuntime_.fastKillTimer = 0.0f;
+		}
+	}
+	difficultyRuntime_.previousAliveEnemyCount = aliveEnemies;
+
+	const float hpComfort = SaturateInverseLerp(difficultySettings_.lowHpRate, difficultySettings_.comfortableHpRate, difficultyRuntime_.playerHpRate);
+	const float noDamageComfort = SaturateInverseLerp(0.0f, difficultySettings_.noDamageComfortTime, difficultyRuntime_.noDamageTimer);
+	const float killComfort = Clamp01(static_cast<float>(difficultyRuntime_.recentKillCount) / 3.0f);
+	const float lowEnemyBonus = 1.0f - Clamp01(static_cast<float>(aliveEnemies) / static_cast<float>(std::max(1, difficultyRuntime_.maxAliveEnemiesTotal)));
+	const float crystalPressure = Clamp01(static_cast<float>(GetAliveCrystalCount()) / static_cast<float>(std::max(1, GetCrystalCount())));
+
+	// プレイヤーが余裕なら圧を上げ、危ない時は下げて緩急を作る。
+	float pressureScore =
+		hpComfort * 0.35f +
+		noDamageComfort * 0.25f +
+		killComfort * 0.20f +
+		lowEnemyBonus * 0.15f +
+		crystalPressure * 0.05f;
+	if (difficultyRuntime_.playerHpRate <= difficultySettings_.lowHpRate)
+	{
+		pressureScore -= 0.35f;
+	}
+	difficultyRuntime_.pressureScore = std::clamp(pressureScore, 0.0f, 1.0f);
+
+	if (difficultyRuntime_.playerHpRate <= difficultySettings_.lowHpRate)
+	{
+		difficultyRuntime_.level = PressureLevel::EasyPressure;
+	}
+	else if (difficultyRuntime_.pressureScore >= 0.82f && difficultyRuntime_.noDamageTimer >= difficultySettings_.noDamagePanicTime)
+	{
+		difficultyRuntime_.level = PressureLevel::PanicPressure;
+	}
+	else if (difficultyRuntime_.pressureScore >= 0.58f)
+	{
+		difficultyRuntime_.level = PressureLevel::HighPressure;
+	}
+	else
+	{
+		difficultyRuntime_.level = PressureLevel::NormalPressure;
+	}
+
+	switch (difficultyRuntime_.level)
+	{
+	case PressureLevel::EasyPressure:
+		difficultyRuntime_.maxAliveEnemiesPerCrystal = difficultySettings_.easyMaxAlivePerCrystal;
+		difficultyRuntime_.maxAliveEnemiesTotal = difficultySettings_.easyMaxAliveEnemiesTotal;
+		difficultyRuntime_.spawnIntervalMultiplier = difficultySettings_.easySpawnIntervalMultiplier;
+		difficultyRuntime_.enemyMoveSpeedMultiplier = difficultySettings_.easyEnemyMoveSpeedMultiplier;
+		difficultyRuntime_.attackCooldownMultiplier = difficultySettings_.easyAttackCooldownMultiplier;
+		difficultyRuntime_.damageMultiplier = difficultySettings_.easyDamageMultiplier;
+		break;
+	case PressureLevel::HighPressure:
+		difficultyRuntime_.maxAliveEnemiesPerCrystal = difficultySettings_.highMaxAlivePerCrystal;
+		difficultyRuntime_.maxAliveEnemiesTotal = difficultySettings_.highMaxAliveEnemiesTotal;
+		difficultyRuntime_.spawnIntervalMultiplier = difficultySettings_.highSpawnIntervalMultiplier;
+		difficultyRuntime_.enemyMoveSpeedMultiplier = difficultySettings_.highEnemyMoveSpeedMultiplier;
+		difficultyRuntime_.attackCooldownMultiplier = difficultySettings_.highAttackCooldownMultiplier;
+		difficultyRuntime_.damageMultiplier = difficultySettings_.highDamageMultiplier;
+		break;
+	case PressureLevel::PanicPressure:
+		difficultyRuntime_.maxAliveEnemiesPerCrystal = difficultySettings_.panicMaxAlivePerCrystal;
+		difficultyRuntime_.maxAliveEnemiesTotal = difficultySettings_.panicMaxAliveEnemiesTotal;
+		difficultyRuntime_.spawnIntervalMultiplier = difficultySettings_.panicSpawnIntervalMultiplier;
+		difficultyRuntime_.enemyMoveSpeedMultiplier = difficultySettings_.panicEnemyMoveSpeedMultiplier;
+		difficultyRuntime_.attackCooldownMultiplier = difficultySettings_.panicAttackCooldownMultiplier;
+		difficultyRuntime_.damageMultiplier = difficultySettings_.panicDamageMultiplier;
+		break;
+	case PressureLevel::NormalPressure:
+	default:
+		difficultyRuntime_.maxAliveEnemiesPerCrystal = difficultySettings_.normalMaxAlivePerCrystal;
+		difficultyRuntime_.maxAliveEnemiesTotal = difficultySettings_.normalMaxAliveEnemiesTotal;
+		difficultyRuntime_.spawnIntervalMultiplier = difficultySettings_.normalSpawnIntervalMultiplier;
+		difficultyRuntime_.enemyMoveSpeedMultiplier = difficultySettings_.normalEnemyMoveSpeedMultiplier;
+		difficultyRuntime_.attackCooldownMultiplier = difficultySettings_.normalAttackCooldownMultiplier;
+		difficultyRuntime_.damageMultiplier = difficultySettings_.normalDamageMultiplier;
+		break;
+	}
+}
+
+void CrystalManager::ApplyDifficultyDirectorToCrystals()
+{
+	if (!stage1BeginnerBalanceEnabled_)
+	{
+		return;
+	}
+
+	for (size_t i = 0; i < crystals_.size() && i < spawnPoints_.size(); ++i)
+	{
+		// クリスタル単位は同時生存数だけを変え、累計スポーン数では通常進行を止めない。
+		crystals_[i].SetMaxAliveEnemies(difficultyRuntime_.maxAliveEnemiesPerCrystal);
+		crystals_[i].SetSpawnInterval(spawnPoints_[i].spawnInterval * difficultyRuntime_.spawnIntervalMultiplier);
+	}
+}
+
+const char* CrystalManager::GetPressureLevelName() const
+{
+	switch (difficultyRuntime_.level)
+	{
+	case PressureLevel::EasyPressure: return "EasyPressure";
+	case PressureLevel::HighPressure: return "HighPressure";
+	case PressureLevel::PanicPressure: return "PanicPressure";
+	case PressureLevel::NormalPressure:
+	default: return "NormalPressure";
+	}
 }
 
 void CrystalManager::SyncCrystalsFromParameterManager()
@@ -583,6 +768,34 @@ void CrystalManager::DrawImGui()
 	ImGui::Text("現在のクリスタル由来敵数: %d", GetAliveCrystalSpawnEnemyCount());
 	ImGui::DragInt("1回の最大スポーン数", &maxSpawnPerInterval_, 1.0f, 1, 9);
 	maxSpawnPerInterval_ = std::max(1, maxSpawnPerInterval_);
+	ImGui::SeparatorText("Difficulty Director");
+	ImGui::Checkbox("Director有効", &difficultyDirectorEnabled_);
+	ImGui::Text("Pressure Level: %s", GetPressureLevelName());
+	ImGui::Text("pressureScore: %.2f", difficultyRuntime_.pressureScore);
+	ImGui::Text("Player HP Rate: %.2f", difficultyRuntime_.playerHpRate);
+	ImGui::Text("無被弾時間: %.2f 秒", difficultyRuntime_.noDamageTimer);
+	ImGui::Text("最近の撃破数: %d", difficultyRuntime_.recentKillCount);
+	ImGui::Text("現在敵数 / 全体上限: %d / %d", debugAliveNormalEnemyCount_, difficultyRuntime_.maxAliveEnemiesTotal);
+	ImGui::Text("クリスタルごとの同時生存上限: %d", difficultyRuntime_.maxAliveEnemiesPerCrystal);
+	ImGui::Text("スポーン間隔倍率: %.2f", difficultyRuntime_.spawnIntervalMultiplier);
+	ImGui::Text("敵移動速度倍率: %.2f", difficultyRuntime_.enemyMoveSpeedMultiplier);
+	ImGui::Text("攻撃CT倍率: %.2f", difficultyRuntime_.attackCooldownMultiplier);
+	ImGui::Text("攻撃ダメージ倍率: %.2f", difficultyRuntime_.damageMultiplier);
+	ImGui::DragFloat("低HP判定", &difficultySettings_.lowHpRate, 0.01f, 0.05f, 0.95f, "%.2f");
+	ImGui::DragFloat("余裕HP判定", &difficultySettings_.comfortableHpRate, 0.01f, 0.05f, 1.0f, "%.2f");
+	ImGui::DragFloat("余裕無被弾時間", &difficultySettings_.noDamageComfortTime, 0.1f, 1.0f, 60.0f, "%.1f 秒");
+	ImGui::DragFloat("Panic無被弾時間", &difficultySettings_.noDamagePanicTime, 0.1f, 1.0f, 90.0f, "%.1f 秒");
+	ImGui::DragInt("Easy 全体敵数上限", &difficultySettings_.easyMaxAliveEnemiesTotal, 1.0f, 1, 50);
+	ImGui::DragInt("Normal 全体敵数上限", &difficultySettings_.normalMaxAliveEnemiesTotal, 1.0f, 1, 50);
+	ImGui::DragInt("High 全体敵数上限", &difficultySettings_.highMaxAliveEnemiesTotal, 1.0f, 1, 50);
+	ImGui::DragInt("Panic 全体敵数上限", &difficultySettings_.panicMaxAliveEnemiesTotal, 1.0f, 1, 50);
+	ImGui::DragInt("Easy クリスタル同時上限", &difficultySettings_.easyMaxAlivePerCrystal, 1.0f, 0, 20);
+	ImGui::DragInt("Normal クリスタル同時上限", &difficultySettings_.normalMaxAlivePerCrystal, 1.0f, 0, 20);
+	ImGui::DragInt("High クリスタル同時上限", &difficultySettings_.highMaxAlivePerCrystal, 1.0f, 0, 20);
+	ImGui::DragInt("Panic クリスタル同時上限", &difficultySettings_.panicMaxAlivePerCrystal, 1.0f, 0, 20);
+	ImGui::DragFloat("Easy 間隔倍率", &difficultySettings_.easySpawnIntervalMultiplier, 0.01f, 0.1f, 5.0f, "%.2f");
+	ImGui::DragFloat("High 間隔倍率", &difficultySettings_.highSpawnIntervalMultiplier, 0.01f, 0.1f, 5.0f, "%.2f");
+	ImGui::DragFloat("Panic 間隔倍率", &difficultySettings_.panicSpawnIntervalMultiplier, 0.01f, 0.1f, 5.0f, "%.2f");
 	ImGui::Text("クリスタル数: %d", GetCrystalCount());
 	ImGui::Text("生存クリスタル数: %d", GetAliveCrystalCount());
 	ImGui::Text("全クリスタル破壊済み: %s", AreAllCrystalsDestroyed() ? "はい" : "いいえ");
@@ -691,6 +904,18 @@ void CrystalManager::DrawImGui()
 	ImGui::Text("湧き半径: %.2f", crystal->GetSpawnRadius());
 	ImGui::Text("選択中クリスタル由来の生存敵数: %d", crystal->GetAliveSpawnedEnemyCount());
 	ImGui::Text("選択中クリスタルの合計スポーン数: %d", crystal->GetTotalSpawnedCount());
+	ImGui::SeparatorText("Crystal Alive Counts");
+	for (size_t i = 0; i < crystals_.size(); ++i)
+	{
+		const EnemySpawnCrystal& entry = crystals_[i];
+		ImGui::Text("[%zu] %s alive:%d maxAlive:%d interval:%.2f total:%d",
+			i,
+			entry.GetCrystalName().c_str(),
+			entry.GetAliveSpawnedEnemyCount(),
+			entry.GetMaxAliveEnemies(),
+			entry.GetSpawnInterval(),
+			entry.GetTotalSpawnedCount());
+	}
 	if (ImGui::Button("選択中クリスタルに10ダメージ"))
 	{
 		crystal->ApplyDamage(10);

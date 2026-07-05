@@ -279,6 +279,7 @@ public:
     void Initialize() override;
     // 通常戦闘、徘徊、爆弾、時限爆弾、被弾/死亡演出を優先順に更新する。
     void Update(float deltaTime) override;
+    void ApplyDirectorDifficulty(float moveSpeedMultiplier, float attackCooldownMultiplier, float damageMultiplier) override;
     // 本体、爆弾、デバッグ用爆発範囲を描画する。
     void Draw() override;
     // 中距離敵専用のAI/爆弾/経路/チューニングDebug UIを描画する。

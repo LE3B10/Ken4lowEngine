@@ -53,6 +53,7 @@ public:
 	virtual void DrawImGui();
 	virtual void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
 	virtual void DrawShadow();
+	virtual void ApplyDirectorDifficulty(float moveSpeedMultiplier, float attackCooldownMultiplier, float damageMultiplier);
 
 public:
 	// HP

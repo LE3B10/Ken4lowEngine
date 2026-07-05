@@ -109,6 +109,23 @@ void MeleeEnemy::Initialize()
 	LoadTuningFromJson(tuningIo_.jsonPath, &tuningIo_.lastLoadResult);
 }
 
+void MeleeEnemy::ApplyDirectorDifficulty(float moveSpeedMultiplier, float attackCooldownMultiplier, float damageMultiplier)
+{
+	// Directorの圧は生成済み個体の基礎チューニングに倍率だけを掛け、敵AI本体の分岐は増やさない。
+	move_.moveSpeed *= std::max(0.1f, moveSpeedMultiplier);
+	for (MeleeAttackType type : { MeleeAttackType::Scratch, MeleeAttackType::LungeScratch })
+	{
+		if (MeleeAttackPattern* pattern = attackController_.FindPattern(type))
+		{
+			pattern->cooldown = std::max(0.05f, pattern->cooldown * std::max(0.1f, attackCooldownMultiplier));
+			for (MeleeAttackStep& step : pattern->steps)
+			{
+				step.damage = std::max(1, static_cast<int>(std::round(static_cast<float>(step.damage) * std::max(0.1f, damageMultiplier))));
+			}
+		}
+	}
+}
+
 void MeleeEnemy::Update(float deltaTime)
 {
 	if (IsDead())

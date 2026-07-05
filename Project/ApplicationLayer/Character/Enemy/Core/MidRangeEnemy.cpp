@@ -82,6 +82,17 @@ void MidRangeEnemy::Initialize()
     wanderState_.spawnPosition = GetCenterPosition();
 }
 
+void MidRangeEnemy::ApplyDirectorDifficulty(float moveSpeedMultiplier, float attackCooldownMultiplier, float damageMultiplier)
+{
+    (void)damageMultiplier;
+    // Director倍率は生成時の個体チューニングへだけ掛け、通常AIの状態遷移は既存のまま使う。
+    const float safeMoveMultiplier = std::max(0.1f, moveSpeedMultiplier);
+    move_.moveSpeed *= safeMoveMultiplier;
+    move_.retreatSpeed *= safeMoveMultiplier;
+    wander_.moveSpeed *= safeMoveMultiplier;
+    bombAttack_.cooldown = std::max(0.1f, bombAttack_.cooldown * std::max(0.1f, attackCooldownMultiplier));
+}
+
 void MidRangeEnemy::SetTarget(const Vector3& target)
 {
     targetState_.position = target;

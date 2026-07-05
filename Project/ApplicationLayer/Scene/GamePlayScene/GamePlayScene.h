@@ -90,7 +90,7 @@ private: /// ---------- 初期化 / 終了系 ---------- ///
 	void InitializeSystems();
 
 	// ゲームプレイ構成オブジェクト生成
-	void InitializeGameplayObjects();
+	void InitializeGameplayObjects(bool skipStage1Tutorial = false);
 
 	// 新規ゲーム開始時のセットアップ
 	void SetupNewGame(bool skipIntro = false);
@@ -155,6 +155,9 @@ private: /// ---------- 補助系 ---------- ///
 
 	// リスタート
 	void RestartGame(bool skipIntro = true);
+	bool ShouldStartStage1Tutorial() const;
+	void MarkStage1TutorialSeen();
+	void RequestSkipStage1Tutorial();
 
 	// フェード開始 / 完了判定
 	void StartRetryFadeOut();
@@ -183,6 +186,9 @@ private: /// ---------- メンバ変数 ---------- ///
 	// リトライ遷移制御
 	bool isRetryTransitionActive_ = false; // リトライ演出中か
 	bool isRetryRestartDone_ = false;      // フェードアウト後の再初期化を実行済みか
+	bool tutorialSeen_ = false;			   // 同じ起動中にチュートリアル完了済みかを覚え、2回目以降のスキップ解放に使う。
+	bool tutorialSkipUnlocked_ = false;
+	bool stage1TutorialSkipRequested_ = false;
 
 	bool gameOverOpened_ = false;
 

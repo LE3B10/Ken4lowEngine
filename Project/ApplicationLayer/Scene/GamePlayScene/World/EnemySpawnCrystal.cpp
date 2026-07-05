@@ -25,7 +25,9 @@ namespace
 		{
 			if (center.x + half.x > obstacle.min.x && center.x - half.x < obstacle.max.x &&
 				center.y + half.y > obstacle.min.y && center.y - half.y < obstacle.max.y &&
-				center.z + half.z > obstacle.min.z && center.z - half.z < obstacle.max.z) { return true; }
+				center.z + half.z > obstacle.min.z && center.z - half.z < obstacle.max.z) {
+				return true;
+			}
 		}
 		return false;
 	}
@@ -44,7 +46,9 @@ namespace
 				{
 					if (candidate.x >= floor.min.x - half.x && candidate.x <= floor.max.x + half.x &&
 						candidate.z >= floor.min.z - half.z && candidate.z <= floor.max.z + half.z && floor.max.y <= requested.y + half.y + 0.5f)
-					{ groundY = std::max(groundY, floor.max.y); }
+					{
+						groundY = std::max(groundY, floor.max.y);
+					}
 				}
 			}
 			// Cube仮モデルは中心基準なので、半高さとY補正を足して足元を地面へ載せる。
@@ -59,7 +63,9 @@ namespace
 			{
 				if (fallback.x >= floor.min.x - half.x && fallback.x <= floor.max.x + half.x &&
 					fallback.z >= floor.min.z - half.z && fallback.z <= floor.max.z + half.z && floor.max.y <= requested.y + half.y + 0.5f)
-				{ fallbackGroundY = std::max(fallbackGroundY, floor.max.y); }
+				{
+					fallbackGroundY = std::max(fallbackGroundY, floor.max.y);
+				}
 			}
 		}
 		fallback.y = fallbackGroundY + half.y + spawnYOffset;
@@ -188,6 +194,7 @@ bool EnemySpawnCrystal::CanSpawnEnemy() const
 {
 	const bool underTotalLimit = (maxSpawnCount_ <= 0) || (totalSpawnedCount < maxSpawnCount_);
 	// Breaking/Broken中は破壊済み扱いとして、このクリスタルからのスポーンを停止する。
+	// 累計上限は任意設定だけに使い、通常ステージ1では同時生存数で継続スポーンを制御する。
 	return isActive_ && isAlive && state_ != State::Breaking && state_ != State::Broken && enableInfiniteSpawn && underTotalLimit && aliveSpawnedEnemyCount < maxAliveEnemies;
 }
 
@@ -199,6 +206,11 @@ void EnemySpawnCrystal::SetMaxAliveEnemies(int count)
 void EnemySpawnCrystal::SetSpawnYOffset(float offset)
 {
 	s_spawnYOffset_ = std::clamp(offset, 0.0f, 0.5f);
+}
+
+void EnemySpawnCrystal::SetSpawnInterval(float interval)
+{
+	spawnInterval_ = std::max(0.05f, interval);
 }
 
 void EnemySpawnCrystal::ApplySpawnerSettings(const CrystalSpawnPoint& spawnPoint, const std::vector<AABB>* floorAABBs, const std::vector<AABB>* obstacleAABBs)
@@ -294,11 +306,11 @@ void EnemySpawnCrystal::RemoveInactiveSpawnedEnemies(const CharacterWorld& chara
 	aliveSpawnedEnemyCount = static_cast<int>(spawnedEnemies_.size());
 }
 
-void EnemySpawnCrystal::SpawnEnemy(CharacterWorld& characters)
+EnemyBase* EnemySpawnCrystal::SpawnEnemy(CharacterWorld& characters, float moveSpeedMultiplier, float attackCooldownMultiplier, float damageMultiplier)
 {
 	if (!CanSpawnEnemy())
 	{
-		return;
+		return nullptr;
 	}
 
 	const float angle = RandomRange(0.0f, 6.28318530718f);
@@ -311,16 +323,18 @@ void EnemySpawnCrystal::SpawnEnemy(CharacterWorld& characters)
 
 	// CharacterWorld 内部で EnemyFactory を経由し、設定された雑魚敵派生を生成する。
 	EnemyBase& enemy = characters.SpawnEnemyAt(spawnPosition, spawnEnemyType);
+	enemy.ApplyDirectorDifficulty(moveSpeedMultiplier, attackCooldownMultiplier, damageMultiplier);
 	spawnedEnemies_.push_back(&enemy);
 	aliveSpawnedEnemyCount = static_cast<int>(spawnedEnemies_.size());
 	++totalSpawnedCount;
+	return &enemy;
 }
 
 void EnemySpawnCrystal::SyncTransformToRuntime(const std::vector<AABB>* floorAABBs, const std::vector<AABB>* obstacleAABBs)
 {
 	position_ = SnapCrystalPosition(position_, scale_, floorAABBs, obstacleAABBs, s_spawnYOffset_);
 	SetCenterPosition(IsAlive() ? position_ : Vector3{ 1.0e9f, 1.0e9f, 1.0e9f });
-	SetOBBHalfSize({ std::fabs(scale_.x) * 0.5f, std::fabs(scale_.y) * 0.5f, std::fabs(scale_.z) * 0.5f });
+	SetOBBHalfSize(scale_);
 	SetOrientation(rotation_);
 
 	if (debugCube_)
@@ -411,11 +425,11 @@ K4E::Vector4 EnemySpawnCrystal::BuildVisualColor(const CrystalReactionSettings& 
 		color = { 1.0f, 0.25f, 0.20f, 1.0f };
 		break;
 	case State::Breaking:
-	{
-		const float t = Clamp01(breakingTimer_ / std::max(0.05f, reactionSettings.breakingDuration));
-		color = LerpColor({ 1.0f, 0.15f, 0.08f, 1.0f }, { 0.05f, 0.05f, 0.05f, 0.0f }, t);
-		break;
-	}
+		{
+			const float t = Clamp01(breakingTimer_ / std::max(0.05f, reactionSettings.breakingDuration));
+			color = LerpColor({ 1.0f, 0.15f, 0.08f, 1.0f }, { 0.05f, 0.05f, 0.05f, 0.0f }, t);
+			break;
+		}
 	case State::Broken:
 		color = { 0.0f, 0.0f, 0.0f, 0.0f };
 		break;

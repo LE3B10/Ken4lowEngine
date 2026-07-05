@@ -34,10 +34,11 @@
 
 using namespace Ken4lowEngine;
 
-void GamePlayWorld::Initialize(GamePlayStageContext& stageContext)
+void GamePlayWorld::Initialize(GamePlayStageContext& stageContext, bool skipStage1Tutorial)
 {
 	const auto stageAssets = stageContext.GetCurrentStageAssets();
 	stage1BeginnerBalanceEnabled_ = stageContext.IsBeginningPlainStage();
+	skipStage1Tutorial_ = skipStage1Tutorial;
 
 	InitializeLighting();
 	InitializeSkyBox();
@@ -276,7 +277,7 @@ void GamePlayWorld::InitializeRuntimeHelpers()
 	enemyHpBarManager_.Initialize();
 	aimTargetDetector_.Initialize();
 	ammoRecoveryItemSpawner_.Initialize();
-	stage1TutorialController_.Start(BuildStage1TutorialDependencies(), stage1BeginnerBalanceEnabled_, bossBattleController_.IsDefeated());
+	stage1TutorialController_.Start(BuildStage1TutorialDependencies(), stage1BeginnerBalanceEnabled_, bossBattleController_.IsDefeated(), skipStage1Tutorial_);
 }
 
 
@@ -351,6 +352,8 @@ bool GamePlayWorld::UpdateBlockingStage1Intro(float deltaTime)
 		return false;
 	}
 
+	// チュートリアル中は通常スポナー/Directorを進めず、練習用の敵だけを出す。
+	crystalManager_.SetDifficultyDirectorEnabled(false);
 	stage1TutorialController_.Update(BuildStage1TutorialDependencies(), deltaTime);
 	return true;
 }
@@ -390,6 +393,7 @@ void GamePlayWorld::UpdateGameplayActors(float deltaTime)
 	UpdatePlayerLadderOverlap();
 	// 先にキャラクターとクリスタルを更新し、敵残数とクリスタル破壊状態からボス出現条件を評価する。
 	characters_.Update(deltaTime);
+	crystalManager_.SetDifficultyDirectorEnabled(!stage1TutorialController_.IsGameplayBlocked());
 	crystalManager_.Update(characters_, deltaTime);
 	bossBattleController_.UpdateSpawnProgress(BuildBossBattleDependencies());
 	bossBattleController_.UpdateIntro(BuildBossBattleDependencies(), deltaTime);

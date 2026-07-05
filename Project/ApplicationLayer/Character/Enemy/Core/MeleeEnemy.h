@@ -459,6 +459,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	// 更新処理
 	void Update(float deltaTime) override;
+	void ApplyDirectorDifficulty(float moveSpeedMultiplier, float attackCooldownMultiplier, float damageMultiplier) override;
 
 	// 描画処理
 	void Draw() override;

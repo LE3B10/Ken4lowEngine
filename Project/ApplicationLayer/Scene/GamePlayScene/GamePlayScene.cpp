@@ -92,7 +92,7 @@ void GamePlayScene::InitializeSystems()
 /// -------------------------------------------------------------
 /// ゲームプレイ構成オブジェクト生成
 /// -------------------------------------------------------------
-void GamePlayScene::InitializeGameplayObjects()
+void GamePlayScene::InitializeGameplayObjects(bool skipStage1Tutorial)
 {
 	flow_ = std::make_unique<GamePlayFlow>();
 	flow_->Initialize();
@@ -101,7 +101,7 @@ void GamePlayScene::InitializeGameplayObjects()
 	stageContext_->InitializeFromRepository();
 
 	world_ = std::make_unique<GamePlayWorld>();
-	world_->Initialize(*stageContext_);
+	world_->Initialize(*stageContext_, skipStage1Tutorial);
 	InitializeBulletDecals();
 
 	introDirector_ = std::make_unique<GamePlayIntroDirector>();
@@ -467,6 +467,10 @@ void GamePlayScene::UpdateWorld(float deltaTime)
 	if (world_)
 	{
 		world_->Update(deltaTime);
+		if (world_->HasStage1TutorialCompleted())
+		{
+			MarkStage1TutorialSeen();
+		}
 	}
 
 	if (frustumCullingDebug_)
@@ -602,6 +606,9 @@ void GamePlayScene::RequestRetryWithFade()
 		return;
 	}
 
+	// リトライでは同じ練習を繰り返さず、すぐ再挑戦できるようチュートリアル完了扱いにする。
+	MarkStage1TutorialSeen();
+	RequestSkipStage1Tutorial();
 	isRetryTransitionActive_ = true;
 	isRetryRestartDone_ = false;
 
@@ -864,8 +871,29 @@ void GamePlayScene::RestartGame(bool skipIntro)
 
 	// フェードは残したまま、ゲームプレイ構成だけ再生成
 	ReleaseGameplayObjects();
-	InitializeGameplayObjects();
+	InitializeGameplayObjects(!ShouldStartStage1Tutorial());
+	stage1TutorialSkipRequested_ = false;
 	SetupNewGame(skipIntro);
+}
+
+bool GamePlayScene::ShouldStartStage1Tutorial() const
+{
+	return !stage1TutorialSkipRequested_ && !tutorialSeen_;
+}
+
+void GamePlayScene::MarkStage1TutorialSeen()
+{
+	// 完了済みフラグは同じ起動中の2回目以降にスキップUIを足せる土台として保持する。
+	tutorialSeen_ = true;
+	tutorialSkipUnlocked_ = true;
+}
+
+void GamePlayScene::RequestSkipStage1Tutorial()
+{
+	if (tutorialSkipUnlocked_)
+	{
+		stage1TutorialSkipRequested_ = true;
+	}
 }
 
 void GamePlayScene::StartRetryFadeOut()

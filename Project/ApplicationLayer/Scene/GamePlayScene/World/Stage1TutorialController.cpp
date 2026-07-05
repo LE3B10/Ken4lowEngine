@@ -19,6 +19,13 @@
 
 namespace
 {
+	constexpr float kMovePracticeRequiredDistance = 7.0f;
+	constexpr float kMovePracticeMinInputTime = 1.7f;
+	constexpr float kMouseLookPracticeRequiredAmount = 1400.0f;
+	constexpr float kMouseLookPracticeMinInputTime = 1.7f;
+	constexpr int kShootPracticeRequiredShots = 6;
+	constexpr float kDefaultStepAdvanceDelay = 0.65f;
+
 	bool CalcLookAnglesToTargetForStage1(const K4E::Vector3& from, const K4E::Vector3& target, float& outPitch, float& outYaw)
 	{
 		K4E::Vector3 direction = target - from;
@@ -35,7 +42,7 @@ namespace
 	}
 }
 
-void Stage1TutorialController::Start(const Dependencies& deps, bool beginnerBalanceEnabled, bool bossDefeated)
+void Stage1TutorialController::Start(const Dependencies& deps, bool beginnerBalanceEnabled, bool bossDefeated, bool skipTutorial)
 {
 	if (!beginnerBalanceEnabled || !deps.hudManager || !deps.crystalManager || !deps.itemManager)
 	{
@@ -45,14 +52,36 @@ void Stage1TutorialController::Start(const Dependencies& deps, bool beginnerBala
 	beginnerBalanceEnabled_ = beginnerBalanceEnabled;
 	latestBossDefeated_ = bossDefeated;
 
+	if (skipTutorial)
+	{
+		// リトライ時や解放後スキップでは説明用の入力制限や練習用生成物を作らず通常開始する。
+		tutorialStep_ = TutorialStep::Completed;
+		objectiveIntroActive_ = false;
+		tutorialSeen_ = true;
+		deps.hudManager->SetStage1ObjectiveTutorialAlpha(0.0f);
+		deps.hudManager->SetStage1ObjectiveTutorialPage(0);
+		deps.hudManager->SetStage1ObjectiveTutorialProgress(0.0f);
+		deps.hudManager->SetStage1TutorialItemMarker(0, false, {}, 0);
+		deps.hudManager->SetStage1TutorialItemMarker(1, false, {}, 0);
+		UpdateObjectiveGuideHud(deps, beginnerBalanceEnabled_, false, false, false, bossDefeated);
+		return;
+	}
+
 	// ステージ1は導入ステージなので、開始直後に目的表示と最初のクリスタル方向を案内する。
 	objectiveIntroActive_ = true;
 	objectiveIntroTimer_ = 0.0f;
 	tutorialStep_ = TutorialStep::CrystalExplanation;
 	moveProgress_ = 0.0f;
+	movePracticeTimer_ = 0.0f;
+	movePracticeDistance_ = 0.0f;
 	mouseLookProgress_ = 0.0f;
+	mouseLookPracticeTimer_ = 0.0f;
+	mouseLookAmount_ = 0.0f;
 	shootProgress_ = 0.0f;
 	shootCount_ = 0;
+	pendingStepAdvance_ = false;
+	stepAdvanceDelayTimer_ = 0.0f;
+	stepAdvanceDelay_ = 0.0f;
 	tutorialEnemy_ = nullptr;
 	tutorialEnemySpawned_ = false;
 	tutorialItemSpawned_ = false;
@@ -120,12 +149,19 @@ void Stage1TutorialController::Update(const Dependencies& deps, float deltaTime)
 			const K4E::Vector3 after = player->GetCenterPosition();
 			const K4E::Vector3 delta = after - before;
 			const float movedDistance = std::sqrt(delta.x * delta.x + delta.z * delta.z);
-			// 移動操作を実際に行わせ、初心者がWASD移動を覚えてから次へ進める。
-			moveProgress_ = std::clamp(moveProgress_ + movedDistance / 4.0f, 0.0f, 1.0f);
-			movePreviousPlayerPosition_ = after;
-			if (moveProgress_ >= 1.0f)
+			if (movedDistance > 0.001f && !pendingStepAdvance_)
 			{
-				AdvanceStep(deps);
+				// 少し触っただけで終わらないよう、移動距離に加えて入力していた時間も必要にする。
+				movePracticeTimer_ += deltaTime;
+				movePracticeDistance_ += movedDistance;
+			}
+			moveProgress_ = std::min(
+				std::clamp(movePracticeDistance_ / kMovePracticeRequiredDistance, 0.0f, 1.0f),
+				std::clamp(movePracticeTimer_ / kMovePracticeMinInputTime, 0.0f, 1.0f));
+			movePreviousPlayerPosition_ = after;
+			if (moveProgress_ >= 1.0f && !pendingStepAdvance_)
+			{
+				RequestAdvanceStep(kDefaultStepAdvanceDelay);
 			}
 		}
 		else if (tutorialStep_ == TutorialStep::MouseLookPractice)
@@ -134,11 +170,18 @@ void Stage1TutorialController::Update(const Dependencies& deps, float deltaTime)
 			const float mouseLookAmount = input
 				? (std::fabs(static_cast<float>(input->GetMouseMoveX())) + std::fabs(static_cast<float>(input->GetMouseMoveY())))
 				: 0.0f;
-			// FPS操作に必要な視点移動を覚えさせるため、マウス移動量で進捗を進める。
-			mouseLookProgress_ = std::clamp(mouseLookProgress_ + mouseLookAmount / 600.0f, 0.0f, 1.0f);
-			if (mouseLookProgress_ >= 1.0f)
+			if (mouseLookAmount > 0.0f && !pendingStepAdvance_)
 			{
-				AdvanceStep(deps);
+				// 視点操作も最低練習時間を持たせ、偶然の小さなマウス移動で完了しないようにする。
+				mouseLookPracticeTimer_ += deltaTime;
+				mouseLookAmount_ += mouseLookAmount;
+			}
+			mouseLookProgress_ = std::min(
+				std::clamp(mouseLookAmount_ / kMouseLookPracticeRequiredAmount, 0.0f, 1.0f),
+				std::clamp(mouseLookPracticeTimer_ / kMouseLookPracticeMinInputTime, 0.0f, 1.0f));
+			if (mouseLookProgress_ >= 1.0f && !pendingStepAdvance_)
+			{
+				RequestAdvanceStep(kDefaultStepAdvanceDelay);
 			}
 		}
 		else if (tutorialStep_ == TutorialStep::ItemPickupPractice)
@@ -158,9 +201,9 @@ void Stage1TutorialController::Update(const Dependencies& deps, float deltaTime)
 					++tutorialItemsCollected_;
 				}
 			}
-			if (tutorialItemsCollected_ >= 2)
+			if (tutorialItemsCollected_ >= 2 && !pendingStepAdvance_)
 			{
-				AdvanceStep(deps);
+				RequestAdvanceStep(0.0f);
 			}
 		}
 		else if (tutorialStep_ == TutorialStep::ShootPractice)
@@ -172,16 +215,16 @@ void Stage1TutorialController::Update(const Dependencies& deps, float deltaTime)
 			if (magazineAfter < magazineBefore)
 			{
 				++shootCount_;
-				shootProgress_ = std::clamp(static_cast<float>(shootCount_) / 3.0f, 0.0f, 1.0f);
+				shootProgress_ = std::clamp(static_cast<float>(shootCount_) / static_cast<float>(kShootPracticeRequiredShots), 0.0f, 1.0f);
 				player->AddReserveAmmo(3);
 			}
 			if (deps.bulletManager)
 			{
 				deps.bulletManager->Update(deltaTime);
 			}
-			if (shootProgress_ >= 1.0f)
+			if (shootProgress_ >= 1.0f && !pendingStepAdvance_)
 			{
-				AdvanceStep(deps);
+				RequestAdvanceStep(kDefaultStepAdvanceDelay);
 			}
 		}
 		else if (tutorialStep_ == TutorialStep::ReloadPractice)
@@ -196,9 +239,9 @@ void Stage1TutorialController::Update(const Dependencies& deps, float deltaTime)
 				reloadStarted_ = true;
 			}
 			// リロード操作を確実に覚えさせるため、開始ではなく完了を検知して次へ進める。
-			if (reloadStarted_ && reloadWasReloading_ && !isReloading)
+			if (reloadStarted_ && reloadWasReloading_ && !isReloading && !pendingStepAdvance_)
 			{
-				AdvanceStep(deps);
+				RequestAdvanceStep(kDefaultStepAdvanceDelay);
 			}
 			reloadWasReloading_ = isReloading;
 		}
@@ -214,9 +257,9 @@ void Stage1TutorialController::Update(const Dependencies& deps, float deltaTime)
 			{
 				deps.collisionUpdate();
 			}
-			if (tutorialEnemy_ && tutorialEnemy_->IsDead())
+			if (tutorialEnemy_ && tutorialEnemy_->IsDead() && !pendingStepAdvance_)
 			{
-				AdvanceStep(deps);
+				RequestAdvanceStep(kDefaultStepAdvanceDelay);
 			}
 		}
 		else if (tutorialStep_ == TutorialStep::Completed)
@@ -231,6 +274,7 @@ void Stage1TutorialController::Update(const Dependencies& deps, float deltaTime)
 		}
 	}
 
+	UpdatePendingStepAdvance(deps, deltaTime);
 	UpdatePresentation(deps, deltaTime, tutorialAlpha);
 }
 
@@ -238,6 +282,8 @@ void Stage1TutorialController::Finish(const Dependencies& deps)
 {
 	objectiveIntroActive_ = false;
 	tutorialStep_ = TutorialStep::Completed;
+	pendingStepAdvance_ = false;
+	tutorialSeen_ = true;
 	if (deps.crystalManager)
 	{
 		deps.crystalManager->SetFirstAliveCrystalGuideHighlight(0.0f);
@@ -303,7 +349,10 @@ void Stage1TutorialController::AdvanceStep(const Dependencies& deps)
 	switch (tutorialStep_)
 	{
 	case TutorialStep::CrystalExplanation:
-		tutorialStep_ = TutorialStep::MovePractice;
+		tutorialStep_ = TutorialStep::MouseLookPractice;
+		moveProgress_ = 0.0f;
+		movePracticeTimer_ = 0.0f;
+		movePracticeDistance_ = 0.0f;
 		if (deps.characters)
 		{
 			if (auto* player = deps.characters->GetPlayer())
@@ -312,17 +361,28 @@ void Stage1TutorialController::AdvanceStep(const Dependencies& deps)
 			}
 		}
 		break;
-	case TutorialStep::MovePractice:
-		tutorialStep_ = TutorialStep::MouseLookPractice;
-		mouseLookProgress_ = 0.0f;
-		break;
 	case TutorialStep::MouseLookPractice:
+		tutorialStep_ = TutorialStep::MovePractice;
+		shootProgress_ = 0.0f;
+		shootCount_ = 0;
+		break;
+	case TutorialStep::MovePractice:
 		tutorialStep_ = TutorialStep::ShootPractice;
+		mouseLookProgress_ = 0.0f;
+		mouseLookPracticeTimer_ = 0.0f;
+		mouseLookAmount_ = 0.0f;
 		break;
 	case TutorialStep::ShootPractice:
 		tutorialStep_ = TutorialStep::ReloadPractice;
 		reloadStarted_ = false;
 		reloadWasReloading_ = false;
+		if (deps.characters)
+		{
+			if (auto* player = deps.characters->GetPlayer())
+			{
+				PrepareReloadPractice(*player);
+			}
+		}
 		break;
 	case TutorialStep::ReloadPractice:
 		tutorialStep_ = TutorialStep::EnemyPractice;
@@ -338,11 +398,42 @@ void Stage1TutorialController::AdvanceStep(const Dependencies& deps)
 		tutorialStep_ = TutorialStep::Completed;
 		tutorialCompleteTimer_ = 0.0f;
 		tutorialCompletionNotified_ = true;
+		tutorialSeen_ = true;
 		break;
 	default:
 		break;
 	}
+	pendingStepAdvance_ = false;
+	stepAdvanceDelayTimer_ = 0.0f;
+	stepAdvanceDelay_ = 0.0f;
 	objectiveIntroTimer_ = 0.0f;
+}
+
+void Stage1TutorialController::RequestAdvanceStep(float delay)
+{
+	if (pendingStepAdvance_)
+	{
+		return;
+	}
+
+	// 完了直後に少し余韻を置き、HUDの進捗完了が見えてから次ページへ切り替える。
+	pendingStepAdvance_ = true;
+	stepAdvanceDelayTimer_ = 0.0f;
+	stepAdvanceDelay_ = std::max(0.0f, delay);
+}
+
+void Stage1TutorialController::UpdatePendingStepAdvance(const Dependencies& deps, float deltaTime)
+{
+	if (!pendingStepAdvance_)
+	{
+		return;
+	}
+
+	stepAdvanceDelayTimer_ += deltaTime;
+	if (stepAdvanceDelayTimer_ >= stepAdvanceDelay_)
+	{
+		AdvanceStep(deps);
+	}
 }
 
 bool Stage1TutorialController::AllowsPlayerMove() const
@@ -365,6 +456,17 @@ bool Stage1TutorialController::AllowsReload() const
 {
 	return tutorialStep_ == TutorialStep::ReloadPractice ||
 		tutorialStep_ == TutorialStep::EnemyPractice;
+}
+
+void Stage1TutorialController::PrepareReloadPractice(Player& player)
+{
+	// 射撃練習後に予備弾を補い、弾が減ったからリロードする流れを詰みなく作る。
+	const int magazineCapacity = player.GetCurrentWeaponMagazineCapacity();
+	const int reserveAmmo = player.GetCurrentWeaponReserveAmmo();
+	if (magazineCapacity > 0 && reserveAmmo <= 0)
+	{
+		player.AddReserveAmmo(magazineCapacity);
+	}
 }
 
 void Stage1TutorialController::ApplyPlayerRestrictions(const Dependencies& deps)
@@ -478,24 +580,24 @@ void Stage1TutorialController::UpdateTutorialHud(const Dependencies& deps)
 	if (tutorialStep_ == TutorialStep::ItemPickupPractice)
 	{
 		auto projectMarker = [&deps](int markerIndex, ItemType itemType, int markerType)
-		{
-			K4E::Vector3 itemPosition{};
-			if (!deps.itemManager->TryGetFirstActiveItemPosition(itemType, itemPosition))
 			{
-				return;
-			}
-			if (auto* player = deps.characters->GetPlayer())
-			{
-				if (auto* camera = player->GetCamera())
+				K4E::Vector3 itemPosition{};
+				if (!deps.itemManager->TryGetFirstActiveItemPosition(itemType, itemPosition))
 				{
-					const float width = static_cast<float>(K4E::GameViewportConstants::Width);
-					const float height = static_cast<float>(K4E::GameViewportConstants::Height);
-					const K4E::Vector3 markerWorld{ itemPosition.x, itemPosition.y + 0.5f, itemPosition.z };
-					const HpBarProjectResult projected = ProjectWorldToScreen(markerWorld, camera->GetViewMatrix(), camera->GetProjectionMatrix(), width, height);
-					deps.hudManager->SetStage1TutorialItemMarker(markerIndex, projected.inFront && projected.inScreen, projected.screenPos, markerType);
+					return;
 				}
-			}
-		};
+				if (auto* player = deps.characters->GetPlayer())
+				{
+					if (auto* camera = player->GetCamera())
+					{
+						const float width = static_cast<float>(K4E::GameViewportConstants::Width);
+						const float height = static_cast<float>(K4E::GameViewportConstants::Height);
+						const K4E::Vector3 markerWorld{ itemPosition.x, itemPosition.y + 0.5f, itemPosition.z };
+						const HpBarProjectResult projected = ProjectWorldToScreen(markerWorld, camera->GetViewMatrix(), camera->GetProjectionMatrix(), width, height);
+						deps.hudManager->SetStage1TutorialItemMarker(markerIndex, projected.inFront && projected.inScreen, projected.screenPos, markerType);
+					}
+				}
+			};
 		projectMarker(0, ItemType::AmmoSmall, 1);
 		projectMarker(1, ItemType::HealSmall, 0);
 	}

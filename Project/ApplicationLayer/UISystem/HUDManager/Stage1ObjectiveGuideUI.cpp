@@ -299,7 +299,7 @@ void Stage1ObjectiveGuideUI::DrawTutorialShootPage()
 		});
 	textDrawer_->SetScale(settings_.smallScale);
 	textDrawer_->SetColor({ 0.42f, 0.90f, 1.0f, alpha_ });
-	textDrawer_->DrawTextCentered("1発撃つと次へ進む", {
+	textDrawer_->DrawTextCentered("何発か撃って、射撃感覚を確認しろ", {
 		settings_.tutorialCenter.x,
 		settings_.tutorialCenter.y + 44.0f
 		});

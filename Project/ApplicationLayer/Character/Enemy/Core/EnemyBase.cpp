@@ -233,6 +233,13 @@ void EnemyBase::Initialize()
 	stuckRecoveryCount_ = 0;
 }
 
+void EnemyBase::ApplyDirectorDifficulty(float moveSpeedMultiplier, float attackCooldownMultiplier, float damageMultiplier)
+{
+	(void)moveSpeedMultiplier;
+	(void)attackCooldownMultiplier;
+	(void)damageMultiplier;
+}
+
 /// -------------------------------------------------------------
 /// 中心座標
 /// -------------------------------------------------------------

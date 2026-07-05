@@ -14,6 +14,7 @@
 
 class CharacterWorld;
 class CollisionManager;
+class Player;
 namespace Ken4lowEngine { class SkyBox; }
 
 /// -------------------------------------------------------------
@@ -37,6 +38,7 @@ public:
 	void DrawImGui();
 	void SetSkyBox(K4E::SkyBox* skyBox) { skyBox_ = skyBox; }
 	void SetStage1BeginnerBalanceEnabled(bool enabled);
+	void SetDifficultyDirectorEnabled(bool enabled) { difficultyDirectorEnabled_ = enabled; }
 	void SetFirstAliveCrystalGuideHighlight(float alpha);
 
 	int GetCrystalCount() const { return static_cast<int>(crystals_.size()); }
@@ -60,6 +62,9 @@ private:
 	const EnemySpawnCrystal* GetSelectedCrystal() const;
 	EnemySpawnCrystal* FindNextSpawnableCrystal();
 	void ApplyStage1BeginnerBalance(CrystalSpawnPoint& spawnPoint);
+	void UpdateDifficultyDirector(CharacterWorld& characters, float deltaTime);
+	void ApplyDifficultyDirectorToCrystals();
+	const char* GetPressureLevelName() const;
 	void SyncCrystalsFromParameterManager();
 	void SyncCrystalFromSpawnPoint(size_t index);
 	CrystalParameterController::ReactionBinding BuildReactionParameterBinding();
@@ -76,6 +81,61 @@ private:
 
 private:
 	static constexpr float kMaxUpdateDeltaTime = 1.0f / 30.0f;
+	enum class PressureLevel
+	{
+		EasyPressure,
+		NormalPressure,
+		HighPressure,
+		PanicPressure,
+	};
+	struct DifficultyDirectorSettings
+	{
+		float lowHpRate = 0.35f;
+		float comfortableHpRate = 0.75f;
+		float noDamageComfortTime = 10.0f;
+		float noDamagePanicTime = 18.0f;
+		float fastKillWindow = 8.0f;
+		int easyMaxAlivePerCrystal = 1;
+		int normalMaxAlivePerCrystal = 2;
+		int highMaxAlivePerCrystal = 3;
+		int panicMaxAlivePerCrystal = 4;
+		int easyMaxAliveEnemiesTotal = 7;
+		int normalMaxAliveEnemiesTotal = 10;
+		int highMaxAliveEnemiesTotal = 12;
+		int panicMaxAliveEnemiesTotal = 14;
+		float easySpawnIntervalMultiplier = 1.35f;
+		float normalSpawnIntervalMultiplier = 1.0f;
+		float highSpawnIntervalMultiplier = 0.82f;
+		float panicSpawnIntervalMultiplier = 0.68f;
+		float easyEnemyMoveSpeedMultiplier = 0.95f;
+		float normalEnemyMoveSpeedMultiplier = 1.0f;
+		float highEnemyMoveSpeedMultiplier = 1.08f;
+		float panicEnemyMoveSpeedMultiplier = 1.15f;
+		float easyAttackCooldownMultiplier = 1.10f;
+		float normalAttackCooldownMultiplier = 1.0f;
+		float highAttackCooldownMultiplier = 0.94f;
+		float panicAttackCooldownMultiplier = 0.88f;
+		float easyDamageMultiplier = 0.90f;
+		float normalDamageMultiplier = 1.0f;
+		float highDamageMultiplier = 1.05f;
+		float panicDamageMultiplier = 1.10f;
+	};
+	struct DifficultyDirectorRuntime
+	{
+		PressureLevel level = PressureLevel::NormalPressure;
+		float pressureScore = 0.0f;
+		float playerHpRate = 1.0f;
+		float noDamageTimer = 0.0f;
+		float fastKillTimer = 0.0f;
+		int recentKillCount = 0;
+		int previousAliveEnemyCount = 0;
+		int maxAliveEnemiesPerCrystal = 2;
+		int maxAliveEnemiesTotal = 10;
+		float spawnIntervalMultiplier = 1.0f;
+		float enemyMoveSpeedMultiplier = 1.0f;
+		float attackCooldownMultiplier = 1.0f;
+		float damageMultiplier = 1.0f;
+	};
 	std::vector<CrystalSpawnPoint> spawnPoints_;
 	CrystalParameterController crystalParameterController_;
 	CrystalReactionSettings reactionSettings_{};
@@ -111,6 +171,9 @@ private:
 	K4E::Vector4 brokenSkyColor_{ 0.55f, 0.18f, 0.28f, 1.0f };
 	K4E::LightManager::LightingSettingsGPU baseLightingSettings_{};
 	bool stage1BeginnerBalanceEnabled_ = false;
+	bool difficultyDirectorEnabled_ = true;
+	DifficultyDirectorSettings difficultySettings_{};
+	DifficultyDirectorRuntime difficultyRuntime_{};
 	int debugAliveNormalEnemyCount_ = 0;
 	bool debugBossSpawnConditionMet_ = false;
 	bool debugBossSpawned_ = false;

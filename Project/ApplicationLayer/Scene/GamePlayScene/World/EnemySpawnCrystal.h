@@ -74,7 +74,7 @@ public:
 	void TakeDamage(int damage) { ApplyDamage(damage); }
 	void OnCollisionEnter(K4E::Collider* other) override;
 	bool CanSpawnEnemy() const;
-	void SpawnEnemy(CharacterWorld& characters);
+	EnemyBase* SpawnEnemy(CharacterWorld& characters, float moveSpeedMultiplier = 1.0f, float attackCooldownMultiplier = 1.0f, float damageMultiplier = 1.0f);
 	void ApplySpawnerSettings(const CrystalSpawnPoint& spawnPoint, const std::vector<K4E::AABB>* floorAABBs = nullptr, const std::vector<K4E::AABB>* obstacleAABBs = nullptr);
 	void ApplyInitialHpSettings(const CrystalSpawnPoint& spawnPoint);
 	void SetGuideHighlight(float alpha);
@@ -120,6 +120,7 @@ public:
 	void SetInfiniteSpawnEnabled(bool enabled) { enableInfiniteSpawn = enabled; }
 	void SetSpawnEnemyType(EnemyType enemyType) { spawnEnemyType = enemyType; }
 	void SetMaxAliveEnemies(int count);
+	void SetSpawnInterval(float interval);
 
 public: // Blender 読み込み対応時にも維持するランタイム設定値。
 	bool isAlive = true;

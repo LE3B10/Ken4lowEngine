@@ -38,7 +38,7 @@ private:
 public: /// ---------- メンバ関数 ---------- ///
 
 	// StageContextのステージ情報をもとに、ステージ/キャラクター/衝突/HUD/目的管理を生成する。
-	void Initialize(GamePlayStageContext& stageContext);
+	void Initialize(GamePlayStageContext& stageContext, bool skipStage1Tutorial = false);
 	// CollisionManager登録を外し、所有するWorld内オブジェクトとグローバル参照を解放する。
 	void Finalize();
 
@@ -115,6 +115,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsBossIntroGameplayPaused() const { return bossBattleController_.IsIntroGameplayPaused(); }
 	// カメラ演出中は通常3D/HUDを止め、専用描画だけに切り替える。
 	bool IsBossIntroPresentationActive() const { return bossBattleController_.IsIntroPresentationActive(); }
+	bool HasStage1TutorialCompleted() const { return stage1TutorialController_.HasCompletedTutorial(); }
 
 private: /// ---------- メンバ関数 ---------- ///
 
@@ -196,6 +197,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	float lastBulletUpdateMs_ = 0.0f;
 	float lastCollisionUpdateMs_ = 0.0f;
 	bool stage1BeginnerBalanceEnabled_ = false;
+	bool skipStage1Tutorial_ = false;
 	Stage1TutorialController stage1TutorialController_{}; // ステージ1専用チュートリアルの状態と進行をWorld本体から分離する。
 	BossBattleController bossBattleController_{}; // ボス登場からクリアアイテム取得までの進行をWorld本体から分離する。
 };
