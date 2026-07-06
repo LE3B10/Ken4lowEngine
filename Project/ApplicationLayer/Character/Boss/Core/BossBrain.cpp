@@ -92,6 +92,12 @@ IBossAttack* BossBrain::SelectWeightedAttack(const std::vector<IBossAttack*>& ca
 	{
 		if (!attack) continue;
 
+		// 現在は近接2種が実戦で機能しにくいため、AIの自動行動候補から外して主軸攻撃へ集中させる。
+		if (std::strcmp(attack->GetName(), "Punch") == 0 || std::strcmp(attack->GetName(), "HeavyPunch") == 0)
+		{
+			continue;
+		}
+
 		float weight = std::max(1.0f, EvaluateAttackScore(*attack));
 		if (previousSelectedAttackName_ == attack->GetName())
 		{
@@ -162,16 +168,17 @@ float BossBrain::EvaluateAttackScore(const IBossAttack& attack) const
 	// Shockwave は中距離で選ばれやすくし、近距離ではパンチ系へ譲る。
 	else if (std::strcmp(attack.GetName(), "GuardianShockwave") == 0)
 	{
-		if (distance >= attack.GetMinRange() && distance <= attack.GetMaxRange()) score += 40.0f;
-		else if (distance < attack.GetMinRange()) score -= 30.0f;
-		else score -= 45.0f;
+		if (distance >= 9.0f) score += 55.0f;
+		else if (distance >= 5.0f) score += 35.0f;
+		else score -= 35.0f;
 	}
 
-	// ChargeAttack は遠距離で距離を詰めるため、遠距離帯では強く優遇する。
+	// ChargeAttack は近～中距離でプレイヤーを動かす主軸攻撃として優遇する。
 	else if (std::strcmp(attack.GetName(), "ChargeAttack") == 0)
 	{
-		if (distance >= attack.GetMinRange() && distance <= attack.GetMaxRange()) score += 45.0f;
-		else score -= 35.0f;
+		if (distance <= 6.0f) score += 60.0f;
+		else if (distance <= 12.0f) score += 45.0f;
+		else score += 20.0f;
 	}
 
 	// Punch は Heavy より少し遠めでも届く想定で、近距離以外でもそこそこ優遇

@@ -44,10 +44,12 @@ public: /// ---------- Boss固有初期化 ---------- ///
 	float GetLastReceivedDamage() const { return runtimeState_.lastReceivedDamage; }
 	int GetBossAttackHitCount() const { return runtimeState_.bossAttackHitCount; }
 	float GetLastPlayerDamage() const { return runtimeState_.lastPlayerDamage; }
+	bool ConsumePhaseTransitionPresentation(BossPhase& outPhase);
 
 protected: /// ---------- BossBase override ---------- ///
 
 	void UpdateState(float deltaTime) override;
+	void UpdatePhase(float deltaTime) override;
 	void UpdateMovement(float deltaTime) override;
 	void UpdateAttack(float deltaTime) override;
 	void CheckDeath() override;
@@ -116,6 +118,24 @@ protected: /// ---------- Guardian専用補助 ---------- ///
 	/// Guardian専用の攻撃判定パラメータを登録済み攻撃へ反映する
 	/// </summary>
 	void ApplyAttackHitParametersToAttacks();
+
+	/// <summary>
+	/// HP割合に応じたフェーズ移行を開始し、強化を伝える短い停止を入れる
+	/// </summary>
+	void BeginPhaseTransition(BossPhase newPhase);
+
+	float GetCurrentAttackCooldownScale() const;
+	float GetCurrentChargeSpeedScale() const;
+	float GetCurrentChargeCooldownScale() const;
+	float GetCurrentWaveCooldownScale() const;
+	float GetCurrentRecoveryScale() const;
+	float GetCurrentChargeStartupScale() const;
+	float GetCurrentWaveStartupScale() const;
+	void ApplyPhaseVisual(float transitionRate);
+	void UpdatePhaseAuraEffect(float deltaTime);
+	void StartBossPhaseAura(BossPhase phase);
+	void StopBossPhaseAura();
+	void EmitBossPhaseAura(BossPhase phase);
 
 	/// <summary>
 	/// Guardian専用の見た目パラメータをParameterManagerから取得する
@@ -191,14 +211,36 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 
 	struct ShockwaveTuning
 	{
-		float range = 10.0f;             // 衝撃波の実ヒット判定リーチ
+		float range = 18.0f;             // 衝撃波の実ヒット判定リーチ
 		float angleDeg = 70.0f;          // 衝撃波の前方扇形全角度
 		float damage = 15.0f;            // 衝撃波ダメージ
 		float cooldown = 6.0f;           // 衝撃波専用クールタイム
-		float startupSec = 0.8f;         // 衝撃波予備動作
+		float startupSec = 1.2f;         // 衝撃波予備動作
 		float activeSec = 0.25f;         // 衝撃波判定時間
 		float recoverySec = 1.0f;        // 衝撃波後隙
 		float startRange = 10.0f;        // 衝撃波の攻撃開始上限（実リーチとは別にAI開始条件へ使う）
+	};
+
+	struct PhaseTuning
+	{
+		float phase2HpRate = 0.70f;      // Phase2へ入るHP割合
+		float phase3HpRate = 0.35f;      // Phase3へ入るHP割合
+		float transitionSec = 0.85f;     // フェーズ移行時に短く止める時間
+		float phase2AttackCooldownScale = 0.82f;
+		float phase3AttackCooldownScale = 0.68f;
+		float phase2ChargeSpeedScale = 1.10f;
+		float phase3ChargeSpeedScale = 1.22f;
+		float phase2ChargeCooldownScale = 0.82f;
+		float phase3ChargeCooldownScale = 0.68f;
+		float phase2WaveCooldownScale = 0.82f;
+		float phase3WaveCooldownScale = 0.66f;
+		float phase2RecoveryScale = 0.88f;
+		float phase3RecoveryScale = 0.78f;
+		float phase2ChargeStartupScale = 0.85f;
+		float phase3ChargeStartupScale = 0.70f;
+		float phase2WaveStartupScale = 0.83f;
+		float phase3WaveStartupScale = 0.71f;
+		float bossBulletDamageMultiplier = 0.60f; // 通常敵を変えず、ボスだけ耐久を調整するための倍率
 	};
 
 	struct ChargeTuning
@@ -206,7 +248,7 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 		float speed = 18.0f;             // 突進速度
 		float distance = 12.0f;          // 突進距離
 		float damage = 20.0f;            // 突進ダメージ
-		float startupSec = 0.6f;         // 突進予備動作
+		float startupSec = 1.0f;         // 突進予備動作
 		float recoverySec = 1.0f;        // 突進後隙
 		float cooldown = 8.0f;           // 突進クールタイム
 	};
@@ -250,6 +292,15 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 		int bossAttackHitCount = 0;
 		float lastReceivedDamage = 0.0f;
 		float lastPlayerDamage = 0.0f;
+		float phaseTransitionTimer = 0.0f;
+		float phaseAuraTimer = 0.0f;
+		bool phaseAuraActive = false;
+		BossPhase currentAuraPhase = BossPhase::Phase1;
+		K4E::Vector3 lastPhaseAuraPosition{};
+		uint32_t lastPhaseAuraCount = 0;
+		float lastPhaseAuraRadius = 0.0f;
+		bool phasePresentationPending = false;
+		BossPhase presentationPhase = BossPhase::Phase1;
 	};
 
 	struct AttackSelectState
@@ -293,6 +344,9 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 
 	// 突進攻撃調整パラメータ
 	ChargeTuning chargeTuning_;
+
+	// HP割合フェーズとボス専用ダメージ倍率
+	PhaseTuning phaseTuning_;
 
 	// パーティクル調整パラメータ
 	ParticleTuning particleTuning_;

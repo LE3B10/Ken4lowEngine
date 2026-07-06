@@ -71,6 +71,9 @@ private:
 	bool isActive_ = false;
 	bool isFinished_ = false;
 	bool hasHit_ = false;
+	bool hasWindupEffect_ = false;
+	bool hasChargeReleaseEffect_ = false;
+	bool hasRecoveryImpactEffect_ = false;
 	Phase phase_ = Phase::None;
 	float phaseTimer_ = 0.0f;
 	float totalTimer_ = 0.0f;

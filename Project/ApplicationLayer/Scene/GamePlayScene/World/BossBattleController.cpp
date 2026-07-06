@@ -132,6 +132,12 @@ void BossBattleController::Initialize(GamePlayStageContext& stageContext, bool s
 	clearItemSpawned_ = false;
 	clearItemCollected_ = false;
 	isGameClear_ = false;
+	cameraShakeTimer_ = 0.0f;
+	cameraShakeDuration_ = 0.0f;
+	cameraShakeAmplitude_ = 0.0f;
+	cameraShakeFrequency_ = 0.0f;
+	cameraShakeSeed_ = 0.0f;
+	lastPresentedBossPhase_ = BossPhase::Phase1;
 	guardianBoss_.reset();
 	clearItem_.reset();
 	bossIntroController_.Initialize(bossSpawnPosition_);
@@ -251,23 +257,26 @@ void BossBattleController::UpdateIntro(const Dependencies& deps, float deltaTime
 				deps.hudManager->NotifyStage1BossAppeared();
 			}
 		}
+		// ボス登場完了直後は強めに揺らし、ここから戦闘開始だとプレイヤーへ伝える。
+		StartCameraShake(0.75f, 0.42f, 24.0f);
 	}
 }
 
 void BossBattleController::UpdateRuntime(const Dependencies& deps, float deltaTime)
 {
+	Player* player = deps.characters ? deps.characters->GetPlayer() : nullptr;
 	if (guardianBoss_)
 	{
-		if (deps.characters)
+		if (player)
 		{
-			if (auto* player = deps.characters->GetPlayer())
-			{
-				guardianBoss_->SetTargetPosition(player->GetCenterPosition());
-				guardianBoss_->SetTargetPlayer(player);
-			}
+			guardianBoss_->SetTargetPosition(player->GetCenterPosition());
+			guardianBoss_->SetTargetPlayer(player);
 		}
 		guardianBoss_->Update(deltaTime);
+		HandleBossPhasePresentation(deps);
 	}
+
+	UpdateCameraShake(deltaTime, player);
 
 	UpdateBossClearProgress(deps, deltaTime);
 	if (deps.crystalManager && deps.characters)
@@ -371,6 +380,12 @@ void BossBattleController::DrawImGui(const Dependencies& deps, bool bossIntroPre
 	ImGui::Text("ボスCollider登録済み: %s", bossColliderRegistered_ ? "はい" : "いいえ");
 	ImGui::Text("ボス登場演出中: %s", bossIntroController_.IsRunning() ? "はい" : "いいえ");
 	ImGui::Text("ボス登場による進行停止: %s", bossIntroController_.IsGameplayPaused() ? "はい" : "いいえ");
+	ImGui::Text("ボス演出カメラ揺れ: %.2f / %.2f amp %.2f freq %.2f",
+		cameraShakeTimer_,
+		cameraShakeDuration_,
+		cameraShakeAmplitude_,
+		cameraShakeFrequency_);
+	ImGui::Text("最後に通知したフェーズ: %d", static_cast<int>(lastPresentedBossPhase_) + 1);
 	{
 		auto* debugPlayer = deps.characters ? deps.characters->GetPlayer() : nullptr;
 		bossIntroController_.SetDebugSnapshot(guardianBoss_.get(), debugPlayer ? debugPlayer->GetCamera() : nullptr);
@@ -622,6 +637,88 @@ void BossBattleController::CollectClearItem(const Dependencies& deps)
 		deps.setBossDefeated(true);
 	}
 	Log("[GameClear] Clear item collected.\n");
+}
+
+void BossBattleController::HandleBossPhasePresentation(const Dependencies& deps)
+{
+	(void)deps;
+	if (!guardianBoss_)
+	{
+		return;
+	}
+
+	BossPhase phase = BossPhase::Phase1;
+	if (!guardianBoss_->ConsumePhaseTransitionPresentation(phase))
+	{
+		return;
+	}
+
+	lastPresentedBossPhase_ = phase;
+	if (phase == BossPhase::Phase3)
+	{
+		// Phase3は最終形態なので、Phase2より強い揺れで緊張感を上げる。
+		StartCameraShake(0.85f, 0.40f, 25.0f);
+	}
+	else if (phase == BossPhase::Phase2)
+	{
+		// Phase2は中程度の揺れにして、強化は伝えつつ酔いにくくする。
+		StartCameraShake(0.55f, 0.24f, 20.0f);
+	}
+}
+
+void BossBattleController::StartCameraShake(float duration, float amplitude, float frequency)
+{
+	if (duration <= 0.0f || amplitude <= 0.0f)
+	{
+		return;
+	}
+
+	cameraShakeDuration_ = duration;
+	cameraShakeTimer_ = duration;
+	cameraShakeAmplitude_ = amplitude;
+	cameraShakeFrequency_ = std::max(1.0f, frequency);
+	cameraShakeSeed_ += 2.31f;
+}
+
+void BossBattleController::UpdateCameraShake(float deltaTime, Player* player)
+{
+	if (cameraShakeTimer_ <= 0.0f)
+	{
+		return;
+	}
+
+	cameraShakeTimer_ = std::max(0.0f, cameraShakeTimer_ - deltaTime);
+	if (!player)
+	{
+		return;
+	}
+
+	auto* camera = player->GetCamera();
+	if (!camera)
+	{
+		return;
+	}
+
+	// 戦闘中のカメラ揺れは通常FPSカメラの最終位置へ小さく足し、操作不能感を出さずに衝撃だけ伝える。
+	camera->SetTranslate(camera->GetTranslate() + BuildCameraShakeOffset());
+	camera->Update();
+}
+
+K4E::Vector3 BossBattleController::BuildCameraShakeOffset() const
+{
+	if (cameraShakeTimer_ <= 0.0f || cameraShakeDuration_ <= 0.0f)
+	{
+		return {};
+	}
+
+	const float remainRate = std::clamp(cameraShakeTimer_ / cameraShakeDuration_, 0.0f, 1.0f);
+	const float t = (cameraShakeDuration_ - cameraShakeTimer_) * cameraShakeFrequency_ + cameraShakeSeed_;
+	const float amp = cameraShakeAmplitude_ * remainRate * remainRate;
+	return {
+		std::sin(t * 1.51f) * amp,
+		std::cos(t * 1.13f) * amp * 0.50f,
+		std::sin(t * 0.83f) * amp * 0.30f
+	};
 }
 
 bool BossBattleController::CalcLookAnglesToTarget(const K4E::Vector3& from, const K4E::Vector3& target, float& outPitch, float& outYaw)

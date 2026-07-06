@@ -4,9 +4,12 @@
 #include "BossHeavyPunchAttack.h"
 #include "GuardianShockwaveAttack.h"
 #include "BossChargeAttack.h"
+#include "BossAttackEffects.h"
+#include "GpuParticleType.h"
 #include <LinearInterpolation.h>
 #include <LogString.h>
 #include <ParameterManager.h>
+#include <Vector4.h>
 
 #include <algorithm>
 #include <cctype>
@@ -134,11 +137,11 @@ namespace
 		parameters->AddItem(kGuardianBossGroup, "GuardianAttackHitRadius", 2.0f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianAttackForwardOffset", 3.0f, 0.0f, 100.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianAttackHitAngleDeg", 90.0f, 0.0f, 360.0f);
-		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveRange", 10.0f, 0.0f, 100.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveRange", 18.0f, 0.0f, 100.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveAngleDeg", 70.0f, 0.0f, 360.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveDamage", 15.0f, 0.0f, 999.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveCooldown", 6.0f, 0.0f, 60.0f);
-		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveStartupSec", 0.8f, 0.0f, 10.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveStartupSec", 1.2f, 0.0f, 10.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveActiveSec", 0.25f, 0.0f, 10.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianShockwaveRecoverySec", 1.0f, 0.0f, 10.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianCloseAttackRange", 4.0f, 0.0f, 100.0f);
@@ -147,9 +150,27 @@ namespace
 		parameters->AddItem(kGuardianBossGroup, "GuardianChargeSpeed", 18.0f, 0.0f, 100.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianChargeDistance", 12.0f, 0.0f, 100.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianChargeDamage", 20.0f, 0.0f, 999.0f);
-		parameters->AddItem(kGuardianBossGroup, "GuardianChargeStartupSec", 0.6f, 0.0f, 10.0f);
+		parameters->AddItem(kGuardianBossGroup, "GuardianChargeStartupSec", 1.0f, 0.0f, 10.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianChargeRecoverySec", 1.0f, 0.0f, 10.0f);
 		parameters->AddItem(kGuardianBossGroup, "GuardianChargeCooldown", 8.0f, 0.0f, 60.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase2HpRate", 0.70f, 0.0f, 1.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase3HpRate", 0.35f, 0.0f, 1.0f);
+		parameters->AddItem(kGuardianBossGroup, "PhaseTransitionSec", 0.85f, 0.0f, 5.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase2AttackCooldownScale", 0.82f, 0.1f, 2.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase3AttackCooldownScale", 0.68f, 0.1f, 2.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase2ChargeSpeedScale", 1.10f, 0.1f, 3.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase3ChargeSpeedScale", 1.22f, 0.1f, 3.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase2ChargeCooldownScale", 0.82f, 0.1f, 2.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase3ChargeCooldownScale", 0.68f, 0.1f, 2.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase2WaveCooldownScale", 0.82f, 0.1f, 2.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase3WaveCooldownScale", 0.66f, 0.1f, 2.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase2RecoveryScale", 0.88f, 0.1f, 2.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase3RecoveryScale", 0.78f, 0.1f, 2.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase2ChargeStartupScale", 0.85f, 0.1f, 2.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase3ChargeStartupScale", 0.70f, 0.1f, 2.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase2WaveStartupScale", 0.83f, 0.1f, 2.0f);
+		parameters->AddItem(kGuardianBossGroup, "Phase3WaveStartupScale", 0.71f, 0.1f, 2.0f);
+		parameters->AddItem(kGuardianBossGroup, "BossBulletDamageMultiplier", 0.60f, 0.05f, 2.0f);
 		parameters->AddItem(kGuardianBossGroup, "HitFlashDuration", 0.18f, 0.0f, 3.0f);
 		parameters->AddItem(kGuardianBossGroup, "HitFlashIntensity", 2.2f, 0.0f, 10.0f);
 		parameters->AddItem(kGuardianBossGroup, "ParticleSpawnCount", 48, 0, 1000);
@@ -225,6 +246,24 @@ namespace
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianChargeStartupSec", "突進予備動作");
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianChargeRecoverySec", "突進後隙");
 		parameters->SetDisplayName(kGuardianBossGroup, "GuardianChargeCooldown", "突進クールタイム");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase2HpRate", "Phase2開始HP割合");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase3HpRate", "Phase3開始HP割合");
+		parameters->SetDisplayName(kGuardianBossGroup, "PhaseTransitionSec", "フェーズ移行停止時間");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase2AttackCooldownScale", "Phase2攻撃間隔倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase3AttackCooldownScale", "Phase3攻撃間隔倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase2ChargeSpeedScale", "Phase2突進速度倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase3ChargeSpeedScale", "Phase3突進速度倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase2ChargeCooldownScale", "Phase2突進CT倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase3ChargeCooldownScale", "Phase3突進CT倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase2WaveCooldownScale", "Phase2波動CT倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase3WaveCooldownScale", "Phase3波動CT倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase2RecoveryScale", "Phase2後隙倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase3RecoveryScale", "Phase3後隙倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase2ChargeStartupScale", "Phase2突進予兆倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase3ChargeStartupScale", "Phase3突進予兆倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase2WaveStartupScale", "Phase2衝撃波予兆倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "Phase3WaveStartupScale", "Phase3衝撃波予兆倍率");
+		parameters->SetDisplayName(kGuardianBossGroup, "BossBulletDamageMultiplier", "ボス弾ダメージ倍率");
 		parameters->SetDisplayName(kGuardianBossGroup, "HitFlashDuration", "被弾点滅時間");
 		parameters->SetDisplayName(kGuardianBossGroup, "HitFlashIntensity", "被弾点滅強度");
 		parameters->SetDisplayName(kGuardianBossGroup, "ParticleSpawnCount", "ヒット粒子数");
@@ -319,6 +358,26 @@ void GuardianBoss::ApplyParameters()
 	chargeTuning_.startupSec = GetGuardianParameterOrDefault("GuardianChargeStartupSec", chargeTuning_.startupSec);
 	chargeTuning_.recoverySec = GetGuardianParameterOrDefault("GuardianChargeRecoverySec", chargeTuning_.recoverySec);
 	chargeTuning_.cooldown = GetGuardianParameterOrDefault("GuardianChargeCooldown", chargeTuning_.cooldown);
+	phaseTuning_.phase2HpRate = GetGuardianParameterOrDefault("Phase2HpRate", phaseTuning_.phase2HpRate);
+	phaseTuning_.phase3HpRate = GetGuardianParameterOrDefault("Phase3HpRate", phaseTuning_.phase3HpRate);
+	phaseTuning_.transitionSec = GetGuardianParameterOrDefault("PhaseTransitionSec", phaseTuning_.transitionSec);
+	phaseTuning_.phase2AttackCooldownScale = GetGuardianParameterOrDefault("Phase2AttackCooldownScale", phaseTuning_.phase2AttackCooldownScale);
+	phaseTuning_.phase3AttackCooldownScale = GetGuardianParameterOrDefault("Phase3AttackCooldownScale", phaseTuning_.phase3AttackCooldownScale);
+	phaseTuning_.phase2ChargeSpeedScale = GetGuardianParameterOrDefault("Phase2ChargeSpeedScale", phaseTuning_.phase2ChargeSpeedScale);
+	phaseTuning_.phase3ChargeSpeedScale = GetGuardianParameterOrDefault("Phase3ChargeSpeedScale", phaseTuning_.phase3ChargeSpeedScale);
+	phaseTuning_.phase2ChargeCooldownScale = GetGuardianParameterOrDefault("Phase2ChargeCooldownScale", phaseTuning_.phase2ChargeCooldownScale);
+	phaseTuning_.phase3ChargeCooldownScale = GetGuardianParameterOrDefault("Phase3ChargeCooldownScale", phaseTuning_.phase3ChargeCooldownScale);
+	phaseTuning_.phase2WaveCooldownScale = GetGuardianParameterOrDefault("Phase2WaveCooldownScale", phaseTuning_.phase2WaveCooldownScale);
+	phaseTuning_.phase3WaveCooldownScale = GetGuardianParameterOrDefault("Phase3WaveCooldownScale", phaseTuning_.phase3WaveCooldownScale);
+	phaseTuning_.phase2RecoveryScale = GetGuardianParameterOrDefault("Phase2RecoveryScale", phaseTuning_.phase2RecoveryScale);
+	phaseTuning_.phase3RecoveryScale = GetGuardianParameterOrDefault("Phase3RecoveryScale", phaseTuning_.phase3RecoveryScale);
+	phaseTuning_.phase2ChargeStartupScale = GetGuardianParameterOrDefault("Phase2ChargeStartupScale", phaseTuning_.phase2ChargeStartupScale);
+	phaseTuning_.phase3ChargeStartupScale = GetGuardianParameterOrDefault("Phase3ChargeStartupScale", phaseTuning_.phase3ChargeStartupScale);
+	phaseTuning_.phase2WaveStartupScale = GetGuardianParameterOrDefault("Phase2WaveStartupScale", phaseTuning_.phase2WaveStartupScale);
+	phaseTuning_.phase3WaveStartupScale = GetGuardianParameterOrDefault("Phase3WaveStartupScale", phaseTuning_.phase3WaveStartupScale);
+	phaseTuning_.bossBulletDamageMultiplier = GetGuardianParameterOrDefault("BossBulletDamageMultiplier", phaseTuning_.bossBulletDamageMultiplier);
+	phaseTuning_.phase2HpRate = std::clamp(phaseTuning_.phase2HpRate, 0.0f, 1.0f);
+	phaseTuning_.phase3HpRate = std::clamp(phaseTuning_.phase3HpRate, 0.0f, phaseTuning_.phase2HpRate);
 	attackHitTuning_.middleRange = std::max(attackHitTuning_.closeRange, attackHitTuning_.middleRange); // 距離帯が逆転した設定でも近距離→中距離→遠距離の順を保つ。
 	attackHitTuning_.farRange = std::max(attackHitTuning_.middleRange, attackHitTuning_.farRange);
 	particleTuning_.spawnCount = static_cast<uint32_t>(std::max(0, GetGuardianParameterOrDefault("ParticleSpawnCount", static_cast<int>(particleTuning_.spawnCount))));
@@ -815,6 +874,26 @@ void GuardianBoss::SetupBoss()
 	chargeTuning_.startupSec = GetGuardianParameterOrDefault("GuardianChargeStartupSec", chargeTuning_.startupSec);
 	chargeTuning_.recoverySec = GetGuardianParameterOrDefault("GuardianChargeRecoverySec", chargeTuning_.recoverySec);
 	chargeTuning_.cooldown = GetGuardianParameterOrDefault("GuardianChargeCooldown", chargeTuning_.cooldown);
+	phaseTuning_.phase2HpRate = GetGuardianParameterOrDefault("Phase2HpRate", phaseTuning_.phase2HpRate);
+	phaseTuning_.phase3HpRate = GetGuardianParameterOrDefault("Phase3HpRate", phaseTuning_.phase3HpRate);
+	phaseTuning_.transitionSec = GetGuardianParameterOrDefault("PhaseTransitionSec", phaseTuning_.transitionSec);
+	phaseTuning_.phase2AttackCooldownScale = GetGuardianParameterOrDefault("Phase2AttackCooldownScale", phaseTuning_.phase2AttackCooldownScale);
+	phaseTuning_.phase3AttackCooldownScale = GetGuardianParameterOrDefault("Phase3AttackCooldownScale", phaseTuning_.phase3AttackCooldownScale);
+	phaseTuning_.phase2ChargeSpeedScale = GetGuardianParameterOrDefault("Phase2ChargeSpeedScale", phaseTuning_.phase2ChargeSpeedScale);
+	phaseTuning_.phase3ChargeSpeedScale = GetGuardianParameterOrDefault("Phase3ChargeSpeedScale", phaseTuning_.phase3ChargeSpeedScale);
+	phaseTuning_.phase2ChargeCooldownScale = GetGuardianParameterOrDefault("Phase2ChargeCooldownScale", phaseTuning_.phase2ChargeCooldownScale);
+	phaseTuning_.phase3ChargeCooldownScale = GetGuardianParameterOrDefault("Phase3ChargeCooldownScale", phaseTuning_.phase3ChargeCooldownScale);
+	phaseTuning_.phase2WaveCooldownScale = GetGuardianParameterOrDefault("Phase2WaveCooldownScale", phaseTuning_.phase2WaveCooldownScale);
+	phaseTuning_.phase3WaveCooldownScale = GetGuardianParameterOrDefault("Phase3WaveCooldownScale", phaseTuning_.phase3WaveCooldownScale);
+	phaseTuning_.phase2RecoveryScale = GetGuardianParameterOrDefault("Phase2RecoveryScale", phaseTuning_.phase2RecoveryScale);
+	phaseTuning_.phase3RecoveryScale = GetGuardianParameterOrDefault("Phase3RecoveryScale", phaseTuning_.phase3RecoveryScale);
+	phaseTuning_.phase2ChargeStartupScale = GetGuardianParameterOrDefault("Phase2ChargeStartupScale", phaseTuning_.phase2ChargeStartupScale);
+	phaseTuning_.phase3ChargeStartupScale = GetGuardianParameterOrDefault("Phase3ChargeStartupScale", phaseTuning_.phase3ChargeStartupScale);
+	phaseTuning_.phase2WaveStartupScale = GetGuardianParameterOrDefault("Phase2WaveStartupScale", phaseTuning_.phase2WaveStartupScale);
+	phaseTuning_.phase3WaveStartupScale = GetGuardianParameterOrDefault("Phase3WaveStartupScale", phaseTuning_.phase3WaveStartupScale);
+	phaseTuning_.bossBulletDamageMultiplier = GetGuardianParameterOrDefault("BossBulletDamageMultiplier", phaseTuning_.bossBulletDamageMultiplier);
+	phaseTuning_.phase2HpRate = std::clamp(phaseTuning_.phase2HpRate, 0.0f, 1.0f);
+	phaseTuning_.phase3HpRate = std::clamp(phaseTuning_.phase3HpRate, 0.0f, phaseTuning_.phase2HpRate);
 	attackHitTuning_.middleRange = std::max(attackHitTuning_.closeRange, attackHitTuning_.middleRange); // 距離帯が逆転した設定でも近距離→中距離→遠距離の順を保つ。
 	attackHitTuning_.farRange = std::max(attackHitTuning_.middleRange, attackHitTuning_.farRange);
 	particleTuning_.spawnCount = static_cast<uint32_t>(std::max(0, GetGuardianParameterOrDefault("ParticleSpawnCount", static_cast<int>(particleTuning_.spawnCount))));
@@ -841,6 +920,15 @@ void GuardianBoss::SetupBoss()
 	runtimeState_.bossAttackHitCount = 0;
 	runtimeState_.lastReceivedDamage = 0.0f;
 	runtimeState_.lastPlayerDamage = 0.0f;
+	runtimeState_.phaseTransitionTimer = 0.0f;
+	runtimeState_.phaseAuraTimer = 0.0f;
+	runtimeState_.phaseAuraActive = false;
+	runtimeState_.currentAuraPhase = BossPhase::Phase1;
+	runtimeState_.lastPhaseAuraPosition = {};
+	runtimeState_.lastPhaseAuraCount = 0;
+	runtimeState_.lastPhaseAuraRadius = 0.0f;
+	runtimeState_.phasePresentationPending = false;
+	runtimeState_.presentationPhase = BossPhase::Phase1;
 
 	// HeavyPunch 連打抑制初期化
 	attackSelectState_.lastSelectedAttack = "None";
@@ -919,6 +1007,7 @@ void GuardianBoss::OnDead()
 {
 	ChangeBossState(BossState::Dead);
 	runtimeState_.stateTimer = 0.0f;
+	StopBossPhaseAura(); // ボス撃破後に常時オーラの発生要求を止め、残留演出を防ぐ。
 
 	if (GetAnimationComponent())
 	{
@@ -932,10 +1021,20 @@ void GuardianBoss::OnDead()
 void GuardianBoss::OnBulletDamaged(float damage)
 {
 	++runtimeState_.bulletHitCount;
-	OnDamaged(damage);
+	// ボス専用のダメージ倍率で通常敵の武器バランスを変えずに耐久だけを調整する。
+	const float scaledDamage = std::max(0.0f, damage * phaseTuning_.bossBulletDamageMultiplier);
+	const float hpBefore = GetHP();
+	BossBase::OnDamaged(scaledDamage);
+
+	if (GetHP() < hpBefore)
+	{
+		++runtimeState_.receivedHitCount;
+		runtimeState_.lastReceivedDamage = scaledDamage;
+	}
 
 	std::ostringstream oss;
-	oss << "[GuardianBoss] Player bullet hit: damage=" << damage
+	oss << "[GuardianBoss] Player bullet hit: rawDamage=" << damage
+		<< ", scaledDamage=" << scaledDamage
 		<< ", bulletHitCount=" << runtimeState_.bulletHitCount
 		<< ", HP=" << GetHP() << "/" << GetMaxHP();
 	Log(oss.str() + "\n");
@@ -960,6 +1059,18 @@ void GuardianBoss::OnTargetPlayerDamaged(float damage)
 	Log(oss.str() + "\n");
 }
 
+bool GuardianBoss::ConsumePhaseTransitionPresentation(BossPhase& outPhase)
+{
+	if (!runtimeState_.phasePresentationPending)
+	{
+		return false;
+	}
+
+	outPhase = runtimeState_.presentationPhase;
+	runtimeState_.phasePresentationPending = false;
+	return true;
+}
+
 /// -------------------------------------------------------------
 /// 状態更新
 /// Guardian の思考をここで決める
@@ -979,6 +1090,7 @@ void GuardianBoss::UpdateState(float deltaTime)
 	{
 		return;
 	}
+	UpdatePhaseAuraEffect(deltaTime); // フェーズ移行の一発演出とは別に、現在形態を示す常時オーラを更新する。
 
 	switch (GetState())
 	{
@@ -1066,7 +1178,8 @@ void GuardianBoss::UpdateState(float deltaTime)
 			{
 				if (GetAttackComponent() && !GetAttackComponent()->IsAttacking())
 				{
-					runtimeState_.attackCooldownTimer = animationTuning_.attackCooldown;
+					// 全体攻撃間隔はフェーズ倍率で短縮し、個別クールタイムとは別に緩急を作る。
+					runtimeState_.attackCooldownTimer = animationTuning_.attackCooldown * GetCurrentAttackCooldownScale();
 					runtimeState_.hasAppliedAttackHit = false;
 					BeginIdleState();
 				}
@@ -1083,13 +1196,58 @@ void GuardianBoss::UpdateState(float deltaTime)
 			break;
 		}
 
-	case BossState::Down:
 	case BossState::PhaseTransition:
+		{
+			runtimeState_.phaseTransitionTimer = std::max(0.0f, runtimeState_.phaseTransitionTimer - deltaTime);
+			const float rate = (phaseTuning_.transitionSec > 0.0f)
+				? 1.0f - std::clamp(runtimeState_.phaseTransitionTimer / phaseTuning_.transitionSec, 0.0f, 1.0f)
+				: 1.0f;
+			ApplyPhaseVisual(rate);
+
+			if (runtimeState_.phaseTransitionTimer <= 0.0f)
+			{
+				ApplyPhaseVisual(0.0f);
+				ApplyAttackHitParametersToAttacks();
+				runtimeState_.attackCooldownTimer = std::max(0.15f, animationTuning_.attackCooldown * GetCurrentAttackCooldownScale() * 0.35f);
+				BeginIdleState();
+			}
+			break;
+		}
+
+	case BossState::Down:
 	case BossState::Dead:
 	default:
 		{
 			break;
 		}
+	}
+}
+
+void GuardianBoss::UpdatePhase(float deltaTime)
+{
+	(void)deltaTime;
+
+	if (GetState() == BossState::Dead || GetState() == BossState::PhaseTransition)
+	{
+		return;
+	}
+
+	const float hpRate = GetHPRate();
+	BossPhase nextPhase = BossPhase::Phase1;
+
+	// HP割合でフェーズを切り替え、残りHPが減るほど攻撃頻度と圧を上げる。
+	if (hpRate <= phaseTuning_.phase3HpRate)
+	{
+		nextPhase = BossPhase::Phase3;
+	}
+	else if (hpRate <= phaseTuning_.phase2HpRate)
+	{
+		nextPhase = BossPhase::Phase2;
+	}
+
+	if (nextPhase != GetPhase())
+	{
+		BeginPhaseTransition(nextPhase);
 	}
 }
 
@@ -1249,6 +1407,7 @@ void GuardianBoss::ChangeBossState(BossState newState)
 	if (GetStateMachine())
 	{
 		GetStateMachine()->ChangeState(*this, newState);
+		SetState(GetStateMachine()->GetCurrentState());
 	}
 	else
 	{
@@ -1332,6 +1491,217 @@ void GuardianBoss::TryAttackHit()
 	// 今は未使用
 }
 
+void GuardianBoss::BeginPhaseTransition(BossPhase newPhase)
+{
+	// フェーズ移行時は一瞬攻撃を止め、強化されたことと反撃チャンスを同時に見せる。
+	SetPhase(newPhase);
+	StartBossPhaseAura(newPhase); // 同じフェーズのオーラを重複生成せず、フェーズ変更時だけ設定を切り替える。
+	ChangeBossState(BossState::PhaseTransition);
+	runtimeState_.stateTimer = 0.0f;
+	const float phaseDurationScale = (newPhase == BossPhase::Phase3) ? 1.65f : 1.15f;
+	runtimeState_.phaseTransitionTimer = std::max(0.0f, phaseTuning_.transitionSec * phaseDurationScale);
+	runtimeState_.attackCooldownTimer = runtimeState_.phaseTransitionTimer;
+	runtimeState_.phaseAuraTimer = 0.0f;
+	runtimeState_.phasePresentationPending = true;
+	runtimeState_.presentationPhase = newPhase;
+
+	if (GetAttackComponent())
+	{
+		GetAttackComponent()->ForceEndCurrentAttack();
+	}
+
+	if (GetStatusComponent())
+	{
+		GetStatusComponent()->SetInvincibleTimer(std::max(0.0f, phaseTuning_.transitionSec * 0.65f));
+	}
+
+	K4E::Vector3 effectPosition = GetCenterPosition();
+	effectPosition.y += 0.5f;
+	const bool finalPhase = newPhase == BossPhase::Phase3;
+	const uint32_t shockCount = finalPhase ? 128u : 80u;
+	const uint32_t auraCount = finalPhase ? 96u : 54u;
+	const float shockRadius = finalPhase ? 3.8f : 2.5f;
+	// フェーズごとに衝撃波とオーラの量を変え、第二形態/最終形態の差をプレイヤーへ見せる。
+	BossAttackEffects::EmitGuardianHitEffect(finalPhase ? "GuardianPhase3Shockwave" : "GuardianPhase2Shockwave", K4E::GpuParticleType::Shockwave, effectPosition, shockCount, shockRadius, finalPhase ? 1.2f : 0.8f, finalPhase ? 2.0f : 1.35f);
+	BossAttackEffects::EmitGuardianAttackPresenceEffect(finalPhase ? "GuardianPhase3AuraBurst" : "GuardianPhase2AuraBurst", K4E::GpuParticleType::Trail, effectPosition, auraCount, finalPhase ? 2.8f : 1.9f, finalPhase ? 1.1f : 0.8f, finalPhase ? 1.4f : 0.9f);
+	BossAttackEffects::EmitGuardianAttackPresenceEffect(finalPhase ? "GuardianPhase3DustBurst" : "GuardianPhase2DustBurst", K4E::GpuParticleType::Dust, GetPosition(), finalPhase ? 64u : 36u, finalPhase ? 2.6f : 1.8f, 0.75f, 1.2f);
+	EmitBossPhaseAura(newPhase);
+	ApplyPhaseVisual(0.0f);
+}
+
+float GuardianBoss::GetCurrentAttackCooldownScale() const
+{
+	if (GetPhase() == BossPhase::Phase3) return phaseTuning_.phase3AttackCooldownScale;
+	if (GetPhase() == BossPhase::Phase2) return phaseTuning_.phase2AttackCooldownScale;
+	return 1.0f;
+}
+
+float GuardianBoss::GetCurrentChargeSpeedScale() const
+{
+	if (GetPhase() == BossPhase::Phase3) return phaseTuning_.phase3ChargeSpeedScale;
+	if (GetPhase() == BossPhase::Phase2) return phaseTuning_.phase2ChargeSpeedScale;
+	return 1.0f;
+}
+
+float GuardianBoss::GetCurrentChargeCooldownScale() const
+{
+	if (GetPhase() == BossPhase::Phase3) return phaseTuning_.phase3ChargeCooldownScale;
+	if (GetPhase() == BossPhase::Phase2) return phaseTuning_.phase2ChargeCooldownScale;
+	return 1.0f;
+}
+
+float GuardianBoss::GetCurrentWaveCooldownScale() const
+{
+	if (GetPhase() == BossPhase::Phase3) return phaseTuning_.phase3WaveCooldownScale;
+	if (GetPhase() == BossPhase::Phase2) return phaseTuning_.phase2WaveCooldownScale;
+	return 1.0f;
+}
+
+float GuardianBoss::GetCurrentRecoveryScale() const
+{
+	if (GetPhase() == BossPhase::Phase3) return phaseTuning_.phase3RecoveryScale;
+	if (GetPhase() == BossPhase::Phase2) return phaseTuning_.phase2RecoveryScale;
+	return 1.0f;
+}
+
+float GuardianBoss::GetCurrentChargeStartupScale() const
+{
+	if (GetPhase() == BossPhase::Phase3) return phaseTuning_.phase3ChargeStartupScale;
+	if (GetPhase() == BossPhase::Phase2) return phaseTuning_.phase2ChargeStartupScale;
+	return 1.0f;
+}
+
+float GuardianBoss::GetCurrentWaveStartupScale() const
+{
+	if (GetPhase() == BossPhase::Phase3) return phaseTuning_.phase3WaveStartupScale;
+	if (GetPhase() == BossPhase::Phase2) return phaseTuning_.phase2WaveStartupScale;
+	return 1.0f;
+}
+
+void GuardianBoss::ApplyPhaseVisual(float transitionRate)
+{
+	const float clampedRate = std::clamp(transitionRate, 0.0f, 1.0f);
+	const float phaseBoost = (GetPhase() == BossPhase::Phase3) ? 0.45f : (GetPhase() == BossPhase::Phase2 ? 0.25f : 0.0f);
+	const K4E::Vector4 color{
+		1.0f,
+		std::clamp(1.0f - phaseBoost * (0.75f + clampedRate * 0.25f), 0.45f, 1.0f),
+		std::clamp(1.0f - phaseBoost * (0.35f + clampedRate * 0.25f), 0.60f, 1.0f),
+		1.0f
+	};
+
+	auto applyColor = [&color](BaseCharacter::BodyPart& part)
+		{
+			if (part.object)
+			{
+				part.object->SetColor(color);
+				part.object->Update();
+			}
+		};
+
+	applyColor(GetBody());
+	for (auto& part : GetBodyParts())
+	{
+		applyColor(part);
+	}
+}
+
+void GuardianBoss::UpdatePhaseAuraEffect(float deltaTime)
+{
+	if (GetState() == BossState::Dead || IsDead())
+	{
+		StopBossPhaseAura();
+		return;
+	}
+
+	const BossPhase phase = GetPhase();
+	if (phase == BossPhase::Phase1)
+	{
+		StopBossPhaseAura();
+		return;
+	}
+
+	if (!runtimeState_.phaseAuraActive || runtimeState_.currentAuraPhase != phase)
+	{
+		StartBossPhaseAura(phase);
+		EmitBossPhaseAura(phase);
+	}
+
+	const float emitInterval = (phase == BossPhase::Phase3) ? 0.08f : 0.14f;
+	runtimeState_.phaseAuraTimer += deltaTime;
+	if (runtimeState_.phaseAuraTimer >= emitInterval)
+	{
+		runtimeState_.phaseAuraTimer = 0.0f;
+		EmitBossPhaseAura(phase);
+	}
+}
+
+void GuardianBoss::StartBossPhaseAura(BossPhase phase)
+{
+	if (phase == BossPhase::Phase1)
+	{
+		StopBossPhaseAura();
+		return;
+	}
+
+	if (runtimeState_.phaseAuraActive && runtimeState_.currentAuraPhase == phase)
+	{
+		return;
+	}
+
+	// 同じオーラを毎フレーム作り直さず、フェーズが変わった時だけ常時オーラ設定を切り替える。
+	runtimeState_.phaseAuraActive = true;
+	runtimeState_.currentAuraPhase = phase;
+	runtimeState_.phaseAuraTimer = 0.0f;
+	runtimeState_.lastPhaseAuraCount = 0;
+	runtimeState_.lastPhaseAuraRadius = 0.0f;
+}
+
+void GuardianBoss::StopBossPhaseAura()
+{
+	if (!runtimeState_.phaseAuraActive && runtimeState_.currentAuraPhase == BossPhase::Phase1)
+	{
+		return;
+	}
+
+	// パーティクルは短寿命なので、撃破やPhase1復帰時は新規発生を止めて自然消滅させる。
+	runtimeState_.phaseAuraActive = false;
+	runtimeState_.currentAuraPhase = BossPhase::Phase1;
+	runtimeState_.phaseAuraTimer = 0.0f;
+	runtimeState_.lastPhaseAuraCount = 0;
+	runtimeState_.lastPhaseAuraRadius = 0.0f;
+	runtimeState_.lastPhaseAuraPosition = {};
+}
+
+void GuardianBoss::EmitBossPhaseAura(BossPhase phase)
+{
+	if (phase == BossPhase::Phase1 || IsDead())
+	{
+		return;
+	}
+
+	K4E::Vector3 auraPosition = GetCenterPosition();
+	auraPosition.y += (phase == BossPhase::Phase3) ? 0.7f : 0.45f;
+
+	const bool finalPhase = phase == BossPhase::Phase3;
+	const uint32_t trailCount = finalPhase ? 16u : 9u;
+	const uint32_t dustCount = finalPhase ? 8u : 4u;
+	const float auraRadius = finalPhase ? 2.8f : 1.9f;
+	const float lifeScale = finalPhase ? 0.72f : 0.58f;
+	const float speedScale = finalPhase ? 1.05f : 0.72f;
+
+	// ボスの移動に合わせて発生位置を更新し、突進中もオーラが置き去りにならないようにする。
+	BossAttackEffects::EmitGuardianAttackPresenceEffect(finalPhase ? "GuardianPhase3AuraLoop" : "GuardianPhase2AuraLoop", K4E::GpuParticleType::Trail, auraPosition, trailCount, auraRadius, lifeScale, speedScale);
+	BossAttackEffects::EmitGuardianAttackPresenceEffect(finalPhase ? "GuardianPhase3AuraSmoke" : "GuardianPhase2AuraSmoke", K4E::GpuParticleType::Dust, auraPosition, dustCount, auraRadius * 0.75f, lifeScale * 0.9f, speedScale * 0.7f);
+	if (finalPhase)
+	{
+		BossAttackEffects::EmitGuardianAttackPresenceEffect("GuardianPhase3AuraSpark", K4E::GpuParticleType::Shockwave, auraPosition, 5u, auraRadius * 0.55f, 0.35f, 1.15f);
+	}
+
+	runtimeState_.lastPhaseAuraPosition = auraPosition;
+	runtimeState_.lastPhaseAuraCount = trailCount + dustCount + (finalPhase ? 5u : 0u);
+	runtimeState_.lastPhaseAuraRadius = auraRadius;
+}
+
 void GuardianBoss::ApplyAttackHitParametersToAttacks()
 {
 	if (!GetAttackComponent())
@@ -1357,16 +1727,21 @@ void GuardianBoss::ApplyAttackHitParametersToAttacks()
 	if (auto* shockwave = dynamic_cast<GuardianShockwaveAttack*>(GetAttackComponent()->FindAttackByName("GuardianShockwave")))
 	{
 		shockwaveTuning_.startRange = attackHitTuning_.middleRange; // 開始条件はAI用、実ヒット範囲はSetShockwaveParameters側で別管理する。
-		shockwave->SetValidRange(attackHitTuning_.closeRange, attackHitTuning_.middleRange);
+		shockwave->SetValidRange(attackHitTuning_.closeRange, attackHitTuning_.farRange);
+		// 扇形攻撃は表示範囲と判定範囲を同じ値で渡し、見た目だけ短い/判定だけ長い状態を防ぐ。
 		shockwave->SetShockwaveParameters(shockwaveTuning_.range, shockwaveTuning_.angleDeg, shockwaveTuning_.damage);
-		shockwave->SetTimingParameters(shockwaveTuning_.startupSec, shockwaveTuning_.activeSec, shockwaveTuning_.recoverySec, shockwaveTuning_.cooldown);
+		// 波動後の硬直と個別クールタイムを分け、回避後の反撃時間と連発防止を両立する。
+		// フェーズが進んでも予兆を残し、最終段階でも見て避けられる攻撃にする。
+		shockwave->SetTimingParameters(shockwaveTuning_.startupSec * GetCurrentWaveStartupScale(), shockwaveTuning_.activeSec, shockwaveTuning_.recoverySec * GetCurrentRecoveryScale(), shockwaveTuning_.cooldown * GetCurrentWaveCooldownScale());
 		shockwave->SetImpactParticleParameters(particleTuning_.spawnCount * 2, std::max(particleTuning_.spawnRadius, 0.8f), particleTuning_.lifetime, particleTuning_.initialSpeed);
 	}
 
 	if (auto* charge = dynamic_cast<BossChargeAttack*>(GetAttackComponent()->FindAttackByName("ChargeAttack")))
 	{
-		charge->SetValidRange(attackHitTuning_.middleRange, attackHitTuning_.farRange);
-		charge->SetChargeParameters(chargeTuning_.speed, chargeTuning_.distance, chargeTuning_.damage, chargeTuning_.startupSec, chargeTuning_.recoverySec, chargeTuning_.cooldown);
+		charge->SetValidRange(0.0f, attackHitTuning_.farRange);
+		// 突進後の硬直と専用クールタイムを分け、同じ攻撃の連続と理不尽な追撃を抑える。
+		// 突進前に溜め時間を入れ、プレイヤーが軌道を読んで横回避できる余地を作る。
+		charge->SetChargeParameters(chargeTuning_.speed * GetCurrentChargeSpeedScale(), chargeTuning_.distance, chargeTuning_.damage, chargeTuning_.startupSec * GetCurrentChargeStartupScale(), chargeTuning_.recoverySec * GetCurrentRecoveryScale(), chargeTuning_.cooldown * GetCurrentChargeCooldownScale());
 		charge->SetImpactParticleParameters(particleTuning_.spawnCount * 2, std::max(particleTuning_.spawnRadius, 0.75f), particleTuning_.lifetime, particleTuning_.initialSpeed * 1.2f);
 	}
 }
@@ -1467,6 +1842,7 @@ void GuardianBoss::DrawImGui()
 	// 基本状態
 	// ---------------------------------------------------------
 	ImGui::Text("State: %d", static_cast<int>(GetState()));
+	ImGui::Text("Phase: %d", static_cast<int>(GetPhase()) + 1);
 	ImGui::Text("HP: %.1f / %.1f", GetHP(), GetMaxHP());
 	ImGui::Text("DistanceToTargetXZ: %.2f", GetDistanceToTargetXZ());
 
@@ -1486,6 +1862,22 @@ void GuardianBoss::DrawImGui()
 	ImGui::Text("StateTimer      : %.2f", runtimeState_.stateTimer);
 	ImGui::Text("AttackCooldown  : %.2f", runtimeState_.attackCooldownTimer);
 	ImGui::Text("IsCoolingDown   : %s", (runtimeState_.attackCooldownTimer > 0.0f) ? "true" : "false");
+	ImGui::Text("PhaseTransition : %.2f", runtimeState_.phaseTransitionTimer);
+	ImGui::Text("BossBulletDamageMultiplier : %.2f", phaseTuning_.bossBulletDamageMultiplier);
+	ImGui::Text("AttackCooldownScale : %.2f", GetCurrentAttackCooldownScale());
+	ImGui::Text("ChargeSpeedScale    : %.2f", GetCurrentChargeSpeedScale());
+	ImGui::Text("ChargeCooldownScale : %.2f", GetCurrentChargeCooldownScale());
+	ImGui::Text("WaveCooldownScale   : %.2f", GetCurrentWaveCooldownScale());
+	ImGui::Text("ChargeStartupScale  : %.2f", GetCurrentChargeStartupScale());
+	ImGui::Text("WaveStartupScale    : %.2f", GetCurrentWaveStartupScale());
+	ImGui::Text("AuraActive          : %s", runtimeState_.phaseAuraActive ? "true" : "false");
+	ImGui::Text("AuraPhase           : %d", static_cast<int>(runtimeState_.currentAuraPhase) + 1);
+	ImGui::Text("AuraTimer           : %.2f", runtimeState_.phaseAuraTimer);
+	ImGui::Text("AuraEmitCount/Radius: %u / %.2f", runtimeState_.lastPhaseAuraCount, runtimeState_.lastPhaseAuraRadius);
+	ImGui::Text("AuraPosition        : %.2f, %.2f, %.2f",
+		runtimeState_.lastPhaseAuraPosition.x,
+		runtimeState_.lastPhaseAuraPosition.y,
+		runtimeState_.lastPhaseAuraPosition.z);
 
 	// ---------------------------------------------------------
 	// 調整パラメータ
@@ -1539,9 +1931,22 @@ void GuardianBoss::DrawImGui()
 	{
 		ApplyAttackHitParametersToAttacks(); // GuardianBossデバッグUIで直接変えた値も現在の攻撃判定へ即時反映する。
 	}
+
+	bool shockwaveTuningChanged = false;
+	shockwaveTuningChanged |= ImGui::DragFloat("扇形攻撃射程", &shockwaveTuning_.range, 0.1f, 0.0f, 100.0f);
+	shockwaveTuningChanged |= ImGui::DragFloat("扇形攻撃角度", &shockwaveTuning_.angleDeg, 0.1f, 0.0f, 360.0f);
+	shockwaveTuningChanged |= ImGui::DragFloat("扇形予兆時間", &shockwaveTuning_.startupSec, 0.01f, 0.0f, 10.0f);
+	shockwaveTuningChanged |= ImGui::DragFloat("扇形判定時間", &shockwaveTuning_.activeSec, 0.01f, 0.0f, 10.0f);
+	shockwaveTuningChanged |= ImGui::DragFloat("扇形後隙", &shockwaveTuning_.recoverySec, 0.01f, 0.0f, 10.0f);
+	if (shockwaveTuningChanged)
+	{
+		ApplyAttackHitParametersToAttacks();
+	}
+
 	ImGui::DragFloat("Attack Duration", &animationTuning_.attackDuration, 0.01f, 0.05f, 10.0f);
 	ImGui::DragFloat("Attack Cooldown", &animationTuning_.attackCooldown, 0.01f, 0.0f, 10.0f);
 	ImGui::DragFloat("Stagger Duration", &animationTuning_.staggerDuration, 0.01f, 0.0f, 10.0f);
+	ImGui::DragFloat("ボス弾ダメージ倍率", &phaseTuning_.bossBulletDamageMultiplier, 0.01f, 0.05f, 2.0f);
 
 	// ---------------------------------------------------------
 	// Guardian 専用補助情報
@@ -1681,8 +2086,10 @@ void GuardianBoss::DrawImGui()
 		IBossAttack* punch = GetAttackComponent()->FindAttackByName("Punch");
 		IBossAttack* heavy = GetAttackComponent()->FindAttackByName("HeavyPunch");
 		IBossAttack* shockwave = GetAttackComponent()->FindAttackByName("GuardianShockwave");
+		IBossAttack* charge = GetAttackComponent()->FindAttackByName("ChargeAttack");
 
 		ImGui::Text("LastSelectedAttack : %s", attackSelectState_.lastSelectedAttack.c_str());
+		ImGui::Text("Punch/HeavyPunch AI : Disabled");
 		ImGui::Text("HeavyReuseTimer    : %.2f", attackSelectState_.heavyPunchReuseTimer);
 		ImGui::Text("DistanceToTargetXZ : %.2f", GetDistanceToTargetXZ());
 		ImGui::Text("AttackHitRange    : %.2f", attackHitTuning_.hitRange);
@@ -1740,6 +2147,20 @@ void GuardianBoss::DrawImGui()
 		else
 		{
 			ImGui::Text("[GuardianShockwave] Not Registered");
+		}
+
+		if (charge)
+		{
+			ImGui::Separator();
+			ImGui::Text("[ChargeAttack]");
+			ImGui::Text("Priority           : %d", charge->GetPriority());
+			ImGui::Text("CanStart(Attack)   : %s", charge->CanStart() ? "true" : "false");
+			ImGui::Text("CooldownRemaining  : %.2f", charge->GetCooldownRemaining());
+			ImGui::Text("Range              : %.2f - %.2f", charge->GetMinRange(), charge->GetMaxRange());
+		}
+		else
+		{
+			ImGui::Text("[ChargeAttack] Not Registered");
 		}
 	}
 

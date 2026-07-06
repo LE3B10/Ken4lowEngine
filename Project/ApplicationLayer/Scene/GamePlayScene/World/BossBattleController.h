@@ -128,6 +128,10 @@ private:
 	void UpdateBossClearProgress(const Dependencies& deps, float deltaTime);
 	void SpawnClearItem(const Dependencies& deps, const K4E::Vector3& bossPosition);
 	void CollectClearItem(const Dependencies& deps);
+	void HandleBossPhasePresentation(const Dependencies& deps);
+	void StartCameraShake(float duration, float amplitude, float frequency);
+	void UpdateCameraShake(float deltaTime, Player* player);
+	K4E::Vector3 BuildCameraShakeOffset() const;
 	static bool CalcLookAnglesToTarget(const K4E::Vector3& from, const K4E::Vector3& target, float& outPitch, float& outYaw);
 
 private:
@@ -143,4 +147,10 @@ private:
 	bool clearItemSpawned_ = false;
 	bool clearItemCollected_ = false;
 	bool isGameClear_ = false;
+	float cameraShakeTimer_ = 0.0f;
+	float cameraShakeDuration_ = 0.0f;
+	float cameraShakeAmplitude_ = 0.0f;
+	float cameraShakeFrequency_ = 0.0f;
+	float cameraShakeSeed_ = 0.0f;
+	BossPhase lastPresentedBossPhase_ = BossPhase::Phase1;
 };

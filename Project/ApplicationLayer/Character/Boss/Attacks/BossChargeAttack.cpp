@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -21,6 +22,9 @@ void BossChargeAttack::Initialize(BossBase* owner)
 	isActive_ = false;
 	isFinished_ = false;
 	hasHit_ = false;
+	hasWindupEffect_ = false;
+	hasChargeReleaseEffect_ = false;
+	hasRecoveryImpactEffect_ = false;
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 	totalTimer_ = 0.0f;
@@ -36,12 +40,15 @@ void BossChargeAttack::Start()
 	isActive_ = true;
 	isFinished_ = false;
 	hasHit_ = false;
+	hasWindupEffect_ = false;
+	hasChargeReleaseEffect_ = false;
+	hasRecoveryImpactEffect_ = false;
 	phase_ = Phase::None;
 	phaseTimer_ = 0.0f;
 	totalTimer_ = 0.0f;
 	traveledDistance_ = 0.0f;
 
-	LockChargeDirection(); // 突進中に毎フレーム追尾しないよう、開始時のプレイヤー方向を固定する。
+	hasLockedDirection_ = false;
 	ChangePhase(Phase::Windup);
 	Log("[BossChargeAttack] Start\n");
 }
@@ -91,7 +98,47 @@ void BossChargeAttack::TickCooldown(float deltaTime)
 void BossChargeAttack::UpdateWindup(float deltaTime)
 {
 	(void)deltaTime;
-	if (phaseTimer_ >= startupTime_) ChangePhase(Phase::Charging);
+	if (owner_ && !hasWindupEffect_)
+	{
+		hasWindupEffect_ = true;
+		Vector3 chargeOrigin = owner_->GetCenterPosition();
+		chargeOrigin.y += 0.2f;
+		// 突進前に溜めエフェクトを出し、プレイヤーが回避準備できる予兆にする。
+		BossAttackEffects::EmitGuardianAttackPresenceEffect("GuardianChargeWindup", GpuParticleType::Shockwave, chargeOrigin, std::max<uint32_t>(24, particleSpawnCount_ / 2), 1.45f, std::max(0.25f, startupTime_), 0.65f);
+	}
+
+	if (owner_)
+	{
+		const Vector3 faceDirection = owner_->GetDirectionToTargetXZOrForward(owner_->GetPosition());
+		owner_->FaceDirectionXZImmediate(faceDirection); // 溜め中はプレイヤーを向き続け、突進予兆の向きを分かりやすくする。
+		const float progress = startupTime_ <= 0.0f ? 1.0f : std::clamp(phaseTimer_ / startupTime_, 0.0f, 1.0f);
+		const float visibleRange = chargeDistance_ * (0.35f + progress * 0.65f);
+		for (int i = 1; i <= 4; ++i)
+		{
+			const float t = static_cast<float>(i) / 4.0f;
+			Vector3 linePosition = owner_->GetCenterPosition();
+			linePosition.x += faceDirection.x * visibleRange * t;
+			linePosition.y = 0.18f;
+			linePosition.z += faceDirection.z * visibleRange * t;
+			char emitterName[64]{};
+			std::snprintf(emitterName, sizeof(emitterName), "GuardianChargeLine%02d", i);
+			BossAttackEffects::EmitGuardianAttackPresenceEffect(emitterName, GpuParticleType::Trail, linePosition, 1, 0.22f + progress * 0.18f, 0.16f, 0.45f + progress * 0.45f);
+		}
+	}
+
+	if (phaseTimer_ >= startupTime_)
+	{
+		LockChargeDirection(); // 突進開始直前に方向を固定し、横回避で避けられる攻撃にする。
+		if (owner_ && !hasChargeReleaseEffect_)
+		{
+			hasChargeReleaseEffect_ = true;
+			Vector3 releasePosition = owner_->GetCenterPosition();
+			releasePosition.y += 0.2f;
+			// 溜め終わりの粒子を強め、ここから突進判定が始まることを知らせる。
+			BossAttackEffects::EmitGuardianAttackPresenceEffect("GuardianChargeRelease", GpuParticleType::Shockwave, releasePosition, std::max<uint32_t>(32, particleSpawnCount_ / 2), 1.75f, 0.22f, 1.35f);
+		}
+		ChangePhase(Phase::Charging);
+	}
 }
 
 void BossChargeAttack::UpdateCharging(float deltaTime)
@@ -137,6 +184,14 @@ void BossChargeAttack::UpdateCharging(float deltaTime)
 void BossChargeAttack::UpdateRecovery(float deltaTime)
 {
 	(void)deltaTime;
+	if (owner_ && !hasRecoveryImpactEffect_)
+	{
+		hasRecoveryImpactEffect_ = true;
+		Vector3 impactPosition = owner_->GetPosition();
+		impactPosition.y = 0.08f;
+		// 突進終了時に小さな衝撃波を出し、回避後の反撃タイミングを視覚的に区切る。
+		BossAttackEffects::EmitGuardianHitEffect("GuardianChargeStopImpact", GpuParticleType::Shockwave, impactPosition, std::max<uint32_t>(28, particleSpawnCount_ / 2), 1.65f, 0.45f, 1.0f);
+	}
 	if (phaseTimer_ >= recoveryTime_) End();
 }
 
@@ -156,7 +211,7 @@ void BossChargeAttack::LockChargeDirection()
 
 	startPosition_ = owner_->GetPosition();
 	lockedForward_ = owner_->GetDirectionToTargetXZOrForward(startPosition_);
-	owner_->FaceDirectionXZImmediate(lockedForward_); // 突進は開始時の前方へだけ進み、移動中の急な追尾回転を避ける。
+	owner_->FaceDirectionXZImmediate(lockedForward_); // 突進中は方向を固定し、移動中の急な追尾回転を避ける。
 	hasLockedDirection_ = true;
 }
 
@@ -233,11 +288,12 @@ void BossChargeAttack::Draw()
 	if (!owner_ || !isActive_) return;
 	if (auto* wireframe = Wireframe::GetInstance())
 	{
-		Vector3 from = startPosition_;
+		const Vector3 forward = hasLockedDirection_ ? lockedForward_ : owner_->GetDirectionToTargetXZOrForward(owner_->GetPosition());
+		Vector3 from = hasLockedDirection_ ? startPosition_ : owner_->GetPosition();
 		from.y += 0.2f;
 		Vector3 to = from;
-		to.x += lockedForward_.x * chargeDistance_;
-		to.z += lockedForward_.z * chargeDistance_;
+		to.x += forward.x * chargeDistance_;
+		to.z += forward.z * chargeDistance_;
 		wireframe->DrawLine(from, to, Vector4{ 1.0f, 0.15f, 0.05f, 1.0f });
 	}
 #endif
@@ -253,6 +309,8 @@ void BossChargeAttack::DrawImGui()
 	ImGui::Text("HasHit            : %s", hasHit_ ? "true" : "false");
 	ImGui::Text("Phase             : %s", GetPhaseName());
 	ImGui::Text("PhaseTimer        : %.2f", phaseTimer_);
+	ImGui::Text("PhaseRemaining    : %.2f", std::max(0.0f, (phase_ == Phase::Windup ? startupTime_ : (phase_ == Phase::Recovery ? recoveryTime_ : 0.0f)) - phaseTimer_));
+	ImGui::Text("Charging          : %s", phase_ == Phase::Charging ? "true" : "false");
 	ImGui::Text("TotalTimer        : %.2f", totalTimer_);
 	ImGui::Text("CooldownRemaining : %.2f", cooldownRemaining_);
 	ImGui::Text("Range             : %.2f - %.2f", minRange_, maxRange_);
