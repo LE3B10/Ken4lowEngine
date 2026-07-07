@@ -76,6 +76,9 @@
     <FxCompile Include="Resources\Shaders\PostEffect\GrayScaleEffect.CS.hlsl">
       <Filter>Shader\ComputeShader</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\BloomEffect.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
     <FxCompile Include="Resources\Shaders\PostEffect\LuminanceOutlineEffect.CS.hlsl">
       <Filter>Shader\ComputeShader</Filter>
     </FxCompile>
@@ -89,6 +92,9 @@
       <Filter>Shader\ComputeShader</Filter>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\PostEffect\SmoothingEffect.CS.hlsl">
+      <Filter>Shader\ComputeShader</Filter>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\ToneMappingEffect.CS.hlsl">
       <Filter>Shader\ComputeShader</Filter>
     </FxCompile>
     <FxCompile Include="Resources\Shaders\PostEffect\VignetteEffect.CS.hlsl">
@@ -796,6 +802,9 @@
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\AbsorbEffect\AbsorbEffect.cpp">
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\BloomEffect\BloomEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\DepthOutlineEffect\DepthOutlineEffect.cpp">
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClCompile>
@@ -827,6 +836,9 @@
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\SmoothingEffect\SmoothingEffect.cpp">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\ToneMappingEffect\ToneMappingEffect.cpp">
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\VignetteEffect\VignetteEffect.cpp">
@@ -2001,6 +2013,9 @@
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\AbsorbEffect\AbsorbEffect.h">
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\BloomEffect\BloomEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\DepthOutlineEffect\DepthOutlineEffect.h">
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClInclude>
@@ -2032,6 +2047,9 @@
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\SmoothingEffect\SmoothingEffect.h">
+      <Filter>Engine\Graphics\PostEffect\Effects</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\ToneMappingEffect\ToneMappingEffect.h">
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\VignetteEffect\VignetteEffect.h">

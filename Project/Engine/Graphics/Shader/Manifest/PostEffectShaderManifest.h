@@ -32,6 +32,8 @@ namespace Ken4lowEngine
 		DissolveCS,
 		LuminanceOutlineCS,
 		PlayerHealthCS,
+		ToneMappingCS,
+		BloomCS,
 	};
 
 	/// -------------------------------------------------------------
@@ -221,6 +223,30 @@ namespace Ken4lowEngine
 				static const ShaderDescriptor desc{
 					L"PlayerHealthPostEffectCS",
 					L"Resources/Shaders/PostEffect/PlayerHealthPostEffect.CS.hlsl",
+					L"main",
+					L"cs_6_6",
+					ShaderStage::Compute,
+					RootSignatureType::Compute
+				};
+				return desc;
+			}
+			case PostEffectComputeShaderId::ToneMappingCS:
+			{
+				static const ShaderDescriptor desc{
+					L"ToneMappingEffectCS",
+					L"Resources/Shaders/PostEffect/ToneMappingEffect.CS.hlsl",
+					L"main",
+					L"cs_6_6",
+					ShaderStage::Compute,
+					RootSignatureType::Compute
+				};
+				return desc;
+			}
+			case PostEffectComputeShaderId::BloomCS:
+			{
+				static const ShaderDescriptor desc{
+					L"BloomEffectCS",
+					L"Resources/Shaders/PostEffect/BloomEffect.CS.hlsl",
 					L"main",
 					L"cs_6_6",
 					ShaderStage::Compute,

@@ -29,6 +29,8 @@
 #include <DepthOutlineEffect.h>
 #include <PixelateEffect.h>
 #include "Effects/PlayerHealthPostEffect/PlayerHealthPostEffect.h"
+#include "Effects/ToneMappingEffect/ToneMappingEffect.h"
+#include "Effects/BloomEffect/BloomEffect.h"
 
 namespace Ken4lowEngine
 {
@@ -85,6 +87,10 @@ namespace Ken4lowEngine
 			{ "DepthOutLineEffect",		{ [] { return std::make_unique<DepthOutlineEffect>(CameraManager::GetInstance()->GetMainCamera()); }, false, 10, "Visual"} },
 			{ "PixelateEffect",			{ [] { return std::make_unique<PixelateEffect>(); },		 false, 11, "Visual" } },
 			{ "PlayerHealthPostEffect",	{ [] { return std::make_unique<PlayerHealthPostEffect>(); }, false, 12, "Color" } },
+			// ToneMappingはHDR/PBR/Bloom後のLDR境界になるため、既存効果の後段に置く。ただし初期OFFで既存見た目を維持する。
+			{ "ToneMappingEffect",		{ [] { return std::make_unique<ToneMappingEffect>(); },      false, 13, "Color" } },
+			// BloomはBrightExtract -> Blur -> Compositeの入口。ToneMapping後段の調整用として登録し、初期OFFで既存RT/BackBuffer出力を保つ。
+			{ "BloomEffect",			{ [] { return std::make_unique<BloomEffect>(); },            false, 14, "Bloom" } },
 		};
 
 		// ファクトリー関数を使ってエフェクトを生成
@@ -451,7 +457,7 @@ namespace Ken4lowEngine
 			// 入力SRVと出力RTV/UAVが同一Resourceにならないことを保証して自己参照描画を防ぐ。
 			assert(inRT.resource.Get() != outRT.resource.Get());
 
-			if (name == "GrayScaleEffect" || name == "RandomEffect" || name == "DissolveEffect" || name == "VignetteEffect" || name == "GaussianFilterEffect" || name == "RadialBlurEffect" || name == "LuminanceOutlineEffect" || name == "SmoothingEffect" || name == "PixelateEffect" || name == "PlayerHealthPostEffect")
+			if (name == "GrayScaleEffect" || name == "RandomEffect" || name == "DissolveEffect" || name == "VignetteEffect" || name == "GaussianFilterEffect" || name == "RadialBlurEffect" || name == "LuminanceOutlineEffect" || name == "SmoothingEffect" || name == "PixelateEffect" || name == "PlayerHealthPostEffect" || name == "ToneMappingEffect" || name == "BloomEffect")
 			{
 				TransitionTo(inRT, commandList, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 				TransitionTo(outRT, commandList, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);

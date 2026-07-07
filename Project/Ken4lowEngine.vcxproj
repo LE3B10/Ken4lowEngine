@@ -396,6 +396,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\Pipeline\PipelineStatePresets.cpp" />
     <ClCompile Include="Engine\Graphics\Pipeline\RenderPipelineController.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\AbsorbEffect\AbsorbEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\BloomEffect\BloomEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\DepthOutlineEffect\DepthOutlineEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\DissolveEffect\DissolveEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\GaussianFilterEffect\GaussianFilterEffect.cpp" />
@@ -407,6 +408,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\RadialBlurEffect\RadialBlurEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\RandomEffect\RandomEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\SmoothingEffect\SmoothingEffect.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Effects\ToneMappingEffect\ToneMappingEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\VignetteEffect\VignetteEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectChain.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectManager.cpp" />
@@ -612,6 +614,14 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\BloomEffect.CS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Resources\Shaders\PostEffect\AbsorbEffect.PS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
@@ -679,6 +689,14 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <FxCompile Include="Resources\Shaders\PostEffect\FullScreen.VS.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Resources\Shaders\PostEffect\ToneMappingEffect.CS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">6.6</ShaderModel>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Compute</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">6.6</ShaderModel>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
@@ -1180,6 +1198,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\Pipeline\RenderPipelineController.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Core\IPostEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\AbsorbEffect\AbsorbEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\BloomEffect\BloomEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\DepthOutlineEffect\DepthOutlineEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\DissolveEffect\DissolveEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\GaussianFilterEffect\GaussianFilterEffect.h" />
@@ -1191,6 +1210,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\RadialBlurEffect\RadialBlurEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\RandomEffect\RandomEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\SmoothingEffect\SmoothingEffect.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Effects\ToneMappingEffect\ToneMappingEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\VignetteEffect\VignetteEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectChain.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectManager.h" />
