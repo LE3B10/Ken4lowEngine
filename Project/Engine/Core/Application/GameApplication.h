@@ -1,5 +1,6 @@
 #pragma once
 #include <Framework.h>
+#include "RenderPipelineController.h"
 
 namespace Ken4lowEngine
 {
@@ -37,16 +38,8 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// 毎フレームの描画処理。
 		/// おおまかな流れは以下の通りです：
-		/// 1. DirectXCommon::BeginDraw() でバックバッファをクリア
-		/// 2. ImGui フレーム開始（BeginFrame）と各種 ImGui ウィンドウの描画
-		/// 3. PostEffectManager::BeginDraw() でオフスクリーンレンダリング開始（RTV/DSV 設定）
-		/// 4. SceneManager による 3D オブジェクト描画 / ParticleManager / GpuParticleManager / Wireframe 描画
-		/// 5. PostEffectManager::EndDraw() でオフスクリーン終了（SRV へ切り替え）
-		/// 6. PostEffectManager::RenderPostEffect() でポストエフェクト適用（フルスクリーンクアッド描画）
-		/// 7. SceneManager による 2D スプライト描画（UI など）
-		/// 8. ImGui の描画（ImGuiManager::Draw）
-		/// 9. DirectXCommon::EndDraw() で Present
-		/// というレンダリングパイプラインを構築しています。
+		/// 既存public API互換の入口として残し、実際のShadow/Scene/PostEffect/UIの順序管理は
+		/// RenderPipelineControllerへ委譲します。
 		/// </summary>
 		void Draw() override;
 
@@ -86,6 +79,10 @@ namespace Ken4lowEngine
 		/// BackBuffer へ戻したあと、ポストエフェクト対象外にしたい UI を直接描画します。
 		/// </summary>
 		void DrawGameUIToBackBuffer();
+
+	private: /// ---------- 描画順序制御 ---------- ///
+
+		RenderPipelineController renderPipelineController_; // 1フレーム内の描画順序だけを集約する薄いController。
 	};
 
 

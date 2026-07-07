@@ -4,6 +4,8 @@
 #include "Vector4.h"
 #include "Matrix4x4.h"
 #include "LightParameterController.h"
+#include "ShadowSettings.h"
+#include <memory>
 #include <string>
 
 namespace Ken4lowEngine
@@ -11,6 +13,9 @@ namespace Ken4lowEngine
 
 	/// ---------- 前方宣言 ---------- ///
 	class DirectXCommon;
+	class LightGpuBuffer;
+	class LightEditorPanel;
+	class LightPresetService;
 
 
 	/// -------------------------------------------------------------
@@ -29,7 +34,7 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// デフォルトデストラクタ。
 		/// </summary>
-		~LightManager() = default;
+		~LightManager();
 
 	public: /// ---------- 構造体 ---------- ///
 
@@ -59,13 +64,10 @@ namespace Ken4lowEngine
 			Spot = 2,
 		};
 
-		enum class ShadowFocusMode : uint32_t
-		{
-			Camera = 0,
-			Player = 1,
-			StageCenter = 2,
-			Manual = 3,
-		};
+		// 既存コードの LightManager::ShadowFocusMode 参照を維持するための互換エイリアス。
+		// 実体はShadowSettings.h側へ移し、Shadow設定だけを将来のShadowSystemへ渡しやすくする。
+		using ShadowFocusMode = ::Ken4lowEngine::ShadowFocusMode;
+		using ShadowSettings = ::Ken4lowEngine::ShadowSettings;
 		// ライト数CB
 		struct LightInfo
 		{
@@ -95,31 +97,6 @@ namespace Ken4lowEngine
 			float pad[3] = {};
 		};
 
-		/// <summary>
-		/// ParameterManagerとShadow設定をまとめて受け渡すための値オブジェクトです。<br/>
-		/// GPU用構造体ではなく、LightParameterControllerからprivateメンバを直接触らせないための窓口として使います。
-		/// </summary>
-		struct ShadowSettings
-		{
-			bool enableShadow = true;
-			float shadowBias = 0.0f;
-			float normalBias = 0.025f;
-			float shadowStrength = 0.6f;
-			uint32_t shadowMapSize = 2048;
-			bool showShadowMapDebug = false;
-			bool showShadowFactorDebug = false;
-			int32_t shadowCasterLightIndex = -1;
-			ShadowFocusMode shadowFocusMode = ShadowFocusMode::Camera;
-			Vector3 manualShadowFocusPosition = { 0.0f, 0.0f, 0.0f };
-			float directionalShadowDistance = 60.0f;
-			float directionalShadowWidth = 35.0f;
-			float directionalShadowHeight = 35.0f;
-			float directionalShadowNearZ = 0.1f;
-			float directionalShadowFarZ = 120.0f;
-			float directionalShadowFocusOffset = 0.0f;
-			float spotShadowNearZ = 0.1f;
-		};
-
 	public: /// ---------- メンバ関数 ---------- ///
 
 		/// <summary>
@@ -145,16 +122,15 @@ namespace Ken4lowEngine
 		void Finalize();
 
 		/// <summary>
-		/// ImGui を用いたパンクチュアルライトの編集 UI を描画します。<br/>
-		/// ・ライトの追加 / 全削除<br/>
-		/// ・種類（None / Directional / Point / Spot）の切り替え<br/>
-		/// ・色 / 輝度 / 位置 / 方向 / 半径 / 減衰 / 角度 の編集<br/>
-		/// ・ライトごとの削除<br/>
-		/// などを行います。
+		/// ImGui のライト編集UIを描画します。<br/>
+		/// 既存public API互換の入口として残し、実際のUI構築はLightEditorPanelへ委譲します。
 		/// </summary>
 		void DrawImGui(bool* pOpen = nullptr);
 
-		// Details Inspectorと専用Light Editorで同じPunctual Lights編集UIを共有する。
+		/// <summary>
+		/// Details Inspectorと専用Light Editorで同じPunctual Lights編集UIを共有するための互換入口です。<br/>
+		/// Runtime所有者のLightManagerからUI責務を分けるため、中身はLightEditorPanelへ委譲します。
+		/// </summary>
 		void DrawPunctualLightsInspector();
 
 		/// <summary>
@@ -178,7 +154,17 @@ namespace Ken4lowEngine
 
 		/// <summary>既定プリセットを優先して初期ライトを再構成します。</summary>
 		void ResetToDefaultLighting();
+
+		/// <summary>
+		/// LightPresetを保存する既存public API互換入口です。<br/>
+		/// 保存形式と呼び出し側を変えないため関数名は残し、実体処理はLightPresetServiceへ委譲します。
+		/// </summary>
 		bool SaveLightPreset(const std::string& assetId);
+
+		/// <summary>
+		/// LightPresetを指定パスから読み込む既存public API互換入口です。<br/>
+		/// LightManagerはFacadeとして残り、JSONの読み書き責務はLightPresetServiceへ分離します。
+		/// </summary>
 		bool ApplyLightPresetByPath(const std::string& filePath);
 
 	public: /// ---------- ゲッター ---------- ///
@@ -268,22 +254,14 @@ namespace Ken4lowEngine
 	private: /// ---------- メンバ関数 ---------- ///
 
 		/// <summary>
-		/// パンクチュアルライト用リソースの生成処理。<br/>
-		/// ・ライト数 CBV 用バッファの生成とマップ<br/>
-		/// ・SRV 用インデックスの確保<br/>
-		/// ・GPU バッファの最小確保と SRV 作成<br/>
-		/// を行います。Initialize から一度だけ呼び出されます。
+		/// パンクチュアルライト用GPUリソース生成の互換的な内部入口です。<br/>
+		/// LightManager本体からGPUリソース管理を分けるため、実体処理はLightGpuBufferへ委譲します。
 		/// </summary>
 		void CreatePunctualLight();
 
 		/// <summary>
-		/// パンクチュアルライトの GPU バッファ更新処理。<br/>
-		/// ・有効なライトだけを抽出・正規化して一時配列に詰める<br/>
-		/// ・必要であればバッファを再確保（サイズ拡張）し、データを書き込む<br/>
-		/// ・NumElements に応じて SRV を再作成（最低 1 要素）<br/>
-		/// ・ライト数 CBV に有効ライト数を書き込み<br/>
-		/// ・デバッグ用ライトギズモの描画<br/>
-		/// を行います。
+		/// パンクチュアルライトのGPU転送を行う互換的な内部入口です。<br/>
+		/// 転送実体はLightGpuBufferへ委譲し、LightManager側にはデバッグギズモ描画だけを残します。
 		/// </summary>
 		void UpdatePunctualLight();
 
@@ -299,23 +277,16 @@ namespace Ken4lowEngine
 
 	private: /// ---------- メンバ変数 ---------- ///
 
+		friend class LightEditorPanel; // UI専用クラスだけが既存Inspector表示に必要な内部状態を読み書きする。
+		friend class LightPresetService; // Preset保存/読み込み専用クラスだけが既存JSON互換のため状態を写し取る。
+
 		DirectXCommon* dxCommon_ = nullptr;
+		std::unique_ptr<LightGpuBuffer> lightGpuBuffer_;
 
 		std::vector<PunctualLightGPU> punctualLights_; // GPUに送るライト情報
 		std::vector<PunctualLightGPU> lightComponentPointLights_; // LightComponentから収集したPointLight情報
 
-		// GPU送信用バッファとSRV
-		Microsoft::WRL::ComPtr<ID3D12Resource> punctualBuffer_;
-		uint32_t punctualBufferBytes_ = 0;
-		uint32_t punctualSRVIndex_ = UINT32_MAX;
-		bool     punctualSRVAllocated_ = false;
 		uint32_t punctualType_ = 1; // 0=None, 1=Directional, 2=Point, 3=Spot
-
-		Microsoft::WRL::ComPtr<ID3D12Resource> lightInfoResource_;
-		LightInfo* lightInfoData_ = nullptr;
-
-		Microsoft::WRL::ComPtr<ID3D12Resource> lightingSettingsResource_;
-		LightingSettingsGPU* lightingSettingsData_ = nullptr;
 		LightingSettingsGPU lightingSettings_{};
 		bool enableShadow_ = true;
 		float shadowBias_ = 0.0f;

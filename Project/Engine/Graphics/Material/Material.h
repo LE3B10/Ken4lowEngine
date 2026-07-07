@@ -3,9 +3,57 @@
 #include "Matrix4x4.h"
 #include "Vector4.h"
 #include <cstdint>
+#include <string>
 
 namespace Ken4lowEngine
 {
+
+/// <summary>
+/// 既存Forward描画で使用しているMaterial定数バッファへ対応するCPU側説明構造体です。<br/>
+/// HLSLの既存MaterialCBDataレイアウトを変更せず、旧来のcolor/shininess/reflection/roughnessを
+/// 将来のMaterialアセット化で安全に受け渡すための互換契約として扱います。
+/// </summary>
+struct LegacyMaterialDesc
+{
+	Vector4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
+	float shininess = 32.0f;
+	float reflection = 0.0f;
+	float roughness = 0.5f;
+	Matrix4x4 uvTransform = Matrix4x4::MakeIdentity();
+	bool usePointSampling = false;
+	std::string baseColorTexturePath;
+};
+
+/// <summary>
+/// PBR/IBL/Deferred/Forward+へ進むためのCPU側マテリアル説明構造体です。<br/>
+/// 今回は描画へ接続せず、HLSL定数バッファや既存モデルの見た目を変えない将来拡張用の契約として追加します。
+/// </summary>
+struct PbrMaterialDesc
+{
+	Vector4 baseColorFactor = { 1.0f, 1.0f, 1.0f, 1.0f };
+	float metallicFactor = 0.0f;
+	float roughnessFactor = 0.5f;
+	float normalScale = 1.0f;
+	float occlusionStrength = 1.0f;
+	Vector4 emissiveFactor = { 0.0f, 0.0f, 0.0f, 1.0f };
+	std::string baseColorTexturePath;
+	std::string metallicRoughnessTexturePath;
+	std::string normalTexturePath;
+	std::string occlusionTexturePath;
+	std::string emissiveTexturePath;
+};
+
+/// <summary>
+/// 既存Materialと将来PBR Materialを同時に扱うためのCPU側上位Descです。<br/>
+/// 現段階ではMaterialCBDataへ自動反映せず、既存描画を維持しながらローダーやエディタが
+/// PBR情報を保持できるようにする土台として使います。
+/// </summary>
+struct MaterialDesc
+{
+	LegacyMaterialDesc legacy;
+	PbrMaterialDesc pbr;
+	bool preferPbrWorkflow = false;
+};
 
 
 /// -------------------------------------------------------------
@@ -18,6 +66,7 @@ public: /// ---------- 構造体 ---------- ///
 	// マテリアルデータ 定数バッファで送るデータ
 	struct MaterialCBData
 	{
+		// HLSLの既存b0 Material定数バッファと対応するため、PBR用Desc追加後もこの並びは変更しない。
 		Vector4 color;			// 色 : bytes 16
 		float shininess;		// シェーディングの強さ : bytes 4
 		float padding[3];		// パディング : bytes 12

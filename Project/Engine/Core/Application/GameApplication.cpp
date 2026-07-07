@@ -34,6 +34,9 @@ namespace Ken4lowEngine
 		// Framework 側でウィンドウ、DirectX、共通描画マネージャを先に初期化する。
 		Framework::Initialize();
 
+		// RenderPipelineControllerは既存描画関数を順番に呼ぶだけの薄い入口として初期化する。
+		renderPipelineController_.Initialize(dxCommon_);
+
 #ifdef USE_IMGUI
 		// DebugビルドはEditor Mode ON、Release相当ではGame Preview Modeとして初期化する。
 		EditorModeController::GetInstance()->Initialize();
@@ -114,101 +117,97 @@ namespace Ken4lowEngine
 		// Draw フェーズの処理時間を計測する。
 		GameTimer::GetInstance()->BeginDraw();
 
-		// 描画開始（DebugはGameViewportRenderTarget経由、Releaseは後段でBackBufferへ直接描画する）
-		dxCommon_->BeginDraw();
+		RenderPipelineController::FrameCallbacks callbacks{};
+		callbacks.drawShadowObjects = []()
+			{
+				// 影を落とす3Dオブジェクトだけを描画し、ShadowMapへ深度を書き込む既存処理を呼ぶ。
+				SceneManager::GetInstance()->DrawShadowObjects();
+			};
+		callbacks.drawGameWorldToSceneTarget = [this]()
+			{
+				DrawGameWorldToSceneTarget();
+			};
+		callbacks.renderPostEffectToGameRenderTarget = []()
+			{
+				// Editor ModeではBackBufferではなくMain Viewport用GameRenderTargetへPostEffect結果を集約する。
+				PostEffectManager::GetInstance()->RenderPostEffect();
+			};
+		callbacks.beginGameRenderTargetOverlay = []()
+			{
+				PostEffectManager::GetInstance()->BeginGameRenderTargetOverlay();
+			};
+		callbacks.drawScene2DOverlay = [this]()
+			{
+				DrawCurrentScene2DOverlay();
+			};
+		callbacks.endGameRenderTargetOverlay = []()
+			{
+				PostEffectManager::GetInstance()->EndGameRenderTargetOverlay();
+			};
+		callbacks.applyPostEffectToBackBuffer = [this]()
+			{
+				ApplyPostEffectToBackBuffer();
+			};
+		callbacks.rebindBackBufferForGameOverlay = [this]()
+			{
+				dxCommon_->RebindBackBufferForGameOverlay();
+			};
+		callbacks.drawGameUIToBackBuffer = [this]()
+			{
+				DrawGameUIToBackBuffer();
+			};
 
-		// ライティング用の深度情報を先に作るため、シャドウマップ専用パスを開始する。
-		dxCommon_->BeginShadowMapPass();
-
-		// 影を落とす3Dオブジェクトだけを描画し、シャドウマップへ深度を書き込む。
-		SceneManager::GetInstance()->DrawShadowObjects();
-
-		// 通常描画へ戻れるよう、シャドウマップパスを終了する。
-		dxCommon_->EndShadowMapPass();
-
+		bool editorModeEnabled = false;
 #ifdef USE_IMGUI
-		const bool editorModeEnabled = EditorModeController::GetInstance()->ShouldDrawEditorUi();
+		callbacks.drawImGuiOverlay = []()
+			{
+				ImGuiManager::GetInstance()->Draw();
+			};
+		editorModeEnabled = EditorModeController::GetInstance()->ShouldDrawEditorUi();
 		if (editorModeEnabled)
 		{
-			/// ---------- ImGuiフレーム開始 ---------- ///
-			ImGuiManager::GetInstance()->BeginFrame();
+			callbacks.buildEditorUi = [this]()
+				{
+					/// ---------- ImGuiフレーム開始 ---------- ///
+					ImGuiManager::GetInstance()->BeginFrame();
 
-			// UE5風エディタUI土台を既存のシーン別ImGuiの前に描画する
-			auto* editorWindows = EditorWindowManager::GetInstance();
-			editorWindows->Draw();
-			auto& editorWindowState = editorWindows->GetWindowState();
-			JsonEditorWindow::GetInstance()->Draw(&editorWindowState.showJsonAssetManager);
+					// UE5風エディタUI土台を既存のシーン別ImGuiの前に描画する
+					auto* editorWindows = EditorWindowManager::GetInstance();
+					editorWindows->Draw();
+					auto& editorWindowState = editorWindows->GetWindowState();
+					JsonEditorWindow::GetInstance()->Draw(&editorWindowState.showJsonAssetManager);
 
-			// WindowメニューのDisplay表示フラグをWinApp側の×ボタン状態と共有する
-			winApp_->DrawDisplaySettingsImGui(&editorWindowState.showDisplay);
+					// WindowメニューのDisplay表示フラグをWinApp側の×ボタン状態と共有する
+					winApp_->DrawDisplaySettingsImGui(&editorWindowState.showDisplay);
 
-			// WindowメニューのParameters表示フラグをParameterManager側の×ボタン状態と共有する
-			ParameterManager::GetInstance()->Update(&editorWindowState.showParameters);
+					// WindowメニューのParameters表示フラグをParameterManager側の×ボタン状態と共有する
+					ParameterManager::GetInstance()->Update(&editorWindowState.showParameters);
 
-			//defaultCamera_->DrawImGui();
+					//defaultCamera_->DrawImGui();
 
-			// ImGuiを描画
-			Object3DCommon::GetInstance()->DrawImGui();
+					// ImGuiを描画
+					Object3DCommon::GetInstance()->DrawImGui();
 
-			// シーンのImGuiの描画処理
-			SceneManager::GetInstance()->DrawImGui();
+					// シーンのImGuiの描画処理
+					SceneManager::GetInstance()->DrawImGui();
 
-			// ParticleManagerのImGuiの描画処理
-			ParticleManager::GetInstance()->DrawImGui();
+					// ParticleManagerのImGuiの描画処理
+					ParticleManager::GetInstance()->DrawImGui();
 
-			// WindowメニューのPost Effect Settings表示フラグをPostEffectManager側の×ボタン状態と共有する
-			PostEffectManager::GetInstance()->ImGuiRender(&editorWindowState.showPostEffectSettings);
+					// WindowメニューのPost Effect Settings表示フラグをPostEffectManager側の×ボタン状態と共有する
+					PostEffectManager::GetInstance()->ImGuiRender(&editorWindowState.showPostEffectSettings);
 
-			/// ---------- ImGuiフレーム終了 ---------- ///
-			ImGuiManager::GetInstance()->EndFrame();
+					/// ---------- ImGuiフレーム終了 ---------- ///
+					ImGuiManager::GetInstance()->EndFrame();
 
-			// Debug/Editor時もゲーム内部解像度は固定し、Main Viewport側の表示だけを拡縮する。
-			(void)EditorWindowManager::GetInstance()->GetMainViewportSize();
-
-			//--------------------------------------------
-			// 1. オフスクリーンレンダリング（3D + Particle）
-			//--------------------------------------------
-			DrawGameWorldToSceneTarget();
-
-			//--------------------------------------------
-			// 4. ポストエフェクト適用（3Dの最終結果をGameRenderTargetへ集約）
-			//--------------------------------------------
-			PostEffectManager::GetInstance()->RenderPostEffect(); // BackBufferではなくMain Viewport用GameRenderTargetへ描画
-
-			//--------------------------------------------
-			// 5. 2Dスプライト（UIなど）をGameRenderTarget上に直接描画
-			//--------------------------------------------
-			PostEffectManager::GetInstance()->BeginGameRenderTargetOverlay(); // 2DをMain Viewportに含めるためGameRenderTargetをRTVへ戻す
-			// Debug/ReleaseでGamePlaySceneのHUD/UI/Sprite/Font描画を必ず同じ入口から呼ぶ。
-			DrawCurrentScene2DOverlay();
-			PostEffectManager::GetInstance()->EndGameRenderTargetOverlay(); // ImGui::Imageで読むためGameRenderTargetをSRVへ戻す
-
-			//--------------------------------------------
-			// 6. ImGui描画
-			//--------------------------------------------
-			ImGuiManager::GetInstance()->Draw();
+					// Debug/Editor時もゲーム内部解像度は固定し、Main Viewport側の表示だけを拡縮する。
+					(void)EditorWindowManager::GetInstance()->GetMainViewportSize();
+				};
 		}
-		else
-		{
-			// Game Preview ModeではImGuiウィンドウを生成せず、ゲーム画面だけをBackBufferへ描画する。
-			DrawGameWorldToSceneTarget();
-			ApplyPostEffectToBackBuffer();
-			dxCommon_->RebindBackBufferForGameOverlay();
-			DrawGameUIToBackBuffer();
-		}
-#else
-		// Release/Gameでも中間SceneRenderTargetを使い、ParticleとPostEffectの入力をDebugと揃える。
-		DrawGameWorldToSceneTarget();
-
-		// PostEffect後の結果だけをBackBufferへ出し、HUD/UIを後段で重ねられる状態にする。
-		ApplyPostEffectToBackBuffer();
-
-		// GPU Particle/PostEffectでRTVが切り替わった後、HUD/UI/Sprite/FontだけはBackBufferへ戻して重ねる。
-		dxCommon_->RebindBackBufferForGameOverlay();
-
-		// HUD/UIはPostEffect後のBackBufferへ描画し、画面効果に巻き込まない。
-		DrawGameUIToBackBuffer();
 #endif // USE_IMGUI
+
+		// GameApplication::Drawは既存互換のFacadeとして残し、描画順序の実行だけをControllerへ委譲する。
+		renderPipelineController_.ExecuteFrame(editorModeEnabled, callbacks);
 
 		// Draw計測終了
 		// ※ EndDraw() の中に Present が含まれている可能性が高いので、

@@ -13,6 +13,7 @@
 #include <functional>
 
 #include <IPostEffect.h>
+#include "PostEffectChain.h"
 #include "PostEffectPipelineBuilder.h"
 
 namespace Ken4lowEngine
@@ -21,6 +22,7 @@ namespace Ken4lowEngine
 /// ---------- 前方宣言 ---------- ///
 class DirectXCommon;
 class Camera;
+class PostEffectEditorPanel;
 
 
 /// -------------------------------------------------------------
@@ -121,7 +123,8 @@ public: /// ---------- メンバ関数 ---------- ///
 	void BindSceneRenderTarget();
 
 	/// <summary>
-	/// ImGui の描画をレンダリングします。
+	/// PostEffectのImGui編集UIを描画する既存public API互換入口です。<br/>
+	/// RenderTarget/BackBufferの責務とUI責務を分けるため、実際のUI構築はPostEffectEditorPanelへ委譲します。
 	/// </summary>
 	void ImGuiRender(bool* pOpen = nullptr);
 
@@ -211,6 +214,8 @@ private: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ変数 ---------- ///
 
+	friend class PostEffectEditorPanel; // UI専用クラスだけがEffect一覧と表示フラグへアクセスする。
+
 	// DirectX共通クラス
 	DirectXCommon* dxCommon_ = nullptr;
 
@@ -225,8 +230,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unordered_map<std::string, bool> effectEnabled_;	  // ImGui用のエフェクトON/OFFフラグ
 	std::unordered_map<std::string, bool> effectEnableFlags_; // エフェクトのON/OFFフラグ
 
-	// ポストエフェクトの適用順（名前と順序番号）
-	std::vector<std::pair<std::string, int>> effectOrder_;
+	PostEffectChain postEffectChain_; // Effectの適用順と有効判定だけを分離し、RT/Barrier管理はManagerに残す。
 
 	// ポストエフェクトのカテゴリ分類（名前 → カテゴリ名）
 	std::unordered_map<std::string, std::string> effectCategory_;

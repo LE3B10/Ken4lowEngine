@@ -745,10 +745,31 @@
     <ClCompile Include="Engine\Graphics\Lighting\LightManager.cpp">
       <Filter>Engine\Graphics\Lighting</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\Lighting\LightEditorPanel.cpp">
+      <Filter>Engine\Graphics\Lighting</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Lighting\LightGpuBuffer.cpp">
+      <Filter>Engine\Graphics\Lighting</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Graphics\Lighting\LightParameterController.cpp">
       <Filter>Engine\Graphics\Lighting</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\Lighting\LightPresetService.cpp">
+      <Filter>Engine\Graphics\Lighting</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Graphics\Material\Material.cpp">
+      <Filter>Engine\Graphics\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Material\MaterialAsset.cpp">
+      <Filter>Engine\Graphics\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Material\MaterialDescJsonConverter.cpp">
+      <Filter>Engine\Graphics\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Material\MaterialDescLoader.cpp">
+      <Filter>Engine\Graphics\Material</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Material\MaterialRepository.cpp">
       <Filter>Engine\Graphics\Material</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Material\ParticleMaterial.cpp">
@@ -767,6 +788,9 @@
       <Filter>Engine\Graphics\Pipeline</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Pipeline\PipelineStatePresets.cpp">
+      <Filter>Engine\Graphics\Pipeline</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\Pipeline\RenderPipelineController.cpp">
       <Filter>Engine\Graphics\Pipeline</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\AbsorbEffect\AbsorbEffect.cpp">
@@ -808,7 +832,13 @@
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\VignetteEffect\VignetteEffect.cpp">
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectChain.cpp">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectManager.cpp">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectEditorPanel.cpp">
       <Filter>Engine\Graphics\PostEffect\Manager</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\PostEffect\Pipeline\PostEffectPipelineBuilder.cpp">
@@ -1914,10 +1944,34 @@
     <ClInclude Include="Engine\Graphics\Lighting\LightManager.h">
       <Filter>Engine\Graphics\Lighting</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Graphics\Lighting\LightEditorPanel.h">
+      <Filter>Engine\Graphics\Lighting</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Lighting\LightGpuBuffer.h">
+      <Filter>Engine\Graphics\Lighting</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Graphics\Lighting\LightParameterController.h">
       <Filter>Engine\Graphics\Lighting</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Graphics\Lighting\LightPresetService.h">
+      <Filter>Engine\Graphics\Lighting</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Lighting\ShadowSettings.h">
+      <Filter>Engine\Graphics\Lighting</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Graphics\Material\Material.h">
+      <Filter>Engine\Graphics\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Material\MaterialAsset.h">
+      <Filter>Engine\Graphics\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Material\MaterialDescJsonConverter.h">
+      <Filter>Engine\Graphics\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Material\MaterialDescLoader.h">
+      <Filter>Engine\Graphics\Material</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Material\MaterialRepository.h">
       <Filter>Engine\Graphics\Material</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Material\ParticleMaterial.h">
@@ -1939,6 +1993,9 @@
       <Filter>Engine\Graphics\Pipeline</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Pipeline\PipelineStatePresets.h">
+      <Filter>Engine\Graphics\Pipeline</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Pipeline\RenderPipelineController.h">
       <Filter>Engine\Graphics\Pipeline</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\AbsorbEffect\AbsorbEffect.h">
@@ -1980,7 +2037,13 @@
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\VignetteEffect\VignetteEffect.h">
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectChain.h">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectManager.h">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectEditorPanel.h">
       <Filter>Engine\Graphics\PostEffect\Manager</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\PostEffect\Pipeline\PostEffectPipelineBuilder.h">

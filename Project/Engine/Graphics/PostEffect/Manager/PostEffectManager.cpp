@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "PostEffectManager.h"
+#include "PostEffectEditorPanel.h"
 #include "WinApp.h"
 #include "DirectXCommon.h"
 #include <CameraManager.h>
@@ -14,10 +15,6 @@
 #include <cassert>
 #include <cstdint>
 #include <string>
-
-#ifdef USE_IMGUI
-#include <imgui.h>
-#endif // USE_IMGUI
 
 #include <NormalEffect.h>
 #include <GrayScaleEffect.h>
@@ -96,7 +93,7 @@ namespace Ken4lowEngine
 			postEffects_[name] = entry.creator();
 			postEffects_[name]->Initialize(dxCommon_, pipelineBuilder_.get());
 			effectEnabled_[name] = entry.enabled;
-			effectOrder_.emplace_back(name, entry.order);
+			postEffectChain_.RegisterEffect(name, entry.order); // Effect適用順だけをChainへ登録し、既存order値を維持する。
 			effectCategory_[name] = entry.category;
 		}
 	}
@@ -118,7 +115,7 @@ namespace Ken4lowEngine
 		postEffects_.clear();
 		effectEnabled_.clear();
 		effectEnableFlags_.clear();
-		effectOrder_.clear();
+		postEffectChain_.Clear();
 		effectCategory_.clear();
 		pipelineBuilder_.reset();
 
@@ -439,21 +436,14 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		// 複数枚がある場合
-
-		// 順序でソート
-		std::sort(effectOrder_.begin(), effectOrder_.end(),
-			[](const auto& a, const auto& b) { return a.second < b.second; });
-
 		uint32_t src = 0; // ソースのインデックス
 		uint32_t dst = 1; // デスティネーションのインデックス
 		bool appliedAnyEffect = false; // 最終alpha補正コピーが必要か判定するため適用有無を保持する
 
-		// ポストエフェクトの描画
-		for (const auto& [name, _] : effectOrder_)
+		const auto activeEffectNames = postEffectChain_.BuildActiveEffectNames(effectEnabled_, effectEnableFlags_);
+		// Chainは順序と有効判定だけを返し、Apply/Barrier/ping-pongは既存通りManager側で実行する。
+		for (const auto& name : activeEffectNames)
 		{
-			if (!(effectEnabled_[name] || effectEnableFlags_[name])) continue;  // エフェクトが無効ならスキップ
-
 			appliedAnyEffect = true;
 			auto& inRT = renderTargets_[src]; // 入力レンダーテクスチャ
 			auto& outRT = renderTargets_[dst]; // 出力レンダーテクスチャ
@@ -595,27 +585,9 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void PostEffectManager::ImGuiRender(bool* pOpen)
 	{
-#ifdef USE_IMGUI
-		// WindowメニューのPost Effect Settings表示フラグが閉じている間は後処理UIを生成しない
-		if (pOpen != nullptr && !*pOpen)
-		{
-			return;
-		}
-
-		ImGui::Begin("Post Effect Settings", pOpen);
-
-		for (const auto& [name, category] : effectCategory_)
-		{
-			ImGui::Checkbox(name.c_str(), &effectEnabled_[name]);
-			if (effectEnabled_[name])
-			{
-				postEffects_[name]->DrawImGui();
-			}
-		}
-		ImGui::End();
-#else
-		(void)pOpen;
-#endif // USE_IMGUI
+		// 既存の呼び出し口は維持し、PostEffectの編集UIだけをPostEffectEditorPanelへ分離する。
+		static PostEffectEditorPanel editorPanel;
+		editorPanel.Draw(*this, pOpen);
 	}
 
 	/// -------------------------------------------------------------
