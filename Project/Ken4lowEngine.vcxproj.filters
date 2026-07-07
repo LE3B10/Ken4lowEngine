@@ -2529,6 +2529,12 @@
     <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationStateController.h">
       <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Math\MathUtil.h">
+      <Filter>Engine\Math</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\UISystem\UiSpriteFactory.h">
+      <Filter>ApplicationLayer\UISystem</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

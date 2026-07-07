@@ -77,12 +77,6 @@ public: /// ---------- メンバ関数 ---------- ///
 
 private: /// ---------- メンバ関数 ---------- ///
 
-	// 白スプライトを生成する
-	static std::unique_ptr<Ken4lowEngine::Sprite> CreateWhiteSprite();
-
-	// 指定したスプライトを矩形として配置する
-	static void SetupRectSprite(Ken4lowEngine::Sprite* sprite, const Ken4lowEngine::Vector2& center, const Ken4lowEngine::Vector2& size);
-
 	// ボタンの見た目を更新（selected: 選択中かどうか）
 	void UpdateButtonVisual(Button& button, bool selected, const Ken4lowEngine::Vector4& accentColor);
 

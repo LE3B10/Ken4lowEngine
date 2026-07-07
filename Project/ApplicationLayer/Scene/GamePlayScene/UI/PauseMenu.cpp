@@ -5,6 +5,7 @@
 #include <FontAtlasLoader.h>
 #include <Input.h>
 #include <TextSpriteDrawer.h>
+#include <UiSpriteFactory.h>
 #include "GameViewportConstants.h"
 
 #include <algorithm>
@@ -25,11 +26,11 @@ void PauseMenu::Initialize()
 	screenWidth_ = static_cast<float>(K4E::GameViewportConstants::Width);
 	screenHeight_ = static_cast<float>(K4E::GameViewportConstants::Height);
 
-	// UI生成画像に依存しないよう、白スプライトの矩形とTextSpriteDrawerでポーズ画面を構築する。
-	overlay_ = CreateWhiteSprite();
-	panel_ = CreateWhiteSprite();
-	panelBorder_ = CreateWhiteSprite();
-	titleLine_ = CreateWhiteSprite();
+	// UI生成だけをUiSpriteFactoryへ寄せ、入力・選択状態・遷移は既存のPauseMenu側に残す。
+	overlay_ = K4E::UiSpriteFactory::CreateWhiteRectSprite();
+	panel_ = K4E::UiSpriteFactory::CreateWhiteRectSprite();
+	panelBorder_ = K4E::UiSpriteFactory::CreateWhiteRectSprite();
+	titleLine_ = K4E::UiSpriteFactory::CreateWhiteRectSprite();
 
 	buttons_.clear();
 	buttons_.reserve(items_.size());
@@ -37,9 +38,9 @@ void PauseMenu::Initialize()
 	for (int i = 0; i < static_cast<int>(items_.size()); ++i)
 	{
 		ButtonSprites b{};
-		b.bg = CreateWhiteSprite();
-		b.border = CreateWhiteSprite();
-		b.accent = CreateWhiteSprite();
+		b.bg = K4E::UiSpriteFactory::CreateButtonBackgroundSprite();
+		b.border = K4E::UiSpriteFactory::CreateButtonBorderSprite();
+		b.accent = K4E::UiSpriteFactory::CreateAccentSprite();
 		buttons_.push_back(std::move(b));
 	}
 
@@ -185,37 +186,25 @@ void PauseMenu::RebuildLayout()
 	// 全画面オーバーレイ
 	if (overlay_)
 	{
-		overlay_->SetAnchorPoint({ 0.0f, 0.0f });
-		overlay_->SetPosition({ 0.0f, 0.0f });
-		overlay_->SetSize({ screenWidth_, screenHeight_ });
-		overlay_->Update();
+		K4E::UiSpriteFactory::ApplyRect(overlay_.get(), { 0.0f, 0.0f }, { screenWidth_, screenHeight_ }, { 0.0f, 0.0f });
 	}
 
 	// パネル本体
 	if (panel_)
 	{
-		panel_->SetAnchorPoint({ 0.0f, 0.0f });
-		panel_->SetPosition({ panelX_, panelY_ });
-		panel_->SetSize({ panelW_, panelH_ });
-		panel_->Update();
+		K4E::UiSpriteFactory::ApplyRect(panel_.get(), { panelX_, panelY_ }, { panelW_, panelH_ }, { 0.0f, 0.0f });
 	}
 
 	// パネル枠
 	if (panelBorder_)
 	{
-		panelBorder_->SetAnchorPoint({ 0.0f, 0.0f });
-		panelBorder_->SetPosition({ panelX_ - 3.0f, panelY_ - 3.0f });
-		panelBorder_->SetSize({ panelW_ + 6.0f, panelH_ + 6.0f });
-		panelBorder_->Update();
+		K4E::UiSpriteFactory::ApplyRect(panelBorder_.get(), { panelX_ - 3.0f, panelY_ - 3.0f }, { panelW_ + 6.0f, panelH_ + 6.0f }, { 0.0f, 0.0f });
 	}
 
 	// タイトル下のライン
 	if (titleLine_)
 	{
-		titleLine_->SetAnchorPoint({ 0.5f, 0.0f });
-		titleLine_->SetPosition({ cx, panelY_ + 86.0f });
-		titleLine_->SetSize({ panelW_ - 120.0f, 4.0f });
-		titleLine_->Update();
+		K4E::UiSpriteFactory::ApplyRect(titleLine_.get(), { cx, panelY_ + 86.0f }, { panelW_ - 120.0f, 4.0f }, { 0.5f, 0.0f });
 	}
 
 	// ボタン
@@ -238,26 +227,17 @@ void PauseMenu::RebuildLayout()
 
 		if (b.border)
 		{
-			b.border->SetAnchorPoint({ 0.0f, 0.0f });
-			b.border->SetPosition({ x - 2.0f, y - 2.0f });
-			b.border->SetSize({ buttonW + 4.0f, buttonH + 4.0f });
-			b.border->Update();
+			K4E::UiSpriteFactory::ApplyRect(b.border.get(), { x - 2.0f, y - 2.0f }, { buttonW + 4.0f, buttonH + 4.0f }, { 0.0f, 0.0f });
 		}
 
 		if (b.bg)
 		{
-			b.bg->SetAnchorPoint({ 0.0f, 0.0f });
-			b.bg->SetPosition({ x, y });
-			b.bg->SetSize({ buttonW, buttonH });
-			b.bg->Update();
+			K4E::UiSpriteFactory::ApplyRect(b.bg.get(), { x, y }, { buttonW, buttonH }, { 0.0f, 0.0f });
 		}
 
 		if (b.accent)
 		{
-			b.accent->SetAnchorPoint({ 0.0f, 0.5f });
-			b.accent->SetPosition({ x + 14.0f, y + buttonH * 0.5f });
-			b.accent->SetSize({ 7.0f, buttonH - 18.0f });
-			b.accent->Update();
+			K4E::UiSpriteFactory::ApplyRect(b.accent.get(), { x + 14.0f, y + buttonH * 0.5f }, { 7.0f, buttonH - 18.0f }, { 0.0f, 0.5f });
 		}
 	}
 }
@@ -353,15 +333,4 @@ void PauseMenu::DrawTexts()
 	textDrawer_->SetLetterSpacing(1.0f);
 	textDrawer_->SetColor({ 0.78f, 0.80f, 0.82f, 0.92f });
 	textDrawer_->DrawTextCentered("W / S / ↑ / ↓ 選択    Enter / Click 決定", { cx, panelY_ + panelH_ - 34.0f });
-}
-
-std::unique_ptr<K4E::Sprite> PauseMenu::CreateWhiteSprite()
-{
-	auto sp = std::make_unique<K4E::Sprite>();
-	sp->Initialize("Effects/white.dds");
-	sp->SetPosition({ 0.0f, 0.0f });
-	sp->SetSize({ 1.0f, 1.0f });
-	sp->SetAnchorPoint({ 0.0f, 0.0f });
-	sp->Update();
-	return sp;
 }

@@ -1,6 +1,7 @@
 #include "WeaponMasterDataLoader.h"
 #include "WeaponMasterDataValidator.h"
 #include "PathUtil.h"
+#include "JsonReadUtil.h"
 
 #include <fstream>
 #include <sstream>
@@ -446,18 +447,21 @@ static void from_json(const json& j, FWeaponSockets& v)
 
 static void from_json(const json& j, FWeaponEconomyData& v)
 {
-	ReadIfExists(j, "currencyType", v.currencyType);
-	ReadIfExists(j, "purchasePrice", v.purchasePrice);
-	ReadIfExists(j, "minLevelToUnlock", v.minLevelToUnlock);
+	// EconomyDataの単純値だけJsonReadUtilへ寄せる。既存キー名とstruct既定値はそのまま維持する。
+	v.currencyType = Ken4lowEngine::JsonReadUtil::ReadStringOr(j, "currencyType", v.currencyType);
+	v.purchasePrice = Ken4lowEngine::JsonReadUtil::ReadIntOr(j, "purchasePrice", v.purchasePrice);
+	v.minLevelToUnlock = Ken4lowEngine::JsonReadUtil::ReadIntOr(j, "minLevelToUnlock", v.minLevelToUnlock);
+	// upgradeCostsは配列読み取りのため、今回の単純値共通化では触らず既存処理を残す。
 	ReadIfExists(j, "upgradeCosts", v.upgradeCosts);
-	ReadIfExists(j, "bIsLimitedTime", v.bIsLimitedTime);
-	ReadIfExists(j, "discountRate", v.discountRate);
+	v.bIsLimitedTime = Ken4lowEngine::JsonReadUtil::ReadBoolOr(j, "bIsLimitedTime", v.bIsLimitedTime);
+	v.discountRate = Ken4lowEngine::JsonReadUtil::ReadFloatOr(j, "discountRate", v.discountRate);
 }
 
 static void from_json(const json& j, FWeaponAssets& v)
 {
-	ReadIfExists(j, "modelPath", v.modelPath);
-	ReadIfExists(j, "iconPath", v.iconPath);
+	// Asset系はstringパスだけJsonReadUtilへ寄せる。既存キー名と既定値を維持し、数値・enum・旧キー互換には触れない。
+	v.modelPath = Ken4lowEngine::JsonReadUtil::ReadStringOr(j, "modelPath", v.modelPath);
+	v.iconPath = Ken4lowEngine::JsonReadUtil::ReadStringOr(j, "iconPath", v.iconPath);
 
 	// 旧データが "Resources/Models/..." でも内部表現は "Sources/..." に揃える
 	v.modelPath = K4E::PathUtil::ToModelRelativePath(v.modelPath);
@@ -465,11 +469,12 @@ static void from_json(const json& j, FWeaponAssets& v)
 
 static void from_json(const json& j, FWeaponSounds& v)
 {
-	ReadIfExists(j, "fireSoundPath", v.fireSoundPath);
-	ReadIfExists(j, "reloadSoundPath", v.reloadSoundPath);
-	ReadIfExists(j, "emptySoundPath", v.emptySoundPath);
-	ReadIfExists(j, "equipSoundPath", v.equipSoundPath);
-	ReadIfExists(j, "impactSoundPath", v.impactSoundPath);
+	// Sound系はstring読み取りだけを共通化し、サウンドキー名と既定値は既存Json互換のため変えない。
+	v.fireSoundPath = Ken4lowEngine::JsonReadUtil::ReadStringOr(j, "fireSoundPath", v.fireSoundPath);
+	v.reloadSoundPath = Ken4lowEngine::JsonReadUtil::ReadStringOr(j, "reloadSoundPath", v.reloadSoundPath);
+	v.emptySoundPath = Ken4lowEngine::JsonReadUtil::ReadStringOr(j, "emptySoundPath", v.emptySoundPath);
+	v.equipSoundPath = Ken4lowEngine::JsonReadUtil::ReadStringOr(j, "equipSoundPath", v.equipSoundPath);
+	v.impactSoundPath = Ken4lowEngine::JsonReadUtil::ReadStringOr(j, "impactSoundPath", v.impactSoundPath);
 }
 static void from_json(const json& j, FWeaponDeathReaction& v)
 {

@@ -2,6 +2,7 @@
 #include "MeleeEnemy.h"
 
 #include "ApplicationLayer/Character/Player/Player.h"
+#include "MathUtil.h"
 
 #include <cmath>
 #include <algorithm>
@@ -26,11 +27,13 @@ namespace
 
 	float LengthXZ(const Vector3& v)
 	{
-		return std::sqrt(v.x * v.x + v.z * v.z);
+		// 既存呼び出し名は残しつつ、XZ長さの計算本体は共通Vector3へ集約する。
+		return Vector3::LengthXZ(v);
 	}
 
 	Vector3 NormalizeXZ(const Vector3& v)
 	{
+		// 正規化の0判定は既存の < kEpsilon を維持し、距離計算だけ共通化したLengthXZを使う。
 		const float len = LengthXZ(v);
 		if (len < kEpsilon) { return { 0.0f, 0.0f, 0.0f }; }
 		return { v.x / len, 0.0f, v.z / len };
@@ -46,21 +49,6 @@ namespace
 	float Clamp(float v, float minValue, float maxValue)
 	{
 		return std::max(minValue, std::min(maxValue, v));
-	}
-
-
-	float DistancePointToSegmentXZ(const K4E::Vector3& p, const K4E::Vector3& a, const K4E::Vector3& b)
-	{
-		const K4E::Vector3 ab{ b.x - a.x, 0.0f, b.z - a.z };
-		const K4E::Vector3 ap{ p.x - a.x, 0.0f, p.z - a.z };
-		const float denom = ab.x * ab.x + ab.z * ab.z;
-		if (denom <= kEpsilon)
-		{
-			return LengthXZ(K4E::Vector3{ p.x - a.x, 0.0f, p.z - a.z });
-		}
-		const float t = std::clamp((ap.x * ab.x + ap.z * ab.z) / denom, 0.0f, 1.0f);
-		const K4E::Vector3 closest{ a.x + ab.x * t, 0.0f, a.z + ab.z * t };
-		return LengthXZ(K4E::Vector3{ p.x - closest.x, 0.0f, p.z - closest.z });
 	}
 
 	float DistancePointToAabbXZ(const K4E::Vector3& p, const K4E::AABB& aabb)
@@ -1286,7 +1274,8 @@ bool MeleeEnemy::TryDirectClimbOverObstacleToTarget(float deltaTime)
 	{
 		const auto& o = climbableObstacleAABBs_[i];
 		const Vector3 center = (o.min + o.max) * 0.5f;
-		const float lineDist = DistancePointToSegmentXZ(center, selfPos, targetPos);
+		// 点と線分のXZ距離は共通MathUtilへ集約し、既存と同じkEpsilonで退化線分を扱う。
+		const float lineDist = K4E::MathUtil::DistancePointToSegmentXZ(center, selfPos, targetPos, kEpsilon);
 		if (lineDist > traversal_.directLineWidth) { continue; }
 		const float d = LengthXZ(center - selfPos);
 		if (d < bestDist) { bestDist = d; best = static_cast<int>(i); }
@@ -1352,7 +1341,8 @@ bool MeleeEnemy::TryJumpOverClimbableObstacle(float)
 		const K4E::Vector3 dirToObs = NormalizeXZ(toObs);
 		const float dirDot = dirToObs.x * moveOrTargetDir.x + dirToObs.z * moveOrTargetDir.z;
 		const bool inMoveDirection = dirDot >= 0.1f;
-		const float toTargetLineDistance = DistancePointToSegmentXZ(center, selfPos, targetPos);
+		// 点と線分のXZ距離は共通MathUtilへ集約し、既存と同じkEpsilonで退化線分を扱う。
+		const float toTargetLineDistance = K4E::MathUtil::DistancePointToSegmentXZ(center, selfPos, targetPos, kEpsilon);
 		const bool betweenSelfAndTarget = toTargetLineDistance <= traversal_.directLineWidth;
 		// 進行方向上か、敵-ターゲット間の障害物のみジャンプ対象とする
 		if (!inMoveDirection && !betweenSelfAndTarget) { continue; }

@@ -809,6 +809,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.h" />
+    <ClInclude Include="ApplicationLayer\UISystem\UiSpriteFactory.h" />
+    <ClInclude Include="Engine\Math\MathUtil.h" />
     <ClInclude Include="Engine\Scene\Actor\Factory\ActorFactory.h" />
     <ClInclude Include="Engine\Scene\Actor\Core\ActorSpawnOptions.h" />
     <ClInclude Include="Engine\Scene\Actor\Serialization\ComponentFactory.h" />

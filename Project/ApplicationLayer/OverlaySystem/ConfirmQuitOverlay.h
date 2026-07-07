@@ -19,6 +19,7 @@ namespace Ken4lowEngine
 
 /// -------------------------------------------------------------
 ///					終了確認オーバーレイクラス
+/// 2D矩形Spriteの生成はUiSpriteFactoryへ寄せ、Yes/Noの選択・決定・キャンセル処理はこのOverlay側で管理します。
 /// -------------------------------------------------------------
 class ConfirmQuitOverlay final : public BaseOverlay
 {
@@ -68,5 +69,4 @@ private: /// ---------- メンバ変数 ---------- ///
 	Callback onYes_;
 	Callback onNo_;
 
-	const std::string kWhiteTex = "Effects/white.dds"; // 1x1 の白
 };

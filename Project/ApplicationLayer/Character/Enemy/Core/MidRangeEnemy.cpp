@@ -2,6 +2,7 @@
 #include "MidRangeEnemy.h"
 
 #include "ApplicationLayer/Character/Player/Player.h"
+#include "MathUtil.h"
 #include "Wireframe.h"
 
 #include <imgui.h>
@@ -17,16 +18,18 @@ using namespace Ken4lowEngine;
 namespace
 {
     constexpr float kEpsilon = 0.0001f;
-    constexpr float kPi = 3.1415926535f;
+    constexpr float kPi = std::numbers::pi_v<float>;
     constexpr float kTwoPi = kPi * 2.0f;
 
     float LengthXZ(const Vector3& v)
     {
-        return std::sqrt(v.x * v.x + v.z * v.z);
+        // XZ長さの計算本体は共通Vector3へ集約し、既存の呼び出し形は維持する。
+        return Vector3::LengthXZ(v);
     }
 
     Vector3 NormalizeXZ(const Vector3& v)
     {
+        // 正規化のしきい値判定は敵挙動に影響するため、既存の < kEpsilon を維持する。
         const float len = LengthXZ(v);
         if (len < kEpsilon)
         {
@@ -448,7 +451,8 @@ bool MidRangeEnemy::RequestPathTo(const Vector3& destination, const std::string&
 bool MidRangeEnemy::TrySelectWanderPoint(const std::string& reason)
 {
     const Vector3 currentPos = GetCenterPosition();
-    const float distanceFromSpawn = LengthXZ(currentPos - wanderState_.spawnPosition);
+    // 2点間のXZ距離だけを共通MathUtilへ寄せ、徘徊の判定値は変えない。
+    const float distanceFromSpawn = MathUtil::DistanceXZ(currentPos, wanderState_.spawnPosition);
 
     if (wander_.returnToSpawnWhenFar && distanceFromSpawn > wander_.maxDistanceFromSpawn)
     {
@@ -609,7 +613,8 @@ void MidRangeEnemy::ExplodeSuicideBomb(const std::string& reason)
     UpdateTargetState();
     if (HasTarget())
     {
-        const float distanceToTarget = LengthXZ(targetState_.position - suicideBombState_.explosionPosition);
+        // 爆発中心とターゲットのXZ距離計算だけを共通化し、爆発半径の判定は既存のまま保つ。
+        const float distanceToTarget = MathUtil::DistanceXZ(targetState_.position, suicideBombState_.explosionPosition);
         if (distanceToTarget <= suicideBomb_.explosionRadius)
         {
             if (auto* player = targetCollider_ ? targetCollider_->GetOwner<Player>() : nullptr)
@@ -1661,7 +1666,8 @@ void MidRangeEnemy::UpdateTargetState()
     }
     Vector3 toTarget = targetState_.position - GetCenterPosition();
     toTarget.y = 0.0f;
-    targetState_.distance = LengthXZ(toTarget);
+    // ターゲットまでのXZ距離だけを共通MathUtilへ寄せ、攻撃距離判定の条件式は変更しない。
+    targetState_.distance = MathUtil::DistanceXZ(targetState_.position, GetCenterPosition());
     targetState_.direction = NormalizeXZ(toTarget);
     targetState_.inDetectRange = IsTargetInDetectRange();
     targetState_.inAttackRange = targetState_.distance <= distance_.attackMaxRange;

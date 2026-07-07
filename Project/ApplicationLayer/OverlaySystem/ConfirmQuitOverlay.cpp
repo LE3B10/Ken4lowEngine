@@ -2,6 +2,7 @@
 #include <Input.h>
 #include <SpriteManager.h>
 #include <FontAtlasLoader.h>
+#include <UiSpriteFactory.h>
 #include "WinApp.h"
 #include "GameViewportConstants.h"
 
@@ -9,29 +10,6 @@
 #include <cmath>
 
 using namespace Ken4lowEngine;
-
-namespace
-{
-	std::unique_ptr<Sprite> CreateSolidSprite(const std::string& texturePath)
-	{
-		auto sprite = std::make_unique<Sprite>();
-		sprite->Initialize(texturePath);
-		sprite->SetAnchorPoint({ 0.5f, 0.5f });
-		return sprite;
-	}
-
-	void SetupRectSprite(Sprite* sprite, const Vector2& center, const Vector2& size)
-	{
-		if (!sprite)
-		{
-			return;
-		}
-
-		sprite->SetPosition(center);
-		sprite->SetSize(size);
-		sprite->Update();
-	}
-}
 
 ConfirmQuitOverlay::~ConfirmQuitOverlay()
 {
@@ -58,26 +36,15 @@ void ConfirmQuitOverlay::Open(SceneManager* sceneManager)
 		input_->SetLockCursor(false);
 	}
 
-	// AI生成画像に依存しないよう、白テクスチャを色付き矩形として使う。
-	dim_ = CreateSolidSprite(kWhiteTex);
-	dim_->SetAnchorPoint({ 0.0f, 0.0f });
-	dim_->SetPosition({ 0.0f, 0.0f });
-	dim_->SetSize({ screenW, screenH });
+	// UI生成だけをUiSpriteFactoryへ寄せ、入力・選択状態・決定処理は既存のConfirmQuitOverlay側に残す。
+	dim_ = UiSpriteFactory::CreateWhiteRectSprite({ 0.0f, 0.0f }, { screenW, screenH }, { 0.0f, 0.0f });
 	dim_->SetColor({ 0.0f, 0.0f, 0.0f, 0.58f });
 	dim_->Update();
 
-	panelBorder_ = CreateSolidSprite(kWhiteTex);
-	panel_ = CreateSolidSprite(kWhiteTex);
-	titleLine_ = CreateSolidSprite(kWhiteTex);
-	btnYesBorder_ = CreateSolidSprite(kWhiteTex);
-	btnYes_ = CreateSolidSprite(kWhiteTex);
-	btnNoBorder_ = CreateSolidSprite(kWhiteTex);
-	btnNo_ = CreateSolidSprite(kWhiteTex);
-
 	const Vector2 panelSize = { 860.0f, 430.0f };
-	SetupRectSprite(panelBorder_.get(), center, { panelSize.x + 6.0f, panelSize.y + 6.0f });
-	SetupRectSprite(panel_.get(), center, panelSize);
-	SetupRectSprite(titleLine_.get(), { center.x, center.y - 84.0f }, { 660.0f, 4.0f });
+	panelBorder_ = UiSpriteFactory::CreateWhiteRectSprite(center, { panelSize.x + 6.0f, panelSize.y + 6.0f }, { 0.5f, 0.5f });
+	panel_ = UiSpriteFactory::CreateWhiteRectSprite(center, panelSize, { 0.5f, 0.5f });
+	titleLine_ = UiSpriteFactory::CreateWhiteRectSprite({ center.x, center.y - 84.0f }, { 660.0f, 4.0f }, { 0.5f, 0.5f });
 
 	rYes_.width = 300.0f;
 	rYes_.height = 84.0f;
@@ -88,10 +55,15 @@ void ConfirmQuitOverlay::Open(SceneManager* sceneManager)
 	rNo_.x = center.x + 24.0f;
 	rNo_.y = center.y + 30.0f;
 
-	SetupRectSprite(btnYesBorder_.get(), { rYes_.x + rYes_.width * 0.5f, rYes_.y + rYes_.height * 0.5f }, { rYes_.width + 6.0f, rYes_.height + 6.0f });
-	SetupRectSprite(btnYes_.get(), { rYes_.x + rYes_.width * 0.5f, rYes_.y + rYes_.height * 0.5f }, { rYes_.width, rYes_.height });
-	SetupRectSprite(btnNoBorder_.get(), { rNo_.x + rNo_.width * 0.5f, rNo_.y + rNo_.height * 0.5f }, { rNo_.width + 6.0f, rNo_.height + 6.0f });
-	SetupRectSprite(btnNo_.get(), { rNo_.x + rNo_.width * 0.5f, rNo_.y + rNo_.height * 0.5f }, { rNo_.width, rNo_.height });
+	// 既存見た目を維持するため、ボタン中心座標・サイズ・anchorは変えず生成だけ共通化する。
+	btnYesBorder_ = UiSpriteFactory::CreateButtonBorderSprite({ 0.5f, 0.5f });
+	btnYes_ = UiSpriteFactory::CreateButtonBackgroundSprite({ 0.5f, 0.5f });
+	btnNoBorder_ = UiSpriteFactory::CreateButtonBorderSprite({ 0.5f, 0.5f });
+	btnNo_ = UiSpriteFactory::CreateButtonBackgroundSprite({ 0.5f, 0.5f });
+	UiSpriteFactory::ApplyRect(btnYesBorder_.get(), { rYes_.x + rYes_.width * 0.5f, rYes_.y + rYes_.height * 0.5f }, { rYes_.width + 6.0f, rYes_.height + 6.0f }, { 0.5f, 0.5f });
+	UiSpriteFactory::ApplyRect(btnYes_.get(), { rYes_.x + rYes_.width * 0.5f, rYes_.y + rYes_.height * 0.5f }, { rYes_.width, rYes_.height }, { 0.5f, 0.5f });
+	UiSpriteFactory::ApplyRect(btnNoBorder_.get(), { rNo_.x + rNo_.width * 0.5f, rNo_.y + rNo_.height * 0.5f }, { rNo_.width + 6.0f, rNo_.height + 6.0f }, { 0.5f, 0.5f });
+	UiSpriteFactory::ApplyRect(btnNo_.get(), { rNo_.x + rNo_.width * 0.5f, rNo_.y + rNo_.height * 0.5f }, { rNo_.width, rNo_.height }, { 0.5f, 0.5f });
 
 	blockTiles_.clear();
 	const int columns = 12;
@@ -103,12 +75,12 @@ void ConfirmQuitOverlay::Open(SceneManager* sceneManager)
 	{
 		for (int x = 0; x < columns; ++x)
 		{
-			auto tile = CreateSolidSprite(kWhiteTex);
+			auto tile = UiSpriteFactory::CreateWhiteRectSprite({ 0.0f, 0.0f }, { 1.0f, 1.0f }, { 0.5f, 0.5f });
 			const Vector2 pos = {
 				panelTopLeft.x + tileSize.x * (static_cast<float>(x) + 0.5f),
 				panelTopLeft.y + tileSize.y * (static_cast<float>(y) + 0.5f)
 			};
-			SetupRectSprite(tile.get(), pos, { tileSize.x - 2.0f, tileSize.y - 2.0f });
+			UiSpriteFactory::ApplyRect(tile.get(), pos, { tileSize.x - 2.0f, tileSize.y - 2.0f }, { 0.5f, 0.5f });
 			blockTiles_.push_back(std::move(tile));
 		}
 	}

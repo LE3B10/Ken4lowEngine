@@ -2,6 +2,7 @@
 #include "MeleeAttackController.h"
 
 #include "../Core/MeleeEnemy.h"
+#include "MathUtil.h"
 
 #include <algorithm>
 #include <cmath>
@@ -14,11 +15,13 @@ namespace
 
 	float LengthXZ(const K4E::Vector3& v)
 	{
-		return std::sqrt(v.x * v.x + v.z * v.z);
+		// XZ長さの計算本体だけを共通Vector3へ寄せ、攻撃判定のしきい値は呼び出し側で維持する。
+		return K4E::Vector3::LengthXZ(v);
 	}
 
 	K4E::Vector3 NormalizeXZ(const K4E::Vector3& v)
 	{
+		// 正規化のfallbackと < kEpsilon 判定は攻撃前進方向に影響するため変更しない。
 		const float len = LengthXZ(v);
 		if (len < kEpsilon) { return { 0.0f, 0.0f, 1.0f }; }
 		return { v.x / len, 0.0f, v.z / len };
@@ -166,8 +169,8 @@ void MeleeAttackController::ProcessStepHit(MeleeEnemy& owner, const MeleeAttackS
 	const K4E::Vector3 ownerPos = owner.GetCenterPosition();
 	const K4E::Vector3 forward = NormalizeXZ(owner.GetAttackForward());
 	const K4E::Vector3 attackCenter = ownerPos + (forward * step.range);
-	const K4E::Vector3 delta = target->GetCenterPosition() - attackCenter;
-	const float hitDist = LengthXZ(delta);
+	// 攻撃中心とターゲットのXZ距離だけを共通MathUtilへ寄せ、半径判定は既存のまま保つ。
+	const float hitDist = K4E::MathUtil::DistanceXZ(target->GetCenterPosition(), attackCenter);
 	if (hitDist <= step.radius)
 	{
 		lastHitSuccess_ = true;

@@ -71,8 +71,6 @@ private: /// ---------- メンバ関数 ---------- ///
 	void ApplyVisualState();
 	void DrawTexts();
 
-	static std::unique_ptr<K4E::Sprite> CreateWhiteSprite();
-
 private: /// ---------- メンバ変数 ---------- ///
 
 	bool isOpen_ = false;

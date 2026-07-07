@@ -2,6 +2,7 @@
 #include "DirectXCommon.h"
 #include "GameViewportConstants.h"
 #include "Input.h"
+#include "UiSpriteFactory.h"
 
 #include <GameTimer.h>
 #include <FontAtlasLoader.h>
@@ -35,41 +36,35 @@ void ResultMenu::Initialize()
 	const float centerX = screenW * 0.5f;
 	const float centerY = screenH * 0.5f;
 
-	// UI生成画像に依存しないよう、白スプライトの矩形とTextSpriteDrawerでリザルト画面を構築する。
-	backdrop_ = CreateWhiteSprite();
-	backdrop_->SetAnchorPoint({ 0.0f, 0.0f });
-	backdrop_->SetPosition({ 0.0f, 0.0f });
-	backdrop_->SetSize({ screenW, screenH });
+	// UI生成だけをUiSpriteFactoryへ寄せ、入力・選択状態・遷移・アニメーションは既存のResultMenu側に残す。
+	backdrop_ = UiSpriteFactory::CreateWhiteRectSprite({ 0.0f, 0.0f }, { screenW, screenH }, { 0.0f, 0.0f });
 	backdrop_->SetColor({ 0.0f, 0.0f, 0.0f, 0.55f });
 	backdrop_->Update();
 
-	headerBorder_ = CreateWhiteSprite();
-	headerBody_ = CreateWhiteSprite();
-	headerLine_ = CreateWhiteSprite();
-	SetupRectSprite(headerBorder_.get(), { centerX, centerY + kHeaderY }, { 560.0f, 104.0f });
-	SetupRectSprite(headerBody_.get(), { centerX, centerY + kHeaderY }, { 548.0f, 92.0f });
-	SetupRectSprite(headerLine_.get(), { centerX, centerY + kHeaderY + 38.0f }, { 460.0f, 4.0f });
+	headerBorder_ = UiSpriteFactory::CreateWhiteRectSprite({ centerX, centerY + kHeaderY }, { 560.0f, 104.0f }, { 0.5f, 0.5f });
+	headerBody_ = UiSpriteFactory::CreateWhiteRectSprite({ centerX, centerY + kHeaderY }, { 548.0f, 92.0f }, { 0.5f, 0.5f });
+	headerLine_ = UiSpriteFactory::CreateWhiteRectSprite({ centerX, centerY + kHeaderY + 38.0f }, { 460.0f, 4.0f }, { 0.5f, 0.5f });
 
-	nextStageButton_.border = CreateWhiteSprite();
-	nextStageButton_.body = CreateWhiteSprite();
-	nextStageButton_.accentLeft = CreateWhiteSprite();
-	nextStageButton_.accentRight = CreateWhiteSprite();
+	nextStageButton_.border = UiSpriteFactory::CreateButtonBorderSprite({ 0.5f, 0.5f });
+	nextStageButton_.body = UiSpriteFactory::CreateButtonBackgroundSprite({ 0.5f, 0.5f });
+	nextStageButton_.accentLeft = UiSpriteFactory::CreateAccentSprite({ 0.5f, 0.5f });
+	nextStageButton_.accentRight = UiSpriteFactory::CreateAccentSprite({ 0.5f, 0.5f });
 	nextStageButton_.basePosition = { centerX, centerY - 20.0f };
 	nextStageButton_.baseSize = { 360.0f, 74.0f };
 	nextStageButton_.text = "次のステージへ";
 
-	retryButton_.border = CreateWhiteSprite();
-	retryButton_.body = CreateWhiteSprite();
-	retryButton_.accentLeft = CreateWhiteSprite();
-	retryButton_.accentRight = CreateWhiteSprite();
+	retryButton_.border = UiSpriteFactory::CreateButtonBorderSprite({ 0.5f, 0.5f });
+	retryButton_.body = UiSpriteFactory::CreateButtonBackgroundSprite({ 0.5f, 0.5f });
+	retryButton_.accentLeft = UiSpriteFactory::CreateAccentSprite({ 0.5f, 0.5f });
+	retryButton_.accentRight = UiSpriteFactory::CreateAccentSprite({ 0.5f, 0.5f });
 	retryButton_.basePosition = { centerX, centerY + 82.0f };
 	retryButton_.baseSize = { 360.0f, 74.0f };
 	retryButton_.text = "リトライ";
 
-	titleButton_.border = CreateWhiteSprite();
-	titleButton_.body = CreateWhiteSprite();
-	titleButton_.accentLeft = CreateWhiteSprite();
-	titleButton_.accentRight = CreateWhiteSprite();
+	titleButton_.border = UiSpriteFactory::CreateButtonBorderSprite({ 0.5f, 0.5f });
+	titleButton_.body = UiSpriteFactory::CreateButtonBackgroundSprite({ 0.5f, 0.5f });
+	titleButton_.accentLeft = UiSpriteFactory::CreateAccentSprite({ 0.5f, 0.5f });
+	titleButton_.accentRight = UiSpriteFactory::CreateAccentSprite({ 0.5f, 0.5f });
 	titleButton_.basePosition = { centerX, centerY + 184.0f };
 	titleButton_.baseSize = { 360.0f, 74.0f };
 	titleButton_.text = "タイトルへ";
@@ -129,30 +124,6 @@ void ResultMenu::Close()
 	isOpen_ = false;
 }
 
-std::unique_ptr<Sprite> ResultMenu::CreateWhiteSprite()
-{
-	auto sprite = std::make_unique<Sprite>();
-	sprite->Initialize("Effects/white.dds");
-	sprite->SetAnchorPoint({ 0.5f, 0.5f });
-	sprite->SetPosition({ 0.0f, 0.0f });
-	sprite->SetSize({ 1.0f, 1.0f });
-	sprite->Update();
-	return sprite;
-}
-
-void ResultMenu::SetupRectSprite(Sprite* sprite, const Vector2& center, const Vector2& size)
-{
-	if (!sprite)
-	{
-		return;
-	}
-
-	sprite->SetAnchorPoint({ 0.5f, 0.5f });
-	sprite->SetPosition(center);
-	sprite->SetSize(size);
-	sprite->Update();
-}
-
 bool ResultMenu::IsMouseInside(const Vector2& mousePos,
 	const Vector2& center,
 	const Vector2& size) const
@@ -180,10 +151,11 @@ void ResultMenu::UpdateButtonVisual(Button& button, bool selected, const Vector4
 	button.textScale = selected ? (0.86f + 0.04f * pulse) : 0.78f;
 	button.textColor = selected ? Vector4{ 1.0f, 0.98f, 0.72f, 1.0f } : Vector4{ 0.90f, 0.88f, 0.76f, 1.0f };
 
-	SetupRectSprite(button.border.get(), button.basePosition, borderSize);
-	SetupRectSprite(button.body.get(), button.basePosition, size);
-	SetupRectSprite(button.accentLeft.get(), leftAccentPos, accentSize);
-	SetupRectSprite(button.accentRight.get(), rightAccentPos, accentSize);
+	// 矩形配置だけをUiSpriteFactoryへ寄せる。拡縮・点滅・色は既存ResultMenuのアニメーション値をそのまま使う。
+	UiSpriteFactory::ApplyRect(button.border.get(), button.basePosition, borderSize, { 0.5f, 0.5f });
+	UiSpriteFactory::ApplyRect(button.body.get(), button.basePosition, size, { 0.5f, 0.5f });
+	UiSpriteFactory::ApplyRect(button.accentLeft.get(), leftAccentPos, accentSize, { 0.5f, 0.5f });
+	UiSpriteFactory::ApplyRect(button.accentRight.get(), rightAccentPos, accentSize, { 0.5f, 0.5f });
 
 	if (button.border)
 	{

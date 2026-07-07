@@ -1,15 +1,15 @@
 #include "GpuParticleEffectSerializer.h"
 
+#include "JsonFileIO.h"
+#include "JsonReadUtil.h"
+
 #include <algorithm>
-#include <filesystem>
-#include <fstream>
 
 #include <json.hpp>
 
 namespace Ken4lowEngine
 {
 	using json = nlohmann::json;
-	namespace fs = std::filesystem;
 
 	namespace
 	{
@@ -20,51 +20,32 @@ namespace Ken4lowEngine
 		template<class T>
 		void ReadOptional(const json& source, const char* key, T& value)
 		{
-			if (!source.contains(key)) return;
-			try { value = source.at(key).get<T>(); }
-			catch (const json::exception&) { /* 古いJSONや型不正でも既定値を維持してクラッシュさせない。 */ }
+			// JsonReadUtilへ欠損・型不正時の既定値維持を集約し、Particle Presetの旧Json互換を保つ。
+			JsonReadUtil::TryRead(source, key, value);
 		}
 
 		void ReadVector2(const json& source, const char* key, Vector2& value)
 		{
-			if (!source.contains(key)) return;
-			try
-			{
-				const auto& array = source.at(key);
-				if (array.is_array() && array.size() >= 2 && array[0].is_number() && array[1].is_number())
-					value = { array[0].get<float>(), array[1].get<float>() };
-			}
-			catch (const json::exception&) {}
+			// Vector配列の要素順は既存Json形式のまま、読み取り検証だけを共通化する。
+			value = JsonReadUtil::ReadVector2Or(source, key, value);
 		}
 
 		void ReadVector3(const json& source, const char* key, Vector3& value)
 		{
-			if (!source.contains(key)) return;
-			try
-			{
-				const auto& array = source.at(key);
-				if (array.is_array() && array.size() >= 3 && array[0].is_number() && array[1].is_number() && array[2].is_number())
-					value = { array[0].get<float>(), array[1].get<float>(), array[2].get<float>() };
-			}
-			catch (const json::exception&) {}
+			// Vector配列の要素順は既存Json形式のまま、読み取り検証だけを共通化する。
+			value = JsonReadUtil::ReadVector3Or(source, key, value);
 		}
 
 		void ReadVector4(const json& source, const char* key, Vector4& value)
 		{
-			if (!source.contains(key)) return;
-			try
-			{
-				const auto& array = source.at(key);
-				if (array.is_array() && array.size() >= 4 && array[0].is_number() && array[1].is_number() && array[2].is_number() && array[3].is_number())
-					value = { array[0].get<float>(), array[1].get<float>(), array[2].get<float>(), array[3].get<float>() };
-			}
-			catch (const json::exception&) {}
+			// Vector配列の要素順は既存Json形式のまま、読み取り検証だけを共通化する。
+			value = JsonReadUtil::ReadVector4Or(source, key, value);
 		}
 
 		std::string ReadStringOr(const json& source, const char* key, const std::string& fallback)
 		{
-			if (!source.contains(key) || !source.at(key).is_string()) return fallback;
-			return source.at(key).get<std::string>();
+			// enum文字列の入口だけを共通化し、不明な値のenumフォールバックは既存関数側に残す。
+			return JsonReadUtil::ReadStringOr(source, key, fallback);
 		}
 	}
 
@@ -138,10 +119,8 @@ namespace Ken4lowEngine
 	{
 		try
 		{
-			std::ifstream input(filePath);
-			if (!input.is_open()) return false;
 			json root;
-			input >> root;
+			if (!JsonFileIO::LoadJsonFile(filePath, root)) return false;
 			if (!root.is_object()) return false;
 
 			GpuParticleEffectDesc effect = CreateDefaultGpuParticleEffectDesc();
@@ -247,12 +226,8 @@ namespace Ken4lowEngine
 				});
 			}
 
-			const fs::path path(filePath);
-			if (path.has_parent_path()) fs::create_directories(path.parent_path());
-			std::ofstream output(filePath);
-			if (!output.is_open()) return false;
-			output << root.dump(4);
-			return output.good();
+			// JsonReadUtilへ寄せても保存キーとdump(4)の整形は変えず、既存Preset形式を維持する。
+			return JsonFileIO::SaveJsonFile(filePath, root, 4);
 		}
 		catch (const std::exception&)
 		{

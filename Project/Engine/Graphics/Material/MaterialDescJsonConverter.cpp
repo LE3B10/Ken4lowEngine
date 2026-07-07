@@ -1,5 +1,7 @@
 #include "MaterialDescJsonConverter.h"
 
+#include "JsonReadUtil.h"
+
 namespace Ken4lowEngine
 {
 	namespace
@@ -7,56 +9,6 @@ namespace Ken4lowEngine
 		nlohmann::json AsObjectOrEmpty(const nlohmann::json& value)
 		{
 			return value.is_object() ? value : nlohmann::json::object();
-		}
-
-		std::string ReadString(const nlohmann::json& json, const char* key, const std::string& fallback)
-		{
-			const auto it = json.find(key);
-			if (it != json.end() && it->is_string())
-			{
-				return it->get<std::string>();
-			}
-			return fallback;
-		}
-
-		bool ReadBool(const nlohmann::json& json, const char* key, bool fallback)
-		{
-			const auto it = json.find(key);
-			if (it != json.end() && it->is_boolean())
-			{
-				return it->get<bool>();
-			}
-			return fallback;
-		}
-
-		float ReadFloat(const nlohmann::json& json, const char* key, float fallback)
-		{
-			const auto it = json.find(key);
-			if (it != json.end() && it->is_number())
-			{
-				return it->get<float>();
-			}
-			return fallback;
-		}
-
-		Vector4 ReadVector4(const nlohmann::json& json, const char* key, const Vector4& fallback)
-		{
-			const auto it = json.find(key);
-			if (it == json.end() || !it->is_array() || it->size() < 4)
-			{
-				return fallback;
-			}
-
-			Vector4 result = fallback;
-			for (size_t i = 0; i < 4; ++i)
-			{
-				if (!(*it)[i].is_number())
-				{
-					return fallback;
-				}
-				result[static_cast<int>(i)] = (*it)[i].get<float>();
-			}
-			return result;
 		}
 
 		nlohmann::json ToJsonVector4(const Vector4& value)
@@ -68,40 +20,40 @@ namespace Ken4lowEngine
 	MaterialDescSource MaterialDescJsonConverter::FromJson(const nlohmann::json& json)
 	{
 		const nlohmann::json root = AsObjectOrEmpty(json);
-		const nlohmann::json legacy = AsObjectOrEmpty(root.value(Keys::Legacy, nlohmann::json::object()));
-		const nlohmann::json pbr = AsObjectOrEmpty(root.value(Keys::Pbr, nlohmann::json::object()));
+		const nlohmann::json legacy = AsObjectOrEmpty(JsonReadUtil::ReadObjectOr(root, Keys::Legacy, nlohmann::json::object()));
+		const nlohmann::json pbr = AsObjectOrEmpty(JsonReadUtil::ReadObjectOr(root, Keys::Pbr, nlohmann::json::object()));
 
 		MaterialDescSource source{};
-		source.sourceKind = SourceKindFromString(ReadString(root, Keys::SourceKind, "json"));
-		source.materialId = ReadString(root, Keys::MaterialId, source.materialId);
-		source.materialName = ReadString(root, Keys::MaterialName, source.materialName);
-		source.sourcePath = ReadString(root, Keys::SourcePath, source.sourcePath);
-		source.preferPbrWorkflow = ReadBool(root, Keys::PreferPbrWorkflow, source.preferPbrWorkflow);
+		source.sourceKind = SourceKindFromString(JsonReadUtil::ReadStringOr(root, Keys::SourceKind, "json"));
+		source.materialId = JsonReadUtil::ReadStringOr(root, Keys::MaterialId, source.materialId);
+		source.materialName = JsonReadUtil::ReadStringOr(root, Keys::MaterialName, source.materialName);
+		source.sourcePath = JsonReadUtil::ReadStringOr(root, Keys::SourcePath, source.sourcePath);
+		source.preferPbrWorkflow = JsonReadUtil::ReadBoolOr(root, Keys::PreferPbrWorkflow, source.preferPbrWorkflow);
 
-		// 欠損キーはSource既定値へフォールバックし、古いJsonや途中作成中のMaterialでも読み取りを失敗させない。
-		source.legacyColor = ReadVector4(legacy, Keys::LegacyColor, source.legacyColor);
-		source.legacyShininess = ReadFloat(legacy, Keys::LegacyShininess, source.legacyShininess);
-		source.legacyReflectionRate = ReadFloat(legacy, Keys::LegacyReflectionRate, source.legacyReflectionRate);
-		source.legacyRoughness = ReadFloat(legacy, Keys::LegacyRoughness, source.legacyRoughness);
-		source.usePointSampling = ReadBool(legacy, Keys::LegacyUsePointSampling, source.usePointSampling);
+		// 欠損キーはSource既定値へフォールバックする。JsonReadUtilへ寄せてもMaterialDescのキー規約と既存Json互換は変えない。
+		source.legacyColor = JsonReadUtil::ReadVector4Or(legacy, Keys::LegacyColor, source.legacyColor);
+		source.legacyShininess = JsonReadUtil::ReadFloatOr(legacy, Keys::LegacyShininess, source.legacyShininess);
+		source.legacyReflectionRate = JsonReadUtil::ReadFloatOr(legacy, Keys::LegacyReflectionRate, source.legacyReflectionRate);
+		source.legacyRoughness = JsonReadUtil::ReadFloatOr(legacy, Keys::LegacyRoughness, source.legacyRoughness);
+		source.usePointSampling = JsonReadUtil::ReadBoolOr(legacy, Keys::LegacyUsePointSampling, source.usePointSampling);
 
-		source.baseColorFactor = ReadVector4(pbr, Keys::PbrBaseColor, source.baseColorFactor);
-		source.metallicFactor = ReadFloat(pbr, Keys::PbrMetallic, source.metallicFactor);
-		source.roughnessFactor = ReadFloat(pbr, Keys::PbrRoughness, source.roughnessFactor);
-		source.normalScale = ReadFloat(pbr, Keys::PbrNormalScale, source.normalScale);
-		source.occlusionStrength = ReadFloat(pbr, Keys::PbrOcclusionStrength, source.occlusionStrength);
-		source.emissiveFactor = ReadVector4(pbr, Keys::PbrEmissiveColor, source.emissiveFactor);
-		const float emissiveStrength = ReadFloat(pbr, Keys::PbrEmissiveStrength, 1.0f);
+		source.baseColorFactor = JsonReadUtil::ReadVector4Or(pbr, Keys::PbrBaseColor, source.baseColorFactor);
+		source.metallicFactor = JsonReadUtil::ReadFloatOr(pbr, Keys::PbrMetallic, source.metallicFactor);
+		source.roughnessFactor = JsonReadUtil::ReadFloatOr(pbr, Keys::PbrRoughness, source.roughnessFactor);
+		source.normalScale = JsonReadUtil::ReadFloatOr(pbr, Keys::PbrNormalScale, source.normalScale);
+		source.occlusionStrength = JsonReadUtil::ReadFloatOr(pbr, Keys::PbrOcclusionStrength, source.occlusionStrength);
+		source.emissiveFactor = JsonReadUtil::ReadVector4Or(pbr, Keys::PbrEmissiveColor, source.emissiveFactor);
+		const float emissiveStrength = JsonReadUtil::ReadFloatOr(pbr, Keys::PbrEmissiveStrength, 1.0f);
 		source.emissiveFactor.x *= emissiveStrength;
 		source.emissiveFactor.y *= emissiveStrength;
 		source.emissiveFactor.z *= emissiveStrength;
 
 		// Legacy/PBRは同じbaseColorTextureを使うことがあるため、PBR側が空ならLegacy側の指定をSourceへ残す。
-		source.baseColorTexturePath = ReadString(pbr, Keys::PbrBaseColorTexture, ReadString(legacy, Keys::LegacyBaseColorTexture, source.baseColorTexturePath));
-		source.normalTexturePath = ReadString(pbr, Keys::PbrNormalTexture, source.normalTexturePath);
-		source.metallicRoughnessTexturePath = ReadString(pbr, Keys::PbrMetallicRoughnessTexture, source.metallicRoughnessTexturePath);
-		source.occlusionTexturePath = ReadString(pbr, Keys::PbrOcclusionTexture, source.occlusionTexturePath);
-		source.emissiveTexturePath = ReadString(pbr, Keys::PbrEmissiveTexture, source.emissiveTexturePath);
+		source.baseColorTexturePath = JsonReadUtil::ReadStringOr(pbr, Keys::PbrBaseColorTexture, JsonReadUtil::ReadStringOr(legacy, Keys::LegacyBaseColorTexture, source.baseColorTexturePath));
+		source.normalTexturePath = JsonReadUtil::ReadStringOr(pbr, Keys::PbrNormalTexture, source.normalTexturePath);
+		source.metallicRoughnessTexturePath = JsonReadUtil::ReadStringOr(pbr, Keys::PbrMetallicRoughnessTexture, source.metallicRoughnessTexturePath);
+		source.occlusionTexturePath = JsonReadUtil::ReadStringOr(pbr, Keys::PbrOcclusionTexture, source.occlusionTexturePath);
+		source.emissiveTexturePath = JsonReadUtil::ReadStringOr(pbr, Keys::PbrEmissiveTexture, source.emissiveTexturePath);
 
 		const auto slotsIt = root.find(Keys::TextureSlots);
 		if (slotsIt != root.end() && slotsIt->is_array())
@@ -114,8 +66,8 @@ namespace Ken4lowEngine
 				}
 
 				MaterialSourceTextureSlot slot{};
-				slot.semantic = ReadString(slotJson, Keys::TextureSlotSemantic, "");
-				slot.texturePath = ReadString(slotJson, Keys::TextureSlotPath, "");
+				slot.semantic = JsonReadUtil::ReadStringOr(slotJson, Keys::TextureSlotSemantic, "");
+				slot.texturePath = JsonReadUtil::ReadStringOr(slotJson, Keys::TextureSlotPath, "");
 				if (!slot.semantic.empty() || !slot.texturePath.empty())
 				{
 					// TextureManagerへは接続せず、Json上のslot情報をSourceへ移すだけにする。

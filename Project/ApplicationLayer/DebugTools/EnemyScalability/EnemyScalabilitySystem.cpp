@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "EnemyScalabilitySystem.h"
 
+#include "MathUtil.h"
 #include "Wireframe.h"
 #include "LogString.h"
 
@@ -22,7 +23,8 @@ namespace Ken4lowEngine
 
 		float LengthXZ(const Vector3& value)
 		{
-			return std::sqrt(value.x * value.x + value.z * value.z);
+			// XZ長さの計算本体だけを共通Vector3へ寄せ、LOD判定の値そのものは変えない。
+			return Vector3::LengthXZ(value);
 		}
 	}
 
@@ -74,7 +76,8 @@ namespace Ken4lowEngine
 		enemy.state = ScalableEnemyState::Moving;
 		enemy.hp = enemyType == ScalableEnemyType::Melee ? 100.0f : 80.0f;
 		enemy.updateGroupId = spawnIndex;
-		enemy.distanceToPlayer = LengthXZ(centerPosition - enemy.position);
+		// プレイヤー基準点とのXZ距離だけを共通MathUtilへ寄せ、LOD用の判定値は変えない。
+		enemy.distanceToPlayer = MathUtil::DistanceXZ(centerPosition, enemy.position);
 		enemies_.push_back(enemy);
 	}
 
@@ -100,8 +103,8 @@ namespace Ken4lowEngine
 				continue;
 			}
 
-			const Vector3 playerOffset = playerPosition - enemy.position;
-			enemy.distanceToPlayer = LengthXZ(playerOffset);
+			// プレイヤーとのXZ距離だけを共通MathUtilへ寄せ、更新頻度の判定条件は維持する。
+			enemy.distanceToPlayer = MathUtil::DistanceXZ(playerPosition, enemy.position);
 			const uint32_t updateInterval = GetUpdateInterval(enemy);
 			// 大量敵の負荷を抑えるため、距離と updateGroupId に応じて更新頻度と更新フレームを分散する。
 			if (updateInterval == 0)
