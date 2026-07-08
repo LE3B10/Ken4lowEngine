@@ -124,9 +124,10 @@ namespace Ken4lowEngine
 	void DissolveEffect::DrawImGui()
 	{
 #ifdef USE_IMGUI
-		ImGui::SliderFloat("Dissolve Threshold", &dissolveSetting_->threshold, 0.0f, 1.0f);
-		ImGui::SliderFloat("Edge Thickness", &dissolveSetting_->edgeThickness, 0.0f, 1.0f);
-		ImGui::ColorEdit4("Edge Color", &dissolveSetting_->edgeColor.x);
+		// 他EffectのThreshold/Edge Colorと内部IDが重ならないよう、Effect名サフィックスを付ける。
+		ImGui::SliderFloat("Dissolve Threshold##DissolveEffect", &dissolveSetting_->threshold, 0.0f, 1.0f);
+		ImGui::SliderFloat("Edge Thickness##DissolveEffect", &dissolveSetting_->edgeThickness, 0.0f, 1.0f);
+		ImGui::ColorEdit4("Edge Color##DissolveEffect", &dissolveSetting_->edgeColor.x);
 #endif // USE_IMGUI
 	}
 

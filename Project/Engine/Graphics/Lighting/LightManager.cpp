@@ -131,16 +131,22 @@ namespace Ken4lowEngine
 
 		// CPU側データ
 		punctualLights_.clear();
-		lightComponentPointLights_.clear();
+		lightComponentLights_.clear();
 		punctualType_ = 1;
 
 		// 借り物参照
 		dxCommon_ = nullptr;
 	}
 
+	void LightManager::SetLightComponentLights(const std::vector<PunctualLightGPU>& lights)
+	{
+		lightComponentLights_ = lights; // Actor DetailsのLightComponent編集結果を描画用ライトとして反映する
+	}
+
 	void LightManager::SetLightComponentPointLights(const std::vector<PunctualLightGPU>& lights)
 	{
-		lightComponentPointLights_ = lights; // Actor上のLightComponentを描画用ライトとして反映する
+		// 旧PointLight専用名の互換API。現在はLightComponent由来の全ライト種別を受け取る。
+		SetLightComponentLights(lights);
 	}
 
 	void LightManager::EnsureDefaultLightForParameter()
@@ -228,7 +234,7 @@ namespace Ken4lowEngine
 	void LightManager::UpdatePunctualLight()
 	{
 		// CPU側ライト配列はLightManagerが所有し、GPU転送だけをLightGpuBufferへ渡す。
-		lightGpuBuffer_->UpdatePunctualLights(punctualLights_, lightComponentPointLights_);
+		lightGpuBuffer_->UpdatePunctualLights(punctualLights_, lightComponentLights_);
 
 		DebugDrawLightGizmos();
 	}
@@ -336,13 +342,27 @@ namespace Ken4lowEngine
 				break;
 			}
 		}
-		for (const auto& L : lightComponentPointLights_)
+		for (const auto& L : lightComponentLights_)
 		{
-			if (L.enabled == 0u || L.lightType != 2) { continue; }
-			wf->DrawSphere(L.position, rGizmo, colPt);
-			if (L.radius > 0.0f)
-			{
-				wf->DrawSphere(L.position, L.radius, { colPt.x, colPt.y, colPt.z, 0.5f });
+			if (L.enabled == 0u) { continue; }
+			switch (L.lightType) {
+			case 2:
+				wf->DrawSphere(L.position, rGizmo, colPt);
+				if (L.radius > 0.0f)
+				{
+					wf->DrawSphere(L.position, L.radius, { colPt.x, colPt.y, colPt.z, 0.5f });
+				}
+				break;
+			case 3:
+				wf->DrawSphere(L.position, rGizmo, colSpot);
+				wf->DrawLine(L.position, L.position + Vector3::Normalize(L.direction) * dirLen, colSpot);
+				break;
+			case 4:
+			case 5:
+				wf->DrawSphere(L.position, rGizmo, { 0.6f, 1.0f, 0.4f, 1.0f });
+				break;
+			default:
+				break;
 			}
 		}
 #endif // _DEBUG

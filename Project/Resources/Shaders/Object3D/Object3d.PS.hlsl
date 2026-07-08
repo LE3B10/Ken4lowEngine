@@ -1,5 +1,6 @@
 #include "Object3d.hlsli"
 #include "LightingCommon.hlsli"
+#include "PbrDirectLighting.hlsli"
 
 struct PixelShaderOutput
 {
@@ -10,12 +11,14 @@ struct Material
 {
     float4 color;
     float shininess;
-    float3 padding0;
+    float pbrEnabled;
+    float metallic;
+    float normalScale;
     float4x4 uvTransform;
     float reflectionRate;
     float roughness;
     float usePointSampling;
-    float padding1;
+    float occlusionStrength;
 };
 
 struct Camera
@@ -141,11 +144,31 @@ PixelShaderOutput main(VertexShaderOutput input)
     float4 edgeColor = gDissolveSetting.edgeColor * (1.0f - edge);
     float dissolveBlend = 1.0f - step(maskValue, gDissolveSetting.threshold);
 
-    float3 shadedColor = lerp(baseColor, edgeColor.rgb, dissolveBlend);
-    shadedColor *= lighting;
+    float3 shadedColor = 0.0.xxx;
+    if (gMaterial.pbrEnabled > 0.5f)
+    {
+        // PBRはMaterial単位で明示ONの時だけ使い、Legacy描画の初期見た目を維持する。
+        float2 metallicRoughness = ResolveMetallicRoughnessFallback(gMaterial.metallic, gMaterial.roughness);
+        PbrSurface surface;
+        surface.baseColor = lerp(baseColor, edgeColor.rgb, dissolveBlend);
+        surface.metallic = metallicRoughness.x;
+        surface.roughness = metallicRoughness.y;
+        surface.occlusion = saturate(gMaterial.occlusionStrength);
+        surface.emissive = 0.0.xxx;
+        surface.normal = ResolvePbrNormalFallback(normal, gMaterial.normalScale);
+        surface.viewDir = viewDir;
 
-    // 反射を最後に混ぜる
-    shadedColor = lerp(shadedColor, reflectionColor, envBlend);
+        float3 directPbr = DirectLightingPBR(gPunctualLights, gLightInfo.gLightCount, worldPosition, surface, gShadowParameter, gShadowMap, gShadowSampler);
+        float3 ibl = EvaluatePbrIBLFallback(surface, gEnvironmentTexture, gSampler, gLightingSettings);
+        shadedColor = directPbr + ibl + surface.emissive;
+    }
+    else
+    {
+        // Legacy経路は既存Phong/Blinn系の見た目を守るため残す。
+        shadedColor = lerp(baseColor, edgeColor.rgb, dissolveBlend);
+        shadedColor *= lighting;
+        shadedColor = lerp(shadedColor, reflectionColor, envBlend);
+    }
 
     // Fog/ToneMap/Contrastを最後に適用して白飛びを抑える。
     shadedColor = ApplyFog(shadedColor, worldPosition, gCamera.worldPosition, gLightingSettings);

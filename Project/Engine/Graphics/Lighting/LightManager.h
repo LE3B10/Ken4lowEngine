@@ -94,7 +94,9 @@ namespace Ken4lowEngine
 			uint32_t enableHalfLambert = 0;
 			Vector4 rimLightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 			uint32_t shadingMode = 0;
-			float pad[3] = {};
+			uint32_t enableIBL = 0; // PBR用IBL入口。初期OFFで既存Legacyの見た目を維持する。
+			float iblDiffuseStrength = 0.0f; // 環境マップ未設定時の安全な拡散環境光fallback強度。
+			float iblSpecularStrength = 0.0f; // prefilteredEnv未実装時の簡易反射fallback強度。
 		};
 
 	public: /// ---------- メンバ関数 ---------- ///
@@ -128,7 +130,7 @@ namespace Ken4lowEngine
 		void DrawImGui(bool* pOpen = nullptr);
 
 		/// <summary>
-		/// Details Inspectorと専用Light Editorで同じPunctual Lights編集UIを共有するための互換入口です。<br/>
+		/// Details Inspectorと専用Light Editorで同じGlobal Lighting/Debug UIを共有するための互換入口です。<br/>
 		/// Runtime所有者のLightManagerからUI責務を分けるため、中身はLightEditorPanelへ委譲します。
 		/// </summary>
 		void DrawPunctualLightsInspector();
@@ -197,9 +199,19 @@ namespace Ken4lowEngine
 		std::vector<PunctualLightGPU>& GetMutablePunctualLightsForEditor() { return punctualLights_; }
 
 		/// <summary>
-		/// Actorに追加されたLightComponent由来のPointLight一覧を反映します。
+		/// Actorに追加されたLightComponent由来のライト一覧を反映します。<br/>
+		/// 個別ライトの編集元はActor DetailsのLightComponentで、LightManager側ではGPU転送とDebug表示だけを行います。
+		/// </summary>
+		void SetLightComponentLights(const std::vector<PunctualLightGPU>& lights);
+
+		/// <summary>
+		/// 旧PointLight時代の互換入口です。<br/>
+		/// 現在はDirectional/Point/Spot/Areaを含むLightComponentライト全体をSetLightComponentLightsへ転送します。
 		/// </summary>
 		void SetLightComponentPointLights(const std::vector<PunctualLightGPU>& lights);
+
+		/// <summary>Light Editorの読み取り専用Debug表示で使用するLightComponent由来ライト一覧を返します。</summary>
+		const std::vector<PunctualLightGPU>& GetLightComponentLightsForDebug() const { return lightComponentLights_; }
 
 	public: /// ---------- ParameterManager連携用の窓口 ---------- ///
 
@@ -283,8 +295,8 @@ namespace Ken4lowEngine
 		DirectXCommon* dxCommon_ = nullptr;
 		std::unique_ptr<LightGpuBuffer> lightGpuBuffer_;
 
-		std::vector<PunctualLightGPU> punctualLights_; // GPUに送るライト情報
-		std::vector<PunctualLightGPU> lightComponentPointLights_; // LightComponentから収集したPointLight情報
+		std::vector<PunctualLightGPU> punctualLights_; // GPUに送るグローバル/Legacyライト情報
+		std::vector<PunctualLightGPU> lightComponentLights_; // LightComponentから収集した全ライト情報
 
 		uint32_t punctualType_ = 1; // 0=None, 1=Directional, 2=Point, 3=Spot
 		LightingSettingsGPU lightingSettings_{};

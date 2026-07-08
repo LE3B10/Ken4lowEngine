@@ -81,9 +81,10 @@ namespace Ken4lowEngine
 
 		const char* items[] = { "None", "Reinhard" };
 		int toneMappingType = static_cast<int>(toneMappingSetting_->toneMappingType);
-		ImGui::SliderFloat("Exposure", &toneMappingSetting_->exposure, 0.1f, 4.0f);
-		ImGui::SliderFloat("Gamma", &toneMappingSetting_->gamma, 1.0f, 3.0f);
-		if (ImGui::Combo("Tone Mapping Type", &toneMappingType, items, 2))
+		// PostEffect Settingsは複数EffectのUIを同時に並べるため、##で内部IDを分けてDear ImGuiのID衝突を防ぐ。
+		ImGui::SliderFloat("Exposure##ToneMappingEffect", &toneMappingSetting_->exposure, 0.1f, 4.0f);
+		ImGui::SliderFloat("Gamma##ToneMappingEffect", &toneMappingSetting_->gamma, 1.0f, 3.0f);
+		if (ImGui::Combo("Tone Mapping Type##ToneMappingEffect", &toneMappingType, items, 2))
 		{
 			toneMappingSetting_->toneMappingType = static_cast<uint32_t>(toneMappingType);
 		}

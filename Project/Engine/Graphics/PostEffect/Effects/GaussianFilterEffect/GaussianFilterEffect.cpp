@@ -103,11 +103,12 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		const char* kernelOptions[] = { "3x3", "5x5", "7x7", "9x9" };
-		ImGui::Combo("Kernel Size", &gaussianFilterSetting_->kernelType, kernelOptions, IM_ARRAYSIZE(kernelOptions));
-		ImGui::SliderFloat("Intensity", &gaussianFilterSetting_->intensity, 0.0f, 5.0f);
-		ImGui::SliderFloat("Sigma", &gaussianFilterSetting_->sigma, 0.1f, 5.0f);
-		ImGui::SliderFloat("Threshold", &gaussianFilterSetting_->threshold, 0.0f, 1.0f);
-		ImGui::Checkbox("Horizontal", &gaussianFilterSetting_->isHorizontal);
+		// BloomEffectとIntensity/Thresholdが重なるため、内部IDだけをGaussianFilterEffect専用にする。
+		ImGui::Combo("Kernel Size##GaussianFilterEffect", &gaussianFilterSetting_->kernelType, kernelOptions, IM_ARRAYSIZE(kernelOptions));
+		ImGui::SliderFloat("Intensity##GaussianFilterEffect", &gaussianFilterSetting_->intensity, 0.0f, 5.0f);
+		ImGui::SliderFloat("Sigma##GaussianFilterEffect", &gaussianFilterSetting_->sigma, 0.1f, 5.0f);
+		ImGui::SliderFloat("Threshold##GaussianFilterEffect", &gaussianFilterSetting_->threshold, 0.0f, 1.0f);
+		ImGui::Checkbox("Horizontal##GaussianFilterEffect", &gaussianFilterSetting_->isHorizontal);
 #endif // USE_IMGUI
 	}
 

@@ -54,6 +54,9 @@ namespace Ken4lowEngine
 		preset.enableHalfLambert = lightManager.lightingSettings_.enableHalfLambert;
 		preset.rimLightColor = lightManager.lightingSettings_.rimLightColor;
 		preset.shadingMode = lightManager.lightingSettings_.shadingMode;
+		preset.enableIBL = lightManager.lightingSettings_.enableIBL;
+		preset.iblDiffuseStrength = lightManager.lightingSettings_.iblDiffuseStrength;
+		preset.iblSpecularStrength = lightManager.lightingSettings_.iblSpecularStrength;
 		preset.ToJson(entry.data);
 		return JsonDataManager::SafeSave(entry);
 	}
@@ -105,6 +108,9 @@ namespace Ken4lowEngine
 		lightManager.lightingSettings_.enableHalfLambert = preset.enableHalfLambert;
 		lightManager.lightingSettings_.rimLightColor = preset.rimLightColor;
 		lightManager.lightingSettings_.shadingMode = preset.shadingMode;
+		lightManager.lightingSettings_.enableIBL = preset.enableIBL;
+		lightManager.lightingSettings_.iblDiffuseStrength = preset.iblDiffuseStrength;
+		lightManager.lightingSettings_.iblSpecularStrength = preset.iblSpecularStrength;
 
 		// プリセットJSON由来の不正値も描画リソースへ渡る前に安全範囲へ補正する。
 		const auto clampFiniteValue = [](float value, float fallback, float minValue, float maxValue)
@@ -152,6 +158,9 @@ namespace Ken4lowEngine
 		lightManager.lightingSettings_.rimLightPower = clampFiniteValue(lightManager.lightingSettings_.rimLightPower, 2.0f, 0.01f, 32.0f);
 		lightManager.lightingSettings_.rimLightColor = sanitizeVector4Value(lightManager.lightingSettings_.rimLightColor, LightManager::LightingSettingsGPU{}.rimLightColor);
 		lightManager.lightingSettings_.shadingMode = std::clamp(lightManager.lightingSettings_.shadingMode, 0u, 2u);
+		lightManager.lightingSettings_.enableIBL = lightManager.lightingSettings_.enableIBL != 0u ? 1u : 0u;
+		lightManager.lightingSettings_.iblDiffuseStrength = clampFiniteValue(lightManager.lightingSettings_.iblDiffuseStrength, 0.0f, 0.0f, 8.0f);
+		lightManager.lightingSettings_.iblSpecularStrength = clampFiniteValue(lightManager.lightingSettings_.iblSpecularStrength, 0.0f, 0.0f, 8.0f);
 		lightManager.shadowBias_ = clampFiniteValue(lightManager.shadowBias_, 0.0f, 0.0f, 0.1f);
 		lightManager.normalBias_ = clampFiniteValue(lightManager.normalBias_, 0.025f, 0.0f, 1.0f);
 		lightManager.shadowStrength_ = clampFiniteValue(lightManager.shadowStrength_, 0.6f, 0.0f, 1.0f);

@@ -102,7 +102,7 @@ namespace Ken4lowEngine
 		}
 
 		actors_.clear(); // Finalize後にActorを破棄し、古い状態が残らないようにする
-		LightManager::GetInstance()->SetLightComponentPointLights({}); // ActorWorld破棄時にComponent由来ライトを解除する
+		LightManager::GetInstance()->SetLightComponentLights({}); // ActorWorld破棄時にComponent由来ライトを解除する
 
 		isInitialized_ = false; // 再Initialize時にSpawn済みActorを通常初期化できるように戻す
 	}

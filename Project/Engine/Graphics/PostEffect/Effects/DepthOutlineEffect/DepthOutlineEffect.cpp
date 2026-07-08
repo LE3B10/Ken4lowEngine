@@ -99,9 +99,10 @@ namespace Ken4lowEngine
 	void DepthOutlineEffect::DrawImGui()
 	{
 #ifdef USE_IMGUI
-		ImGui::SliderFloat("Depth Scale", &depthOutlineSetting_->depthScale, 0.0f, 100.0f);
-		ImGui::SliderFloat("Thickness", &depthOutlineSetting_->edgeThickness, 1.0f, 10.0f);
-		ImGui::ColorEdit4("Edge Color", &depthOutlineSetting_->edgeColor.x);
+		// PostEffect Settings内の共通ラベル衝突を避けるため、表示名は残して内部IDだけをEffect別にする。
+		ImGui::SliderFloat("Depth Scale##DepthOutlineEffect", &depthOutlineSetting_->depthScale, 0.0f, 100.0f);
+		ImGui::SliderFloat("Thickness##DepthOutlineEffect", &depthOutlineSetting_->edgeThickness, 1.0f, 10.0f);
+		ImGui::ColorEdit4("Edge Color##DepthOutlineEffect", &depthOutlineSetting_->edgeColor.x);
 #endif // USE_IMGUI
 	}
 

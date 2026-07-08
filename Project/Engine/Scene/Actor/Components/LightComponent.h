@@ -10,6 +10,7 @@ namespace Ken4lowEngine
 {
 	/// -------------------------------------------------------------
 	///			Actorにライト情報を追加するComponentクラス
+	///			個別ライトの編集元として、Actor Details上でLightType/Color/Intensity/Range等を管理する。
 	/// -------------------------------------------------------------
 	class LightComponent : public SceneComponent
 	{

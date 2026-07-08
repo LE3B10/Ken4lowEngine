@@ -246,7 +246,7 @@ namespace Ken4lowEngine
 			}
 		}
 
-		LightManager::GetInstance()->SetLightComponentPointLights(componentLights);
+		LightManager::GetInstance()->SetLightComponentLights(componentLights);
 	}
 
 }

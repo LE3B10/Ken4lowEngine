@@ -51,7 +51,9 @@ struct LightingSettings
     uint enableHalfLambert;
     float4 rimLightColor;
     uint shadingMode;
-    float3 padding;
+    uint enableIBL;
+    float iblDiffuseStrength;
+    float iblSpecularStrength;
 };
 
 struct LightingTerms

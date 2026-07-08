@@ -787,7 +787,7 @@ namespace Ken4lowEngine
 					break;
 				}
 				case EditorInspectorType::PunctualLights:
-					ImGui::TextUnformatted("Type: Light Manager / Punctual Lights");
+					ImGui::TextUnformatted("Type: Light Manager / Global Lighting Debug");
 					LightManager::GetInstance()->DrawPunctualLightsInspector();
 					break;
 				case EditorInspectorType::FadeManager:

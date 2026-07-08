@@ -69,12 +69,14 @@ public: /// ---------- 構造体 ---------- ///
 		// HLSLの既存b0 Material定数バッファと対応するため、PBR用Desc追加後もこの並びは変更しない。
 		Vector4 color;			// 色 : bytes 16
 		float shininess;		// シェーディングの強さ : bytes 4
-		float padding[3];		// パディング : bytes 12
+		float pbrEnabled;		// 1.0f でPBR Direct Lightingを使用。旧padding領域を使いCBサイズ互換を保つ。
+		float metallic;			// Metallic/Roughness Texture未接続時の定数metallic fallback。
+		float normalScale;		// NormalMap未接続時も将来設定を保持するための定数normal scale。
 		Matrix4x4 uvTransform;  // UV変換行列 : bytes 64
 		float reflection;		// 反射率 : bytes 4
 		float roughness;		// 粗さ : bytes 4
 		float usePointSampling; // 1.0f で Point Sampler を使用 : bytes 4
-		float padding2;			// パディング : bytes 4
+		float occlusionStrength;// AO Texture未接続時の定数AO fallback。旧padding領域を使いCBサイズ互換を保つ。
 	};
 
 public: /// ---------- メンバ変数 ---------- ///
@@ -171,6 +173,11 @@ public: /// ---------- セッタ ---------- ///
 	/// <param name="uvTransform">UV 座標に適用する 4x4 行列。</param>
 	void SetUVTransform(const Matrix4x4& uvTransform) { materialData_->uvTransform = uvTransform; }
 	void SetUsePointSampling(bool enabled) { materialData_->usePointSampling = enabled ? 1.0f : 0.0f; }
+	void SetPbrEnabled(bool enabled) { materialData_->pbrEnabled = enabled ? 1.0f : 0.0f; }
+	void SetMetallic(float metallic) { materialData_->metallic = metallic; }
+	void SetRoughness(float roughness) { materialData_->roughness = roughness; }
+	void SetNormalScale(float normalScale) { materialData_->normalScale = normalScale; }
+	void SetOcclusionStrength(float occlusionStrength) { materialData_->occlusionStrength = occlusionStrength; }
 
 private: /// ---------- メンバ変数 ---------- ///
 

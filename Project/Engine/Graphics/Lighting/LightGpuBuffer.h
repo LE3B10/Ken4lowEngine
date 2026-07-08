@@ -32,11 +32,11 @@ namespace Ken4lowEngine
 
 		/// <summary>
 		/// CPU側ライト配列から有効ライトだけを抽出し、StructuredBufferとライト数CBへ転送します。<br/>
-		/// 転送順序は従来通り、手動ライトの後にLightComponent由来のライトを連結します。
+		/// 転送順序は従来通り、グローバル/Legacyライトの後にLightComponent由来のライトを連結します。
 		/// </summary>
 		void UpdatePunctualLights(
 			const std::vector<LightManager::PunctualLightGPU>& punctualLights,
-			const std::vector<LightManager::PunctualLightGPU>& lightComponentPointLights);
+			const std::vector<LightManager::PunctualLightGPU>& lightComponentLights);
 
 		/// <summary>
 		/// PunctualLight用のライト数CBVとStructuredBuffer SRVを既存root indexへバインドします。<br/>

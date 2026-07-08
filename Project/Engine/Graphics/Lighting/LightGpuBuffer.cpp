@@ -82,12 +82,12 @@ namespace Ken4lowEngine
 
 	void LightGpuBuffer::UpdatePunctualLights(
 		const std::vector<LightManager::PunctualLightGPU>& punctualLights,
-		const std::vector<LightManager::PunctualLightGPU>& lightComponentPointLights)
+		const std::vector<LightManager::PunctualLightGPU>& lightComponentLights)
 	{
 		std::vector<LightManager::PunctualLightGPU> sourceLights;
-		sourceLights.reserve(punctualLights.size() + lightComponentPointLights.size());
+		sourceLights.reserve(punctualLights.size() + lightComponentLights.size());
 		sourceLights.insert(sourceLights.end(), punctualLights.begin(), punctualLights.end());
-		sourceLights.insert(sourceLights.end(), lightComponentPointLights.begin(), lightComponentPointLights.end());
+		sourceLights.insert(sourceLights.end(), lightComponentLights.begin(), lightComponentLights.end());
 
 		std::vector<LightManager::PunctualLightGPU> gpuLights;
 		gpuLights.reserve(sourceLights.size());

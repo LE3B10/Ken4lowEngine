@@ -153,7 +153,10 @@ namespace Ken4lowEngine
 			{"enableRimLight",enableRimLight},
 			{"enableHalfLambert",enableHalfLambert},
 			{"rimLightColor",ToJ(rimLightColor)},
-			{"shadingMode",shadingMode}
+			{"shadingMode",shadingMode},
+			{"enableIBL",enableIBL},
+			{"iblDiffuseStrength",iblDiffuseStrength},
+			{"iblSpecularStrength",iblSpecularStrength}
 		};
 	}
 
@@ -188,6 +191,10 @@ namespace Ken4lowEngine
 		READ_NUM(enableHalfLambert);
 		FromJ(inJson.value("rimLightColor", nlohmann::json::array()), rimLightColor);
 		READ_NUM(shadingMode);
+		// IBL設定は旧LightPresetに存在しないため、欠損時は初期OFF/0強度へfallbackして既存プリセット互換を守る。
+		READ_NUM(enableIBL);
+		READ_NUM(iblDiffuseStrength);
+		READ_NUM(iblSpecularStrength);
 	}
 	void PostEffectPreset::ToJson(nlohmann::json& outJson) const { outJson = {{"enabled",enabled},{"activeEffect",activeEffect},{"bloomIntensity",bloomIntensity},{"vignetteIntensity",vignetteIntensity},{"grayscale",grayscale},{"sepia",sepia},{"fade",fade}}; }
 	void PostEffectPreset::FromJson(const nlohmann::json& inJson) { READ_NUM(enabled); if(inJson.contains("activeEffect")) activeEffect=inJson["activeEffect"].get<std::string>(); READ_NUM(bloomIntensity); READ_NUM(vignetteIntensity); READ_NUM(grayscale); READ_NUM(sepia); READ_NUM(fade); }

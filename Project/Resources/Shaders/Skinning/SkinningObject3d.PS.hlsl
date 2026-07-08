@@ -1,5 +1,6 @@
 #include "SkinningObject3d.hlsli"
 #include "../Object3D/LightingCommon.hlsli"
+#include "../Object3D/PbrDirectLighting.hlsli"
 
 //ピクセルシェーダーの出力
 struct PixelShaderOutput
@@ -12,12 +13,14 @@ struct Material
 {
     float4 color; // オブジェクトの色
     float shininess; // 光沢度
-    float3 padding0;
+    float pbrEnabled; // 1.0でPBR Direct Lightingを使用。旧padding領域でCB互換を維持する。
+    float metallic; // Metallic/Roughness Texture未接続時の定数fallback
+    float normalScale; // NormalMap未接続時も設定値だけ保持する
     float4x4 uvTransform; // UVTransform
     float reflectionRate; // 反射率
     float roughness; // 粗さ
     float usePointSampling; // Object3D と同じ定数バッファレイアウトを保つ
-    float padding1;
+    float occlusionStrength; // AO Texture未接続時の定数fallback
 };
 
 // カメラ
@@ -116,8 +119,30 @@ PixelShaderOutput main(VertexShaderOutput input)
     float fresnel = ComputeFresnelSchlick(saturate(dot(normal, viewDir)), 0.02f);
     float envBlend = saturate(gMaterial.reflectionRate * 0.12f + fresnel * 0.03f);
 
-    float3 shadedColor = baseColor * lighting;
-    shadedColor = lerp(shadedColor, environmentColor, envBlend);
+    float3 shadedColor = 0.0.xxx;
+    if (gMaterial.pbrEnabled > 0.5f)
+    {
+        // PBRはMaterial単位でONの時だけ使い、既存アニメーションモデルのLegacy表示を初期状態で残す。
+        float2 metallicRoughness = ResolveMetallicRoughnessFallback(gMaterial.metallic, gMaterial.roughness);
+        PbrSurface surface;
+        surface.baseColor = baseColor;
+        surface.metallic = metallicRoughness.x;
+        surface.roughness = metallicRoughness.y;
+        surface.occlusion = saturate(gMaterial.occlusionStrength);
+        surface.emissive = 0.0.xxx;
+        surface.normal = ResolvePbrNormalFallback(normal, gMaterial.normalScale);
+        surface.viewDir = viewDir;
+
+        float3 directPbr = DirectLightingPBR(gPunctualLights, gLightInfo.gLightCount, worldPosition, surface, gShadowParameter, gShadowMap, gShadowSampler);
+        float3 ibl = EvaluatePbrIBLFallback(surface, gEnvironmentTexture, gSampler, gLightingSettings);
+        shadedColor = directPbr + ibl + surface.emissive;
+    }
+    else
+    {
+        // Legacy経路は既存Phong/Blinn系の見た目とLight/Shadow挙動を守るため残す。
+        shadedColor = baseColor * lighting;
+        shadedColor = lerp(shadedColor, environmentColor, envBlend);
+    }
 
     shadedColor = ApplyFog(shadedColor, worldPosition, gCamera.worldPosition, gLightingSettings);
     shadedColor = ApplySimpleToneMapping(shadedColor, gLightingSettings);

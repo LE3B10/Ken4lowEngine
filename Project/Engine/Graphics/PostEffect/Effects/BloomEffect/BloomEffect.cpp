@@ -79,9 +79,10 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		if (!bloomSetting_) { return; }
 
-		ImGui::SliderFloat("Threshold", &bloomSetting_->threshold, 0.0f, 4.0f);
-		ImGui::SliderFloat("Intensity", &bloomSetting_->intensity, 0.0f, 2.0f);
-		ImGui::SliderFloat("Blur Strength", &bloomSetting_->blurStrength, 0.0f, 4.0f);
+		// RadialBlurEffectなどと同じ表示ラベルを使うため、##BloomEffectで内部IDだけを分ける。
+		ImGui::SliderFloat("Threshold##BloomEffect", &bloomSetting_->threshold, 0.0f, 4.0f);
+		ImGui::SliderFloat("Intensity##BloomEffect", &bloomSetting_->intensity, 0.0f, 2.0f);
+		ImGui::SliderFloat("Blur Strength##BloomEffect", &bloomSetting_->blurStrength, 0.0f, 4.0f);
 		ImGui::TextUnformatted("BrightExtract -> small Blur -> Composite. Multi-pass Bloom is intentionally deferred.");
 #endif // USE_IMGUI
 	}

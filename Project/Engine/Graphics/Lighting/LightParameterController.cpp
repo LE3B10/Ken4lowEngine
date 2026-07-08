@@ -122,6 +122,10 @@ namespace Ken4lowEngine
 		parameters->AddItem(kLightManagerGroup, "enableHalfLambert", lightingSettings.enableHalfLambert != 0u);
 		parameters->AddItem(kLightManagerGroup, "rimLightColor", lightingSettings.rimLightColor);
 		parameters->AddItem(kLightManagerGroup, "shadingMode", static_cast<int32_t>(lightingSettings.shadingMode), 0, 2);
+		// IBLはPBR Direct Lightingとは別に切り替え、環境リソース未設定時は初期OFF/0強度で既存見た目を保つ。
+		parameters->AddItem(kLightManagerGroup, "enableIBL", lightingSettings.enableIBL != 0u);
+		parameters->AddItem(kLightManagerGroup, "iblDiffuseStrength", lightingSettings.iblDiffuseStrength, 0.0f, 2.0f);
+		parameters->AddItem(kLightManagerGroup, "iblSpecularStrength", lightingSettings.iblSpecularStrength, 0.0f, 2.0f);
 
 		parameters->AddItem(kLightManagerGroup, "enableShadow", shadowSettings.enableShadow);
 		parameters->AddItem(kLightManagerGroup, "shadowBias", shadowSettings.shadowBias, 0.0f, 0.01f);
@@ -195,6 +199,9 @@ namespace Ken4lowEngine
 		settings.enableHalfLambert = GetLightParameterOrDefault(parameters, "enableHalfLambert", settings.enableHalfLambert != 0u) ? 1u : 0u;
 		settings.rimLightColor = SanitizeVector4(GetLightParameterOrDefault(parameters, "rimLightColor", settings.rimLightColor), LightManager::LightingSettingsGPU{}.rimLightColor);
 		settings.shadingMode = static_cast<uint32_t>(std::clamp(GetLightParameterOrDefault<int32_t>(parameters, "shadingMode", static_cast<int32_t>(settings.shadingMode)), 0, 2));
+		settings.enableIBL = GetLightParameterOrDefault(parameters, "enableIBL", settings.enableIBL != 0u) ? 1u : 0u;
+		settings.iblDiffuseStrength = ClampFinite(GetLightParameterOrDefault(parameters, "iblDiffuseStrength", settings.iblDiffuseStrength), 0.0f, 0.0f, 8.0f);
+		settings.iblSpecularStrength = ClampFinite(GetLightParameterOrDefault(parameters, "iblSpecularStrength", settings.iblSpecularStrength), 0.0f, 0.0f, 8.0f);
 
 		shadowSettings.enableShadow = GetLightParameterOrDefault(parameters, "enableShadow", shadowSettings.enableShadow);
 		shadowSettings.shadowBias = ClampFinite(GetLightParameterOrDefault(parameters, "shadowBias", shadowSettings.shadowBias), 0.0f, 0.0f, 0.1f);
@@ -264,6 +271,9 @@ namespace Ken4lowEngine
 		parameters->SetValue(kLightManagerGroup, "enableHalfLambert", settings.enableHalfLambert != 0u);
 		parameters->SetValue(kLightManagerGroup, "rimLightColor", settings.rimLightColor);
 		parameters->SetValue(kLightManagerGroup, "shadingMode", static_cast<int32_t>(settings.shadingMode));
+		parameters->SetValue(kLightManagerGroup, "enableIBL", settings.enableIBL != 0u);
+		parameters->SetValue(kLightManagerGroup, "iblDiffuseStrength", settings.iblDiffuseStrength);
+		parameters->SetValue(kLightManagerGroup, "iblSpecularStrength", settings.iblSpecularStrength);
 
 		parameters->SetValue(kLightManagerGroup, "enableShadow", shadowSettings.enableShadow);
 		parameters->SetValue(kLightManagerGroup, "shadowBias", shadowSettings.shadowBias);

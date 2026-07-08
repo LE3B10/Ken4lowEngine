@@ -22,6 +22,33 @@ namespace Ken4lowEngine
 			const float yaw = std::atan2(n.x, n.z);
 			return { pitch * kRadToDeg, yaw * kRadToDeg, 0.0f };
 		}
+
+		const char* LightTypeName(uint32_t lightType)
+		{
+			switch (lightType)
+			{
+			case 1: return "Directional";
+			case 2: return "Point";
+			case 3: return "Spot";
+			case 4: return "RectArea";
+			case 5: return "SphereArea";
+			default: return "None";
+			}
+		}
+
+		void DrawLightDebugInfo(const LightManager::PunctualLightGPU& light)
+		{
+			ImGui::Text("Type: %s", LightTypeName(light.lightType));
+			ImGui::Text("Enabled: %s", light.enabled != 0u ? "true" : "false");
+			ImGui::Text("Color: (%.3f, %.3f, %.3f, %.3f)", light.color.x, light.color.y, light.color.z, light.color.w);
+			ImGui::Text("Position: (%.2f, %.2f, %.2f)", light.position.x, light.position.y, light.position.z);
+			ImGui::Text("Intensity: %.2f", light.intensity);
+			ImGui::Text("Range / Radius: %.2f / %.2f", light.distance, light.radius);
+			ImGui::Text("Decay: %.2f", light.decay);
+			ImGui::Text("Spot cosInner / cosOuter: %.3f / %.3f", light.cosFalloffStart, light.cosAngle);
+			ImGui::Text("Area Size: (%.2f, %.2f, %.2f)", light.areaSize.x, light.areaSize.y, light.areaSize.z);
+			ImGui::Text("Direction: (%.2f, %.2f, %.2f)", light.direction.x, light.direction.y, light.direction.z);
+		}
 	}
 
 	void LightEditorPanel::Draw(LightManager& lightManager, bool* pOpen)
@@ -37,7 +64,7 @@ namespace Ken4lowEngine
 		ImGui::SetNextWindowSize(ImVec2(360.0f, 480.0f), ImGuiCond_FirstUseEver);
 		if (ImGui::Begin("Light Editor", pOpen))
 		{
-			if (ImGui::CollapsingHeader("Punctual Lights"))
+			if (ImGui::CollapsingHeader("Global Lighting / Runtime Debug"))
 			{
 				DrawPunctualLightsInspector(lightManager);
 			}
@@ -56,30 +83,41 @@ namespace Ken4lowEngine
 	void LightEditorPanel::DrawPunctualLightsInspector(LightManager& lightManager)
 	{
 #ifdef USE_IMGUI
-		// Detailsと専用Light Editorの内容差分をなくすため、Punctual Lights本体の描画をここへ集約する。
-		ImGui::Text("Light Count: %zu", lightManager.punctualLights_.size());
-		if (!lightManager.punctualLights_.empty())
-		{
-			const auto& first = lightManager.punctualLights_.front();
-			const char* summaryTypes[] = { "None", "Directional", "Point", "Spot", "RectArea", "SphereArea" };
-			const uint32_t typeIndex = (first.lightType < static_cast<uint32_t>(IM_ARRAYSIZE(summaryTypes))) ? first.lightType : 0;
-			Vector3 eulerDeg = DirectionToEulerDegForLightEditor(first.direction);
-			ImGui::Text("Light #0 Type: %s", summaryTypes[typeIndex]);
-			ImGui::Text("Light #0 Color: (%.3f, %.3f, %.3f, %.3f)", first.color.x, first.color.y, first.color.z, first.color.w);
-			ImGui::Text("Light #0 Intensity: %.3f", first.intensity);
-			ImGui::Text("Light #0 Pitch / Yaw / Roll: %.1f / %.1f / %.1f", eulerDeg.x, eulerDeg.y, eulerDeg.z);
-			ImGui::Text("Light #0 Direction: (%.3f, %.3f, %.3f)", first.direction.x, first.direction.y, first.direction.z);
-		}
-		ImGui::Separator();
-		// 保存対象のライト/影/ライティング数値はParameters > LightManagerで一元編集する。
-		ImGui::TextUnformatted("Editable lighting values are in Parameters > LightManager.");
+		// Light Editorは全体設定/Debugを担当し、Actor単位のライト編集はLightComponent Detailsへ集約する。
+		ImGui::TextUnformatted("Per-actor lights are edited in Actor Details > LightComponent.");
+
+		ImGui::SeparatorText("Global Lighting");
 		ImGui::Text("Ambient: (%.3f, %.3f, %.3f, %.3f)", lightManager.lightingSettings_.ambientColor.x, lightManager.lightingSettings_.ambientColor.y, lightManager.lightingSettings_.ambientColor.z, lightManager.lightingSettings_.ambientColor.w);
 		ImGui::Text("Exposure / Contrast: %.3f / %.3f", lightManager.lightingSettings_.exposure, lightManager.lightingSettings_.contrast);
 		ImGui::Text("Fog: %s  Start / End: %.2f / %.2f", lightManager.lightingSettings_.enableFog != 0u ? "true" : "false", lightManager.lightingSettings_.fogStart, lightManager.lightingSettings_.fogEnd);
 		ImGui::Text("Shading Mode: %u  Diffuse / Specular: %.3f / %.3f", lightManager.lightingSettings_.shadingMode, lightManager.lightingSettings_.diffuseStrength, lightManager.lightingSettings_.specularStrength);
 		ImGui::Text("Rim: %s  Strength / Power: %.3f / %.3f", lightManager.lightingSettings_.enableRimLight != 0u ? "true" : "false", lightManager.lightingSettings_.rimLightStrength, lightManager.lightingSettings_.rimLightPower);
 
-		if (ImGui::Button("+ Add Light"))
+		ImGui::SeparatorText("IBL / PBR");
+		ImGui::TextUnformatted("IBL is used by the PBR lighting path. Legacy shading remains on the existing ambient/direct-light path.");
+		// IBLはPBR Direct Lightingと分けてON/OFFし、環境リソース未設定時も既存Lightingを壊さないよう初期OFFにする。
+		bool iblEnabled = lightManager.lightingSettings_.enableIBL != 0u;
+		if (ImGui::Checkbox("Enable IBL##LightEditor", &iblEnabled))
+		{
+			lightManager.lightingSettings_.enableIBL = iblEnabled ? 1u : 0u;
+		}
+		ImGui::SliderFloat("IBL Diffuse Strength##LightEditor", &lightManager.lightingSettings_.iblDiffuseStrength, 0.0f, 2.0f);
+		ImGui::SliderFloat("IBL Specular Strength##LightEditor", &lightManager.lightingSettings_.iblSpecularStrength, 0.0f, 2.0f);
+
+		ImGui::SeparatorText("Global / Legacy Lights");
+		ImGui::Text("Legacy Light Count: %zu", lightManager.punctualLights_.size());
+		if (!lightManager.punctualLights_.empty())
+		{
+			const auto& first = lightManager.punctualLights_.front();
+			Vector3 eulerDeg = DirectionToEulerDegForLightEditor(first.direction);
+			ImGui::Text("Light #0 Type: %s", LightTypeName(first.lightType));
+			ImGui::Text("Light #0 Color: (%.3f, %.3f, %.3f, %.3f)", first.color.x, first.color.y, first.color.z, first.color.w);
+			ImGui::Text("Light #0 Intensity: %.3f", first.intensity);
+			ImGui::Text("Light #0 Pitch / Yaw / Roll: %.1f / %.1f / %.1f", eulerDeg.x, eulerDeg.y, eulerDeg.z);
+			ImGui::Text("Light #0 Direction: (%.3f, %.3f, %.3f)", first.direction.x, first.direction.y, first.direction.z);
+		}
+		ImGui::TextUnformatted("Legacy preset lights remain here for compatibility.");
+		if (ImGui::Button("+ Add Legacy Light"))
 		{
 			LightManager::PunctualLightGPU L{};
 			L.lightType = 1;
@@ -93,7 +131,7 @@ namespace Ken4lowEngine
 			lightManager.punctualLights_.push_back(L);
 		}
 		ImGui::SameLine();
-		if (ImGui::Button("Clear All"))
+		if (ImGui::Button("Clear Legacy Lights"))
 		{
 			lightManager.punctualLights_.clear();
 		}
@@ -104,24 +142,13 @@ namespace Ken4lowEngine
 			auto& L = lightManager.punctualLights_[i];
 
 			ImGui::Separator();
-			ImGui::Text("Light #%zu", i);
-
-			const char* types[] = { "None", "Directional", "Point", "Spot", "RectArea", "SphereArea" };
-			const uint32_t typeIndex = (L.lightType < static_cast<uint32_t>(IM_ARRAYSIZE(types))) ? L.lightType : 0u;
-			ImGui::Text("Type: %s", types[typeIndex]);
-			ImGui::Text("Enabled: %s", L.enabled != 0u ? "true" : "false");
-			ImGui::Text("Color: (%.3f, %.3f, %.3f, %.3f)", L.color.x, L.color.y, L.color.z, L.color.w);
-			ImGui::Text("Position: (%.2f, %.2f, %.2f)", L.position.x, L.position.y, L.position.z);
-			ImGui::Text("Radius / Decay: %.2f / %.2f", L.radius, L.decay);
-			ImGui::Text("Spot cosInner / cosOuter: %.3f / %.3f", L.cosFalloffStart, L.cosAngle);
+			ImGui::Text("Legacy Light #%zu", i);
+			DrawLightDebugInfo(L);
 			ImGui::Text("AreaLight active: %s", (L.enabled && (L.lightType == 4 || L.lightType == 5)) ? "true" : "false");
 			ImGui::Text("AreaLight type: %s", (L.lightType == 4) ? "RectArea" : ((L.lightType == 5) ? "SphereArea" : "N/A"));
-			ImGui::Text("area size: (%.2f, %.2f, %.2f)", L.areaSize.x, L.areaSize.y, L.areaSize.z);
-			ImGui::Text("range: %.2f  intensity: %.2f", L.distance, L.intensity);
-			ImGui::Text("light direction: (%.2f, %.2f, %.2f)", L.direction.x, L.direction.y, L.direction.z);
 			ImGui::Text("debug wire visible: %s", ((L.enabled != 0u) && (L.lightType == 4 || L.lightType == 5)) ? "true" : "false");
 
-			if (ImGui::Button("Remove"))
+			if (ImGui::Button("Remove Legacy Light"))
 			{
 				lightManager.punctualLights_.erase(lightManager.punctualLights_.begin() + i);
 				ImGui::PopID();
@@ -131,9 +158,26 @@ namespace Ken4lowEngine
 			ImGui::PopID();
 		}
 
+		ImGui::SeparatorText("LightComponent Debug");
+		const auto& componentLights = lightManager.GetLightComponentLightsForDebug();
+		ImGui::Text("Component Light Count: %zu", componentLights.size());
+		ImGui::TextUnformatted("Read-only. Select the Actor/LightComponent to edit these values.");
+		for (size_t i = 0; i < componentLights.size(); ++i)
+		{
+			ImGui::PushID(static_cast<int>(i + 10000));
+			ImGui::Separator();
+			ImGui::Text("Component Light #%zu", i);
+			DrawLightDebugInfo(componentLights[i]);
+			ImGui::PopID();
+		}
+
 		ImGui::Separator();
-		const bool hasPointLight = std::any_of(lightManager.punctualLights_.begin(), lightManager.punctualLights_.end(), [](const LightManager::PunctualLightGPU& light) { return light.lightType == 2 && light.intensity > 0.0f && light.enabled != 0u; });
-		const bool hasAreaLight = std::any_of(lightManager.punctualLights_.begin(), lightManager.punctualLights_.end(), [](const LightManager::PunctualLightGPU& light) { return (light.lightType == 4 || light.lightType == 5) && light.intensity > 0.0f && light.enabled != 0u; });
+		const bool hasPointLight =
+			std::any_of(lightManager.punctualLights_.begin(), lightManager.punctualLights_.end(), [](const LightManager::PunctualLightGPU& light) { return light.lightType == 2 && light.intensity > 0.0f && light.enabled != 0u; }) ||
+			std::any_of(componentLights.begin(), componentLights.end(), [](const LightManager::PunctualLightGPU& light) { return light.lightType == 2 && light.intensity > 0.0f && light.enabled != 0u; });
+		const bool hasAreaLight =
+			std::any_of(lightManager.punctualLights_.begin(), lightManager.punctualLights_.end(), [](const LightManager::PunctualLightGPU& light) { return (light.lightType == 4 || light.lightType == 5) && light.intensity > 0.0f && light.enabled != 0u; }) ||
+			std::any_of(componentLights.begin(), componentLights.end(), [](const LightManager::PunctualLightGPU& light) { return (light.lightType == 4 || light.lightType == 5) && light.intensity > 0.0f && light.enabled != 0u; });
 		ImGui::SeparatorText("Shadow Frustum");
 		ImGui::Text("Shadow Enabled: %s", lightManager.enableShadow_ ? "true" : "false");
 		ImGui::Text("Shadow Debug Map / Factor: %s / %s", lightManager.showShadowMapDebug_ ? "true" : "false", lightManager.showShadowFactorDebug_ ? "true" : "false");

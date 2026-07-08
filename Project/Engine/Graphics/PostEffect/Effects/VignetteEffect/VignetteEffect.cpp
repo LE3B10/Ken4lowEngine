@@ -99,8 +99,9 @@ namespace Ken4lowEngine
 	void VignetteEffect::DrawImGui()
 	{
 #ifdef USE_IMGUI
-		ImGui::SliderFloat("Vignette Power", &vignetteSetting_->power, 0.0f, 3.0f);
-		ImGui::SliderFloat("Vignette Range", &vignetteSetting_->range, 0.0f, 1.0f);
+		// 複数PostEffectを同じSettings内で開くため、表示名は保ちつつ##で内部IDだけをEffect別に分ける。
+		ImGui::SliderFloat("Vignette Power##VignetteEffect", &vignetteSetting_->power, 0.0f, 3.0f);
+		ImGui::SliderFloat("Vignette Range##VignetteEffect", &vignetteSetting_->range, 0.0f, 1.0f);
 #endif // USE_IMGUI
 	}
 

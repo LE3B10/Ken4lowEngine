@@ -92,6 +92,9 @@ namespace Ken4lowEngine
 		uint32_t enableHalfLambert = 0;
 		Vector4 rimLightColor = { 1.0f, 1.0f, 1.0f, 1.0f };
 		uint32_t shadingMode = 0;
+		uint32_t enableIBL = 0;
+		float iblDiffuseStrength = 0.0f;
+		float iblSpecularStrength = 0.0f;
 
 		void ToJson(nlohmann::json& outJson) const override;
 		void FromJson(const nlohmann::json& inJson) override;

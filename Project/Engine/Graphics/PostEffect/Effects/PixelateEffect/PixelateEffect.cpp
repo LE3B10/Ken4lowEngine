@@ -90,8 +90,9 @@ namespace Ken4lowEngine
 	void PixelateEffect::DrawImGui()
 	{
 #ifdef USE_IMGUI
-		ImGui::SliderFloat("Block Size", &pixelateSetting_->blockSize, 1.0f, 128.0f);
-		ImGui::SliderFloat("Strength", &pixelateSetting_->strength, 0.0f, 1.0f);
+		// PostEffect Settings内で同名Strengthが増えても警告が出ないよう、内部IDをEffect名で分ける。
+		ImGui::SliderFloat("Block Size##PixelateEffect", &pixelateSetting_->blockSize, 1.0f, 128.0f);
+		ImGui::SliderFloat("Strength##PixelateEffect", &pixelateSetting_->strength, 0.0f, 1.0f);
 #endif
 	}
 

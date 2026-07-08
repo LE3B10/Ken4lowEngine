@@ -19,7 +19,7 @@ namespace Ken4lowEngine
 		void Draw(LightManager& lightManager, bool* pOpen = nullptr);
 
 		/// <summary>
-		/// Punctual LightsとShadowデバッグ情報のInspector UIを描画します。<br/>
+		/// Global Lighting/IBL/Shadow/LightComponent DebugのInspector UIを描画します。<br/>
 		/// Details Inspectorと専用Light Editorで同じ表示を使えるよう、ウィンドウ枠なしの中身だけを提供します。
 		/// </summary>
 		void DrawPunctualLightsInspector(LightManager& lightManager);

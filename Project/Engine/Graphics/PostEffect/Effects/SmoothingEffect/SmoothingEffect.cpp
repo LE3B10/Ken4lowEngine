@@ -109,7 +109,8 @@ namespace Ken4lowEngine
 			"Gaussian 9x9"   // 7
 		};
 
-		ImGui::Combo("Kernel Type", &smoothingSetting_->kernelType, kernelOptions, IM_ARRAYSIZE(kernelOptions));
+		// GaussianFilterEffectにもKernel系UIがあるため、PostEffectごとの内部IDを付けて衝突を避ける。
+		ImGui::Combo("Kernel Type##SmoothingEffect", &smoothingSetting_->kernelType, kernelOptions, IM_ARRAYSIZE(kernelOptions));
 #endif // USE_IMGUI
 	}
 

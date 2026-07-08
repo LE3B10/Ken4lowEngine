@@ -79,6 +79,7 @@ namespace Ken4lowEngine
 
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("ライトコンポーネント");
+		ImGui::TextUnformatted("Edit per-actor light values here. Local transform is edited in Scene Component.");
 		ComponentPropertyUtility::DrawImGui(CreateProperties());
 		if (UsesDirection(lightType_))
 		{

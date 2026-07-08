@@ -103,9 +103,10 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		ImGui::Text("Luminance Outline Effect Settings");
-		ImGui::ColorEdit4("Outline Color", &luminanceOutlineSetting_->color.x);
-		ImGui::SliderFloat("Edge Strength", &luminanceOutlineSetting_->edgeStrength, 0.0f, 5.0f);
-		ImGui::SliderFloat("Threshold", &luminanceOutlineSetting_->threshold, 0.0f, 1.0f);
+		// BloomEffectやDissolveEffectとThreshold/Edge系ラベルが重なるため、内部IDだけをEffect別に分ける。
+		ImGui::ColorEdit4("Outline Color##LuminanceOutlineEffect", &luminanceOutlineSetting_->color.x);
+		ImGui::SliderFloat("Edge Strength##LuminanceOutlineEffect", &luminanceOutlineSetting_->edgeStrength, 0.0f, 5.0f);
+		ImGui::SliderFloat("Threshold##LuminanceOutlineEffect", &luminanceOutlineSetting_->threshold, 0.0f, 1.0f);
 #endif // USE_IMGUI
 	}
 
