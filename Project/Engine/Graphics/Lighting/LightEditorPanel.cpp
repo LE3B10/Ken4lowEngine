@@ -95,6 +95,7 @@ namespace Ken4lowEngine
 
 		ImGui::SeparatorText("IBL / PBR");
 		ImGui::TextUnformatted("IBL is used by the PBR lighting path. Legacy shading remains on the existing ambient/direct-light path.");
+		ImGui::TextDisabled("If the selected material is still Legacy, changing IBL may not be visually obvious.");
 		// IBLはPBR Direct Lightingと分けてON/OFFし、環境リソース未設定時も既存Lightingを壊さないよう初期OFFにする。
 		bool iblEnabled = lightManager.lightingSettings_.enableIBL != 0u;
 		if (ImGui::Checkbox("Enable IBL##LightEditor", &iblEnabled))
@@ -103,6 +104,13 @@ namespace Ken4lowEngine
 		}
 		ImGui::SliderFloat("IBL Diffuse Strength##LightEditor", &lightManager.lightingSettings_.iblDiffuseStrength, 0.0f, 2.0f);
 		ImGui::SliderFloat("IBL Specular Strength##LightEditor", &lightManager.lightingSettings_.iblSpecularStrength, 0.0f, 2.0f);
+		if (lightManager.lightingSettings_.enableIBL != 0u &&
+			lightManager.lightingSettings_.iblDiffuseStrength <= 0.0f &&
+			lightManager.lightingSettings_.iblSpecularStrength <= 0.0f)
+		{
+			// EnableだけONでも強度が0なら結果は変わらないため、調整時に原因を見失わないようUIで明示する。
+			ImGui::TextColored(ImVec4(1.0f, 0.85f, 0.25f, 1.0f), "IBL is enabled, but both strengths are 0. Increase them to test the fallback lighting.");
+		}
 
 		ImGui::SeparatorText("Global / Legacy Lights");
 		ImGui::Text("Legacy Light Count: %zu", lightManager.punctualLights_.size());

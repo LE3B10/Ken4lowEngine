@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <string>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -75,16 +76,127 @@ namespace Ken4lowEngine
 
 	void LightComponent::DrawImGui()
 	{
-		SceneComponent::DrawImGui(); // ライトの基準位置を編集できるようにする
+		SceneComponent::DrawImGui(); // ライトの基準位置はSceneComponentで編集し、LightComponentは光源パラメータだけを担当する。
 
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("ライトコンポーネント");
-		ImGui::TextUnformatted("Edit per-actor light values here. Local transform is edited in Scene Component.");
-		ComponentPropertyUtility::DrawImGui(CreateProperties());
+		ImGui::TextUnformatted("Individual light values are edited here and synced to LightManager before rendering.");
+		ImGui::TextDisabled("LightManager shows Component Lights as read-only debug data.");
+
+		bool changed = false;
+
+		std::string currentTypeName = LightTypeToString(lightType_);
+		std::string previewName = currentTypeName;
+		for (const ComponentPropertyChoice& choice : LightTypeChoices())
+		{
+			if (choice.value == currentTypeName)
+			{
+				previewName = choice.displayName.empty() ? choice.value : choice.displayName;
+				break;
+			}
+		}
+
+		if (ImGui::BeginCombo("ライト種類##LightComponentType", previewName.c_str()))
+		{
+			for (const ComponentPropertyChoice& choice : LightTypeChoices())
+			{
+				const bool selected = choice.value == currentTypeName;
+				const std::string label = choice.displayName.empty() ? choice.value : choice.displayName;
+				if (ImGui::Selectable(label.c_str(), selected))
+				{
+					lightType_ = LightTypeFromString(choice.value); // Actor Details側を個別ライト編集の主役にするため、種類変更もComponentへ直接反映する。
+					Sanitize();
+					changed = true;
+				}
+				if (selected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		bool editEnabled = enabled_;
+		if (ImGui::Checkbox("有効##LightComponentEnabled", &editEnabled))
+		{
+			enabled_ = editEnabled; // 有効状態は次のSyncLightComponentsToLightManagerでGPU転送対象へ反映される。
+			changed = true;
+		}
+
+		float editColor[3] = { color_.x, color_.y, color_.z };
+		if (ImGui::DragFloat3("色##LightComponentColor", editColor, 0.01f, 0.0f, 1.0f))
+		{
+			color_ = { editColor[0], editColor[1], editColor[2] }; // 色は既存JSONキーを変えず、Component内部値だけ更新する。
+			changed = true;
+		}
+
+		if (ImGui::DragFloat("強さ##LightComponentIntensity", &intensity_, 0.05f, 0.0f, 100.0f))
+		{
+			intensity_ = std::max(intensity_, 0.0f); // 負の強度でライトが反転しないよう、既存の安全範囲へ丸める。
+			changed = true;
+		}
+
+		if (UsesRange(lightType_))
+		{
+			if (ImGui::DragFloat("範囲##LightComponentRange", &range_, 0.1f, 0.0f, 1000.0f))
+			{
+				Sanitize();
+				changed = true;
+			}
+			if (ImGui::DragFloat("減衰##LightComponentDecay", &decay_, 0.05f, 0.0f, 10.0f))
+			{
+				Sanitize();
+				changed = true;
+			}
+		}
+		else
+		{
+			ImGui::TextDisabled("Range / Decay are used by Point, Spot, and Area lights.");
+		}
+
+		if (lightType_ == LightType::Spot)
+		{
+			if (ImGui::DragFloat("内角度##LightComponentInnerAngle", &innerAngle_, 0.1f, 0.0f, 179.0f))
+			{
+				Sanitize();
+				changed = true;
+			}
+			if (ImGui::DragFloat("外角度##LightComponentOuterAngle", &outerAngle_, 0.1f, 0.1f, 179.0f))
+			{
+				Sanitize();
+				changed = true;
+			}
+		}
+		else
+		{
+			ImGui::TextDisabled("Spot angles are shown only for Spot lights.");
+		}
+
+		if (UsesAreaSize(lightType_))
+		{
+			float editAreaSize[3] = { areaSize_.x, areaSize_.y, areaSize_.z };
+			if (ImGui::DragFloat3("エリアサイズ##LightComponentAreaSize", editAreaSize, 0.05f, 0.0f, 50.0f))
+			{
+				areaSize_ = { editAreaSize[0], editAreaSize[1], editAreaSize[2] };
+				Sanitize();
+				changed = true;
+			}
+		}
+		else
+		{
+			ImGui::TextDisabled("Area Size is shown only for Rect/Sphere area lights.");
+		}
+
 		if (UsesDirection(lightType_))
 		{
 			const Vector3 direction = CalculateDirection();
 			ImGui::Text("ライト方向: %.2f, %.2f, %.2f", direction.x, direction.y, direction.z);
+		}
+
+		if (changed)
+		{
+			// ActorWorld::SyncLightComponentsToLightManager がこの値を収集し、LightManagerではread-only debugとして表示する。
+			ImGui::TextColored(ImVec4(0.75f, 1.0f, 0.75f, 1.0f), "LightComponent values updated. They will be synced before the next draw.");
 		}
 #endif // USE_IMGUI
 	}
@@ -94,7 +206,7 @@ namespace Ken4lowEngine
 		SceneComponent::ToJson(outJson); // SceneComponent共通情報をJSONへ保存する
 
 		outJson["Class"] = GetClassTypeName(); // LightComponentとして保存する
-		ComponentPropertyUtility::ToJson(const_cast<LightComponent*>(this)->CreateProperties(), outJson);
+		ComponentPropertyUtility::ToJson(const_cast<LightComponent*>(this)->CreateProperties(true), outJson); // 種類を切り替えてもRange/Spot/Area設定を失わないよう全ライト項目を保存する
 	}
 
 	void LightComponent::FromJson(const nlohmann::json& inJson)
