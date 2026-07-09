@@ -202,6 +202,9 @@
     <Filter Include="Engine\Scene\Actor\Factory">
       <UniqueIdentifier>{3e270e79-8ae9-45d4-ad78-e24f9c83cbdc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Physics\Specialized">
+      <UniqueIdentifier>{6b6053ce-8214-4c99-bdfa-8f6bc3b01268}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -1249,7 +1252,9 @@
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_Pysics.cpp">
       <Filter>Engine\Scene\Actor\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.cpp" />
+    <ClCompile Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.cpp">
+      <Filter>Engine\Physics\Specialized</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2557,7 +2562,12 @@
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\BulletEnemySoABenchmarkPanel.h">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClInclude>
-    <ClInclude Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.h" />
+    <ClInclude Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.h">
+      <Filter>Engine\Physics\Specialized</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\CharacterWorld\BulletEnemySoABridge.h">
+      <Filter>ApplicationLayer\Character\CharacterWorld</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
