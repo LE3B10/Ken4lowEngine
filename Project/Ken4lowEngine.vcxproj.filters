@@ -1249,6 +1249,7 @@
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_Pysics.cpp">
       <Filter>Engine\Scene\Actor\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2553,6 +2554,10 @@
     <ClInclude Include="ApplicationLayer\UISystem\UiSpriteFactory.h">
       <Filter>ApplicationLayer\UISystem</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\BulletEnemySoABenchmarkPanel.h">
+      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

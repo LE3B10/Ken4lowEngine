@@ -119,6 +119,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.cpp" />
+    <ClCompile Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_ComponentEdit.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_Draw.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_ImGui.cpp" />
@@ -826,9 +827,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\BulletEnemySoABenchmarkPanel.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.h" />
     <ClInclude Include="ApplicationLayer\UISystem\UiSpriteFactory.h" />
     <ClInclude Include="Engine\Math\MathUtil.h" />
+    <ClInclude Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.h" />
     <ClInclude Include="Engine\Scene\Actor\Factory\ActorFactory.h" />
     <ClInclude Include="Engine\Scene\Actor\Core\ActorSpawnOptions.h" />
     <ClInclude Include="Engine\Scene\Actor\Serialization\ComponentFactory.h" />

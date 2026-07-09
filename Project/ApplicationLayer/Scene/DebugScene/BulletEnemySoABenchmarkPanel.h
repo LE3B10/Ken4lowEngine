@@ -1,6 +1,6 @@
 #pragma once
 
-#include "BulletEnemyCollisionSoA.h"
+#include "Collision/Specialized/BulletEnemyCollisionSoA.h"
 #include "Vector3.h"
 
 #include <algorithm>
