@@ -2,6 +2,7 @@
 #include "Bullet.h"
 #include "CollisionManager.h"
 #include "Engine/Physics/Core/PhysicsWorld.h"
+#include "BulletEnemyCollisionSoA.h"
 
 #include <algorithm>
 
@@ -104,6 +105,24 @@ size_t BulletManager::GetPhysicsTriggerBulletCount() const
 		{
 			return bullet && bullet->UsesPhysicsTrigger() && !bullet->IsRemovable();
 		}));
+}
+
+void BulletManager::AppendCollisionSoABullets(BulletEnemyCollisionSoA& collisionSoA) const
+{
+	for (const auto& bullet : bullets_)
+	{
+		if (!bullet || bullet->IsDead() || bullet->IsRemovable())
+		{
+			continue;
+		}
+
+		// 描画や寿命管理はBullet側に残し、判定に必要な位置・半径・ダメージだけをSoAへ転送する。
+		collisionSoA.AddBullet(
+			bullet->GetCenterPosition(),
+			bullet->GetCollisionRadius(),
+			bullet->GetDamage(),
+			true);
+	}
 }
 
 void BulletManager::SetPhysicsTriggerWorld(PhysicsWorld* physicsWorld, uint32_t playerBulletLayer)
