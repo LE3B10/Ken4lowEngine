@@ -48,6 +48,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsRemovable() const { return removable_; }
 	int GetDamage() const { return damage_; }
 	const K4E::Vector3& GetMoveVelocity() const { return moveVelocity_; }
+	float GetCollisionRadius() const { return scale_.x; }
 	// 通常弾だけをPhysicsWorldのTriggerEventへ段階移行するためのフラグを確認する。
 	bool UsesPhysicsTrigger() const { return usePhysicsTrigger_; }
 	void SetUsePhysicsTrigger(bool enabled);
