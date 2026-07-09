@@ -8,7 +8,11 @@
 
 /// ---------- 前方宣言 ---------- ///
 class CollisionManager;
-namespace Ken4lowEngine { class PhysicsWorld; }
+namespace Ken4lowEngine
+{
+	class PhysicsWorld;
+	class BulletEnemyCollisionSoA;
+}
 
 /// -------------------------------------------------------------
 ///                     弾管理クラス
@@ -52,6 +56,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	void SetPhysicsTriggerWorld(Ken4lowEngine::PhysicsWorld* physicsWorld, uint32_t playerBulletLayer);
 	void SetUsePhysicsTriggerForNormalBullets(bool enabled);
 	void RefreshPhysicsTriggerRegistrations();
+
+	// 有効な弾の判定情報だけをSoA衝突システムへ追加する。
+	void AppendCollisionSoABullets(Ken4lowEngine::BulletEnemyCollisionSoA& collisionSoA) const;
 
 public: /// ---------- アクセサ ---------- ///
 
