@@ -3,6 +3,7 @@
 #include "AmmoRecoveryItemSpawner.h"
 #include "AimTargetDetector.h"
 #include "BulletManager.h"
+#include "BulletEnemySoABridge.h"
 #include "CharacterWorld.h"
 #include "CollisionManager.h"
 #include "CrystalManager.h"
@@ -14,6 +15,7 @@
 #include "ParticleManager.h"
 #include "Wireframe.h"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 
@@ -123,13 +125,32 @@ void WorldDebugView::DrawGameDebugImGui(const Dependencies& deps)
 	ImGui::SeparatorText("Simple Profile");
 	ImGui::Text("BulletManager::Update: %.3f ms", deps.lastBulletUpdateMs);
 	ImGui::Text("CollisionManager::CheckAllCollisions: %.3f ms", deps.lastCollisionUpdateMs);
+
+	static K4E::BulletEnemyCollisionSoA bulletEnemySoAProbe;
+	static K4E::BulletEnemyCollisionSoA::FrameStats bulletEnemySoAStats{};
+	static float bulletEnemySoAMs = 0.0f;
+	if (deps.bulletManager && deps.characters)
+	{
+		const auto begin = std::chrono::steady_clock::now();
+		// 本編の弾・敵データをSoAへ転送して判定する。まだダメージ適用や弾削除には使わない。
+		BulletEnemySoABridge::BuildCollisionData(*deps.bulletManager, *deps.characters, bulletEnemySoAProbe);
+		bulletEnemySoAProbe.Execute(2.0f);
+		bulletEnemySoAStats = bulletEnemySoAProbe.GetLastFrameStats();
+		bulletEnemySoAMs = std::chrono::duration<float, std::milli>(std::chrono::steady_clock::now() - begin).count();
+	}
+	else
+	{
+		bulletEnemySoAStats = {};
+		bulletEnemySoAMs = 0.0f;
+	}
+
 	ImGui::SeparatorText("BulletEnemy SoA Probe");
-	ImGui::Text("Enabled: %s", deps.bulletEnemySoAProbeEnabled ? "true" : "false");
-	ImGui::Text("SoA Probe Time: %.3f ms", deps.lastBulletEnemySoAMs);
-	ImGui::Text("SoA Active Bullets: %zu", deps.bulletEnemySoAActiveBulletCount);
-	ImGui::Text("SoA Active Enemies: %zu", deps.bulletEnemySoAActiveEnemyCount);
-	ImGui::Text("SoA Hit Count: %zu", deps.bulletEnemySoAHitCount);
-	ImGui::Text("SoA Collision Checks: %zu", deps.bulletEnemySoACollisionChecks);
+	ImGui::Text("Enabled: debug view only");
+	ImGui::Text("SoA Probe Time: %.3f ms", bulletEnemySoAMs);
+	ImGui::Text("SoA Active Bullets: %zu", bulletEnemySoAStats.activeBulletCount);
+	ImGui::Text("SoA Active Enemies: %zu", bulletEnemySoAStats.activeEnemyCount);
+	ImGui::Text("SoA Hit Count: %zu", bulletEnemySoAStats.hitCount);
+	ImGui::Text("SoA Collision Checks: %zu", bulletEnemySoAStats.collisionChecks);
 #endif
 }
 
