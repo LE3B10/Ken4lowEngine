@@ -18,6 +18,7 @@
 #include "GameplayPhysicsDebugController.h"
 #include "AmmoRecoveryItemSpawner.h"
 #include "WorldDebugView.h"
+#include "BulletEnemyCollisionSoA.h"
 
 #include <memory>
 
@@ -142,6 +143,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	void UpdateItemRuntime(float deltaTime);
 	void UpdateShadowRuntime();
 	void UpdateBulletAndCollisionRuntime(float deltaTime);
+	void UpdateBulletEnemySoAProbe();
 	void UpdateSkyBoxRuntime(float deltaTime);
 	void UpdateAimTargetRuntime();
 	void UpdateHpBarRuntime(float deltaTime);
@@ -178,6 +180,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	AimTargetDetector aimTargetDetector_;
 	GameplayPhysicsDebugController gameplayPhysicsDebugController_{}; // Gameplay側PhysicsWorldのDebug/移行テストをWorld本体から分離する。
 	WorldDebugView worldDebugView_{}; // GamePlayWorld周辺のDebug ImGui表示をWorld本体から分離する。
+	K4E::BulletEnemyCollisionSoA bulletEnemyCollisionSoA_{}; // 本編データを使ったSoA判定の観測用。まだダメージ適用には使わない。
 
 	int prevWaveNumber_ = 0;
 	bool prevWaveInProgress_ = false;
@@ -196,6 +199,10 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	float lastBulletUpdateMs_ = 0.0f;
 	float lastCollisionUpdateMs_ = 0.0f;
+	float lastBulletEnemySoAMs_ = 0.0f;
+	K4E::BulletEnemyCollisionSoA::FrameStats lastBulletEnemySoAStats_{};
+	bool enableBulletEnemySoAProbe_ = true;
+	float bulletEnemySoACellSize_ = 2.0f;
 	bool stage1BeginnerBalanceEnabled_ = false;
 	bool skipStage1Tutorial_ = false;
 	Stage1TutorialController stage1TutorialController_{}; // ステージ1専用チュートリアルの状態と進行をWorld本体から分離する。
