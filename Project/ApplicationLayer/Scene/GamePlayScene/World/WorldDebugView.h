@@ -1,4 +1,5 @@
 #pragma once
+#include <cstddef>
 #include <functional>
 
 class AmmoRecoveryItemSpawner;
@@ -32,6 +33,12 @@ public:
 		EnemyHPBarManager* enemyHpBarManager = nullptr;
 		float lastBulletUpdateMs = 0.0f;
 		float lastCollisionUpdateMs = 0.0f;
+		float lastBulletEnemySoAMs = 0.0f;
+		size_t bulletEnemySoACollisionChecks = 0;
+		size_t bulletEnemySoAHitCount = 0;
+		size_t bulletEnemySoAActiveBulletCount = 0;
+		size_t bulletEnemySoAActiveEnemyCount = 0;
+		bool bulletEnemySoAProbeEnabled = false;
 		std::function<bool()> isPlayerDead;
 		std::function<void()> drawGameplayPhysicsDebugImGui;
 		std::function<void()> drawBossBattleDebugImGui;
