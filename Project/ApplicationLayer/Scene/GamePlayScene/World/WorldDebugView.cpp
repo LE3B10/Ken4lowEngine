@@ -123,6 +123,13 @@ void WorldDebugView::DrawGameDebugImGui(const Dependencies& deps)
 	ImGui::SeparatorText("Simple Profile");
 	ImGui::Text("BulletManager::Update: %.3f ms", deps.lastBulletUpdateMs);
 	ImGui::Text("CollisionManager::CheckAllCollisions: %.3f ms", deps.lastCollisionUpdateMs);
+	ImGui::SeparatorText("BulletEnemy SoA Probe");
+	ImGui::Text("Enabled: %s", deps.bulletEnemySoAProbeEnabled ? "true" : "false");
+	ImGui::Text("SoA Probe Time: %.3f ms", deps.lastBulletEnemySoAMs);
+	ImGui::Text("SoA Active Bullets: %zu", deps.bulletEnemySoAActiveBulletCount);
+	ImGui::Text("SoA Active Enemies: %zu", deps.bulletEnemySoAActiveEnemyCount);
+	ImGui::Text("SoA Hit Count: %zu", deps.bulletEnemySoAHitCount);
+	ImGui::Text("SoA Collision Checks: %zu", deps.bulletEnemySoACollisionChecks);
 #endif
 }
 
