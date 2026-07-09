@@ -2,6 +2,7 @@
 #include "PhysicsDebugController.h"
 
 #include "Wireframe.h"
+#include "BulletEnemySoABenchmarkPanel.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -384,6 +385,9 @@ void PhysicsDebugController::DrawImGui()
 			ImGui::Text("Bound Collider Count: %zu", stagePhysicsBinder_.GetBoundColliderCount());
 			ImGui::Text("PhysicsWorld Collider Count: %zu", physicsWorld_.GetColliderCount());
 		}
+
+		// BulletEnemy SoAをDebugScene内だけで実行し、既存本編処理へ影響させずに結果を確認する。
+		K4E::DrawBulletEnemySoABenchmarkPanel();
 
 		physicsDebugDraw_.DrawImGui(physicsWorld_);
 		physicsParameterBridge_.DrawImGui();
