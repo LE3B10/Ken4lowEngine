@@ -163,3 +163,6 @@ namespace Ken4lowEngine
 	}
 
 } // namespace Ken4lowEngine
+
+// 新規cppをvcxprojへ登録する前段階として、既存コンパイル単位から一時的に取り込む。
+#include "../Collision/Specialized/BulletEnemyCollisionSoA.cpp"
