@@ -2,6 +2,7 @@
 #include "AnimatedModelComponent.h"
 #include "AssetPathSelector.h"
 #include "DirectXCommon.h"
+#include "MaterialRepository.h"
 
 #include <algorithm>
 #include <exception>
@@ -40,6 +41,7 @@ namespace Ken4lowEngine
 	{
 		SceneComponent::Update(deltaTime);
 		ProcessReloadRequest();
+		RefreshSharedMaterialBinding(); // MaterialPreset編集による共有Asset差し替えを描画前に反映する。
 
 		if (!animatedModel_)
 		{
@@ -55,6 +57,7 @@ namespace Ken4lowEngine
 	void AnimatedModelComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
 	{
 		ProcessReloadRequest();
+		RefreshSharedMaterialBinding(); // Physics後更新だけが走る場合も共有Materialの変更を取りこぼさない。
 
 		if (!animatedModel_)
 		{
@@ -126,6 +129,7 @@ namespace Ken4lowEngine
 
 		ImGui::SeparatorText("再生");
 		ComponentPropertyUtility::DrawImGui(CreateProperties(false, false));
+		DrawMaterialBindingImGui();
 
 		const size_t clipCount = animatedModel_ ? animatedModel_->GetAnimationClips().size() : 0;
 		ImGui::Text("現在時刻: %.3f", animatedModel_ ? animatedModel_->GetAnimationTime() : 0.0f);
@@ -170,6 +174,10 @@ namespace Ken4lowEngine
 
 		outJson["Class"] = GetClassTypeName();
 		ComponentPropertyUtility::ToJson(const_cast<AnimatedModelComponent*>(this)->CreateProperties(), outJson);
+		if (materialBinding_.HasBinding())
+		{
+			outJson["Material"] = materialBinding_.ToJson(); // Material未指定の旧Actor JSONには新しい項目を追加しない。
+		}
 	}
 
 	void AnimatedModelComponent::FromJson(const nlohmann::json& inJson)
@@ -181,6 +189,17 @@ namespace Ken4lowEngine
 		{
 			SetModelPath(inJson["ModelPath"].get<std::string>());
 		}
+
+		const auto materialIt = inJson.find("Material");
+		if (materialIt != inJson.end() && materialIt->is_object())
+		{
+			materialBinding_.FromJson(*materialIt); // Model/Instancedと同じMaterial Binding形式を再利用する。
+		}
+		else
+		{
+			materialBinding_ = MaterialBinding{}; // 旧JSONはアニメーションモデル既定Materialへフォールバックする。
+		}
+		ApplyMaterialBinding();
 	}
 
 	void AnimatedModelComponent::SetModelPath(std::string_view modelPath)
@@ -217,6 +236,72 @@ namespace Ken4lowEngine
 	{
 		playbackSpeed_ = ClampPlaybackSpeed(playbackSpeed);
 		ApplyPlaybackSettings();
+	}
+
+	void AnimatedModelComponent::SetMaterialAssetId(std::string_view assetId)
+	{
+		materialBinding_.SetAssetId(assetId);
+		ApplyMaterialBinding(); // Editorやゲームコードからの変更を生成済みAnimationModelへ即時反映する。
+	}
+
+	void AnimatedModelComponent::SetMaterialOverrideEnabled(bool enabled)
+	{
+		materialBinding_.SetUseOverride(enabled);
+		ApplyMaterialBinding(); // Override切り替え時に共有Assetまたはモデル既定へ安全に戻す。
+	}
+
+	void AnimatedModelComponent::ApplyMaterialBinding()
+	{
+		if (!animatedModel_)
+		{
+			return;
+		}
+		materialRepositoryRevision_ = MaterialRepository::GetInstance()->GetRevision(); // 今回反映したRepository世代を記録する。
+
+		if (!materialBinding_.HasBinding())
+		{
+			animatedModel_->ResetMaterialBinding();
+			materialBindingStatus_ = "モデル既定Materialを使用中";
+			return;
+		}
+
+		MaterialDesc resolvedDesc{};
+		if (!materialBinding_.Resolve(resolvedDesc))
+		{
+			animatedModel_->ResetMaterialBinding();
+			materialBindingStatus_ = "MaterialAssetが見つからないためモデル既定へフォールバック";
+			return;
+		}
+
+		animatedModel_->ApplyMaterialDesc(resolvedDesc);
+		materialBindingStatus_ = materialBinding_.IsUsingOverride()
+			? "Component固有Material Overrideを使用中"
+			: "共有MaterialAssetを使用中: " + materialBinding_.GetAssetId();
+	}
+
+	void AnimatedModelComponent::RefreshSharedMaterialBinding()
+	{
+		if (!animatedModel_ || materialBinding_.GetAssetId().empty() || materialBinding_.IsUsingOverride())
+		{
+			return; // モデル未生成・モデル既定・Component固有OverrideはRepository更新の影響を受けない。
+		}
+
+		const uint64_t currentRevision = MaterialRepository::GetInstance()->GetRevision();
+		if (currentRevision != materialRepositoryRevision_)
+		{
+			ApplyMaterialBinding(); // MaterialPreset編集を再生中のAnimationModelへ再反映する。
+		}
+	}
+
+	void AnimatedModelComponent::DrawMaterialBindingImGui()
+	{
+#ifdef USE_IMGUI
+		if (Ken4lowEngine::DrawMaterialBindingImGui(materialBinding_, "AnimatedModelComponent"))
+		{
+			ApplyMaterialBinding(); // 共通Editorの変更をAnimationModelへ反映する。
+		}
+		ImGui::TextDisabled("状態: %s", materialBindingStatus_.c_str());
+#endif // USE_IMGUI
 	}
 
 	void AnimatedModelComponent::Play()
@@ -316,6 +401,7 @@ namespace Ken4lowEngine
 				animatedModel_.reset();
 				return false;
 			}
+			ApplyMaterialBinding(); // AnimationModel再生成後も共有AssetまたはComponent固有Overrideを復元する。
 
 			EnsureAnimationSelection(true);
 			ApplyPlaybackSettings();

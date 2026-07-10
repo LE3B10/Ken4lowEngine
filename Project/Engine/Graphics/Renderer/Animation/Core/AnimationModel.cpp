@@ -122,10 +122,45 @@ namespace Ken4lowEngine
 	void AnimationModel::InitializeMaterialAndMeshes()
 	{
 		material_.Initialize();
+		hasMaterialBaseColorOverride_ = false;
+		materialBaseColorOverrideHandle_ = {}; // 再初期化時は以前のComponent固有Texture参照を残さない。
 
 		// アニメーションメッシュ（非CSパス用）
 		animationMesh_ = std::make_unique<AnimationMesh>();
 		animationMesh_->Initialize(dxCommon_->GetDevice(), modelData);
+	}
+
+	void AnimationModel::ApplyMaterialDesc(const MaterialDesc& desc)
+	{
+		if (!dxCommon_)
+		{
+			return; // AnimationModel初期化前はTextureロードを含むMaterial反映を行わない。
+		}
+
+		material_.ApplyDesc(desc);
+		hasMaterialBaseColorOverride_ = false;
+		materialBaseColorOverrideHandle_ = {};
+		const std::string& texturePath = desc.preferPbrWorkflow
+			? desc.pbr.baseColorTexturePath
+			: desc.legacy.baseColorTexturePath;
+		if (!texturePath.empty())
+		{
+			TextureManager::GetInstance()->LoadTexture(texturePath);
+			materialBaseColorOverrideHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
+			hasMaterialBaseColorOverride_ = true; // Phase 4ではBaseColorだけを既存Animation Pipelineのt0へ接続する。
+		}
+	}
+
+	void AnimationModel::ResetMaterialBinding()
+	{
+		if (!dxCommon_)
+		{
+			return;
+		}
+
+		material_.ResetToDefault();
+		hasMaterialBaseColorOverride_ = false;
+		materialBaseColorOverrideHandle_ = {}; // 各LOD・SubMeshが元から保持するTextureへ戻す。
 	}
 
 	/// -------------------------------------------------------------
@@ -856,6 +891,8 @@ namespace Ken4lowEngine
 		cameraData = nullptr;
 		shadowParameterData_ = nullptr;
 		shadowMapHandle_ = {};
+		materialBaseColorOverrideHandle_ = {};
+		hasMaterialBaseColorOverride_ = false; // Clear後に破棄済みTexture Handleを再利用しない。
 
 		// --- LOD 側で確保した UAV ヒープの SRV/UAV インデックスを解放 ---
 		for (auto& L : lods_)
@@ -1138,7 +1175,10 @@ namespace Ken4lowEngine
 
 			for (const auto& range : L.subMeshRanges)
 			{
-				TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, range.baseColorSrvGpuHandle);
+				const D3D12_GPU_DESCRIPTOR_HANDLE baseColorHandle = hasMaterialBaseColorOverride_
+					? materialBaseColorOverrideHandle_
+					: range.baseColorSrvGpuHandle;
+				TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, baseColorHandle); // Overrideは全LODのSubMeshへ共通適用する。
 				commandList->DrawIndexedInstanced(range.indexCount, 1, range.startIndex, 0, 0);
 			}
 		}
@@ -1160,7 +1200,10 @@ namespace Ken4lowEngine
 
 				// マテリアルSRV（InitializeLODs と同様、subMeshes[i] のテクスチャを使用）
 				const auto& sm = modelData.subMeshes[i];
-				TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, AnimationModelLODBuilder::LoadSrvOrFallback(sm.material.textureFilePath));
+				const D3D12_GPU_DESCRIPTOR_HANDLE baseColorHandle = hasMaterialBaseColorOverride_
+					? materialBaseColorOverrideHandle_
+					: AnimationModelLODBuilder::LoadSrvOrFallback(sm.material.textureFilePath);
+				TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 2, baseColorHandle); // 非CS Pathも同じBinding結果を使う。
 				commandList->DrawIndexedInstanced(UINT(sm.indices.size()), 1, 0, 0, 0);
 			}
 		}

@@ -300,77 +300,10 @@ namespace Ken4lowEngine
 	void InstancedModelComponent::DrawMaterialBindingImGui()
 	{
 #ifdef USE_IMGUI
-		ImGui::SeparatorText("マテリアル");
-
-		std::vector<std::string> materialIds = MaterialRepository::GetInstance()->GetRegisteredIds();
-		std::sort(materialIds.begin(), materialIds.end());
-		const std::string preview = materialBinding_.GetAssetId().empty()
-			? "モデル既定"
-			: materialBinding_.GetAssetId();
-
-		if (ImGui::BeginCombo("共有MaterialAsset##InstancedModel", preview.c_str()))
+		if (Ken4lowEngine::DrawMaterialBindingImGui(materialBinding_, "InstancedModelComponent"))
 		{
-			const bool useModelDefault = materialBinding_.GetAssetId().empty();
-			if (ImGui::Selectable("モデル既定##InstancedModel", useModelDefault))
-			{
-				SetMaterialAssetId("");
-			}
-			if (useModelDefault)
-			{
-				ImGui::SetItemDefaultFocus();
-			}
-
-			for (const std::string& materialId : materialIds)
-			{
-				const bool selected = materialBinding_.GetAssetId() == materialId;
-				if (ImGui::Selectable((materialId + "##InstancedModel").c_str(), selected))
-				{
-					SetMaterialAssetId(materialId);
-				}
-				if (selected)
-				{
-					ImGui::SetItemDefaultFocus();
-				}
-			}
-			ImGui::EndCombo();
+			ApplyMaterialBinding(); // 共通Editorの変更を全インスタンス描画へ反映する。
 		}
-
-		bool useOverride = materialBinding_.IsUsingOverride();
-		if (ImGui::Checkbox("Component固有Materialで上書き##InstancedModel", &useOverride))
-		{
-			SetMaterialOverrideEnabled(useOverride);
-		}
-
-		bool changed = false;
-		if (materialBinding_.IsUsingOverride())
-		{
-			MaterialDesc& desc = materialBinding_.GetMutableOverrideDesc();
-			changed |= ImGui::Checkbox("PBRを使用##InstancedModel", &desc.preferPbrWorkflow);
-
-			if (desc.preferPbrWorkflow)
-			{
-				changed |= ImGui::ColorEdit4("ベースカラー##InstancedModel", &desc.pbr.baseColorFactor.x);
-				changed |= ImGui::DragFloat("メタリック##InstancedModel", &desc.pbr.metallicFactor, 0.01f, 0.0f, 1.0f);
-				changed |= ImGui::DragFloat("粗さ##PbrInstancedModel", &desc.pbr.roughnessFactor, 0.01f, 0.04f, 1.0f);
-				changed |= ImGui::DragFloat("法線の強さ##InstancedModel", &desc.pbr.normalScale, 0.01f, 0.0f, 2.0f);
-				changed |= ImGui::DragFloat("AOの強さ##InstancedModel", &desc.pbr.occlusionStrength, 0.01f, 0.0f, 1.0f);
-				ImGui::TextDisabled("BaseColor以外のPBR TextureはMaterialPreset保持のみです");
-			}
-			else
-			{
-				changed |= ImGui::ColorEdit4("色##InstancedModel", &desc.legacy.color.x);
-				changed |= ImGui::DragFloat("光沢度##InstancedModel", &desc.legacy.shininess, 1.0f, 1.0f, 256.0f);
-				changed |= ImGui::DragFloat("反射率##InstancedModel", &desc.legacy.reflection, 0.01f, 0.0f, 1.0f);
-				changed |= ImGui::DragFloat("粗さ##LegacyInstancedModel", &desc.legacy.roughness, 0.01f, 0.0f, 1.0f);
-				changed |= ImGui::Checkbox("ポイントサンプリング##InstancedModel", &desc.legacy.usePointSampling);
-			}
-
-			if (changed)
-			{
-				ApplyMaterialBinding(); // ImGuiで変更した値を同フレームの全インスタンス描画へ反映する。
-			}
-		}
-
 		ImGui::TextDisabled("状態: %s", materialBindingStatus_.c_str());
 #endif // USE_IMGUI
 	}

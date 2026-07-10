@@ -54,4 +54,10 @@ namespace Ken4lowEngine
 		bool useOverride_ = false;
 		MaterialDesc overrideDesc_{};
 	};
+
+	/// <summary>
+	/// 共有MaterialAsset選択とComponent固有Overrideを編集する共通ImGuiを描画します。<br/>
+	/// 値が変更された場合はtrueを返し、呼び出し側が各Rendererへ反映します。
+	/// </summary>
+	bool DrawMaterialBindingImGui(MaterialBinding& binding, const char* idScope);
 }

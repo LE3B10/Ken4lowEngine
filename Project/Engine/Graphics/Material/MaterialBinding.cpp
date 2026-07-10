@@ -4,7 +4,12 @@
 #include "MaterialDescLoader.h"
 #include "MaterialRepository.h"
 
-#include <array>
+#include <algorithm>
+#include <vector>
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif // USE_IMGUI
 
 namespace Ken4lowEngine
 {
@@ -187,5 +192,84 @@ namespace Ken4lowEngine
 		useOverride_ = JsonReadUtil::ReadBoolOr(json, kUseOverrideKey, false);
 		const nlohmann::json overrideJson = JsonReadUtil::ReadObjectOr(json, kOverrideKey, nlohmann::json::object());
 		overrideDesc_ = MaterialDescFromJson(overrideJson);
+	}
+
+	bool DrawMaterialBindingImGui(MaterialBinding& binding, const char* idScope)
+	{
+#ifdef USE_IMGUI
+		ImGui::PushID(idScope ? idScope : "MaterialBinding");
+		ImGui::SeparatorText("マテリアル");
+
+		bool changed = false;
+		std::vector<std::string> materialIds = MaterialRepository::GetInstance()->GetRegisteredIds();
+		std::sort(materialIds.begin(), materialIds.end());
+		const std::string preview = binding.GetAssetId().empty() ? "モデル既定" : binding.GetAssetId();
+
+		if (ImGui::BeginCombo("共有MaterialAsset", preview.c_str()))
+		{
+			const bool useModelDefault = binding.GetAssetId().empty();
+			if (ImGui::Selectable("モデル既定", useModelDefault))
+			{
+				binding.SetAssetId("");
+				changed = true;
+			}
+			if (useModelDefault)
+			{
+				ImGui::SetItemDefaultFocus();
+			}
+
+			for (const std::string& materialId : materialIds)
+			{
+				const bool selected = binding.GetAssetId() == materialId;
+				if (ImGui::Selectable(materialId.c_str(), selected))
+				{
+					binding.SetAssetId(materialId);
+					changed = true;
+				}
+				if (selected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		bool useOverride = binding.IsUsingOverride();
+		if (ImGui::Checkbox("Component固有Materialで上書き", &useOverride))
+		{
+			binding.SetUseOverride(useOverride);
+			changed = true;
+		}
+
+		if (binding.IsUsingOverride())
+		{
+			MaterialDesc& desc = binding.GetMutableOverrideDesc();
+			changed |= ImGui::Checkbox("PBRを使用", &desc.preferPbrWorkflow);
+			if (desc.preferPbrWorkflow)
+			{
+				changed |= ImGui::ColorEdit4("ベースカラー", &desc.pbr.baseColorFactor.x);
+				changed |= ImGui::DragFloat("メタリック", &desc.pbr.metallicFactor, 0.01f, 0.0f, 1.0f);
+				changed |= ImGui::DragFloat("粗さ##PBR", &desc.pbr.roughnessFactor, 0.01f, 0.04f, 1.0f);
+				changed |= ImGui::DragFloat("法線の強さ", &desc.pbr.normalScale, 0.01f, 0.0f, 2.0f);
+				changed |= ImGui::DragFloat("AOの強さ", &desc.pbr.occlusionStrength, 0.01f, 0.0f, 1.0f);
+				ImGui::TextDisabled("BaseColor以外のPBR TextureはMaterialPreset保持のみです");
+			}
+			else
+			{
+				changed |= ImGui::ColorEdit4("色", &desc.legacy.color.x);
+				changed |= ImGui::DragFloat("光沢度", &desc.legacy.shininess, 1.0f, 1.0f, 256.0f);
+				changed |= ImGui::DragFloat("反射率", &desc.legacy.reflection, 0.01f, 0.0f, 1.0f);
+				changed |= ImGui::DragFloat("粗さ##Legacy", &desc.legacy.roughness, 0.01f, 0.0f, 1.0f);
+				changed |= ImGui::Checkbox("ポイントサンプリング", &desc.legacy.usePointSampling);
+			}
+		}
+
+		ImGui::PopID();
+		return changed;
+#else
+		(void)binding;
+		(void)idScope;
+		return false;
+#endif // USE_IMGUI
 	}
 }
