@@ -22,8 +22,13 @@ namespace Ken4lowEngine
 
 	void MaterialRepository::Clear()
 	{
+		const bool hadMaterials = !materialsById_.empty() || !idByName_.empty();
 		materialsById_.clear();
 		idByName_.clear();
+		if (hadMaterials)
+		{
+			++revision_; // 実際に登録状態が変化した場合だけ共有Materialの更新を通知する。
+		}
 	}
 
 	bool MaterialRepository::Register(const MaterialAsset& asset)
@@ -38,12 +43,48 @@ namespace Ken4lowEngine
 			return false;
 		}
 
+		const auto existingIt = materialsById_.find(asset->GetId());
+		if (existingIt != materialsById_.end() && existingIt->second && !existingIt->second->GetName().empty())
+		{
+			const auto oldNameIt = idByName_.find(existingIt->second->GetName());
+			if (oldNameIt != idByName_.end() && oldNameIt->second == asset->GetId())
+			{
+				idByName_.erase(oldNameIt); // 別IDが同名を使用中なら、その有効な名前索引は消さない。
+			}
+		}
+
 		// RepositoryはCPU側Assetの登録だけを行い、TextureロードやMaterialCBData更新は将来の接続層へ任せる。
 		materialsById_[asset->GetId()] = asset;
 		if (!asset->GetName().empty())
 		{
 			idByName_[asset->GetName()] = asset->GetId();
 		}
+		++revision_; // 同じIDの差し替えも描画Componentへ再反映させる。
+		return true;
+	}
+
+	bool MaterialRepository::Unregister(const std::string& id)
+	{
+		const auto it = materialsById_.find(id);
+		if (it == materialsById_.end())
+		{
+			return false;
+		}
+		if (id == kDefaultMaterialId)
+		{
+			return Register(MaterialAsset::CreateDefault(kDefaultMaterialId, "Default Material")); // 既定Materialは削除せず互換値へ復元する。
+		}
+
+		if (it->second && !it->second->GetName().empty())
+		{
+			const auto nameIt = idByName_.find(it->second->GetName());
+			if (nameIt != idByName_.end() && nameIt->second == id)
+			{
+				idByName_.erase(nameIt); // 削除対象ID自身を指す名前索引だけを取り除く。
+			}
+		}
+		materialsById_.erase(it);
+		++revision_;
 		return true;
 	}
 

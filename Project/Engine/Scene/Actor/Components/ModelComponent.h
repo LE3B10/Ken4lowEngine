@@ -4,6 +4,7 @@
 #include "ComponentProperty.h"
 #include "MaterialBinding.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -110,6 +111,9 @@ namespace Ken4lowEngine
 		/// <summary>共有AssetまたはComponent固有OverrideをObject3Dへ反映します。</summary>
 		void ApplyMaterialBinding();
 
+		/// <summary>共有MaterialAssetの更新世代が変わった場合だけObject3Dへ再反映します。</summary>
+		void RefreshSharedMaterialBinding();
+
 		/// <summary>Material Bindingを編集する日本語ImGuiを描画します。</summary>
 		void DrawMaterialBindingImGui();
 
@@ -121,5 +125,6 @@ namespace Ken4lowEngine
 		bool visible_ = true;                // 描画するかどうか
 		MaterialBinding materialBinding_{};  // 共有Asset参照とComponent固有Overrideだけを保持する。
 		std::string materialBindingStatus_ = "モデル既定Materialを使用中";
+		uint64_t materialRepositoryRevision_ = 0; // 共有Assetのライブ更新を毎フレームの検索なしで検知する。
 	};
 }

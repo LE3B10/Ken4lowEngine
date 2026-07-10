@@ -51,6 +51,7 @@ namespace Ken4lowEngine
 			return; // モデル未生成の場合は更新しない。
 		}
 
+		RefreshSharedMaterialBinding(); // MaterialPreset編集による共有Asset差し替えを描画前に反映する。
 		SyncTransformToObject3D();
 		object3D_->Update(); // Object3D側の行列更新やGPU転送を行う。
 	}
@@ -62,6 +63,7 @@ namespace Ken4lowEngine
 			return; // モデル未生成の場合は更新しない。
 		}
 
+		RefreshSharedMaterialBinding(); // Physics後更新だけが走る場合も共有Materialの変更を取りこぼさない。
 		SyncTransformToObject3D();
 		object3D_->Update(); // Object3D側の行列更新やGPU転送を行う。
 	}
@@ -206,6 +208,7 @@ namespace Ken4lowEngine
 		{
 			return;
 		}
+		materialRepositoryRevision_ = MaterialRepository::GetInstance()->GetRevision(); // 今回反映したRepository世代を記録する。
 
 		if (!materialBinding_.HasBinding())
 		{
@@ -226,6 +229,20 @@ namespace Ken4lowEngine
 		materialBindingStatus_ = materialBinding_.IsUsingOverride()
 			? "Component固有Material Overrideを使用中"
 			: "共有MaterialAssetを使用中: " + materialBinding_.GetAssetId();
+	}
+
+	void ModelComponent::RefreshSharedMaterialBinding()
+	{
+		if (materialBinding_.GetAssetId().empty() || materialBinding_.IsUsingOverride())
+		{
+			return; // モデル既定とComponent固有OverrideはRepository更新の影響を受けない。
+		}
+
+		const uint64_t currentRevision = MaterialRepository::GetInstance()->GetRevision();
+		if (currentRevision != materialRepositoryRevision_)
+		{
+			ApplyMaterialBinding(); // MaterialPresetの保存前編集も次の描画フレームへ反映する。
+		}
 	}
 
 	void ModelComponent::DrawMaterialBindingImGui()

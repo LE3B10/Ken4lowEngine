@@ -2,6 +2,7 @@
 
 #include "MaterialAsset.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -46,6 +47,9 @@ namespace Ken4lowEngine
 		/// </summary>
 		bool Register(const std::shared_ptr<MaterialAsset>& asset);
 
+		/// <summary>指定IDのMaterialAssetを登録解除し、名前索引も同時に破棄します。</summary>
+		bool Unregister(const std::string& id);
+
 		/// <summary>
 		/// MaterialDescからMaterialAssetを作成または差し替えます。<br/>
 		/// Json/glTF読み込み後にCPU側Materialだけを登録するための軽いヘルパーです。
@@ -81,8 +85,12 @@ namespace Ken4lowEngine
 		/// </summary>
 		std::vector<std::string> GetRegisteredIds() const;
 
+		/// <summary>登録・差し替え・削除が行われるたびに増える更新世代を取得します。</summary>
+		uint64_t GetRevision() const { return revision_; }
+
 	private:
 		std::unordered_map<std::string, std::shared_ptr<MaterialAsset>> materialsById_;
 		std::unordered_map<std::string, std::string> idByName_; // 名前検索はIDへの薄い索引に留め、MaterialAssetの所有はID側へ集約する。
+		uint64_t revision_ = 0; // 描画Componentが共有Materialの変更を低コストで検知するための更新世代。
 	};
 }
