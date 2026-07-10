@@ -141,7 +141,7 @@ namespace Ken4lowEngine
 
 	void ColliderComponent::Finalize()
 	{
-		collider_.reset(); // Colliderを破棄する
+		// Colliderの破棄はActorがComponentを所有コンテナから削除する際にunique_ptrへ任せる。
 	}
 
 	void ColliderComponent::ToJson(nlohmann::json& outJson) const

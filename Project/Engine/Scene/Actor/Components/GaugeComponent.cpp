@@ -92,13 +92,11 @@ namespace Ken4lowEngine
 		if (backgroundSprite_)
 		{
 			backgroundSprite_->Finalize();
-			backgroundSprite_.reset();
 		}
 
 		if (fillSprite_)
 		{
 			fillSprite_->Finalize();
-			fillSprite_.reset();
 		}
 
 		for (auto& borderSprite : borderSprites_)
@@ -106,7 +104,6 @@ namespace Ken4lowEngine
 			if (borderSprite)
 			{
 				borderSprite->Finalize();
-				borderSprite.reset();
 			}
 		}
 	}

@@ -327,13 +327,11 @@ void StageSelectScene::Finalize()
 	if (textJPDrawer_)
 	{
 		textJPDrawer_->Finalize();
-		textJPDrawer_.reset();
 	}
 
 	if (textLatinDrawer_)
 	{
 		textLatinDrawer_->Finalize();
-		textLatinDrawer_.reset();
 	}
 
 	isTextReady_ = false;
@@ -342,17 +340,14 @@ void StageSelectScene::Finalize()
 	{
 		currentState_->Exit(this);
 	}
-	currentState_.reset();
 
 	if (activeSelector_)
 	{
 		activeSelector_->OnExit();
 	}
 	activeSelector_ = nullptr;
-	gridSelector_.reset();
 
-	bg_.reset();
-
+	// Scene本体の所有リソースはSceneManagerがSceneを破棄する際に自動解放する。
 	stages_.clear();
 	pendingUnlockIndex_ = -1;
 	nextScene_ = NextScene::None;

@@ -106,7 +106,7 @@ namespace Ken4lowEngine
 
 	void RigidbodyComponent::Finalize()
 	{
-		rigidbody_.reset(); // Component破棄時にRigidbodyも破棄する
+		// Rigidbodyの破棄はActorがComponentを所有コンテナから削除する際にunique_ptrへ任せる。
 	}
 
 	void RigidbodyComponent::ToJson(nlohmann::json& outJson) const

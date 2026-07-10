@@ -215,7 +215,12 @@ void SceneManager::DrawImGui()
 
 void SceneManager::Finalize()
 {
-	if (scene_) { scene_->Finalize(); }
+	if (scene_)
+	{
+		scene_->Finalize();
+		// SceneManagerはSingletonのため、リーク確認前に現在Sceneの所有権を明示的に破棄する。
+		scene_.reset();
+	}
 
 	if (fadeManager_)
 	{

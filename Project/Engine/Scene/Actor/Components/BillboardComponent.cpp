@@ -120,7 +120,7 @@ namespace Ken4lowEngine
 
 	void BillboardComponent::Finalize()
 	{
-		object3D_.reset();
+		// Object3Dの破棄はActorがComponentを所有コンテナから削除する際にunique_ptrへ任せる。
 		loadedTexturePath_.clear();
 	}
 

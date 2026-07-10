@@ -110,8 +110,7 @@ namespace Ken4lowEngine
 	{
 		if (textDrawer_)
 		{
-			textDrawer_->Finalize(); // Component破棄時に文字描画リソースを解放する
-			textDrawer_.reset();
+			textDrawer_->Finalize(); // 描画登録を解除し、TextDrawer本体の破棄はComponent破棄時のRAIIへ任せる。
 		}
 
 		loadedFontName_.clear();

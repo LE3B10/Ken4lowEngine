@@ -249,27 +249,11 @@ void TitleScene::Finalize()
 {
 	AudioManager::GetInstance()->StopBGM();
 
-	// ステートを確実に終了
+	// ステート固有の終了処理だけを流し、所有オブジェクトの破棄はSceneManagerによるScene破棄へ任せる。
 	if (currentState_) { currentState_->Exit(this); }
-	currentState_.reset();
 
-	// オーバーレイ破棄
-	quitOverlay_.reset();
-
-	// UI破棄（ここが今抜けてる）
-	clickHintUI_.hintSprite.reset();
-	battleButtonUI_.btnSprite.reset();
-	battleButtonUI_.btnShadow.reset();
-	battleButtonUI_.btnBorder.reset();
-	battleButtonUI_.btnAccentLeft.reset();
-	battleButtonUI_.btnAccentRight.reset();
 	if (battleButtonTextDrawer_) { battleButtonTextDrawer_->Finalize(); }
-	battleButtonTextDrawer_.reset();
 	battleButtonTextReady_ = false;
-
-	logoSprite_.reset();
-	terrain_.reset();
-	skyBox_.reset();
 
 	camera_ = nullptr;
 	input_ = nullptr;

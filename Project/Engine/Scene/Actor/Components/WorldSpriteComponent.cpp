@@ -119,8 +119,7 @@ namespace Ken4lowEngine
 	{
 		if (sprite_)
 		{
-			sprite_->Finalize(); // Component破棄時にSpriteリソースを解放する
-			sprite_.reset();
+			sprite_->Finalize(); // 描画登録を解除し、Sprite本体の破棄はComponent破棄時のRAIIへ任せる。
 		}
 
 		loadedTexturePath_.clear();

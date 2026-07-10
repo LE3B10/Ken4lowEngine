@@ -112,7 +112,7 @@ namespace Ken4lowEngine
 
 	void ModelComponent::Finalize()
 	{
-		object3D_.reset(); // Component破棄時にObject3Dも破棄する。
+		// Object3Dの破棄はActorがComponentを所有コンテナから削除する際にunique_ptrへ任せる。
 	}
 
 	void ModelComponent::ToJson(nlohmann::json& outJson) const

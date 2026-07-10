@@ -299,24 +299,20 @@ void DebugScene::Finalize()
 	input_->SetLockCursor(false);
 	input_->SetCursorVisible(true);
 
-	collisionManager_.reset();
-	physicsDebugController_.reset();
 	if (animationModelBatchTest_)
 	{
 		animationModelBatchTest_->Finalize();
-		animationModelBatchTest_.reset();
 	}
 	if (animationModelTest_)
 	{
 		animationModelTest_->Clear();
-		animationModelTest_.reset();
 	}
-	instancingTestRenderer_.reset();
 	if (gpuParticlePreviewController_)
 	{
 		gpuParticlePreviewController_->Clear();
-		gpuParticlePreviewController_.reset();
 	}
+
+	// Actorの外部登録を解除し、所有メンバ自体の破棄はDebugSceneのデストラクタへ任せる。
 	actorWorld_.Finalize();
 	input_ = nullptr;
 }

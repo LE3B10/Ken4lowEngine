@@ -454,20 +454,20 @@ namespace Ken4lowEngine
 			sceneComponent->Detach(); // 削除するSceneComponentを親から切り離す
 		}
 
-		component->Finalize(); // Component破棄前に明示的な終了処理を流す
-
-		const auto removeIt = std::remove_if(components_.begin(), components_.end(),
+		const auto removeIt = std::find_if(components_.begin(), components_.end(),
 			[component](const std::unique_ptr<ActorComponent>& ownedComponent)
 			{
-				return ownedComponent.get() == component; // 指定されたComponentと一致する場合に削除対象とする
+				return ownedComponent.get() == component; // 指定されたComponentと一致する所有要素を探す
 			});
 
 		if (removeIt == components_.end())
 		{
-			return false; // 指定されたComponentが見つからなかった場合は削除できない
+			return false; // 指定されたComponentが見つからなかった場合は終了処理を行わない
 		}
 
-		components_.erase(removeIt, components_.end());
+		// Finalize直後にunique_ptrを破棄し、Component内部の所有リソースはRAIIで解放する。
+		(*removeIt)->Finalize();
+		components_.erase(removeIt);
 		return true;
 	}
 
