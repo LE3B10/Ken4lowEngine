@@ -414,6 +414,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\ToneMappingEffect\ToneMappingEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Effects\VignetteEffect\VignetteEffect.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectChain.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectExecutor.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectRegistry.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectRenderTargetManager.cpp" />
+    <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectRuntimeState.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectManager.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectEditorPanel.cpp" />
     <ClCompile Include="Engine\Graphics\PostEffect\Pipeline\PostEffectPipelineBuilder.cpp" />
@@ -1221,6 +1225,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\ToneMappingEffect\ToneMappingEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Effects\VignetteEffect\VignetteEffect.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectChain.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectExecutor.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectRegistry.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectRenderTargetManager.h" />
+    <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectRuntimeState.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectManager.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectEditorPanel.h" />
     <ClInclude Include="Engine\Graphics\PostEffect\Pipeline\PostEffectPipelineBuilder.h" />

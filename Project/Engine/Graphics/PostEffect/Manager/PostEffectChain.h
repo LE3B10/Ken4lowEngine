@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -10,7 +9,7 @@ namespace Ken4lowEngine
 	/// <summary>
 	/// PostEffectの実行順序と有効判定だけを管理する薄いチェーン定義です。<br/>
 	/// RenderTarget、BackBuffer、ResourceBarrier、CommandListには触れず、将来Bloom/ToneMapping/SSRなどを
-	/// 順序付きで追加しやすくするためにPostEffectManagerから順序管理責務だけを分離します。
+	/// 順序付きで追加しやすくするために実行順管理だけを分離します。
 	/// </summary>
 	class PostEffectChain
 	{
@@ -28,12 +27,10 @@ namespace Ken4lowEngine
 		void RegisterEffect(const std::string& name, int order);
 
 		/// <summary>
-		/// 現在有効なEffect名だけを、登録順序に従って返します。<br/>
-		/// UI用の有効フラグと外部API用の強制有効フラグを従来通りOR判定し、描画結果を変えないようにします。
+		/// 登録済みEffect名をorder昇順で返します。<br/>
+		/// 有効判定はPostEffectRuntimeState、ApplyはPostEffectExecutorが担当します。
 		/// </summary>
-		std::vector<std::string> BuildActiveEffectNames(
-			const std::unordered_map<std::string, bool>& editorEnabledFlags,
-			const std::unordered_map<std::string, bool>& runtimeEnabledFlags) const;
+		std::vector<std::string> GetOrderedEffectNames() const;
 
 	private:
 		std::vector<std::pair<std::string, int>> effectOrder_; // Effect名と適用順だけを保持し、描画リソースは所有しない。

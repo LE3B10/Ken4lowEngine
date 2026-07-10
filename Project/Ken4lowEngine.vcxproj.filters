@@ -853,6 +853,18 @@
     <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectChain.cpp">
       <Filter>Engine\Graphics\PostEffect\Manager</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectExecutor.cpp">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectRegistry.cpp">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectRenderTargetManager.cpp">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectRuntimeState.cpp">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Graphics\PostEffect\Manager\PostEffectManager.cpp">
       <Filter>Engine\Graphics\PostEffect\Manager</Filter>
     </ClCompile>
@@ -2065,6 +2077,18 @@
       <Filter>Engine\Graphics\PostEffect\Effects</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectChain.h">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectExecutor.h">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectRegistry.h">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectRenderTargetManager.h">
+      <Filter>Engine\Graphics\PostEffect\Manager</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectRuntimeState.h">
       <Filter>Engine\Graphics\PostEffect\Manager</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\PostEffect\Manager\PostEffectManager.h">

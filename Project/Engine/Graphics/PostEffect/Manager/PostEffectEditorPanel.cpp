@@ -1,6 +1,7 @@
 #include "PostEffectEditorPanel.h"
 
-#include "PostEffectManager.h"
+#include "PostEffectRegistry.h"
+#include "PostEffectRuntimeState.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -8,7 +9,7 @@
 
 namespace Ken4lowEngine
 {
-	void PostEffectEditorPanel::Draw(PostEffectManager& postEffectManager, bool* pOpen)
+	void PostEffectEditorPanel::Draw(PostEffectRegistry& registry, PostEffectRuntimeState& runtimeState, bool* pOpen)
 	{
 #ifdef USE_IMGUI
 		// WindowメニューのPost Effect Settings表示フラグが閉じている間は、既存通りUIを生成しない。
@@ -19,20 +20,26 @@ namespace Ken4lowEngine
 
 		ImGui::Begin("Post Effect Settings", pOpen);
 
-		for (const auto& [name, category] : postEffectManager.effectCategory_)
+		for (const PostEffectDefinition& definition : registry.GetDefinitions())
 		{
-			(void)category;
-			ImGui::Checkbox(name.c_str(), &postEffectManager.effectEnabled_[name]);
-			if (postEffectManager.effectEnabled_[name])
+			bool enabled = runtimeState.IsEditorEnabled(definition.name);
+			if (ImGui::Checkbox(definition.name.c_str(), &enabled))
 			{
-				// 各エフェクトのパラメータUIは既存Effect実装に残し、Panelは表示順と開閉だけを担当する。
-				postEffectManager.postEffects_[name]->DrawImGui();
+				runtimeState.SetEditorEnabled(definition.name, enabled);
+			}
+			if (enabled)
+			{
+				if (IPostEffect* effect = registry.Find(definition.name))
+				{
+					effect->DrawImGui(); // 各Effect固有UIはEffect実装へ委譲する。
+				}
 			}
 		}
 
 		ImGui::End();
 #else
-		(void)postEffectManager;
+		(void)registry;
+		(void)runtimeState;
 		(void)pOpen;
 #endif // USE_IMGUI
 	}
