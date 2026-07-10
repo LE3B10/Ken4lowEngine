@@ -205,6 +205,9 @@
     <Filter Include="Engine\Physics\Specialized">
       <UniqueIdentifier>{6b6053ce-8214-4c99-bdfa-8f6bc3b01268}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Engine\Scene\Management">
+      <UniqueIdentifier>{4ad4ddbd-96ec-4741-8e9b-67f02e5ea1e2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -240,9 +243,6 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\SceneManagement\SceneFactory\SceneFactory.cpp">
       <Filter>ApplicationLayer\SceneManager\SceneFactory</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\SceneManagement\SceneManager\SceneManager.cpp">
-      <Filter>ApplicationLayer\SceneManager\SceneManager</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Item\ItemManager.cpp">
       <Filter>ApplicationLayer\Item</Filter>
@@ -1261,6 +1261,9 @@
     <ClCompile Include="ApplicationLayer\Character\CharacterWorld\BulletEnemySoABridge.cpp">
       <Filter>ApplicationLayer\Character\CharacterWorld</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Management\SceneManager.cpp">
+      <Filter>Engine\Scene\Management</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -1302,17 +1305,8 @@
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\TitleScene.h">
       <Filter>ApplicationLayer\Scene\TitleScene</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\SceneManagement\AbstractSceneFactory\AbstractSceneFactory.h">
-      <Filter>ApplicationLayer\SceneManager\AbstractSceneFactory</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\SceneManagement\BaseScene\BaseScene.h">
-      <Filter>ApplicationLayer\SceneManager\BaseScene</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\SceneManagement\SceneFactory\SceneFactory.h">
       <Filter>ApplicationLayer\SceneManager\SceneFactory</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\SceneManagement\SceneManager\SceneManager.h">
-      <Filter>ApplicationLayer\SceneManager\SceneManager</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Item\ItemManager.h">
       <Filter>ApplicationLayer\Item</Filter>
@@ -2577,6 +2571,18 @@
     <ClInclude Include="ApplicationLayer\Character\CharacterWorld\BulletEnemySoABridge.h">
       <Filter>ApplicationLayer\Character\CharacterWorld</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Scene\Management\AbstractSceneFactory.h">
+      <Filter>Engine\Scene\Management</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Management\BaseScene.h">
+      <Filter>Engine\Scene\Management</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Management\SceneManager.h">
+      <Filter>Engine\Scene\Management</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Management\ISceneTransition.h">
+      <Filter>Engine\Scene\Management</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
@@ -2618,17 +2624,8 @@
     <Filter Include="ApplicationLayer\Scene\TitleScene">
       <UniqueIdentifier>{b62786e7-bde9-43ba-9fbf-df52f72793c1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\SceneManager\AbstractSceneFactory">
-      <UniqueIdentifier>{58c6d9df-3cf2-4b4b-858d-d1a0ee46b7da}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\SceneManager\BaseScene">
-      <UniqueIdentifier>{566e0acf-b116-4b8d-98de-b2b5b6a3eb50}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\SceneManager\SceneFactory">
       <UniqueIdentifier>{300ebf2e-c572-4458-967c-72734b723476}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\SceneManager\SceneManager">
-      <UniqueIdentifier>{cdf99a49-df2b-48b5-8f25-6826fb84f04f}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Scene\StageSelectScene">
       <UniqueIdentifier>{a8ef6c3f-b857-47b2-ab59-763fefc17071}</UniqueIdentifier>

@@ -48,6 +48,7 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 	auto& poseFrom = scene->GetPoseFrom();
 	auto& poseTo = scene->GetPoseTo();
 	auto& battleButtonUI = scene->GetBattleButtonUI();
+	auto sceneManager = scene->GetSceneManager();
 
 	Camera* camera = scene->GetCamera();
 	Input* input = scene->GetInput();
@@ -82,7 +83,7 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 			battleButtonUI.isPressing = false;
 
 			// 即シーン変更要求
-			SceneManager::GetInstance()->ChangeScene("StageSelectScene");
+			sceneManager->ChangeScene("StageSelectScene");
 
 			return;
 		}
@@ -93,7 +94,7 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 	// ReleaseでもImGuiボタンに依存せず、キーボード/ゲームパッドでBattleボタンを決定できるようにする。
 	if (canDecideButton && (input->TriggerKey(DIK_RETURN) || input->TriggerKey(DIK_SPACE) || input->TriggerButton(XButtons.A)))
 	{
-		SceneManager::GetInstance()->ChangeScene("StageSelectScene");
+		sceneManager->ChangeScene("StageSelectScene");
 		return;
 	}
 

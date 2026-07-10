@@ -1,4 +1,4 @@
-#include "ConfirmQuitOverlay.h"
+﻿#include "ConfirmQuitOverlay.h"
 #include <Input.h>
 #include <SpriteManager.h>
 #include <FontAtlasLoader.h>
@@ -22,7 +22,7 @@ ConfirmQuitOverlay::~ConfirmQuitOverlay()
 /// -------------------------------------------------------------
 ///					　オーバーレイを開く処理
 /// -------------------------------------------------------------
-void ConfirmQuitOverlay::Open(SceneManager* sceneManager)
+void ConfirmQuitOverlay::Open(Ken4lowEngine::SceneManager* sceneManager)
 {
 	BaseOverlay::Open(sceneManager);
 	// Confirm UIはWinApp実ウィンドウではなく固定内部解像度1920x1080で配置する。

@@ -1,14 +1,13 @@
-#pragma once
+﻿#pragma once
 #include "PauseMenu.h"
 #include "ResultMenu.h"
 
 #include <functional>
 #include <memory>
 
-namespace Ken4lowEngine { class Input; }
+namespace Ken4lowEngine { class Input; class SceneManager; }
 
 /// ---------- 前方宣言 ---------- ///
-class SceneManager;
 class HUDManager;
 class Player;
 
@@ -38,7 +37,7 @@ public: /// ---------- 構造体 ---------- ///
 		Ken4lowEngine::Input* input;		  // ポーズ中でも入力は受け付けるため、Inputも渡す
 		HUDManager* hud = nullptr;			  // ポーズ中でもHUDの状態を見たいことがあるため、HUDManagerも渡す
 		Player* player = nullptr;			  // ポーズ中でもプレイヤーの状態を見たいことがあるため、Playerも渡す
-		SceneManager* sceneManager = nullptr; // ポーズ中の更新でシーン遷移する可能性があるため、SceneManagerも渡す
+		Ken4lowEngine::SceneManager* sceneManager = nullptr; // ポーズ中の更新でシーン遷移する可能性があるため、SceneManagerも渡す
 		bool lockCursorOnResume = true;		  // ポーズ解除時にカーソルをロックするかどうか
 	};
 
@@ -46,7 +45,7 @@ public: /// ---------- 構造体 ---------- ///
 	{
 		float deltaTime;					  // デルタタイム
 		Ken4lowEngine::Input* input;		  // 結果画面でも入力は受け付けるため、Inputも渡す
-		SceneManager* sceneManager = nullptr; // 結果画面の更新でシーン遷移する可能性があるため、SceneManagerも渡す
+		Ken4lowEngine::SceneManager* sceneManager = nullptr; // 結果画面の更新でシーン遷移する可能性があるため、SceneManagerも渡す
 		std::function<void()> onRetry;		  // リトライボタンが押されたときのコールバック
 		std::function<void()> onNextStage;	  // 次のステージへ進むボタンが押されたときのコールバック
 	};

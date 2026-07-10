@@ -1,4 +1,4 @@
-#define NOMINMAX
+﻿#define NOMINMAX
 #include "GamePlayScene.h"
 #include <Input.h>
 #include <SceneManager.h>
@@ -21,15 +21,15 @@
 
 using namespace Ken4lowEngine;
 
-EditorInputPolicy GamePlayScene::GetEditorInputPolicy() const
+K4E::EditorInputPolicy GamePlayScene::GetEditorInputPolicy() const
 {
 	// UI操作が必要なポーズ/リザルト中はDebug Editor側にもカーソル表示モードを通知する。
 	if (flow_ && (flow_->IsPaused() || flow_->IsResultState()))
 	{
-		return EditorInputPolicy::UiMouse;
+		return K4E::EditorInputPolicy::UiMouse;
 	}
 
-	return EditorInputPolicy::FpsCapture;
+	return K4E::EditorInputPolicy::FpsCapture;
 }
 
 /// -------------------------------------------------------------

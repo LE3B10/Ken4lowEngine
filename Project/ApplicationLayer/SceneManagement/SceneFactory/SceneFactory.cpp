@@ -4,29 +4,32 @@
 #include "StageSelectScene.h"
 #include "DebugScene.h"
 
-
-/// -------------------------------------------------------------
-///				　		    シーン生成
-/// -------------------------------------------------------------
-std::unique_ptr<BaseScene> SceneFactory::CreateScene(const std::string& sceneName)
+namespace Ken4lowEngine
 {
-	// 次のシーンを生成
-	std::unique_ptr<BaseScene> newScene = nullptr;
+	/// -------------------------------------------------------------
+	///				　		    シーン生成
+	/// -------------------------------------------------------------
+	std::unique_ptr<BaseScene> SceneFactory::CreateScene(const std::string& sceneName)
+	{
+		// 次のシーンを生成
+		std::unique_ptr<BaseScene> newScene = nullptr;
 
-	// タイトルシーン
-	if (sceneName == "TitleScene")				return std::make_unique<TitleScene>();
+		// タイトルシーン
+		if (sceneName == "TitleScene")				return std::make_unique<TitleScene>();
 
-	// ステージセレクトシーン
-	else if (sceneName == "StageSelectScene")	return std::make_unique<StageSelectScene>();
+		// ステージセレクトシーン
+		else if (sceneName == "StageSelectScene")	return std::make_unique<StageSelectScene>();
 
-	// ゲームプレイシーン
-	else if (sceneName == "GamePlayScene")		return std::make_unique<GamePlayScene>();
+		// ゲームプレイシーン
+		else if (sceneName == "GamePlayScene")		return std::make_unique<GamePlayScene>();
 
 #ifdef _DEBUG
-	// デバッグシーン
-	else if (sceneName == "DebugScene")			return std::make_unique<DebugScene>();
+		// デバッグシーン
+		else if (sceneName == "DebugScene")			return std::make_unique<DebugScene>();
 #endif // _DEBUG
 
-	// 不明なシーン名の場合は例外を投げる
-	throw std::runtime_error("Unknown scene name: " + sceneName);
+		// 不明なシーン名の場合は例外を投げる
+		throw std::runtime_error("Unknown scene name: " + sceneName);
+	}
+
 }

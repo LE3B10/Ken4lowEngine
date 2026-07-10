@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "BaseOverlay.h"
 #include <Sprite.h>
 #include <Rect.h>
@@ -32,7 +32,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	~ConfirmQuitOverlay() override;
 
 	// オーバーレイを開く処理
-	void Open(SceneManager* sceneManager) override;
+	void Open(Ken4lowEngine::SceneManager* sceneManager) override;
 
 	// 更新処理
 	void Update() override;

@@ -1,4 +1,4 @@
-#include "PauseOverlay.h"
+﻿#include "PauseOverlay.h"
 #include "SceneManager.h"
 #include <SpriteManager.h>
 #include <Input.h>
@@ -10,7 +10,7 @@ using namespace Ken4lowEngine;
 /// -------------------------------------------------------------
 ///					　	オーバーレイを開く処理
 /// -------------------------------------------------------------
-void PauseOverlay::Open(SceneManager* sceneManager)
+void PauseOverlay::Open(Ken4lowEngine::SceneManager* sceneManager)
 {
 	// 基底クラスの Open を呼ぶ（sceneManager_ に保存される想定）
 	BaseOverlay::Open(sceneManager);

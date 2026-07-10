@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "BaseScene.h"
 #include "CollisionManager.h"
 #include "GpuParticleEffectDesc.h"
@@ -31,7 +31,7 @@ namespace K4E = ::Ken4lowEngine;
 /// -------------------------------------------------------------
 ///					　	デバッグシーン
 /// -------------------------------------------------------------
-class DebugScene : public BaseScene
+class DebugScene : public K4E::BaseScene
 {
 public: /// ---------- メンバ関数 ---------- ///
 

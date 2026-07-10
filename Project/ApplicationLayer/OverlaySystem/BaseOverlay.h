@@ -1,7 +1,7 @@
-#pragma once
+﻿#pragma once
 
 /// ---------- 前方宣言 ---------- ///
-class SceneManager;
+namespace Ken4lowEngine { class SceneManager; }
 
 /// -------------------------------------------------------------
 ///						オーバーレイクラス
@@ -21,7 +21,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// オーバーレイを開く処理を行います。
 	/// </summary>
 	/// <param name="sceneManager">操作対象のシーン管理オブジェクトへのポインタ。シーンの作成や状態管理を行う SceneManager を指定します。</param>
-	virtual void Open(SceneManager* sceneManager) { sceneManager_ = sceneManager; }
+	virtual void Open(Ken4lowEngine::SceneManager* sceneManager) { sceneManager_ = sceneManager; }
 
 	/// <summary>
 	/// 更新処理（閉じたいタイミングでClose()を呼ぶ）
@@ -70,7 +70,7 @@ public: /// ---------- メンバ関数 ---------- ///
 
 protected: /// ---------- メンバ変数 ---------- ///
 
-	SceneManager* sceneManager_ = nullptr; // シーン管理オブジェクトへのポインタ
+	Ken4lowEngine::SceneManager* sceneManager_ = nullptr; // シーン管理オブジェクトへのポインタ
 	bool close_ = false; // オーバーレイを閉じるかどうかのフラグ
 	bool goTitle_ = false; // タイトルに戻るかどうかのフラグ
 };

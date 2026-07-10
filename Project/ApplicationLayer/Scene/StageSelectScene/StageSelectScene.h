@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "BaseScene.h"
 #include <Sprite.h>
 
@@ -24,7 +24,7 @@ namespace Ken4lowEngine { class Input; }
 /// -------------------------------------------------------------
 ///				　	ステージセレクトシーン
 /// -------------------------------------------------------------
-class StageSelectScene : public BaseScene
+class StageSelectScene : public K4E::BaseScene
 {
 private: /// ---------- 構造体 ---------- ///
 

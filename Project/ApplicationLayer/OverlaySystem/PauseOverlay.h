@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "BaseOverlay.h"
 #include <Sprite.h>
 #include <Rect.h>
@@ -22,7 +22,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// <summary>
 	/// オーバーレイを開く
 	/// </summary>
-	void Open(SceneManager* sceneManager) override;
+	void Open(Ken4lowEngine::SceneManager* sceneManager) override;
 
 	/// <summary>
 	/// 更新処理

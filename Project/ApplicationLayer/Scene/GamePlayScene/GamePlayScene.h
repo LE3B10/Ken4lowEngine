@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <BaseScene.h>
 
 #include "GamePlayFlow.h"
@@ -32,7 +32,7 @@ namespace K4E = ::Ken4lowEngine;
 /// - unique_ptrで保持しているゲームプレイ構成要素は、このシーンの開始から終了までが寿命。
 /// - 再試行時はFadeManagerだけ残し、WorldやFlowは再生成してステージ状態を初期化する。
 /// -------------------------------------------------------------
-class GamePlayScene : public BaseScene
+class GamePlayScene : public K4E::BaseScene
 {
 public: /// ---------- BaseScene override ---------- ///
 
@@ -64,7 +64,7 @@ public: /// ---------- BaseScene override ---------- ///
 	void CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) override;
 
 	// FPS操作が必要なGamePlaySceneだけF8入力キャプチャを許可する。
-	EditorInputPolicy GetEditorInputPolicy() const override;
+	K4E::EditorInputPolicy GetEditorInputPolicy() const override;
 
 	// SceneManagerのフェード遷移中に、GamePlay構成要素を複数フレームへ分けて生成する準備。
 	void StartLoad() override;

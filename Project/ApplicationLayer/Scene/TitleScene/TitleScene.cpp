@@ -1,4 +1,4 @@
-﻿#define NOMINMAX
+#define NOMINMAX
 #include "TitleScene.h"
 #include <DirectXCommon.h>
 #include <SpriteManager.h>
@@ -688,11 +688,15 @@ void TitleScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInf
 	{
 		Ken4lowEngine::EditorObjectInfo fadeObject{ Ken4lowEngine::MakeStableEditorObjectId("TitleScene.FadeManager"), "FadeManager", "Fade Manager", "TitleScene" };
 		fadeObject.inspectorType = Ken4lowEngine::EditorInspectorType::FadeManager;
-		fadeObject.drawInspector = []()
+		fadeObject.drawInspector = [this]()
 		{
-			if (FadeManager* fadeManager = SceneManager::GetInstance()->GetFadeManager())
+			// BaseSceneへ注入されたSceneManagerから遷移演出を参照する。
+			if (sceneManager_)
 			{
-				fadeManager->DrawInspectorContent();
+				if (auto* sceneTransition = sceneManager_->GetSceneTransition())
+				{
+					sceneTransition->DrawInspectorContent();
+				}
 			}
 		};
 		outObjects.push_back(std::move(fadeObject));

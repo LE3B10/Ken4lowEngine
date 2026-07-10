@@ -41,17 +41,17 @@ namespace Ken4lowEngine
 			return path.generic_string();
 		}
 
-		EditorInputPolicy GetCurrentEditorInputPolicy()
+		EditorInputPolicy GetCurrentEditorInputPolicy(SceneManager* sceneManager)
 		{
-			BaseScene* scene = SceneManager::GetInstance()->GetCurrentScene();
+			BaseScene* scene = sceneManager ? sceneManager->GetCurrentScene() : nullptr;
 			// Scene未設定時はUI Mouse扱いにしてEditor操作を妨げない。
 			return scene ? scene->GetEditorInputPolicy() : EditorInputPolicy::UiMouse;
 		}
 
-		bool IsFpsCapturePolicy()
+		bool IsFpsCapturePolicy(SceneManager* sceneManager)
 		{
 			// F8キャプチャはFPS操作Sceneだけで有効にする。
-			return GetCurrentEditorInputPolicy() == EditorInputPolicy::FpsCapture;
+			return GetCurrentEditorInputPolicy(sceneManager) == EditorInputPolicy::FpsCapture;
 		}
 
 		std::string FormatBytes(uintmax_t bytes)
@@ -168,12 +168,12 @@ namespace Ken4lowEngine
 			assetBrowser_.Refresh();
 		}
 #ifdef _WIN32
-		const auto* gameTimer = K4E::GameTimer::GetInstance();
+		const auto* gameTimer = GameTimer::GetInstance();
 		outputLogPerformanceMonitor_.Update(gameTimer->GetDeltaTime(), gameTimer->GetFPS());
 #endif // _WIN32
 
 		auto* input = Input::GetInstance();
-		if (input->TriggerRawKey(DIK_F8) && IsFpsCapturePolicy())
+		if (input->TriggerRawKey(DIK_F8) && IsFpsCapturePolicy(sceneManager_))
 		{
 			const bool forceRelease = input->PushRawKey(DIK_LSHIFT) || input->PushRawKey(DIK_RSHIFT);
 			// F8はFPS操作Sceneだけ入力キャプチャ切替、Shift+F8は非常口にする。
@@ -392,7 +392,7 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		auto* playController = EditorPlayController::GetInstance();
 
-		const bool fpsCapturePolicy = IsFpsCapturePolicy();
+		const bool fpsCapturePolicy = IsFpsCapturePolicy(sceneManager_);
 		// ツールバーは現在Sceneの入力ポリシーに合わせて表示と操作可否を分ける。
 		ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
 		if (ImGui::Begin("Toolbar", &windowState_.showToolbar, flags))
@@ -584,7 +584,7 @@ namespace Ken4lowEngine
 
 			Vector2 gameMouse = {};
 			const bool gameMouseValid = GetMousePositionInGameViewport(gameMouse);
-			const EditorInputPolicy inputPolicy = GetCurrentEditorInputPolicy();
+			const EditorInputPolicy inputPolicy = GetCurrentEditorInputPolicy(sceneManager_);
 			const bool isPlaying = EditorPlayController::GetInstance()->IsPlaying();
 			// Edit/Pause中はMain ViewportクリックをゲームSceneへ渡さず、Play中だけ入力ポリシーを適用する。
 			const bool gameInputEnabled = isPlaying && (inputPolicy == EditorInputPolicy::UiMouse || EditorPlayController::GetInstance()->IsGameCaptured()) && mainViewportRect_.isHovered;
@@ -627,7 +627,7 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		outMouse = { 0.0f, 0.0f };
-		const EditorInputPolicy inputPolicy = GetCurrentEditorInputPolicy();
+		const EditorInputPolicy inputPolicy = GetCurrentEditorInputPolicy(sceneManager_);
 		if (inputPolicy == EditorInputPolicy::FpsCapture && !(EditorPlayController::GetInstance()->IsPlaying() && EditorPlayController::GetInstance()->IsGameCaptured()))
 		{
 			// FPS Capture SceneはPlayかつGameCaptured中だけゲーム側へマウス入力を渡す。
@@ -673,7 +673,7 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		std::vector<EditorObjectInfo> objects;
-		BaseScene* scene = SceneManager::GetInstance()->GetCurrentScene();
+		BaseScene* scene = sceneManager_ ? sceneManager_->GetCurrentScene() : nullptr;
 		if (scene)
 		{
 			// Scene側から軽量情報だけを収集し、Outlinerが実オブジェクト寿命へ依存しないようにする。
@@ -1323,21 +1323,21 @@ namespace Ken4lowEngine
 
 		if (ImGui::Begin("Scene", &windowState_.showScene))
 		{
-			BaseScene* currentScene = SceneManager::GetInstance()->GetCurrentScene();
+			BaseScene* currentScene = sceneManager_ ? sceneManager_->GetCurrentScene() : nullptr;
 			std::vector<EditorObjectInfo> sceneObjects;
 			if (currentScene) { currentScene->CollectEditorObjects(sceneObjects); }
 			const char* currentSceneName = sceneObjects.empty() ? "(loading / none)" : sceneObjects.front().sceneName.c_str();
 			// Sceneウィンドウは現在シーン確認と通常シーン遷移の最小入口に限定する。
 			ImGui::Text("Current Scene: %s", currentSceneName);
 			ImGui::Separator();
-			if (ImGui::Button("TitleScene")) { SceneManager::GetInstance()->ChangeScene("TitleScene"); }
+			if (sceneManager_ && ImGui::Button("TitleScene")) { sceneManager_->ChangeScene("TitleScene"); }
 			ImGui::SameLine();
-			if (ImGui::Button("StageSelectScene")) { SceneManager::GetInstance()->ChangeScene("StageSelectScene"); }
+			if (sceneManager_ && ImGui::Button("StageSelectScene")) { sceneManager_->ChangeScene("StageSelectScene"); }
 			ImGui::SameLine();
-			if (ImGui::Button("GamePlayScene")) { SceneManager::GetInstance()->ChangeScene("GamePlayScene"); }
+			if (sceneManager_ && ImGui::Button("GamePlayScene")) { sceneManager_->ChangeScene("GamePlayScene"); }
 			ImGui::SameLine();
 			// DebugScene は開発用導線だけ残し、キー入力遷移は復活させない。
-			if (ImGui::Button("DebugScene")) { SceneManager::GetInstance()->ChangeScene("DebugScene"); }
+			if (sceneManager_ && ImGui::Button("DebugScene")) { sceneManager_->ChangeScene("DebugScene"); }
 		}
 		ImGui::End();
 #endif // USE_IMGUI

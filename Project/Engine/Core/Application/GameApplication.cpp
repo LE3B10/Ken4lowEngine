@@ -3,15 +3,13 @@
 #include "SceneFactory.h"
 #include "ParameterManager.h"
 #include "ParticleManager.h"
-#include <DebugCamera.h>
 #include <Wireframe.h>
 #include <DirectXCommon.h>
-#include <CameraManager.h>
 #include "Object3DCommon.h"
 #include "PostEffectManager.h"
-#include "LightManager.h"
 #include <GpuParticleManager.h>
 #include <SceneManager.h>
+#include <FadeManager.h>
 #include <Input.h>
 #include <GameTimer.h>
 
@@ -26,6 +24,10 @@
 
 namespace Ken4lowEngine
 {
+	GameApplication::GameApplication() = default;
+
+	GameApplication::~GameApplication() = default;
+
 	/// -------------------------------------------------------------
 	///				　		　　初期化処理
 	/// -------------------------------------------------------------
@@ -52,12 +54,21 @@ namespace Ken4lowEngine
 		// JSON アセット確認用のエディタウィンドウを初期化する。
 		JsonEditorWindow::GetInstance()->Initialize();
 
-		// シーンマネージャーの初期化
-		SceneManager::GetInstance()->Initialize();
+		// SceneManagerを生成し、GameApplicationが所有権を持つ。
+		sceneManager_ = std::make_unique<SceneManager>();
+
+		// ゲーム固有の岩ブロック遷移演出をEngine側のSceneManagerへ注入する。
+		sceneManager_->SetSceneTransition(std::make_unique<FadeManager>());
+		sceneManager_->Initialize();
+
+#ifdef USE_IMGUI
+		// EditorWindowManagerは所有せず、現在のSceneManagerへの参照だけを保持する。
+		EditorWindowManager::GetInstance()->SetSceneManager(sceneManager_.get());
+#endif // USE_IMGUI
 
 		// 文字列のシーン名から実際の Scene インスタンスを作れるよう、Factory を SceneManager へ登録する。
 		auto sceneFactory = std::make_unique<SceneFactory>();
-		SceneManager::GetInstance()->SetAbstractSceneFactory(std::move(sceneFactory));
+		sceneManager_->SetAbstractSceneFactory(std::move(sceneFactory));
 
 #ifdef _DEBUG
 		// Debugビルドでは最初からDebugSceneを起動して、ゲームプレイ中もすぐ切り替えられるようにする。
@@ -67,7 +78,7 @@ namespace Ken4lowEngine
 		const std::string startSceneName = "TitleScene";
 #endif
 		// 起動直後に表示するシーンを SceneManager へ依頼する。
-		SceneManager::GetInstance()->ChangeScene(startSceneName);
+		sceneManager_->ChangeScene(startSceneName);
 	}
 
 	/// -------------------------------------------------------------
@@ -99,7 +110,7 @@ namespace Ken4lowEngine
 		Framework::Update();
 
 		// 現在シーン固有の Update を呼び出す。
-		SceneManager::GetInstance()->Update();
+		sceneManager_->Update();
 
 		// ポストエフェクトや JSON エディタなど、シーン外の補助機能を更新する。
 		PostEffectManager::GetInstance()->Update();
@@ -118,10 +129,10 @@ namespace Ken4lowEngine
 		GameTimer::GetInstance()->BeginDraw();
 
 		RenderPipelineController::FrameCallbacks callbacks{};
-		callbacks.drawShadowObjects = []()
+		callbacks.drawShadowObjects = [this]()
 			{
 				// 影を落とす3Dオブジェクトだけを描画し、ShadowMapへ深度を書き込む既存処理を呼ぶ。
-				SceneManager::GetInstance()->DrawShadowObjects();
+				sceneManager_->DrawShadowObjects();
 			};
 		callbacks.drawGameWorldToSceneTarget = [this]()
 			{
@@ -189,7 +200,7 @@ namespace Ken4lowEngine
 					Object3DCommon::GetInstance()->DrawImGui();
 
 					// シーンのImGuiの描画処理
-					SceneManager::GetInstance()->DrawImGui();
+					sceneManager_->DrawImGui();
 
 					// ParticleManagerのImGuiの描画処理
 					ParticleManager::GetInstance()->DrawImGui();
@@ -234,10 +245,20 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void GameApplication::Finalize()
 	{
-		// シーンマネージャーの終了処理
-		SceneManager::GetInstance()->Finalize();
+#ifdef USE_IMGUI
+		// SceneManager破棄後にEditorが古い参照へアクセスしないよう先に解除する。
+		EditorWindowManager::GetInstance()->SetSceneManager(nullptr);
+#endif // USE_IMGUI
 
-		// 基底クラスの終了処理
+		{
+			// 所有権をローカルへ移し、描画基盤を終了する前にスコープ終了で自動破棄する。
+			auto sceneManager = std::move(sceneManager_);
+			if (sceneManager)
+			{
+				sceneManager->Finalize();
+			}
+		}
+
 		Framework::Finalize();
 	}
 
@@ -250,7 +271,7 @@ namespace Ken4lowEngine
 		Object3DCommon::GetInstance()->BeginObject3DPass();
 
 		// 現在シーンが持つ通常の3Dモデルを最初に描画する。
-		SceneManager::GetInstance()->Draw3DObjects();
+		sceneManager_->Draw3DObjects();
 
 		// デバッグ表示、GPUパーティクル、CPUパーティクルをモデル描画後に重ねる。
 		Wireframe::GetInstance()->Draw();
@@ -264,7 +285,7 @@ namespace Ken4lowEngine
 	void GameApplication::DrawCurrentScene2DOverlay()
 	{
 		// GamePlayScene::Draw2DSprites() 内で HUDManager / Reticle / Ammo / HP / Fade まで描画する。
-		SceneManager::GetInstance()->Draw2DSprites();
+		sceneManager_->Draw2DSprites();
 	}
 
 	/// -------------------------------------------------------------

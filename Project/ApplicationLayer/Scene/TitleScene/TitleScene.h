@@ -13,16 +13,19 @@
 namespace K4E = ::Ken4lowEngine;
 
 /// ---------- 前方宣言 ---------- ///
-namespace Ken4lowEngine { class DirectXCommon; }
-namespace Ken4lowEngine { class Input; }
-namespace Ken4lowEngine { class Camera; }
-namespace Ken4lowEngine { class TextSpriteDrawer; }
-class SceneManager;
+namespace Ken4lowEngine
+{ 
+	class DirectXCommon;
+	class Input;
+	class Camera;
+	class TextSpriteDrawer;
+	class SceneManager;
+}
 
 /// -------------------------------------------------------------
 ///					　ゲームタイトルシーンクラス
 /// -------------------------------------------------------------
-class TitleScene : public BaseScene
+class TitleScene : public K4E::BaseScene
 {
 private: /// ---------- 構造体 ---------- ///
 
@@ -219,7 +222,7 @@ public: /// ---------- セッタ ---------- ///
 public: /// ---------- ゲッタ ---------- ///
 
 	// シーンマネージャーを取得
-	SceneManager* GetSceneManager() const { return sceneManager_; }
+	K4E::SceneManager* GetSceneManager() const { return sceneManager_; }
 
 	// 操作入力を取得
 	K4E::Input* GetInput()  const { return input_; }

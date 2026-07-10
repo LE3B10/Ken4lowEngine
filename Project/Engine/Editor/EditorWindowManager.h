@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Vector2.h"
 #include "EditorSelection.h"
 #include "EditorAssetBrowser.h"
@@ -9,6 +9,8 @@
 
 namespace Ken4lowEngine
 {
+	class SceneManager;
+
 
 	/// <summary>
 	/// UE5風エディタUIの各ウィンドウ表示状態を保持します。
@@ -84,6 +86,9 @@ namespace Ken4lowEngine
 
 		static EditorWindowManager* GetInstance();
 
+		// SceneManagerの所有権はGameApplicationに残し、Editorは参照だけを保持する。
+		void SetSceneManager(SceneManager* sceneManager) { sceneManager_ = sceneManager; }
+
 		void Draw();
 		void DrawMenuBar();
 		void DrawToolbar();
@@ -128,6 +133,7 @@ namespace Ken4lowEngine
 		void DrawTextureGrid();
 		void DrawAssetDetails();
 
+		SceneManager* sceneManager_ = nullptr; // GameApplication所有のSceneManagerへの非所有参照
 		EditorWindowState windowState_{};
 		EditorViewportRect mainViewportRect_{}; // Main Viewport内で実際にゲーム画面を表示している矩形
 		Vector2 mainViewportScreenPosition_ = { 0.0f, 0.0f }; // マウス座標をMain Viewport基準へ変換するための左上座標

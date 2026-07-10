@@ -2,8 +2,12 @@
 #include <Framework.h>
 #include "RenderPipelineController.h"
 
+#include <memory>
+
 namespace Ken4lowEngine
 {
+	/// ---------- 前方宣言 ---------- ///
+	class SceneManager;
 
 	/// -------------------------------------------------------------
 	///				　	ゲーム全体を管理するクラス
@@ -11,6 +15,16 @@ namespace Ken4lowEngine
 	class GameApplication : public Framework
 	{
 	public: /// ---------- メンバ関数 ---------- ///
+
+		/// <summary>
+		/// SceneManagerの完全型が見えるcpp側で生成処理を定義します。
+		/// </summary>
+		GameApplication();
+
+		/// <summary>
+		/// デストラクタ
+		/// </summary>
+		~GameApplication() override;
 
 		/// <summary>
 		/// ゲーム全体の初期化処理。
@@ -45,9 +59,8 @@ namespace Ken4lowEngine
 
 		/// <summary>
 		/// ゲーム終了時の後始末処理。
-		/// まず Framework::Finalize() を呼び出して、WinApp / DirectXCommon など
-		/// 基盤部分を解放したあと、
-		/// SceneManager::Finalize() によって各シーンの終了処理を行います。
+		/// SceneManager側の終了処理と自動破棄を先に完了させ、
+		/// その後にFramework側の描画基盤を終了します。
 		/// </summary>
 		void Finalize() override;
 
@@ -82,7 +95,11 @@ namespace Ken4lowEngine
 
 	private: /// ---------- 描画順序制御 ---------- ///
 
-		RenderPipelineController renderPipelineController_; // 1フレーム内の描画順序だけを集約する薄いController。
+		// フレーム内の描画順序だけを集約する薄いController
+		RenderPipelineController renderPipelineController_;
+
+		// 現在シーンの更新・描画を管理するシーンマネージャー
+		std::unique_ptr<SceneManager> sceneManager_;
 	};
 
 

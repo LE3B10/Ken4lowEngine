@@ -1,5 +1,6 @@
-#pragma once
+﻿#pragma once
 #include "Sprite.h"
+#include <ISceneTransition.h>
 
 #include <memory>
 #include <string>
@@ -14,7 +15,7 @@ namespace K4E = ::Ken4lowEngine;
 /// -------------------------------------------------------------
 ///					　	フェード管理クラス
 /// -------------------------------------------------------------
-class FadeManager
+class FadeManager final : public Ken4lowEngine::ISceneTransition
 {
 private: /// ---------- 列挙型 ---------- ///
 
@@ -83,36 +84,36 @@ private:
 public: /// ---------- メンバ関数 ---------- ///
 
 	// 初期化
-	void Initialize();
+	void Initialize() override;
 
 	// 更新処理
-	void Update(float dt);
+	void Update(float dt) override;
 
 	// 2D描画（タイル）
-	void Draw2DSprites();
+	void Draw2DSprites() override;
 
 	// ImGuiデバッグ
-	void DrawImGui();
+	void DrawImGui() override;
 
 	// Details Inspectorと専用FadeManagerウィンドウで同じDebug UIを共有する。
-	void DrawInspectorContent();
+	void DrawInspectorContent() override;
 
 	// 破棄
-	void Finalize();
+	void Finalize() override;
 
 public: /// ---------- 外部から操作（SceneManager等から呼べる） ---------- ///
 
 	// タイルで覆う（フェードアウト開始）
-	void StartCover();
+	void StartCover() override;
 
 	// ひび割れアニメを開始（シーン切替後に呼ぶ想定）
-	void StartCrack();
+	void StartCrack() override;
 
 	// ドロップ開始（ひび割れ完了後に呼ぶ/自動遷移でもOK）
 	void StartDrop();
 
 	// 覆いが完了しているか（シーン切替の合図に）
-	bool IsFullyCovered() const { return state_ == State::Hold || state_ == State::Crack; }
+	bool IsFullyCovered() const override { return state_ == State::Hold || state_ == State::Crack; }
 
 	// ひび割れが完了しているか（次に「ドロップ」へ進める合図に使える）
 	bool IsCrackDone() const { return crackDone_; }
@@ -121,7 +122,7 @@ public: /// ---------- 外部から操作（SceneManager等から呼べる） --
 	bool IsDropDone() const { return dropDone_; }
 
 	// フェードが動作中か
-	bool IsBusy() const { return state_ != State::None; }
+	bool IsBusy() const override { return state_ != State::None; }
 
 private:
 	// タイル再構築
