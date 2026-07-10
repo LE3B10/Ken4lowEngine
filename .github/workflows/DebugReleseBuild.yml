@@ -16,7 +16,7 @@ env:
 jobs:
   # ---------- デバッグビルドジョブ ---------- #
   debug-build:
-    runs-on: windows-2022
+    runs-on: windows-2026
     env:
       CONFIGURATION: Debug
     steps:
@@ -34,7 +34,7 @@ jobs:
           
   # ---------- リリースビルドジョブ ---------- #
   release-build:
-    runs-on: windows-2022
+    runs-on: windows-2026
     env:
       CONFIGURATION: Release
     steps:
