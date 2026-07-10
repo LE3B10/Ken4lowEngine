@@ -79,6 +79,10 @@ namespace Ken4lowEngine
 		void SetColor(const Vector4& color) { material_.SetColor(color); }
 		void SetCamera(Camera* camera) { camera_ = camera; }
 		void SetReflectivity(float reflectivity) { material_.SetReflection(reflectivity); }
+		/// <summary>解決済みMaterialDescを既存の定数バッファとBaseColor Textureへ反映します。</summary>
+		void ApplyMaterialDesc(const MaterialDesc& desc);
+		/// <summary>Material Bindingを解除し、モデル読み込み時のMaterial状態へ戻します。</summary>
+		void ResetMaterialBinding();
 		void SetTextureForAll(const std::string& texturePath);
 		void SetTextureForSubmesh(size_t index, const std::string& texturePath);
 		size_t GetSubmeshCount() const;

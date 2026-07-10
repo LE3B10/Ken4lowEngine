@@ -2,6 +2,7 @@
 #include "SceneComponent.h"
 #include "Object3D.h"
 #include "ComponentProperty.h"
+#include "MaterialBinding.h"
 
 #include <memory>
 #include <string>
@@ -88,6 +89,15 @@ namespace Ken4lowEngine
 		/// </summary>
 		void SetCamera(Camera* camera);
 
+		/// <summary>共有MaterialAssetのIDを設定し、生成済みObject3Dへ即時反映します。</summary>
+		void SetMaterialAssetId(std::string_view assetId);
+
+		/// <summary>Component固有Material Overrideの有効状態を切り替えます。</summary>
+		void SetMaterialOverrideEnabled(bool enabled);
+
+		/// <summary>Material Bindingの読み取り専用情報を取得します。</summary>
+		const MaterialBinding& GetMaterialBinding() const { return materialBinding_; }
+
 		std::vector<ComponentProperty> CreateProperties(bool includeModelPath = true);
 
 	private: /// ---------- 内部処理 ---------- ///
@@ -97,11 +107,19 @@ namespace Ken4lowEngine
 		/// </summary>
 		void SyncTransformToObject3D();
 
+		/// <summary>共有AssetまたはComponent固有OverrideをObject3Dへ反映します。</summary>
+		void ApplyMaterialBinding();
+
+		/// <summary>Material Bindingを編集する日本語ImGuiを描画します。</summary>
+		void DrawMaterialBindingImGui();
+
 	private: /// ---------- メンバ変数 ---------- ///
 
 		std::unique_ptr<Object3D> object3D_; // 実際の3Dモデル描画を担当するObject3D。
 		std::string modelPath_;              // Object3Dに読み込ませるモデルファイルパス。
 		Camera* camera_ = nullptr;           // 描画に使用するカメラ。所有権は持たない。
 		bool visible_ = true;                // 描画するかどうか
+		MaterialBinding materialBinding_{};  // 共有Asset参照とComponent固有Overrideだけを保持する。
+		std::string materialBindingStatus_ = "モデル既定Materialを使用中";
 	};
 }

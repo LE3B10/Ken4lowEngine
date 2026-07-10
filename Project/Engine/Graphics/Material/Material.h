@@ -106,6 +106,12 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void Update();
 
+	/// <summary>既存MaterialCBDataレイアウトを変えずにCPU側MaterialDescを反映します。</summary>
+	void ApplyDesc(const MaterialDesc& desc);
+
+	/// <summary>MaterialCBDataを既存Forward描画と同じ初期値へ戻します。</summary>
+	void ResetToDefault();
+
 	/// <summary>
 	/// 指定したルートパラメータインデックスに、このマテリアルの定数バッファをバインドします。
 	/// 描画前に呼び出すことで、シェーダからマテリアル情報へアクセスできるようにします。

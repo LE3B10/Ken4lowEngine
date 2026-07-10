@@ -385,6 +385,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Graphics\Lighting\LightGpuBuffer.cpp" />
     <ClCompile Include="Engine\Graphics\Lighting\LightParameterController.cpp" />
     <ClCompile Include="Engine\Graphics\Lighting\LightPresetService.cpp" />
+    <ClCompile Include="Engine\Graphics\Material\MaterialBinding.cpp" />
     <ClCompile Include="Engine\Graphics\Material\MaterialAsset.cpp" />
     <ClCompile Include="Engine\Graphics\Material\Material.cpp" />
     <ClCompile Include="Engine\Graphics\Material\MaterialDescJsonConverter.cpp" />
@@ -1188,6 +1189,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\Lighting\LightParameterController.h" />
     <ClInclude Include="Engine\Graphics\Lighting\LightPresetService.h" />
     <ClInclude Include="Engine\Graphics\Lighting\ShadowSettings.h" />
+    <ClInclude Include="Engine\Graphics\Material\MaterialBinding.h" />
     <ClInclude Include="Engine\Graphics\Material\MaterialAsset.h" />
     <ClInclude Include="Engine\Graphics\Material\Material.h" />
     <ClInclude Include="Engine\Graphics\Material\MaterialDescJsonConverter.h" />

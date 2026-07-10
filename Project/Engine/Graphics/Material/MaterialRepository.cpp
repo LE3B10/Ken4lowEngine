@@ -2,6 +2,18 @@
 
 namespace Ken4lowEngine
 {
+	MaterialRepository* MaterialRepository::GetInstance()
+	{
+		static MaterialRepository instance;
+		static const bool initialized = []()
+			{
+				instance.InitializeDefaults(); // 初回アクセス時だけ既存描画互換のDefault Materialを登録する。
+				return true;
+			}();
+		(void)initialized;
+		return &instance;
+	}
+
 	void MaterialRepository::InitializeDefaults()
 	{
 		Clear();

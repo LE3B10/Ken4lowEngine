@@ -19,6 +19,9 @@ namespace Ken4lowEngine
 	public:
 		static constexpr const char* kDefaultMaterialId = "DefaultMaterial";
 
+		/// <summary>Engine全体で共有するMaterialRepositoryを取得します。</summary>
+		static MaterialRepository* GetInstance();
+
 		/// <summary>
 		/// Default Materialを含む初期状態へ整えます。<br/>
 		/// 既存MaterialCBDataの初期値と近いCPU側Descだけを登録し、既存モデル描画には接続しません。

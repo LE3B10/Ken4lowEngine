@@ -266,6 +266,39 @@ namespace Ken4lowEngine
 		}
 	}
 
+	void Object3D::ApplyMaterialDesc(const MaterialDesc& desc)
+	{
+		material_.ApplyDesc(desc); // MaterialCBDataの既存レイアウトを維持したままBinding結果を反映する。
+		materialSRVs_.clear();
+		materialUsePointSampling_.clear();
+		if (model_)
+		{
+			materialSRVs_ = model_->GetMaterialSRVs(); // Texture未指定ならモデルが元から持つSubMesh Textureへ戻す。
+			materialUsePointSampling_ = model_->GetMaterialPointSamplingFlags();
+		}
+
+		const std::string& texturePath = desc.preferPbrWorkflow
+			? desc.pbr.baseColorTexturePath
+			: desc.legacy.baseColorTexturePath;
+		if (!texturePath.empty())
+		{
+			SetTextureForAll(texturePath); // Phase 1ではBaseColor Textureだけを既存t0へ接続する。
+		}
+		materialUsePointSampling_.assign(materialSRVs_.size(), desc.legacy.usePointSampling);
+	}
+
+	void Object3D::ResetMaterialBinding()
+	{
+		material_.ResetToDefault(); // Material未指定へ戻した場合は既存Forwardの既定値を復元する。
+		materialSRVs_.clear();
+		materialUsePointSampling_.clear();
+		if (model_)
+		{
+			materialSRVs_ = model_->GetMaterialSRVs();
+			materialUsePointSampling_ = model_->GetMaterialPointSamplingFlags();
+		}
+	}
+
 	/// -------------------------------------------------------------
 	///					テクスチャの設定
 	/// -------------------------------------------------------------

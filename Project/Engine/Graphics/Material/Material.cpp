@@ -20,7 +20,17 @@ namespace Ken4lowEngine
 		materialResource_ = ResourceManager::CreateBufferResource(device, sizeof(MaterialCBData));
 		materialResource_->Map(0, nullptr, reinterpret_cast<void**>(&materialData_));
 
-		// デフォルト値で初期化
+		ResetToDefault(); // 初期化とMaterial Binding解除で同じ既定値を使用する。
+	}
+
+	void Material::ResetToDefault()
+	{
+		if (!materialData_)
+		{
+			return;
+		}
+
+		// 既存Forward描画と同じ値へ戻し、Material未指定Actorの見た目を維持する。
 		materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };			 // 白
 		materialData_->shininess = 32.0f;							 // 光沢度
 		materialData_->pbrEnabled = 0.0f;							 // 既存Legacy描画を初期状態として維持する
@@ -31,6 +41,26 @@ namespace Ken4lowEngine
 		materialData_->roughness = 0.5f;							 // 中程度の粗さ
 		materialData_->usePointSampling = 0.0f;					 // 既定は従来どおり Linear
 		materialData_->occlusionStrength = 1.0f;					 // AO Texture未接続時も暗くなりすぎないfallback
+	}
+
+	void Material::ApplyDesc(const MaterialDesc& desc)
+	{
+		if (!materialData_)
+		{
+			return;
+		}
+
+		const bool usePbr = desc.preferPbrWorkflow;
+		materialData_->color = usePbr ? desc.pbr.baseColorFactor : desc.legacy.color;
+		materialData_->shininess = desc.legacy.shininess;
+		materialData_->pbrEnabled = usePbr ? 1.0f : 0.0f;
+		materialData_->metallic = desc.pbr.metallicFactor;
+		materialData_->normalScale = desc.pbr.normalScale;
+		materialData_->uvTransform = desc.legacy.uvTransform;
+		materialData_->reflection = desc.legacy.reflection;
+		materialData_->roughness = usePbr ? desc.pbr.roughnessFactor : desc.legacy.roughness;
+		materialData_->usePointSampling = desc.legacy.usePointSampling ? 1.0f : 0.0f;
+		materialData_->occlusionStrength = desc.pbr.occlusionStrength;
 	}
 
 

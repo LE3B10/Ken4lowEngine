@@ -766,6 +766,9 @@
     <ClCompile Include="Engine\Graphics\Lighting\LightPresetService.cpp">
       <Filter>Engine\Graphics\Lighting</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\Material\MaterialBinding.cpp">
+      <Filter>Engine\Graphics\Material</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Graphics\Material\Material.cpp">
       <Filter>Engine\Graphics\Material</Filter>
     </ClCompile>
@@ -1979,6 +1982,9 @@
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Lighting\ShadowSettings.h">
       <Filter>Engine\Graphics\Lighting</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Material\MaterialBinding.h">
+      <Filter>Engine\Graphics\Material</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Material\Material.h">
       <Filter>Engine\Graphics\Material</Filter>
