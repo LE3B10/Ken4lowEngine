@@ -107,6 +107,7 @@ namespace Ken4lowEngine
 		DirectXCommon* dxCommon_ = nullptr;
 		std::shared_ptr<Model> model_;
 		Material material_{};
+		MaterialTextureSlots materialTextureSlots_{}; // 全Instance共通の5 Texture Slotを保持する。
 
 		ComPtr<ID3D12Resource> instanceResource_;
 		InstanceData* mappedInstances_ = nullptr;

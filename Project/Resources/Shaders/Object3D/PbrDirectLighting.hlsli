@@ -7,6 +7,10 @@
 // 今回Deferred / Forward+ / SSAO / SSR / GIへ進まないのは、RootSignatureやRenderTarget構成の変更を避けて既存Forward描画を守るため。
 
 static const float kPbrPI = 3.14159265f;
+static const uint MATERIAL_TEXTURE_METALLIC_ROUGHNESS = 1u << 0;
+static const uint MATERIAL_TEXTURE_NORMAL = 1u << 1;
+static const uint MATERIAL_TEXTURE_OCCLUSION = 1u << 2;
+static const uint MATERIAL_TEXTURE_EMISSIVE = 1u << 3;
 
 struct PbrSurface
 {
@@ -78,6 +82,33 @@ float3 ResolvePbrNormalFallback(float3 vertexNormal, float normalScale)
 {
     // Tangent未整備またはNormalMap未設定の場合は既存頂点法線へfallbackし、既存モデルが破綻しないことを優先する。
     return normalize(lerp(vertexNormal, vertexNormal, saturate(normalScale)));
+}
+
+float3 ResolvePbrNormalMap(
+    float3 vertexNormal,
+    float3 worldPosition,
+    float2 texcoord,
+    float3 encodedNormal,
+    float normalScale)
+{
+    float3 normal = normalize(vertexNormal);
+    float3 dpdx = ddx(worldPosition);
+    float3 dpdy = ddy(worldPosition);
+    float2 duvdx = ddx(texcoord);
+    float2 duvdy = ddy(texcoord);
+    float determinant = duvdx.x * duvdy.y - duvdx.y * duvdy.x;
+    if (abs(determinant) < 1e-6f)
+    {
+        return ResolvePbrNormalFallback(normal, normalScale); // UVが退化した面は頂点法線へ安全に戻す。
+    }
+
+    float3 tangent = normalize((dpdx * duvdy.y - dpdy * duvdx.y) / determinant);
+    tangent = normalize(tangent - normal * dot(normal, tangent));
+    float3 bitangent = normalize(cross(normal, tangent)) * (determinant < 0.0f ? -1.0f : 1.0f);
+    float3 tangentNormal = encodedNormal * 2.0f - 1.0f;
+    tangentNormal.xy *= max(normalScale, 0.0f);
+    tangentNormal = normalize(tangentNormal);
+    return normalize(tangent * tangentNormal.x + bitangent * tangentNormal.y + normal * tangentNormal.z);
 }
 
 float2 ResolveMetallicRoughnessFallback(float metallicFactor, float roughnessFactor)

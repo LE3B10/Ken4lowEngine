@@ -84,7 +84,7 @@ namespace Ken4lowEngine
 				changed |= DrawMaterialTextureSelector("Normal Texture##MaterialPreset", source.normalTexturePath);
 				changed |= DrawMaterialTextureSelector("Occlusion Texture##MaterialPreset", source.occlusionTexturePath);
 				changed |= DrawMaterialTextureSelector("Emissive Texture##MaterialPreset", source.emissiveTexturePath);
-				ImGui::TextDisabled("Phase 2ではBaseColor Textureのみ描画へ接続します");
+				ImGui::TextDisabled("5つのMaterial Texture Slotを全描画Componentへ反映します");
 			}
 			else
 			{

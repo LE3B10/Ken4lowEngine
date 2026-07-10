@@ -8,6 +8,7 @@
 #include <vector>
 
 #ifdef USE_IMGUI
+#include "AssetPathSelector.h"
 #include <imgui.h>
 #endif // USE_IMGUI
 
@@ -252,7 +253,12 @@ namespace Ken4lowEngine
 				changed |= ImGui::DragFloat("粗さ##PBR", &desc.pbr.roughnessFactor, 0.01f, 0.04f, 1.0f);
 				changed |= ImGui::DragFloat("法線の強さ", &desc.pbr.normalScale, 0.01f, 0.0f, 2.0f);
 				changed |= ImGui::DragFloat("AOの強さ", &desc.pbr.occlusionStrength, 0.01f, 0.0f, 1.0f);
-				ImGui::TextDisabled("BaseColor以外のPBR TextureはMaterialPreset保持のみです");
+				changed |= ImGui::ColorEdit4("エミッシブカラー", &desc.pbr.emissiveFactor.x);
+				changed |= AssetPathSelector::DrawAssetSelector("BaseColor Texture", desc.pbr.baseColorTexturePath, AssetType::Texture);
+				changed |= AssetPathSelector::DrawAssetSelector("Metallic / Roughness Texture", desc.pbr.metallicRoughnessTexturePath, AssetType::Texture);
+				changed |= AssetPathSelector::DrawAssetSelector("Normal Texture", desc.pbr.normalTexturePath, AssetType::Texture);
+				changed |= AssetPathSelector::DrawAssetSelector("AO Texture", desc.pbr.occlusionTexturePath, AssetType::Texture);
+				changed |= AssetPathSelector::DrawAssetSelector("Emissive Texture", desc.pbr.emissiveTexturePath, AssetType::Texture);
 			}
 			else
 			{
@@ -261,6 +267,7 @@ namespace Ken4lowEngine
 				changed |= ImGui::DragFloat("反射率", &desc.legacy.reflection, 0.01f, 0.0f, 1.0f);
 				changed |= ImGui::DragFloat("粗さ##Legacy", &desc.legacy.roughness, 0.01f, 0.0f, 1.0f);
 				changed |= ImGui::Checkbox("ポイントサンプリング", &desc.legacy.usePointSampling);
+				changed |= AssetPathSelector::DrawAssetSelector("BaseColor Texture", desc.legacy.baseColorTexturePath, AssetType::Texture);
 			}
 		}
 

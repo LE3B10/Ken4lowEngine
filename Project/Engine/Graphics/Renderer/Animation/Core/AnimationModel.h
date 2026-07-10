@@ -250,7 +250,7 @@ namespace Ken4lowEngine
 		/// </summary>
 		void SetReflectivity(float reflectivity) { material_.SetShininess(reflectivity); }
 
-		/// <summary>解決済みMaterialDescをAnimationModel共通Materialへ反映します。</summary>
+		/// <summary>解決済みMaterialDescと5つのTexture SlotをAnimationModel共通Materialへ反映します。</summary>
 		void ApplyMaterialDesc(const MaterialDesc& desc);
 
 		/// <summary>Material Bindingを解除し、モデル読み込み時のMaterial状態へ戻します。</summary>
@@ -470,8 +470,7 @@ namespace Ken4lowEngine
 
 		// 環境マップのテクスチャ
 		D3D12_GPU_DESCRIPTOR_HANDLE environmentMapHandle_{};
-		D3D12_GPU_DESCRIPTOR_HANDLE materialBaseColorOverrideHandle_{}; // 全LOD・SubMeshへ共通適用するBaseColor Texture。
-		bool hasMaterialBaseColorOverride_ = false; // falseの場合はモデルが保持する元Textureを使用する。
+		MaterialTextureSlots materialTextureSlots_{}; // 全LOD・SubMeshで共有する5 Texture Slot。
 
 		ModelData modelData;	// モデルデータ
 		std::string fileName_;  // 読み込んだファイル名を保持

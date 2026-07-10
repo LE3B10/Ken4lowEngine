@@ -19,6 +19,9 @@ struct Material
     float roughness;
     float usePointSampling;
     float occlusionStrength;
+    float4 emissiveFactor;
+    uint textureFlags;
+    float3 padding;
 };
 
 struct Camera
@@ -53,10 +56,14 @@ TextureCube<float4> gEnvironmentTexture : register(t1);
 StructuredBuffer<PunctualLight> gPunctualLights : register(t2);
 Texture2D<float4> gDissolveMaskTexture : register(t3);
 Texture2D<float> gShadowMap : register(t4);
+Texture2D<float4> gMetallicRoughnessTexture : register(t6);
+Texture2D<float4> gNormalTexture : register(t7);
+Texture2D<float4> gOcclusionTexture : register(t8);
+Texture2D<float4> gEmissiveTexture : register(t9);
 
-SamplerState gSampler : register(s0);
+SamplerState gPointSampler : register(s0);
 SamplerComparisonState gShadowSampler : register(s1);
-SamplerState gPointSampler : register(s2);
+SamplerState gLinearSampler : register(s2);
 
 static const float kAlphaDiscardThreshold = 0.001f;
 
@@ -74,7 +81,7 @@ PixelShaderOutput main(VertexShaderOutput input)
     // 低解像度テクスチャでは Point、通常モデルは Linear を使い分ける。
     float4 textureColor = (gMaterial.usePointSampling > 0.5f)
         ? gTexture.Sample(gPointSampler, transformedUV.xy)
-        : gTexture.Sample(gSampler, transformedUV.xy);
+        : gTexture.Sample(gLinearSampler, transformedUV.xy);
 
     float3 worldPosition = input.worldPosition;
     float3 normal = normalize(input.normal);
@@ -102,7 +109,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         float4 shadowPosition = mul(float4(worldPosition, 1.0f), gShadowParameter.lightViewProjection);
         float3 proj = shadowPosition.xyz / max(shadowPosition.w, 1e-5f);
         float2 uv = float2(proj.x * 0.5f + 0.5f, -proj.y * 0.5f + 0.5f);
-        float depth = gShadowMap.SampleLevel(gSampler, saturate(uv), 0.0f);
+        float depth = gShadowMap.SampleLevel(gLinearSampler, saturate(uv), 0.0f);
         output.color = float4(depth.xxx, 1.0f);
         return output;
     }
@@ -127,7 +134,7 @@ PixelShaderOutput main(VertexShaderOutput input)
 
     // 環境反射
     float3 reflectionDir = reflect(-viewDir, normal);
-    float3 environmentColor = gEnvironmentTexture.Sample(gSampler, reflectionDir).rgb;
+    float3 environmentColor = gEnvironmentTexture.Sample(gLinearSampler, reflectionDir).rgb;
 
     // フレネルを少しだけ足す
     float fresnel = ComputeFresnelSchlick(saturate(dot(normal, viewDir)), 0.02f);
@@ -135,7 +142,7 @@ PixelShaderOutput main(VertexShaderOutput input)
     float3 reflectionColor = environmentColor;
 
     // Dissolve
-    float maskValue = gDissolveMaskTexture.Sample(gSampler, input.texcoord).r;
+    float maskValue = gDissolveMaskTexture.Sample(gLinearSampler, input.texcoord).r;
     float edge = smoothstep(
         gDissolveSetting.threshold,
         gDissolveSetting.threshold + gDissolveSetting.edgeThickness,
@@ -149,17 +156,48 @@ PixelShaderOutput main(VertexShaderOutput input)
     {
         // PBRはMaterial単位で明示ONの時だけ使い、Legacy描画の初期見た目を維持する。
         float2 metallicRoughness = ResolveMetallicRoughnessFallback(gMaterial.metallic, gMaterial.roughness);
+        if ((gMaterial.textureFlags & MATERIAL_TEXTURE_METALLIC_ROUGHNESS) != 0)
+        {
+            float4 metallicRoughnessSample = gMetallicRoughnessTexture.Sample(gLinearSampler, transformedUV.xy);
+            metallicRoughness.x *= metallicRoughnessSample.b; // glTF規約: B=Metallic
+            metallicRoughness.y *= metallicRoughnessSample.g; // glTF規約: G=Roughness
+        }
+
+        float3 pbrNormal = ResolvePbrNormalFallback(normal, gMaterial.normalScale);
+        if ((gMaterial.textureFlags & MATERIAL_TEXTURE_NORMAL) != 0)
+        {
+            pbrNormal = ResolvePbrNormalMap(
+                normal,
+                worldPosition,
+                transformedUV.xy,
+                gNormalTexture.Sample(gLinearSampler, transformedUV.xy).xyz,
+                gMaterial.normalScale);
+        }
+
+        float occlusion = 1.0f;
+        if ((gMaterial.textureFlags & MATERIAL_TEXTURE_OCCLUSION) != 0)
+        {
+            float sampledOcclusion = gOcclusionTexture.Sample(gLinearSampler, transformedUV.xy).r;
+            occlusion = lerp(1.0f, sampledOcclusion, saturate(gMaterial.occlusionStrength));
+        }
+
+        float3 emissiveSample = 1.0.xxx;
+        if ((gMaterial.textureFlags & MATERIAL_TEXTURE_EMISSIVE) != 0)
+        {
+            emissiveSample = gEmissiveTexture.Sample(gLinearSampler, transformedUV.xy).rgb;
+        }
+
         PbrSurface surface;
         surface.baseColor = lerp(baseColor, edgeColor.rgb, dissolveBlend);
         surface.metallic = metallicRoughness.x;
         surface.roughness = metallicRoughness.y;
-        surface.occlusion = saturate(gMaterial.occlusionStrength);
-        surface.emissive = 0.0.xxx;
-        surface.normal = ResolvePbrNormalFallback(normal, gMaterial.normalScale);
+        surface.occlusion = occlusion;
+        surface.emissive = gMaterial.emissiveFactor.rgb * emissiveSample;
+        surface.normal = pbrNormal;
         surface.viewDir = viewDir;
 
         float3 directPbr = DirectLightingPBR(gPunctualLights, gLightInfo.gLightCount, worldPosition, surface, gShadowParameter, gShadowMap, gShadowSampler);
-        float3 ibl = EvaluatePbrIBLFallback(surface, gEnvironmentTexture, gSampler, gLightingSettings);
+        float3 ibl = EvaluatePbrIBLFallback(surface, gEnvironmentTexture, gLinearSampler, gLightingSettings);
         shadedColor = directPbr + ibl + surface.emissive;
     }
     else

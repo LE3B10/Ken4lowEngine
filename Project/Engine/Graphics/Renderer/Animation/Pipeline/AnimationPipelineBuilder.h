@@ -109,6 +109,10 @@ private: /// ---------- 内部メンバ関数 ---------- ///
 	/// ・t1 : キューブマップ SRV (PS)<br/>
 	/// ・b2 : ライト数 CBV (PS)<br/>
 	/// ・t2 : ライト配列 SRV (PS)<br/>
+	/// ・t6 : Metallic/Roughness Texture SRV (PS)<br/>
+	/// ・t7 : Normal Texture SRV (PS)<br/>
+	/// ・t8 : AO Texture SRV (PS)<br/>
+	/// ・t9 : Emissive Texture SRV (PS)<br/>
 	/// また、s0 としてリニアフィルタ＋WRAP の静的サンプラを 1 つ登録し、<br/>
 	/// 入力アセンブラの使用を許可するフラグを設定します。
 	/// </summary>

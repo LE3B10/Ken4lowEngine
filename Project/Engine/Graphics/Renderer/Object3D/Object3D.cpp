@@ -56,6 +56,7 @@ namespace Ken4lowEngine
 
 		// マテリアルデータの初期化処理
 		material_.Initialize();
+		materialTextureSlots_.Reset(); // 追加Texture Slotへ常に有効な中立SRVを設定する。
 
 		// カメラデータの初期化処理
 		InitializeCameraResource();
@@ -200,6 +201,7 @@ namespace Ken4lowEngine
 
 		commandList->SetGraphicsRootConstantBufferView(9, shadowParameterResource_->GetGPUVirtualAddress()); // シャドウマップ用行列
 		commandList->SetGraphicsRootDescriptorTable(10, shadowMapHandle_); // シャドウマップのSRV
+		materialTextureSlots_.BindAdditionalSlots(commandList, 12, 13, 14, 15); // t6:MR t7:Normal t8:AO t9:Emissive
 
 		// StageChunk で可視判定済みのメッシュは二重カリングで欠けないよう、Stage専用ObjectはMesh単位Frustum判定をスキップする。
 		auto& meshes = model_->GetMeshes();
@@ -269,6 +271,7 @@ namespace Ken4lowEngine
 	void Object3D::ApplyMaterialDesc(const MaterialDesc& desc)
 	{
 		material_.ApplyDesc(desc); // MaterialCBDataの既存レイアウトを維持したままBinding結果を反映する。
+		materialTextureSlots_.ApplyDesc(desc);
 		materialSRVs_.clear();
 		materialUsePointSampling_.clear();
 		if (model_)
@@ -277,12 +280,12 @@ namespace Ken4lowEngine
 			materialUsePointSampling_ = model_->GetMaterialPointSamplingFlags();
 		}
 
-		const std::string& texturePath = desc.preferPbrWorkflow
-			? desc.pbr.baseColorTexturePath
-			: desc.legacy.baseColorTexturePath;
-		if (!texturePath.empty())
+		if (materialTextureSlots_.HasBaseColorOverride())
 		{
-			SetTextureForAll(texturePath); // Phase 1ではBaseColor Textureだけを既存t0へ接続する。
+			for (D3D12_GPU_DESCRIPTOR_HANDLE& baseColor : materialSRVs_)
+			{
+				baseColor = materialTextureSlots_.ResolveBaseColor(baseColor); // BaseColor Overrideを全SubMeshへ適用する。
+			}
 		}
 		materialUsePointSampling_.assign(materialSRVs_.size(), desc.legacy.usePointSampling);
 	}
@@ -290,6 +293,7 @@ namespace Ken4lowEngine
 	void Object3D::ResetMaterialBinding()
 	{
 		material_.ResetToDefault(); // Material未指定へ戻した場合は既存Forwardの既定値を復元する。
+		materialTextureSlots_.Reset();
 		materialSRVs_.clear();
 		materialUsePointSampling_.clear();
 		if (model_)

@@ -52,6 +52,7 @@ namespace Ken4lowEngine
 		shadowParameterResource_->Map(0, nullptr, reinterpret_cast<void**>(&shadowParameterData_));
 
 		material_.Initialize();
+		materialTextureSlots_.Reset();
 		RestoreModelMaterials(); // Binding未指定時は共有Modelが読み込んだMaterial Textureを使用する。
 
 		TextureManager::GetInstance()->LoadTexture("SkyBox/skybox.dds");
@@ -91,6 +92,7 @@ namespace Ken4lowEngine
 		dissolveData_ = nullptr;
 		shadowParameterData_ = nullptr;
 		model_.reset();
+		materialTextureSlots_.Clear();
 		materialSRVs_.clear();
 		materialUsePointSampling_.clear();
 		maxInstanceCount_ = 0;
@@ -160,16 +162,15 @@ namespace Ken4lowEngine
 			return; // GPU Material未初期化時はTextureロードを含む反映処理を行わない。
 		}
 		material_.ApplyDesc(desc); // 全インスタンスで共有する既存MaterialCBDataへBinding結果を反映する。
+		materialTextureSlots_.ApplyDesc(desc);
 		RestoreModelMaterials();
 
-		const std::string& texturePath = desc.preferPbrWorkflow
-			? desc.pbr.baseColorTexturePath
-			: desc.legacy.baseColorTexturePath;
-		if (!texturePath.empty())
+		if (materialTextureSlots_.HasBaseColorOverride())
 		{
-			TextureManager::GetInstance()->LoadTexture(texturePath);
-			const D3D12_GPU_DESCRIPTOR_HANDLE textureHandle = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
-			std::fill(materialSRVs_.begin(), materialSRVs_.end(), textureHandle); // Phase 3ではBaseColor Textureを全SubMeshへ共通適用する。
+			for (D3D12_GPU_DESCRIPTOR_HANDLE& baseColor : materialSRVs_)
+			{
+				baseColor = materialTextureSlots_.ResolveBaseColor(baseColor); // BaseColor Overrideを全SubMesh/Instanceへ適用する。
+			}
 		}
 		materialUsePointSampling_.assign(materialSRVs_.size(), desc.legacy.usePointSampling);
 	}
@@ -180,7 +181,8 @@ namespace Ken4lowEngine
 		{
 			return;
 		}
-		material_.ResetToDefault(); // Binding解除時はPhase 1と同じ既存Forward既定値へ戻す。
+		material_.ResetToDefault(); // Binding解除時は既存Forwardの既定値へ戻す。
+		materialTextureSlots_.Reset();
 		RestoreModelMaterials();
 	}
 
@@ -289,6 +291,7 @@ namespace Ken4lowEngine
 		commandList->SetGraphicsRootConstantBufferView(9, shadowParameterResource_->GetGPUVirtualAddress());
 		commandList->SetGraphicsRootDescriptorTable(10, dxCommon_->GetShadowMapSrvHandleGPU());
 		SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(12, instanceSrvIndex_);
+		materialTextureSlots_.BindAdditionalSlots(commandList, 13, 14, 15, 16); // t6:MR t7:Normal t8:AO t9:Emissive
 
 		// 同一Modelの各サブメッシュを、全インスタンス分まとめて少数のDrawIndexedInstancedで描画する。
 		auto& meshes = model_->GetMeshes();

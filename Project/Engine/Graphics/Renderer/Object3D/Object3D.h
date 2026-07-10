@@ -79,7 +79,7 @@ namespace Ken4lowEngine
 		void SetColor(const Vector4& color) { material_.SetColor(color); }
 		void SetCamera(Camera* camera) { camera_ = camera; }
 		void SetReflectivity(float reflectivity) { material_.SetReflection(reflectivity); }
-		/// <summary>解決済みMaterialDescを既存の定数バッファとBaseColor Textureへ反映します。</summary>
+		/// <summary>解決済みMaterialDescを定数バッファと5つのMaterial Texture Slotへ反映します。</summary>
 		void ApplyMaterialDesc(const MaterialDesc& desc);
 		/// <summary>Material Bindingを解除し、モデル読み込み時のMaterial状態へ戻します。</summary>
 		void ResetMaterialBinding();
@@ -128,6 +128,7 @@ namespace Ken4lowEngine
 
 		// マテリアルデータ
 		Material material_;
+		MaterialTextureSlots materialTextureSlots_{}; // PBRの5 Texture Slotを全SubMeshへ共通Bindingする。
 
 		// ワールドトランスフォーム
 		WorldTransform worldTransform_;

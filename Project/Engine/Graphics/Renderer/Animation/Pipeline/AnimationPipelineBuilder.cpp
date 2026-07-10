@@ -136,7 +136,16 @@ namespace Ken4lowEngine
 		shadowMapRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 		shadowMapRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-		D3D12_ROOT_PARAMETER rootParameters[10] = {};
+		D3D12_DESCRIPTOR_RANGE materialTextureRanges[4]{};
+		for (UINT i = 0; i < _countof(materialTextureRanges); ++i)
+		{
+			materialTextureRanges[i].BaseShaderRegister = 6 + i; // t6:MR t7:Normal t8:AO t9:Emissive
+			materialTextureRanges[i].NumDescriptors = 1;
+			materialTextureRanges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			materialTextureRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+		}
+
+		D3D12_ROOT_PARAMETER rootParameters[14] = {};
 
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
@@ -182,6 +191,14 @@ namespace Ken4lowEngine
 		rootParameters[9].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParameters[9].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 		rootParameters[9].Descriptor.ShaderRegister = 5;
+
+		for (UINT i = 0; i < _countof(materialTextureRanges); ++i)
+		{
+			rootParameters[10 + i].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+			rootParameters[10 + i].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+			rootParameters[10 + i].DescriptorTable.NumDescriptorRanges = 1;
+			rootParameters[10 + i].DescriptorTable.pDescriptorRanges = &materialTextureRanges[i];
+		}
 
 		descriptionRootSignature.pParameters = rootParameters;
 		descriptionRootSignature.NumParameters = _countof(rootParameters);

@@ -25,8 +25,8 @@ struct LegacyMaterialDesc
 };
 
 /// <summary>
-/// PBR/IBL/Deferred/Forward+へ進むためのCPU側マテリアル説明構造体です。<br/>
-/// 今回は描画へ接続せず、HLSL定数バッファや既存モデルの見た目を変えない将来拡張用の契約として追加します。
+/// PBR描画へ渡す係数と5つのTexture Slotを保持するCPU側マテリアル説明構造体です。<br/>
+/// 未指定Textureは描画側で安全なfallbackへ解決し、旧モデルの見た目を維持します。
 /// </summary>
 struct PbrMaterialDesc
 {
@@ -44,15 +44,44 @@ struct PbrMaterialDesc
 };
 
 /// <summary>
-/// 既存Materialと将来PBR Materialを同時に扱うためのCPU側上位Descです。<br/>
-/// 現段階ではMaterialCBDataへ自動反映せず、既存描画を維持しながらローダーやエディタが
-/// PBR情報を保持できるようにする土台として使います。
+/// 既存MaterialとPBR Materialを同時に扱うためのCPU側上位Descです。<br/>
+/// preferPbrWorkflowがfalseの旧データは従来のLegacy描画へそのままfallbackします。
 /// </summary>
 struct MaterialDesc
 {
 	LegacyMaterialDesc legacy;
 	PbrMaterialDesc pbr;
 	bool preferPbrWorkflow = false;
+};
+
+/// <summary>
+/// MaterialDescの5 Texture SlotをGPU Descriptorへ解決する共通Bindingです。<br/>
+/// BaseColor未指定時は描画元のTextureを維持し、残り4 Slotは中立Textureへfallbackします。
+/// </summary>
+class MaterialTextureSlots
+{
+public:
+	void ApplyDesc(const MaterialDesc& desc);
+	void Reset();
+	void Clear();
+
+	D3D12_GPU_DESCRIPTOR_HANDLE ResolveBaseColor(D3D12_GPU_DESCRIPTOR_HANDLE modelBaseColor) const;
+	void BindAdditionalSlots(
+		ID3D12GraphicsCommandList* commandList,
+		UINT metallicRoughnessRootIndex,
+		UINT normalRootIndex,
+		UINT occlusionRootIndex,
+		UINT emissiveRootIndex) const;
+
+	bool HasBaseColorOverride() const { return hasBaseColorOverride_; }
+
+private:
+	D3D12_GPU_DESCRIPTOR_HANDLE baseColor_{};
+	D3D12_GPU_DESCRIPTOR_HANDLE metallicRoughness_{};
+	D3D12_GPU_DESCRIPTOR_HANDLE normal_{};
+	D3D12_GPU_DESCRIPTOR_HANDLE occlusion_{};
+	D3D12_GPU_DESCRIPTOR_HANDLE emissive_{};
+	bool hasBaseColorOverride_ = false;
 };
 
 
@@ -77,6 +106,9 @@ public: /// ---------- 構造体 ---------- ///
 		float roughness;		// 粗さ : bytes 4
 		float usePointSampling; // 1.0f で Point Sampler を使用 : bytes 4
 		float occlusionStrength;// AO Texture未接続時の定数AO fallback。旧padding領域を使いCBサイズ互換を保つ。
+		Vector4 emissiveFactor; // Emissive Textureへ乗算する発光色。
+		uint32_t textureFlags;  // bit0:MetallicRoughness bit1:Normal bit2:AO bit3:Emissive
+		float padding[3];       // HLSL cbufferの16byte境界へ合わせる。
 	};
 
 public: /// ---------- メンバ変数 ---------- ///
