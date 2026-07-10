@@ -2,7 +2,9 @@
 #include "SceneComponent.h"
 #include "AnimationModel.h"
 #include "ComponentProperty.h"
+#include "MaterialBinding.h"
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -38,6 +40,15 @@ namespace Ken4lowEngine
 		void SetPlayOnStart(bool playOnStart);
 		void SetPlaybackSpeed(float playbackSpeed);
 
+		/// <summary>共有MaterialAssetのIDを設定し、生成済みAnimationModelへ即時反映します。</summary>
+		void SetMaterialAssetId(std::string_view assetId);
+
+		/// <summary>Component固有Material Overrideの有効状態を切り替えます。</summary>
+		void SetMaterialOverrideEnabled(bool enabled);
+
+		/// <summary>Material Bindingの読み取り専用情報を取得します。</summary>
+		const MaterialBinding& GetMaterialBinding() const { return materialBinding_; }
+
 		void Play();
 		void Stop();
 		void Pause();
@@ -55,11 +66,23 @@ namespace Ken4lowEngine
 		bool SelectConfiguredAnimation(bool resetTime);
 		bool EnsureAnimationSelection(bool resetTime);
 
+		/// <summary>共有AssetまたはComponent固有OverrideをAnimationModelへ反映します。</summary>
+		void ApplyMaterialBinding();
+
+		/// <summary>共有MaterialAssetの更新世代が変わった場合だけ再反映します。</summary>
+		void RefreshSharedMaterialBinding();
+
+		/// <summary>共通Material Binding Editorと現在状態を日本語表示します。</summary>
+		void DrawMaterialBindingImGui();
+
 	private:
 		std::unique_ptr<AnimationModel> animationModel_;
 		std::string modelPath_;
 		std::string animationName_;
 		std::string modelStatus_ = "Empty";
+		MaterialBinding materialBinding_{}; // 共有Asset参照とComponent固有Overrideを保持する。
+		std::string materialBindingStatus_ = "モデル既定Materialを使用中";
+		uint64_t materialRepositoryRevision_ = 0; // MaterialPresetのライブ更新を検知するRepository世代。
 		bool hasMesh_ = false;
 		bool hasSkeleton_ = false;
 		bool visible_ = true;

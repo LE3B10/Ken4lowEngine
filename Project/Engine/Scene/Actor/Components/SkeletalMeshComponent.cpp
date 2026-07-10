@@ -2,6 +2,7 @@
 #include "SkeletalMeshComponent.h"
 #include "AssetPathSelector.h"
 #include "DirectXCommon.h"
+#include "MaterialRepository.h"
 
 #include <algorithm>
 #include <exception>
@@ -40,6 +41,7 @@ namespace Ken4lowEngine
 	{
 		SceneComponent::Update(deltaTime);
 		ProcessReloadRequest();
+		RefreshSharedMaterialBinding(); // MaterialPreset編集による共有Asset差し替えを描画前に反映する。
 
 		if (!animationModel_)
 		{
@@ -55,6 +57,7 @@ namespace Ken4lowEngine
 	void SkeletalMeshComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
 	{
 		ProcessReloadRequest();
+		RefreshSharedMaterialBinding(); // Physics後更新だけが走る場合も共有Materialの変更を取りこぼさない。
 
 		if (!animationModel_)
 		{
@@ -125,6 +128,7 @@ namespace Ken4lowEngine
 
 		ImGui::SeparatorText("再生");
 		ComponentPropertyUtility::DrawImGui(CreateProperties(false, false));
+		DrawMaterialBindingImGui();
 
 		const size_t clipCount = animationModel_ ? animationModel_->GetAnimationClips().size() : 0;
 		const Vector3 componentWorldPosition = GetWorldPosition();
@@ -189,6 +193,10 @@ namespace Ken4lowEngine
 
 		outJson["Class"] = GetClassTypeName();
 		ComponentPropertyUtility::ToJson(const_cast<SkeletalMeshComponent*>(this)->CreateProperties(), outJson);
+		if (materialBinding_.HasBinding())
+		{
+			outJson["Material"] = materialBinding_.ToJson(); // Material未指定の旧Actor JSONには新しい項目を追加しない。
+		}
 	}
 
 	void SkeletalMeshComponent::FromJson(const nlohmann::json& inJson)
@@ -218,6 +226,17 @@ namespace Ken4lowEngine
 			EnsureAnimationSelection(true);
 			ApplyPlaybackSettings();
 		}
+
+		const auto materialIt = inJson.find("Material");
+		if (materialIt != inJson.end() && materialIt->is_object())
+		{
+			materialBinding_.FromJson(*materialIt); // 他の描画Componentと同じMaterial Binding形式を再利用する。
+		}
+		else
+		{
+			materialBinding_ = MaterialBinding{}; // 旧JSONはスケルタルモデル既定Materialへフォールバックする。
+		}
+		ApplyMaterialBinding();
 	}
 
 	void SkeletalMeshComponent::SetModelPath(std::string_view modelPath)
@@ -264,6 +283,72 @@ namespace Ken4lowEngine
 	{
 		playbackSpeed_ = ClampPlaybackSpeed(playbackSpeed);
 		ApplyPlaybackSettings();
+	}
+
+	void SkeletalMeshComponent::SetMaterialAssetId(std::string_view assetId)
+	{
+		materialBinding_.SetAssetId(assetId);
+		ApplyMaterialBinding(); // Editorやゲームコードからの変更を生成済みAnimationModelへ即時反映する。
+	}
+
+	void SkeletalMeshComponent::SetMaterialOverrideEnabled(bool enabled)
+	{
+		materialBinding_.SetUseOverride(enabled);
+		ApplyMaterialBinding(); // Override切り替え時に共有Assetまたはモデル既定へ安全に戻す。
+	}
+
+	void SkeletalMeshComponent::ApplyMaterialBinding()
+	{
+		if (!animationModel_)
+		{
+			return;
+		}
+		materialRepositoryRevision_ = MaterialRepository::GetInstance()->GetRevision(); // 今回反映したRepository世代を記録する。
+
+		if (!materialBinding_.HasBinding())
+		{
+			animationModel_->ResetMaterialBinding();
+			materialBindingStatus_ = "モデル既定Materialを使用中";
+			return;
+		}
+
+		MaterialDesc resolvedDesc{};
+		if (!materialBinding_.Resolve(resolvedDesc))
+		{
+			animationModel_->ResetMaterialBinding();
+			materialBindingStatus_ = "MaterialAssetが見つからないためモデル既定へフォールバック";
+			return;
+		}
+
+		animationModel_->ApplyMaterialDesc(resolvedDesc);
+		materialBindingStatus_ = materialBinding_.IsUsingOverride()
+			? "Component固有Material Overrideを使用中"
+			: "共有MaterialAssetを使用中: " + materialBinding_.GetAssetId();
+	}
+
+	void SkeletalMeshComponent::RefreshSharedMaterialBinding()
+	{
+		if (!animationModel_ || materialBinding_.GetAssetId().empty() || materialBinding_.IsUsingOverride())
+		{
+			return; // モデル未生成・モデル既定・Component固有OverrideはRepository更新の影響を受けない。
+		}
+
+		const uint64_t currentRevision = MaterialRepository::GetInstance()->GetRevision();
+		if (currentRevision != materialRepositoryRevision_)
+		{
+			ApplyMaterialBinding(); // MaterialPreset編集を再生中のスケルタルモデルへ再反映する。
+		}
+	}
+
+	void SkeletalMeshComponent::DrawMaterialBindingImGui()
+	{
+#ifdef USE_IMGUI
+		if (Ken4lowEngine::DrawMaterialBindingImGui(materialBinding_, "SkeletalMeshComponent"))
+		{
+			ApplyMaterialBinding(); // 共通Editorの変更をAnimationModelへ反映する。
+		}
+		ImGui::TextDisabled("状態: %s", materialBindingStatus_.c_str());
+#endif // USE_IMGUI
 	}
 
 	void SkeletalMeshComponent::Play()
@@ -380,6 +465,7 @@ namespace Ken4lowEngine
 				animationModel_.reset();
 				return false;
 			}
+			ApplyMaterialBinding(); // AnimationModel再生成後も共有AssetまたはComponent固有Overrideを復元する。
 			EnsureAnimationSelection(true);
 			ApplyPlaybackSettings();
 			animationModel_->SetAnimationPlaying(false);
