@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Effects\\Masks\\rings_512.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Effects\\Masks\\rings_512.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.8373370Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Effects/Masks/rings_512.png",
+    "OutputPath":  "Resources/Textures/Compiled/Effects/Masks/rings_512.dds",
     "SourceSizeBytes":  76851,
+    "SourceSha256":  "fdb2e1799647d084220559918b6cd90c621a63c490c81e879ded62e34752710a",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Effects\\black.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Effects\\black.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.8383341Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Effects/black.png",
+    "OutputPath":  "Resources/Textures/Compiled/Effects/black.dds",
     "SourceSizeBytes":  83,
+    "SourceSha256":  "a09e276301de73e84a35169799afebc9b0dee6ec73db827bf97d604e76395433",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

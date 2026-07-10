@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\stage01\\Block_Flower.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\stage01\\Block_Flower.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8542623Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/stage01/Block_Flower.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/stage01/Block_Flower.dds",
     "SourceSizeBytes":  1192,
+    "SourceSha256":  "defd025bb3e2fb286208c95196d85013b46400fbb39d8855fb4f12a6d935364e",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\lobby\\T_Stage01_Prop_MetalTrim.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\lobby\\T_Stage01_Prop_MetalTrim.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8412577Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/lobby/T_Stage01_Prop_MetalTrim.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/lobby/T_Stage01_Prop_MetalTrim.dds",
     "SourceSizeBytes":  4538,
+    "SourceSha256":  "c6b2103cbbd5fb6c4643da7e59e3d19e7eec182f6375536e08f6bc4a9273223f",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\UI\\Icons\\heavy_icon.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\UI\\Icons\\heavy_icon.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.9619203Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/UI/Icons/heavy_icon.png",
+    "OutputPath":  "Resources/Textures/Compiled/UI/Icons/heavy_icon.dds",
     "SourceSizeBytes":  34154,
+    "SourceSha256":  "83f9046e1003bf7ce130f311108b946cfda3a778eafb37c41a8aa9111c49c0bf",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

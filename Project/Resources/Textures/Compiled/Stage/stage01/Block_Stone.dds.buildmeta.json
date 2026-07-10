@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\stage01\\Block_Stone.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\stage01\\Block_Stone.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8562574Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/stage01/Block_Stone.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/stage01/Block_Stone.dds",
     "SourceSizeBytes":  552,
+    "SourceSha256":  "a7c473204bef4d34c4694f032ca0971dd56894fca5a6d439cf29b153cf9b18bf",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

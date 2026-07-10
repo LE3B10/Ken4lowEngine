@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\lobby\\T_Stage01_Ground_GrassDirt.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\lobby\\T_Stage01_Ground_GrassDirt.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8392588Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/lobby/T_Stage01_Ground_GrassDirt.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/lobby/T_Stage01_Ground_GrassDirt.dds",
     "SourceSizeBytes":  48575,
+    "SourceSha256":  "0b3680eaeec110501b31e3805e8b179aba240b405531d94684e6df811bea505e",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

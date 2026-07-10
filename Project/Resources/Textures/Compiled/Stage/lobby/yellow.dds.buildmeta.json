@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\lobby\\yellow.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\lobby\\yellow.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8532582Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/lobby/yellow.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/lobby/yellow.dds",
     "SourceSizeBytes":  70,
+    "SourceSha256":  "c6c15e262ea5ddfa13a2ff93d9fde69e0d64d7f0132de1ef36c5a8fe117a51df",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

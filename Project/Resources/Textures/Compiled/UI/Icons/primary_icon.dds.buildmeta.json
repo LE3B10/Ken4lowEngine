@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\UI\\Icons\\primary_icon.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\UI\\Icons\\primary_icon.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.9746933Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/UI/Icons/primary_icon.png",
+    "OutputPath":  "Resources/Textures/Compiled/UI/Icons/primary_icon.dds",
     "SourceSizeBytes":  1598956,
+    "SourceSha256":  "d2a24cb16c96dcf7a8ccc3251065ae31fc0a768d563a22157b344a91fd046da4",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Effects\\gradationLine.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Effects\\gradationLine.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.8481946Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Effects/gradationLine.png",
+    "OutputPath":  "Resources/Textures/Compiled/Effects/gradationLine.dds",
     "SourceSizeBytes":  314004,
+    "SourceSha256":  "5f6126e5e67e4b8bb7d774f10b493489e3aec431a244adffd8c6e7f97ca7e331",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

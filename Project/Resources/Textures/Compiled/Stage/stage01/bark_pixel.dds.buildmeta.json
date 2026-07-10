@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\stage01\\bark_pixel.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\stage01\\bark_pixel.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8572627Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/stage01/bark_pixel.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/stage01/bark_pixel.dds",
     "SourceSizeBytes":  1197,
+    "SourceSha256":  "62c82ec30c841b946f9d54558988f2e83b2aedf6390209d7126786a525ec0e80",
     "MipLevel":  0,
-    "DisableMipMap":  true,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  true
 }

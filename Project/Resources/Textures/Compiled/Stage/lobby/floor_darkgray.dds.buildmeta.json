@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\lobby\\floor_darkgray.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\lobby\\floor_darkgray.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8432585Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/lobby/floor_darkgray.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/lobby/floor_darkgray.dds",
     "SourceSizeBytes":  70,
+    "SourceSha256":  "6a8c770c2a4f4bfdee623c5f8fa78d03ad57be8801ebe97b8953c0e3bb28e0e9",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

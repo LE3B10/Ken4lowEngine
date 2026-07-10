@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\stage2\\rail.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\stage2\\rail.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8652587Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/stage2/rail.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/stage2/rail.dds",
     "SourceSizeBytes":  898,
+    "SourceSha256":  "161c89dcd7236fc321baa28ffd27a0104927fd0b999e3cc9fef1c90bc1c31c88",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

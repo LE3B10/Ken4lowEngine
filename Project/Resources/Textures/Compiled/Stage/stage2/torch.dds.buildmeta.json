@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\stage2\\torch.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\stage2\\torch.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8662586Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/stage2/torch.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/stage2/torch.dds",
     "SourceSizeBytes":  940,
+    "SourceSha256":  "799c2143fabf5b3fdf0a2db071f9dd7b680bd82b7bf2711fc086eb34864bed6a",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Characters\\monsterBall.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Characters\\monsterBall.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.8301238Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Characters/monsterBall.png",
+    "OutputPath":  "Resources/Textures/Compiled/Characters/monsterBall.dds",
     "SourceSizeBytes":  18232,
+    "SourceSha256":  "adc7015fcbeb0cd4cb4e07613ff517b71b06ab875afc5e552a8afe2fabe7e0d9",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

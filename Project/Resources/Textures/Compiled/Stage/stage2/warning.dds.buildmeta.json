@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\stage2\\warning.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\stage2\\warning.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8662586Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/stage2/warning.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/stage2/warning.dds",
     "SourceSizeBytes":  927,
+    "SourceSha256":  "fc9e4849847f6ab457299a14c916b0f729e0d3560de23836a4b79addfd911a42",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

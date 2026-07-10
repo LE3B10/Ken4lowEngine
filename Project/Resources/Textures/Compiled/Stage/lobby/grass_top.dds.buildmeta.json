@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\lobby\\grass_top.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\lobby\\grass_top.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8452584Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/lobby/grass_top.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/lobby/grass_top.dds",
     "SourceSizeBytes":  119465,
+    "SourceSha256":  "eb2c6a9f8fce9b71286775a95bd88ce3ac1a199259d5e8a71cb878e14e9c2d04",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

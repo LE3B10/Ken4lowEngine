@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Materials\\fps_competitive_sym_v5.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Materials\\fps_competitive_sym_v5.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.8744576Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Materials/fps_competitive_sym_v5.png",
+    "OutputPath":  "Resources/Textures/Compiled/Materials/fps_competitive_sym_v5.dds",
     "SourceSizeBytes":  1907,
+    "SourceSha256":  "1fae3c639616a1062df00ae5d6c7969e51ba2df70ee8e01ef059e1839b8ed27e",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

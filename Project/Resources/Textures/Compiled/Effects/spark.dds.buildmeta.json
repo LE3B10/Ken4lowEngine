@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Effects\\spark.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Effects\\spark.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.8656773Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Effects/spark.png",
+    "OutputPath":  "Resources/Textures/Compiled/Effects/spark.dds",
     "SourceSizeBytes":  1453240,
+    "SourceSha256":  "777f229a8f9bbe4325bb1b813e28c2bd123e607e5c03cf27461dc27492827e39",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\stage01\\Block_Wood.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\stage01\\Block_Wood.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8572627Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/stage01/Block_Wood.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/stage01/Block_Wood.dds",
     "SourceSizeBytes":  564,
+    "SourceSha256":  "dfcc9525535a51d7b4f58c1eca9c445bd12581a41bf8ffda68698105df528fdf",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

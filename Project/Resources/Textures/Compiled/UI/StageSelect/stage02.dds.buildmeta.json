@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\UI\\StageSelect\\stage02.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\UI\\StageSelect\\stage02.dds",
-    "SourceLastWriteUtc":  "2026-04-16T13:14:52.5080572Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/UI/StageSelect/stage02.png",
+    "OutputPath":  "Resources/Textures/Compiled/UI/StageSelect/stage02.dds",
     "SourceSizeBytes":  81,
+    "SourceSha256":  "63cb99ad2b5ddbd6044f1df437cdb5be8eed70e85358b540750937f31cc01f87",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

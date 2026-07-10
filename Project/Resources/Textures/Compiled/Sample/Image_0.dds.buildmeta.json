@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Debug\\Image_0.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Debug\\Image_0.dds",
-    "SourceLastWriteUtc":  "2026-04-01T06:35:30.8426011Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Sample/Image_0.png",
+    "OutputPath":  "Resources/Textures/Compiled/Sample/Image_0.dds",
     "SourceSizeBytes":  2984,
+    "SourceSha256":  "d1101fa165e80fa046ecf4e4e7056312c32a981ce349aec5314c965569e028d0",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Effects\\Masks\\Noise.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Effects\\Masks\\Noise.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.8352256Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Effects/Masks/Noise.png",
+    "OutputPath":  "Resources/Textures/Compiled/Effects/Masks/Noise.dds",
     "SourceSizeBytes":  125154,
+    "SourceSha256":  "bb54b3d2d8b57f757a03a6b726950daa3eb6c368800073d0e51cbe2b86282312",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

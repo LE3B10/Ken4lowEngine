@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Effects\\DebrisAtlas.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Effects\\DebrisAtlas.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.8341882Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Effects/DebrisAtlas.png",
+    "OutputPath":  "Resources/Textures/Compiled/Effects/DebrisAtlas.dds",
     "SourceSizeBytes":  1763,
+    "SourceSha256":  "e02d58f60d9d64319e072de220dc8c234006824d1e35c973a5a31b249896d120",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

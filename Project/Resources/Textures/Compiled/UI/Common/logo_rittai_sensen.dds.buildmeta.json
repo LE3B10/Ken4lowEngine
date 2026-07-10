@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\UI\\Common\\logo_rittai_sensen.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\UI\\Common\\logo_rittai_sensen.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.9324330Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/UI/Common/logo_rittai_sensen.png",
+    "OutputPath":  "Resources/Textures/Compiled/UI/Common/logo_rittai_sensen.dds",
     "SourceSizeBytes":  1508370,
+    "SourceSha256":  "85f37ca41eb4b5a778729eb535220bc2102406ed24f95112981d2e5d5639a7ae",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

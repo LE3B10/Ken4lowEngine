@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Effects\\circle2.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Effects\\circle2.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.8398371Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Effects/circle2.png",
+    "OutputPath":  "Resources/Textures/Compiled/Effects/circle2.dds",
     "SourceSizeBytes":  78881,
+    "SourceSha256":  "87d4b2f67ebefe993158937e2d5ae2ab49144cc102bae27a7271f5b2aeb40c97",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

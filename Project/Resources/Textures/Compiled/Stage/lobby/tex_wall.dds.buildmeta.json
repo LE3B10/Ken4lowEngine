@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\lobby\\tex_wall.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\lobby\\tex_wall.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8502585Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/lobby/tex_wall.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/lobby/tex_wall.dds",
     "SourceSizeBytes":  9008,
+    "SourceSha256":  "7fbf2fabc467f3c5d19baf4cff2b6b7dc754a4a299757708c3f7d9f6ba8e3bfc",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

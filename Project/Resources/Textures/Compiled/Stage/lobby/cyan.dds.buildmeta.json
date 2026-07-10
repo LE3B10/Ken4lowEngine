@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\lobby\\cyan.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\lobby\\cyan.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8422581Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/lobby/cyan.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/lobby/cyan.dds",
     "SourceSizeBytes":  83,
+    "SourceSha256":  "8f4c96c82f2ee979ebb51bbfccdbf4f799fdefd6a11fed37722e3c8006f6b436",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

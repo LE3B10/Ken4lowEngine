@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\stage2\\dark_stone.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\stage2\\dark_stone.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8622582Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/stage2/dark_stone.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/stage2/dark_stone.dds",
     "SourceSizeBytes":  907,
+    "SourceSha256":  "2406d724198e97b3428098124be223f302a5193b2e913273da40355d6ad33f37",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

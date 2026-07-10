@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\lobby\\T_Stage01_Cover_WoodCrate.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\lobby\\T_Stage01_Cover_WoodCrate.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8392588Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/lobby/T_Stage01_Cover_WoodCrate.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/lobby/T_Stage01_Cover_WoodCrate.dds",
     "SourceSizeBytes":  7550,
+    "SourceSha256":  "298fa6e0ed2284c185f9124850b7b1e7605413a5650370ad6aabd0d779d9dbbf",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

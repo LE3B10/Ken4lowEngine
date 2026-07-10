@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\UI\\Common\\Number.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\UI\\Common\\Number.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.9161176Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/UI/Common/Number.png",
+    "OutputPath":  "Resources/Textures/Compiled/UI/Common/Number.dds",
     "SourceSizeBytes":  11590,
+    "SourceSha256":  "ad9150481697adc04ca5422dabb507587ca006e60092cd5e7e54c5a8f9aa2184",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

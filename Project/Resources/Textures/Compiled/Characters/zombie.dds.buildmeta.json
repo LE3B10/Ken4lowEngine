@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Characters\\zombie.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Characters\\zombie.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.8316001Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Characters/zombie.png",
+    "OutputPath":  "Resources/Textures/Compiled/Characters/zombie.dds",
     "SourceSizeBytes":  33112,
+    "SourceSha256":  "4237afc5921b3a1b7ee5f72a054bba6e960c588c21d55c2643117383f8e459b0",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

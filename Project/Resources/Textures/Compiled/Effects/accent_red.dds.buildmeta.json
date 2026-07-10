@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Effects\\accent_red.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Effects\\accent_red.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.8383341Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Effects/accent_red.png",
+    "OutputPath":  "Resources/Textures/Compiled/Effects/accent_red.dds",
     "SourceSizeBytes":  70,
+    "SourceSha256":  "4cb99fcb6043ea4a41b16477b124c0cf516b946d4e71173576d0c0384aa378ca",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

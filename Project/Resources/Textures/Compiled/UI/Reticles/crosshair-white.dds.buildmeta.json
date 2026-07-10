@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\UI\\Reticles\\crosshair-white.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\UI\\Reticles\\crosshair-white.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:53.0090447Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/UI/Reticles/crosshair-white.png",
+    "OutputPath":  "Resources/Textures/Compiled/UI/Reticles/crosshair-white.dds",
     "SourceSizeBytes":  1334471,
+    "SourceSha256":  "8072789bf0105f96d3e3dd3a886bdfdda41abf66b008422e3386a0dca9878792",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Effects\\CrackAtlas.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Effects\\CrackAtlas.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.8329046Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Effects/CrackAtlas.png",
+    "OutputPath":  "Resources/Textures/Compiled/Effects/CrackAtlas.dds",
     "SourceSizeBytes":  60424,
+    "SourceSha256":  "609bf61df5417d5c2fb1057406af5beb79bc8d37c6d6ea8fcf6f8aa3112f5269",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

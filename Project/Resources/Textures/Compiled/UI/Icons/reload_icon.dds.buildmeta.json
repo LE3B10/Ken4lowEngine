@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\UI\\Icons\\reload_icon.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\UI\\Icons\\reload_icon.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.9759643Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/UI/Icons/reload_icon.png",
+    "OutputPath":  "Resources/Textures/Compiled/UI/Icons/reload_icon.dds",
     "SourceSizeBytes":  24275,
+    "SourceSha256":  "82fd73bc7d66be33acd9c298325ee8af2f01a6f16ef4e3fc6f81022b50f3609f",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\stage2\\marker.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\stage2\\marker.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8642580Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/stage2/marker.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/stage2/marker.dds",
     "SourceSizeBytes":  928,
+    "SourceSha256":  "687a40bd3f4e1191b4fc55fd5e35f15ffb347c8b51482cba1d7cceaab933cab1",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

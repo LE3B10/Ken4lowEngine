@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\UI\\Icons\\melee_icon.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\UI\\Icons\\melee_icon.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.9680376Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/UI/Icons/melee_icon.png",
+    "OutputPath":  "Resources/Textures/Compiled/UI/Icons/melee_icon.dds",
     "SourceSizeBytes":  1521128,
+    "SourceSha256":  "5ad29a24c75af8d20e42d32207353e54cebfc72ba61ecc0edb11b623f1dc70fa",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\stage01\\Block_Dirt.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\stage01\\Block_Dirt.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8532582Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/stage01/Block_Dirt.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/stage01/Block_Dirt.dds",
     "SourceSizeBytes":  571,
+    "SourceSha256":  "ade35efe1401b3b24d667e79d88ba20703a7da91f100607c0c65d34eb917a006",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

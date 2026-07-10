@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\UI\\Icons\\backup_icon.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\UI\\Icons\\backup_icon.dds",
-    "SourceLastWriteUtc":  "2026-04-07T13:59:52.9599089Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/UI/Icons/backup_icon.png",
+    "OutputPath":  "Resources/Textures/Compiled/UI/Icons/backup_icon.dds",
     "SourceSizeBytes":  1516895,
+    "SourceSha256":  "90882f8bc5784a306fb7bc5e240404bc13226eae1b1c46dd10ee7777e54f876b",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\lobby\\rock.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\lobby\\rock.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8472598Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/lobby/rock.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/lobby/rock.dds",
     "SourceSizeBytes":  128694,
+    "SourceSha256":  "117eb4e0cb20e0cf293c36da0e42f7e7afa6e01a03171964af0f0e25cc02a201",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }

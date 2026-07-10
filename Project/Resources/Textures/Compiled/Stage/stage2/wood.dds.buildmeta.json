@@ -1,10 +1,11 @@
 ﻿{
-    "BuildVersion":  2,
-    "SourcePath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Sources\\Stage\\stage2\\wood.png",
-    "OutputPath":  "C:\\Users\\k023g\\Downloads\\Ken4lowEngine\\Project\\Resources\\Textures\\Compiled\\Stage\\stage2\\wood.dds",
-    "SourceLastWriteUtc":  "2026-06-17T01:15:19.8672583Z",
+    "BuildVersion":  3,
+    "AssetType":  "Texture",
+    "Operation":  "Convert",
+    "SourcePath":  "Resources/Textures/Sources/Stage/stage2/wood.png",
+    "OutputPath":  "Resources/Textures/Compiled/Stage/stage2/wood.dds",
     "SourceSizeBytes":  875,
+    "SourceSha256":  "643a52f101f7c0c4182c36eb1a2b946c4d2acf00e366c20aa132af6ff78a4bc0",
     "MipLevel":  0,
-    "DisableMipMap":  false,
-    "ConverterLastWriteUtc":  "2026-05-06T14:05:24.2474673Z"
+    "DisableMipMap":  false
 }
