@@ -1,8 +1,10 @@
 #pragma once
 #include "SceneComponent.h"
 #include "ComponentProperty.h"
+#include "MaterialBinding.h"
 #include <InstancedObject3DRenderer.h>
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -90,6 +92,15 @@ namespace Ken4lowEngine
 		void SetInstanceScale(const Vector3& scale);
 		void SetVisible(bool visible) { visible_ = visible; }
 
+		/// <summary>共有MaterialAssetのIDを設定し、生成済みRendererへ即時反映します。</summary>
+		void SetMaterialAssetId(std::string_view assetId);
+
+		/// <summary>Component固有Material Overrideの有効状態を切り替えます。</summary>
+		void SetMaterialOverrideEnabled(bool enabled);
+
+		/// <summary>Material Bindingの読み取り専用情報を取得します。</summary>
+		const MaterialBinding& GetMaterialBinding() const { return materialBinding_; }
+
 		std::vector<ComponentProperty> CreateProperties(bool includeModelPath = true);
 
 	private: /// ---------- 内部処理 ---------- ///
@@ -109,11 +120,23 @@ namespace Ken4lowEngine
 		/// </summary>
 		void RequestRebuild();
 
+		/// <summary>共有AssetまたはComponent固有OverrideをInstanced Rendererへ反映します。</summary>
+		void ApplyMaterialBinding();
+
+		/// <summary>共有MaterialAssetの更新世代が変わった場合だけRendererへ再反映します。</summary>
+		void RefreshSharedMaterialBinding();
+
+		/// <summary>Material Bindingを編集する日本語ImGuiを描画します。</summary>
+		void DrawMaterialBindingImGui();
+
 	private: /// ---------- メンバ変数 ---------- ///
 
 		std::unique_ptr<InstancedObject3DRenderer> renderer_; // GPUインスタンシング描画を担当するRenderer
 		std::string modelPath_;                               // 描画に使用するモデルファイルパス
 		std::string rendererStatus_ = "Empty";                // Renderer生成状態の説明
+		MaterialBinding materialBinding_{};                    // 共有Asset参照とComponent固有Overrideを保持する。
+		std::string materialBindingStatus_ = "モデル既定Materialを使用中";
+		uint64_t materialRepositoryRevision_ = 0;              // 共有Materialのライブ更新を検知するRepository世代。
 
 		int instanceCount_ = 100;      // 描画するインスタンス数
 		float spacing_ = 2.0f;         // インスタンス同士の間隔

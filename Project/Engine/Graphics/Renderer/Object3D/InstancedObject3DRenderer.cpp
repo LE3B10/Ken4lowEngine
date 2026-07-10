@@ -52,8 +52,7 @@ namespace Ken4lowEngine
 		shadowParameterResource_->Map(0, nullptr, reinterpret_cast<void**>(&shadowParameterData_));
 
 		material_.Initialize();
-		materialSRVs_ = model_->GetMaterialSRVs();
-		materialUsePointSampling_ = model_->GetMaterialPointSamplingFlags();
+		RestoreModelMaterials(); // Binding未指定時は共有Modelが読み込んだMaterial Textureを使用する。
 
 		TextureManager::GetInstance()->LoadTexture("SkyBox/skybox.dds");
 		environmentMapHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("SkyBox/skybox.dds");
@@ -152,6 +151,50 @@ namespace Ken4lowEngine
 			instances.push_back(instance);
 		}
 		return SetInstances(instances);
+	}
+
+	void InstancedObject3DRenderer::ApplyMaterialDesc(const MaterialDesc& desc)
+	{
+		if (!initialized_)
+		{
+			return; // GPU Material未初期化時はTextureロードを含む反映処理を行わない。
+		}
+		material_.ApplyDesc(desc); // 全インスタンスで共有する既存MaterialCBDataへBinding結果を反映する。
+		RestoreModelMaterials();
+
+		const std::string& texturePath = desc.preferPbrWorkflow
+			? desc.pbr.baseColorTexturePath
+			: desc.legacy.baseColorTexturePath;
+		if (!texturePath.empty())
+		{
+			TextureManager::GetInstance()->LoadTexture(texturePath);
+			const D3D12_GPU_DESCRIPTOR_HANDLE textureHandle = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
+			std::fill(materialSRVs_.begin(), materialSRVs_.end(), textureHandle); // Phase 3ではBaseColor Textureを全SubMeshへ共通適用する。
+		}
+		materialUsePointSampling_.assign(materialSRVs_.size(), desc.legacy.usePointSampling);
+	}
+
+	void InstancedObject3DRenderer::ResetMaterialBinding()
+	{
+		if (!initialized_)
+		{
+			return;
+		}
+		material_.ResetToDefault(); // Binding解除時はPhase 1と同じ既存Forward既定値へ戻す。
+		RestoreModelMaterials();
+	}
+
+	void InstancedObject3DRenderer::RestoreModelMaterials()
+	{
+		materialSRVs_.clear();
+		materialUsePointSampling_.clear();
+		if (!model_)
+		{
+			return;
+		}
+
+		materialSRVs_ = model_->GetMaterialSRVs();
+		materialUsePointSampling_ = model_->GetMaterialPointSamplingFlags();
 	}
 
 	void InstancedObject3DRenderer::SetFrustumCullingEnabled(bool enabled)

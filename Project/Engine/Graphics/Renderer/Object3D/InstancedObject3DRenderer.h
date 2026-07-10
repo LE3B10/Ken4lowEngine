@@ -59,6 +59,12 @@ namespace Ken4lowEngine
 		/// <summary>位置・回転・スケール・色からGPU用InstanceDataを構築します。</summary>
 		bool SetTransforms(const std::vector<InstanceTransform>& transforms);
 
+		/// <summary>解決済みMaterialDescを全インスタンス共通のMaterialへ反映します。</summary>
+		void ApplyMaterialDesc(const MaterialDesc& desc);
+
+		/// <summary>Material Bindingを解除し、モデル読み込み時のMaterial状態へ戻します。</summary>
+		void ResetMaterialBinding();
+
 		/// <summary>サブメッシュごとに1回、DrawIndexedInstancedを発行します。</summary>
 		void Draw();
 
@@ -131,5 +137,8 @@ namespace Ken4lowEngine
 
 		/// <summary>カリング設定に応じ、描画対象だけをGPUバッファの先頭へ詰め直します。</summary>
 		void UpdateVisibleInstances(const Matrix4x4& viewProjection);
+
+		/// <summary>共有Modelが保持するSubMesh TextureとSampler設定をRendererへ復元します。</summary>
+		void RestoreModelMaterials();
 	};
 }

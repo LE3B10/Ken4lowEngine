@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "InstancedModelComponent.h"
 #include "AssetPathSelector.h"
+#include "MaterialRepository.h"
 
 #include <algorithm>
 #include <cmath>
@@ -54,6 +55,7 @@ namespace Ken4lowEngine
 	void InstancedModelComponent::Update(float deltaTime)
 	{
 		SceneComponent::Update(deltaTime); // SceneComponent側でWorldTransformを更新する。
+		RefreshSharedMaterialBinding(); // MaterialPreset編集による共有Asset差し替えを描画前に反映する。
 
 		const Vector3 currentWorldPosition = GetWorldPosition();
 		const Vector3 currentWorldRotation = GetWorldRotation();
@@ -79,6 +81,7 @@ namespace Ken4lowEngine
 
 	void InstancedModelComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
 	{
+		RefreshSharedMaterialBinding(); // Physics後更新だけが走る場合も共有Materialの変更を取りこぼさない。
 		const Vector3 currentWorldPosition = GetWorldPosition();
 		const Vector3 currentWorldRotation = GetWorldRotation();
 		const Vector3 currentWorldScale = GetWorldScale();
@@ -126,6 +129,7 @@ namespace Ken4lowEngine
 		}
 
 		ComponentPropertyUtility::DrawImGui(CreateProperties(false));
+		DrawMaterialBindingImGui();
 
 		ImGui::Text("Renderer: %s", renderer_ ? "Created" : "None");
 		ImGui::Text("Model: %s", rendererStatus_.c_str());
@@ -166,6 +170,10 @@ namespace Ken4lowEngine
 		outJson["Class"] = GetClassTypeName(); // InstancedModelComponentとして保存する
 
 		ComponentPropertyUtility::ToJson(const_cast<InstancedModelComponent*>(this)->CreateProperties(), outJson);
+		if (materialBinding_.HasBinding())
+		{
+			outJson["Material"] = materialBinding_.ToJson(); // Material未指定の旧Actor JSONには新しい項目を追加しない。
+		}
 	}
 
 	void InstancedModelComponent::FromJson(const nlohmann::json& inJson)
@@ -173,6 +181,16 @@ namespace Ken4lowEngine
 		SceneComponent::FromJson(inJson); // 親クラスの共通情報を復元する。
 
 		ComponentPropertyUtility::FromJson(CreateProperties(), inJson);
+		const auto materialIt = inJson.find("Material");
+		if (materialIt != inJson.end() && materialIt->is_object())
+		{
+			materialBinding_.FromJson(*materialIt); // Phase 1と同じJSON形式を再利用する。
+		}
+		else
+		{
+			materialBinding_ = MaterialBinding{}; // 旧JSONはモデル既定Materialへフォールバックする。
+		}
+		ApplyMaterialBinding();
 
 		RequestRebuild(); // JSON復元後の設定でインスタンス配置を再構築する
 	}
@@ -222,6 +240,139 @@ namespace Ken4lowEngine
 			std::max(scale.z, 0.01f)
 		};
 		RequestRebuild();
+	}
+
+	void InstancedModelComponent::SetMaterialAssetId(std::string_view assetId)
+	{
+		materialBinding_.SetAssetId(assetId);
+		ApplyMaterialBinding(); // Editorやゲームコードからの変更を生成済みRendererへ即時反映する。
+	}
+
+	void InstancedModelComponent::SetMaterialOverrideEnabled(bool enabled)
+	{
+		materialBinding_.SetUseOverride(enabled);
+		ApplyMaterialBinding(); // Override切り替え時に共有Assetまたはモデル既定へ安全に戻す。
+	}
+
+	void InstancedModelComponent::ApplyMaterialBinding()
+	{
+		if (!renderer_ || !isInitializedRenderer_)
+		{
+			return;
+		}
+		materialRepositoryRevision_ = MaterialRepository::GetInstance()->GetRevision(); // 今回反映したRepository世代を記録する。
+
+		if (!materialBinding_.HasBinding())
+		{
+			renderer_->ResetMaterialBinding();
+			materialBindingStatus_ = "モデル既定Materialを使用中";
+			return;
+		}
+
+		MaterialDesc resolvedDesc{};
+		if (!materialBinding_.Resolve(resolvedDesc))
+		{
+			renderer_->ResetMaterialBinding();
+			materialBindingStatus_ = "MaterialAssetが見つからないためモデル既定へフォールバック";
+			return;
+		}
+
+		renderer_->ApplyMaterialDesc(resolvedDesc);
+		materialBindingStatus_ = materialBinding_.IsUsingOverride()
+			? "Component固有Material Overrideを使用中"
+			: "共有MaterialAssetを使用中: " + materialBinding_.GetAssetId();
+	}
+
+	void InstancedModelComponent::RefreshSharedMaterialBinding()
+	{
+		if (!renderer_ || materialBinding_.GetAssetId().empty() || materialBinding_.IsUsingOverride())
+		{
+			return; // Renderer未生成・モデル既定・Component固有OverrideはRepository更新の影響を受けない。
+		}
+
+		const uint64_t currentRevision = MaterialRepository::GetInstance()->GetRevision();
+		if (currentRevision != materialRepositoryRevision_)
+		{
+			ApplyMaterialBinding(); // MaterialPreset編集を全インスタンスへまとめて再反映する。
+		}
+	}
+
+	void InstancedModelComponent::DrawMaterialBindingImGui()
+	{
+#ifdef USE_IMGUI
+		ImGui::SeparatorText("マテリアル");
+
+		std::vector<std::string> materialIds = MaterialRepository::GetInstance()->GetRegisteredIds();
+		std::sort(materialIds.begin(), materialIds.end());
+		const std::string preview = materialBinding_.GetAssetId().empty()
+			? "モデル既定"
+			: materialBinding_.GetAssetId();
+
+		if (ImGui::BeginCombo("共有MaterialAsset##InstancedModel", preview.c_str()))
+		{
+			const bool useModelDefault = materialBinding_.GetAssetId().empty();
+			if (ImGui::Selectable("モデル既定##InstancedModel", useModelDefault))
+			{
+				SetMaterialAssetId("");
+			}
+			if (useModelDefault)
+			{
+				ImGui::SetItemDefaultFocus();
+			}
+
+			for (const std::string& materialId : materialIds)
+			{
+				const bool selected = materialBinding_.GetAssetId() == materialId;
+				if (ImGui::Selectable((materialId + "##InstancedModel").c_str(), selected))
+				{
+					SetMaterialAssetId(materialId);
+				}
+				if (selected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		bool useOverride = materialBinding_.IsUsingOverride();
+		if (ImGui::Checkbox("Component固有Materialで上書き##InstancedModel", &useOverride))
+		{
+			SetMaterialOverrideEnabled(useOverride);
+		}
+
+		bool changed = false;
+		if (materialBinding_.IsUsingOverride())
+		{
+			MaterialDesc& desc = materialBinding_.GetMutableOverrideDesc();
+			changed |= ImGui::Checkbox("PBRを使用##InstancedModel", &desc.preferPbrWorkflow);
+
+			if (desc.preferPbrWorkflow)
+			{
+				changed |= ImGui::ColorEdit4("ベースカラー##InstancedModel", &desc.pbr.baseColorFactor.x);
+				changed |= ImGui::DragFloat("メタリック##InstancedModel", &desc.pbr.metallicFactor, 0.01f, 0.0f, 1.0f);
+				changed |= ImGui::DragFloat("粗さ##PbrInstancedModel", &desc.pbr.roughnessFactor, 0.01f, 0.04f, 1.0f);
+				changed |= ImGui::DragFloat("法線の強さ##InstancedModel", &desc.pbr.normalScale, 0.01f, 0.0f, 2.0f);
+				changed |= ImGui::DragFloat("AOの強さ##InstancedModel", &desc.pbr.occlusionStrength, 0.01f, 0.0f, 1.0f);
+				ImGui::TextDisabled("BaseColor以外のPBR TextureはMaterialPreset保持のみです");
+			}
+			else
+			{
+				changed |= ImGui::ColorEdit4("色##InstancedModel", &desc.legacy.color.x);
+				changed |= ImGui::DragFloat("光沢度##InstancedModel", &desc.legacy.shininess, 1.0f, 1.0f, 256.0f);
+				changed |= ImGui::DragFloat("反射率##InstancedModel", &desc.legacy.reflection, 0.01f, 0.0f, 1.0f);
+				changed |= ImGui::DragFloat("粗さ##LegacyInstancedModel", &desc.legacy.roughness, 0.01f, 0.0f, 1.0f);
+				changed |= ImGui::Checkbox("ポイントサンプリング##InstancedModel", &desc.legacy.usePointSampling);
+			}
+
+			if (changed)
+			{
+				ApplyMaterialBinding(); // ImGuiで変更した値を同フレームの全インスタンス描画へ反映する。
+			}
+		}
+
+		ImGui::TextDisabled("状態: %s", materialBindingStatus_.c_str());
+#endif // USE_IMGUI
 	}
 
 	void InstancedModelComponent::RebuildInstances()
@@ -296,6 +447,7 @@ namespace Ken4lowEngine
 			renderer_->SetDebugIndexBudget(50'000'000ull);
 			isInitializedRenderer_ = true;
 			rendererStatus_ = "Loaded";
+			ApplyMaterialBinding(); // Renderer再生成後もComponentの共有AssetまたはOverrideを復元する。
 			RebuildInstances();
 			return true;
 		} catch (const std::exception& e)
