@@ -1255,6 +1255,9 @@
     <ClCompile Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.cpp">
       <Filter>Engine\Physics\Specialized</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\CharacterWorld\BulletEnemySoABridge.cpp">
+      <Filter>ApplicationLayer\Character\CharacterWorld</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">

@@ -118,6 +118,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ApplicationLayer\Character\CharacterWorld\BulletEnemySoABridge.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.cpp" />
     <ClCompile Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_ComponentEdit.cpp" />
