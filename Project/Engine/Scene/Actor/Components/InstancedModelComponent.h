@@ -39,6 +39,17 @@ namespace Ken4lowEngine
 		/// </summary>
 		void Draw() override;
 
+		/// <summary>全インスタンスを現在のShadow Passへまとめて描画する。</summary>
+		void DrawShadow() override
+		{
+			if (!visible_ || !renderer_)
+			{
+				return;
+			}
+
+			renderer_->DrawShadow(); // CPUで個別Drawせず、Shadow PassでもGPU Instancingを維持する。
+		}
+
 		/// <summary>
 		/// InstancedModelComponentのImGui描画処理
 		/// </summary>
@@ -147,9 +158,9 @@ namespace Ken4lowEngine
 		bool isInitializedRenderer_ = false; // Renderer初期化済みかどうか
 		bool hasInitialized_ = false; // Component初期化済みかどうか
 
-		Vector3 lastWorldPosition_{};		 // 前回のワールド位置
-		Vector3 lastWorldRotation_{};		 // 前回のワールド回転
-		Vector3 lastWorldScale_{};			 // 前回のワールドスケール
+		Vector3 lastWorldPosition_{};        // 前回のワールド位置
+		Vector3 lastWorldRotation_{};        // 前回のワールド回転
+		Vector3 lastWorldScale_{};           // 前回のワールドスケール
 		bool hasLastWorldTransform_ = false; // 前回のワールドTransformが有効かどうか
 	};
 }
