@@ -24,9 +24,9 @@ class PhysicsDebugController;
 class AnimationModelBatchTest;
 class GpuParticlePreviewController;
 
-/// ---------- 前方宣言 ---------- ///
 namespace Ken4lowEngine
 {
+	class Actor;
 	class AnimationModel;
 	class Input;
 	class InstancedObject3DRenderer;
@@ -39,36 +39,26 @@ namespace K4E = ::Ken4lowEngine;
 /// -------------------------------------------------------------
 class DebugScene : public K4E::BaseScene
 {
-public: /// ---------- メンバ関数 ---------- ///
-
+public:
 	DebugScene();
 	~DebugScene() override;
 
-	// 仮想初期化処理
 	void Initialize() override;
-
-	// 仮想更新処理
 	void Update() override;
-	// Editor停止中もDebugScene専用負荷検証だけは更新する。
 	void UpdateEditor(float deltaTime) override;
+	void BeginEditorPlay() override;
+	void EndEditorPlay() override;
 
-	/// <summary>
-	/// ActorWorldが所有するActor / Component階層を統合World Outlinerへ公開する。
-	/// </summary>
 	void CollectEditorObjects(std::vector<K4E::EditorObjectInfo>& outObjects) override
 	{
 		K4E::CollectActorWorldEditorObjects(actorWorld_, outObjects, "DebugScene");
 	}
 
-	/// <summary>
-	/// Content BrowserからのViewport配置先としてDebugSceneのActorWorldを公開する。
-	/// </summary>
 	K4E::ActorWorld* GetEditorActorWorld() override
 	{
 		return &actorWorld_;
 	}
 
-	// ShadowSystemがCasterを決める前にActorのLightComponentを同期する。
 	void PrepareShadowPass() override
 	{
 		std::vector<K4E::LightManager::PunctualLightGPU> componentLights;
@@ -103,50 +93,43 @@ public: /// ---------- メンバ関数 ---------- ///
 				light.cosFalloffStart = std::cos(innerAngle * std::numbers::pi_v<float> / 180.0f);
 				light.areaSize = lightComponent->GetAreaSize();
 				light.enabled = 1u;
-				componentLights.push_back(light); // Editor操作直後のLight位置と種類を同じフレームのShadow Passへ渡す。
+				componentLights.push_back(light);
 			}
 		}
 
 		K4E::LightManager::GetInstance()->SetLightComponentLights(componentLights);
 	}
 
-	// 仮想3D描画処理
 	void Draw3DObjects() override;
-
-	// 仮想シャドウマップ描画処理
 	void DrawShadowObjects() override;
-
-	// 仮想2D描画処理
 	void Draw2DSprites() override;
-
-	// 仮想終了処理
 	void Finalize() override;
-
-	// ImGui描画処理
 	void DrawImGui() override;
 
-private: /// ---------- メンバ関数 ---------- ///
+private:
+	struct EditorActorTransformSnapshot
+	{
+		K4E::Actor* actor = nullptr;
+		K4E::Vector3 position{};
+		K4E::Vector3 rotation{};
+		K4E::Vector3 scale{ 1.0f, 1.0f, 1.0f };
+	};
 
-	// デバッグカメラの更新
 	void UpdateDebug();
-	// ImGui設定から大量配置データを再構築する。
 	void RebuildInstancingTest();
 	void ReloadAnimationModelTest();
 	void DrawAnimationModelTestImGui();
 	void UpdateAnimationModelInputTest(float deltaTime);
+	void RefreshActorEditorVisuals(float deltaTime);
 
-private: /// ---------- メンバ変数 ---------- ///
+private:
+	K4E::Input* input_ = nullptr;
+	bool isDebugCamera_ = false;
 
-	K4E::Input* input_ = nullptr; // Inputのポインタ
-	bool isDebugCamera_ = false; // デバッグカメラ使用フラグ
-
-	std::unique_ptr<CollisionManager> collisionManager_; // 衝突管理マネージャー
-
-	std::unique_ptr<PhysicsDebugController> physicsDebugController_; // DebugScene専用の物理確認コントローラ
-	std::unique_ptr<AnimationModelBatchTest> animationModelBatchTest_; // AnimationModel大量描画のDebugScene専用テスト
-	std::unique_ptr<K4E::AnimationModel> animationModelTest_; // 複数アニメーション切り替え確認用の単体モデル
-
-	// 3万個のObject3Dを生成せず、専用GPUインスタンシング経路をON/OFFして負荷確認する。
+	std::unique_ptr<CollisionManager> collisionManager_;
+	std::unique_ptr<PhysicsDebugController> physicsDebugController_;
+	std::unique_ptr<AnimationModelBatchTest> animationModelBatchTest_;
+	std::unique_ptr<K4E::AnimationModel> animationModelTest_;
 	std::unique_ptr<K4E::InstancedObject3DRenderer> instancingTestRenderer_;
 	bool isInstancingTestEnabled_ = false;
 	int instancingTestCount_ = 30000;
@@ -154,28 +137,23 @@ private: /// ---------- メンバ変数 ---------- ///
 	int instancingSafeCount_ = 30000;
 	uint64_t instancingIndexBudget_ = 50'000'000ull;
 	bool instancingAutoClamp_ = true;
-
 	bool instancingRandomScale_ = false;
 	bool instancingRandomRotation_ = false;
 	bool instancingRandomColor_ = false;
 	bool instancingFrustumCulling_ = false;
 
-	// DebugSceneからEffect / Emitter設定を編集するためのGPU Particle Editor用データ。
 	K4E::GpuParticleEffectDesc editingGpuParticleEffect_;
 	int selectedGpuParticleEmitterIndex_ = -1;
 	bool showGpuParticleEditor_ = true;
 	std::string gpuParticleEffectJsonPath_ = "Resources/JSON/GpuParticles/DebugEffect.json";
 	std::string gpuParticleEditorStatus_ = "GPU Particle Editor ready.";
 	bool gpuParticleEditorLastOperationSucceeded_ = true;
-
-	// DebugScene専用のGPUパーティクル試射状態。本番EffectやGamePlaySceneとは共有しない。
 	std::unique_ptr<GpuParticlePreviewController> gpuParticlePreviewController_;
 	bool gpuParticlePreviewAutoPlay_ = false;
 	bool gpuParticlePreviewSelectedOnly_ = true;
 	K4E::Vector3 gpuParticlePreviewPosition_{ 0.0f, 1.0f, 0.0f };
 	uint32_t gpuParticlePreviewEmitCount_ = 32;
 
-	// DebugScene上でAnimationModelの複数clip・LOD・Skinningを単体確認するための設定。
 	std::string animationModelTestPath_ = "Animation/SampleHumanAnim.gltf";
 	std::array<std::string, 3> animationModelTestLodPaths_{ "", "", "" };
 	std::array<char, 260> animationModelTestPathBuffer_{};
@@ -210,10 +188,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::array<char, 64> animationModelDeathNameBuffer_{};
 	K4E::AnimationStateController animationStateController_{};
 
-private: /// ---------- テスト ---------- ///
-
-	K4E::ActorWorld actorWorld_; // ActorWorldのテスト用
-
-	K4E::PhysicsWorld actorPhysicsWorld_; // ActorComponent用Colliderを登録する物理World。
-	K4E::PhysicsDebugDraw actorPhysicsDebugDraw_; // ActorComponent用ColliderをWireframe表示するDebug描画。
+	K4E::ActorWorld actorWorld_;
+	K4E::PhysicsWorld actorPhysicsWorld_;
+	K4E::PhysicsDebugDraw actorPhysicsDebugDraw_;
+	std::vector<EditorActorTransformSnapshot> editorActorSnapshots_; // Play開始時のEdit WorldをStopで復元する。
 };
