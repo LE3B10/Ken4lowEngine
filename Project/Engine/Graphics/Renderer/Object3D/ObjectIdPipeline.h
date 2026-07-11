@@ -26,11 +26,7 @@ namespace Ken4lowEngine
 
 		void Initialize()
 		{
-			if (initialized_)
-			{
-				return;
-			}
-
+			if (initialized_) return;
 			dxCommon_ = DirectXCommon::GetInstance();
 			CreateStaticPipeline();
 			CreateInstancedPipeline();
@@ -47,28 +43,21 @@ namespace Ken4lowEngine
 
 		void BindStatic(ID3D12GraphicsCommandList* commandList, uint32_t objectId)
 		{
-			if (!initialized_)
-			{
-				Initialize();
-			}
-
+			if (!initialized_) Initialize();
 			commandList->SetGraphicsRootSignature(staticPipeline_.rootSignature.Get());
 			commandList->SetPipelineState(staticPipeline_.pipelineState.Get());
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			commandList->SetGraphicsRoot32BitConstant(1, objectId, 0); // b1へComponentのObject IDを直接渡す。
+			commandList->SetGraphicsRoot32BitConstant(1, objectId, 0);
 		}
 
-		void BindInstanced(ID3D12GraphicsCommandList* commandList, uint32_t objectId)
+		void BindInstanced(ID3D12GraphicsCommandList* commandList, uint32_t baseObjectId, bool addInstanceId)
 		{
-			if (!initialized_)
-			{
-				Initialize();
-			}
-
+			if (!initialized_) Initialize();
 			commandList->SetGraphicsRootSignature(instancedPipeline_.rootSignature.Get());
 			commandList->SetPipelineState(instancedPipeline_.pipelineState.Get());
 			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			commandList->SetGraphicsRoot32BitConstant(2, objectId, 0); // Instancing Pipelineではb1をRootParameter 2へ配置する。
+			const uint32_t constants[2] = { baseObjectId, addInstanceId ? 1u : 0u };
+			commandList->SetGraphicsRoot32BitConstants(2, 2, constants, 0); // Base IDとSV_InstanceID加算フラグをVSへ渡す。
 		}
 
 	private:
@@ -86,13 +75,11 @@ namespace Ken4lowEngine
 			};
 		}
 
-		ShaderProgram CompileProgram(const wchar_t* vertexPath)
+		ShaderProgram CompileProgram(const wchar_t* vertexPath, const wchar_t* pixelPath)
 		{
 			ShaderProgram program{};
-			const ShaderDescriptor vertexDesc{
-				L"ObjectIdVS", vertexPath, L"main", L"vs_6_0", ShaderStage::Vertex, RootSignatureType::Unknown };
-			const ShaderDescriptor pixelDesc{
-				L"ObjectIdPS", L"Resources/Shaders/EditorPicking/ObjectId.PS.hlsl", L"main", L"ps_6_0", ShaderStage::Pixel, RootSignatureType::Unknown };
+			const ShaderDescriptor vertexDesc{ L"ObjectIdVS", vertexPath, L"main", L"vs_6_0", ShaderStage::Vertex, RootSignatureType::Unknown };
+			const ShaderDescriptor pixelDesc{ L"ObjectIdPS", pixelPath, L"main", L"ps_6_0", ShaderStage::Pixel, RootSignatureType::Unknown };
 			program.vertexShader.blob = ShaderCompiler::CompileShader(vertexDesc, dxCommon_->GetDXCCompilerManager());
 			program.pixelShader.blob = ShaderCompiler::CompileShader(pixelDesc, dxCommon_->GetDXCCompilerManager());
 			return program;
@@ -118,7 +105,6 @@ namespace Ken4lowEngine
 		{
 			const auto inputElements = MakeInputLayout();
 			const D3D12_INPUT_LAYOUT_DESC inputLayout{ inputElements.data(), static_cast<UINT>(inputElements.size()) };
-
 			std::array<D3D12_ROOT_PARAMETER, 2> rootParameters{};
 			rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 			rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
@@ -127,14 +113,14 @@ namespace Ken4lowEngine
 			rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 			rootParameters[1].Constants.ShaderRegister = 1;
 			rootParameters[1].Constants.Num32BitValues = 1;
-
 			D3D12_ROOT_SIGNATURE_DESC rootDesc{};
 			rootDesc.NumParameters = static_cast<UINT>(rootParameters.size());
 			rootDesc.pParameters = rootParameters.data();
 			rootDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
 			GraphicsPipelineDesc pipelineDesc = MakeCommonPipelineDesc(
-				CompileProgram(L"Resources/Shaders/EditorPicking/ObjectIdStatic.VS.hlsl"), inputLayout, L"ObjectIdStaticPipeline");
+				CompileProgram(L"Resources/Shaders/EditorPicking/ObjectIdStatic.VS.hlsl", L"Resources/Shaders/EditorPicking/ObjectId.PS.hlsl"),
+				inputLayout,
+				L"ObjectIdStaticPipeline");
 			staticPipeline_ = dxCommon_->GetPipelineFactory().CreateGraphicsPipeline(pipelineDesc, rootDesc);
 		}
 
@@ -142,13 +128,11 @@ namespace Ken4lowEngine
 		{
 			const auto inputElements = MakeInputLayout();
 			const D3D12_INPUT_LAYOUT_DESC inputLayout{ inputElements.data(), static_cast<UINT>(inputElements.size()) };
-
 			D3D12_DESCRIPTOR_RANGE instanceRange{};
 			instanceRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 			instanceRange.NumDescriptors = 1;
 			instanceRange.BaseShaderRegister = 0;
 			instanceRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
-
 			std::array<D3D12_ROOT_PARAMETER, 3> rootParameters{};
 			rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 			rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
@@ -158,17 +142,17 @@ namespace Ken4lowEngine
 			rootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 			rootParameters[1].Descriptor.ShaderRegister = 0;
 			rootParameters[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-			rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+			rootParameters[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
 			rootParameters[2].Constants.ShaderRegister = 1;
-			rootParameters[2].Constants.Num32BitValues = 1;
-
+			rootParameters[2].Constants.Num32BitValues = 2;
 			D3D12_ROOT_SIGNATURE_DESC rootDesc{};
 			rootDesc.NumParameters = static_cast<UINT>(rootParameters.size());
 			rootDesc.pParameters = rootParameters.data();
 			rootDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-
 			GraphicsPipelineDesc pipelineDesc = MakeCommonPipelineDesc(
-				CompileProgram(L"Resources/Shaders/EditorPicking/ObjectIdInstanced.VS.hlsl"), inputLayout, L"ObjectIdInstancedPipeline");
+				CompileProgram(L"Resources/Shaders/EditorPicking/ObjectIdInstanced.VS.hlsl", L"Resources/Shaders/EditorPicking/ObjectIdInstanced.PS.hlsl"),
+				inputLayout,
+				L"ObjectIdInstancedPipeline");
 			instancedPipeline_ = dxCommon_->GetPipelineFactory().CreateGraphicsPipeline(pipelineDesc, rootDesc);
 		}
 
