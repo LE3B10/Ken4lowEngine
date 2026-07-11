@@ -15,6 +15,7 @@
 
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
+#include "Editor/EditorGpuPickingManager.h"
 #include "Editor/EditorShell.h"
 #include "Editor/EditorWindowManager.h"
 #include "Editor/EditorModeController.h"
@@ -43,6 +44,7 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		// DebugビルドはEditor Mode ON、Release相当ではGame Preview Modeとして初期化する。
 		EditorModeController::GetInstance()->Initialize();
+		EditorGpuPickingManager::GetInstance()->Initialize(); // Descriptor Manager初期化後にR32_UINT ID Bufferを生成する。
 #endif // USE_IMGUI
 
 		/// ---------- 入力の初期化 ---------- ///
@@ -222,6 +224,17 @@ namespace Ken4lowEngine
 					// Debug/Editor時もゲーム内部解像度は固定し、Main Viewport側の表示だけを拡縮する。
 					(void)EditorWindowManager::GetInstance()->GetMainViewportSize();
 				};
+			callbacks.executeEditorPickingPass = [this]()
+				{
+					const EditorGpuPickingManager::ExecuteResult result =
+						EditorGpuPickingManager::GetInstance()->Execute(sceneManager_->GetCurrentScene());
+					if (result.executed && !result.message.empty())
+					{
+						EditorWindowManager::GetInstance()->AddOutputLog(
+							result.hit ? EditorLogLevel::Info : EditorLogLevel::Info,
+							result.message);
+					}
+				};
 		}
 #endif // USE_IMGUI
 
@@ -256,6 +269,7 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		// SceneManager破棄後にEditorが古い参照へアクセスしないよう先に解除する。
 		EditorWindowManager::GetInstance()->SetSceneManager(nullptr);
+		EditorGpuPickingManager::GetInstance()->Finalize(); // Descriptor Manager破棄前にPicking用GPU Resourceを解放する。
 #endif // USE_IMGUI
 
 		{
