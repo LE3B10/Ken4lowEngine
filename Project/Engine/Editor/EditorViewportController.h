@@ -134,7 +134,7 @@ namespace Ken4lowEngine
 		EditorViewportController& operator=(const EditorViewportController&) = delete;
 
 		EditorViewportDisplayMode displayMode_ = EditorViewportDisplayMode::Editor;
-		EditorViewportTool activeTool_ = EditorViewportTool::Select;
+		EditorViewportTool activeTool_ = EditorViewportTool::Translate; // UEと同じく選択直後からXYZ移動Gizmoを表示する。
 		EditorGizmoSpace gizmoSpace_ = EditorGizmoSpace::World;
 		EditorViewportSelectionMode selectionMode_ = EditorViewportSelectionMode::Actor;
 		bool auxiliaryDisplayEnabled_ = true;

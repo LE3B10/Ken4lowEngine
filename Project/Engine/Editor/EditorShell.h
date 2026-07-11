@@ -67,6 +67,7 @@ namespace Ken4lowEngine
 			ApplyViewportVisualPolicy();
 			DrawViewportToolbar();
 			EditorTransformGizmo::GetInstance()->Draw(); // Phase 7のSelectionをWorld/Local Transform Gizmoへ接続する。
+			EditorContentBrowserPanel::GetInstance()->UpdateViewportPicking(); // 軸や平面Handle上のクリックを除外した後に選択を予約する。
 			DrawViewportAssetDropTarget();
 #endif
 		}

@@ -134,6 +134,15 @@ namespace Ken4lowEngine
 		ImGuizmo::Enable(true);
 		ImGuizmo::AllowAxisFlip(false);
 		ImGuizmo::SetOrthographic(false);
+		ImGuizmo::SetGizmoSizeClipSpace(0.13f); // 小さいViewportでもXYZ軸・平面Handleを掴める大きさにする。
+		ImGuizmo::Style& gizmoStyle = ImGuizmo::GetStyle();
+		gizmoStyle.TranslationLineThickness = 4.0f;
+		gizmoStyle.TranslationLineArrowSize = 8.0f;
+		gizmoStyle.RotationLineThickness = 3.0f;
+		gizmoStyle.RotationOuterLineThickness = 3.0f;
+		gizmoStyle.ScaleLineThickness = 4.0f;
+		gizmoStyle.ScaleLineCircleSize = 7.0f;
+		gizmoStyle.CenterCircleSize = 6.0f;
 		ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
 		ImGuizmo::SetRect(
 			viewportRect.screenMin.x,
@@ -215,6 +224,14 @@ namespace Ken4lowEngine
 	bool EditorTransformGizmo::IsUsing() const
 	{
 		return ImGuizmo::IsUsing();
+	}
+
+	bool EditorTransformGizmo::IsOver() const
+	{
+		const EditorSelection& selection = EditorContext::GetInstance()->GetSelection();
+		return selection.HasSelection() &&
+			EditorViewportController::GetInstance()->GetTool() != EditorViewportTool::Select &&
+			ImGuizmo::IsOver();
 	}
 } // namespace Ken4lowEngine
 #endif // USE_IMGUI
