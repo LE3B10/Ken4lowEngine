@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EditorAssetRegistryV2.h"
+#include "EditorTexturePreviewCache.h"
 #include "EditorWindowManager.h"
 
 #include <algorithm>
@@ -12,8 +13,6 @@
 #include <string>
 #include <string_view>
 #include <vector>
-
-
 
 namespace Ken4lowEngine
 {
@@ -28,6 +27,13 @@ namespace Ken4lowEngine
 		void Draw();
 
 	private:
+		enum class AssetSortMode
+		{
+			Name,
+			ModifiedTime,
+			Size,
+		};
+
 		EditorContentBrowserPanel() = default;
 		~EditorContentBrowserPanel() = default;
 		EditorContentBrowserPanel(const EditorContentBrowserPanel&) = delete;
@@ -53,36 +59,59 @@ namespace Ken4lowEngine
 		void NavigateUp();
 
 		void DrawToolbar();
-
 		void DrawBreadcrumbs();
-
 		void DrawBrowserBody();
-
 		void DrawFolderTree();
-
 		void DrawFolderNode(const EditorAssetData& directory);
-
 		void DrawAssetGrid();
-
 		void DrawAssetCard(const EditorAssetData& asset, float width, bool showRelativePath);
-
+		void DrawAssetContextMenu(const EditorAssetData& asset);
+		void DrawPendingDialogs();
 		void DrawSelectedAssetDetails();
 
+		std::vector<const EditorAssetData*> BuildVisibleEntries() const;
+		void OpenAsset(const EditorAssetData& asset) const;
+		void RevealInExplorer(const EditorAssetData& asset) const;
+		void OpenCurrentFolderInExplorer() const;
+		void CopyPathToClipboard(const EditorAssetData& asset) const;
+		void BeginRename(const EditorAssetData& asset);
+		void BeginDelete(const EditorAssetData& asset);
+		void ProcessDeferredDuplicate();
+		void ApplyRename();
+		void ApplyDelete();
+		void DuplicateAsset(const EditorAssetData& asset);
+		std::filesystem::path MakeUniqueCopyPath(const EditorAssetData& asset) const;
+		void SetOperationResult(std::string message, bool failed);
+
 		static void DrawDetailRow(const char* label, const std::string& value);
-
 		static std::string FormatBytes(uintmax_t bytes);
-
 		static std::string TruncateText(const std::string& text, float maxWidth);
+		static const char* GetSortModeName(AssetSortMode mode);
 #endif
+
 	private:
 		EditorAssetRegistryV2 registry_{};
+		EditorTexturePreviewCache texturePreviewCache_{}; // 表示中のテクスチャだけをSRV化してサムネイルへ再利用する。
 		std::filesystem::path currentDirectory_{};
 		std::vector<std::filesystem::path> history_{};
 		std::size_t historyIndex_ = 0;
 		uint64_t selectedAssetId_ = 0;
 		EditorAssetType typeFilter_ = EditorAssetType::All;
+		AssetSortMode sortMode_ = AssetSortMode::Name;
 		std::array<char, 160> searchBuffer_{};
+		std::array<char, 260> renameBuffer_{};
 		float cellWidth_ = 128.0f;
 		bool initialized_ = false;
+		bool searchSubfolders_ = true;
+		bool showFolders_ = true;
+		bool sortAscending_ = true;
+		uint64_t renameAssetId_ = 0;
+		uint64_t deleteAssetId_ = 0;
+		uint64_t duplicateAssetId_ = 0;
+		bool openRenamePopup_ = false;
+		bool openDeletePopup_ = false;
+		bool duplicateRequested_ = false;
+		std::string operationMessage_;
+		bool operationFailed_ = false;
 	};
 } // namespace Ken4lowEngine
