@@ -1,23 +1,51 @@
 #define NOMINMAX
 #include "ActorWorldEditorBridge.h"
+#include "EditorCommandHistory.h"
 
 #include <SceneComponent.h>
+#include <json.hpp>
 
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <utility>
 
 namespace Ken4lowEngine
 {
-	bool Ken4lowEngine::BuildInstancedModelInstanceEditorInfo(InstancedModelComponent* component, size_t instanceIndex, uint64_t componentId, std::string_view sceneName, EditorObjectInfo& outInfo)
+	namespace
 	{
-		if (!component || instanceIndex >= component->GetEditableInstanceCount())
+		void ExecuteActiveCommand(const EditorObjectInfo& object, bool active)
 		{
-			return false;
+			bool before = active;
+			if (!object.ReadActive(before) || before == active) return;
+			EditorCommandHistory::GetInstance()->Execute(std::make_unique<EditorValueCommand<bool>>(
+				"有効状態変更", before, active,
+				[object](const bool& value)
+				{
+					object.WriteActive(value);
+					EditorContext::GetInstance()->MarkLevelDirty();
+				}));
 		}
+
+		void ExecuteRenameCommand(const EditorObjectInfo& object, std::string_view name)
+		{
+			if (name.empty() || object.displayName == name) return;
+			EditorCommandHistory::GetInstance()->Execute(std::make_unique<EditorValueCommand<std::string>>(
+				"名前変更", object.displayName, std::string(name),
+				[object](const std::string& value)
+				{
+					object.Rename(value);
+					EditorContext::GetInstance()->MarkLevelDirty();
+				}));
+		}
+	}
+
+	bool BuildInstancedModelInstanceEditorInfo(InstancedModelComponent* component, size_t instanceIndex, uint64_t componentId, std::string_view sceneName, EditorObjectInfo& outInfo)
+	{
+		if (!component || instanceIndex >= component->GetEditableInstanceCount()) return false;
 
 		const std::string instanceKey = std::to_string(componentId) + "/Instance/" + std::to_string(instanceIndex);
 		outInfo = {};
@@ -68,7 +96,33 @@ namespace Ken4lowEngine
 				instanceTransform.scale = transform.scale;
 				component->SetInstanceWorldTransform(instanceIndex, instanceTransform);
 			};
-		outInfo.canDrawObjectId = false; // PickingはComponentの連続ID 1Drawへ集約し、Instanceごとの重複描画を防ぐ。
+		outInfo.canCaptureState = true;
+		outInfo.captureState = [component, instanceIndex]()
+			{
+				InstancedModelComponent::InstanceTransform transform{};
+				if (!component->GetInstanceLocalTransform(instanceIndex, transform)) return std::string{};
+				nlohmann::json state = {
+					{ "Position", { transform.position.x, transform.position.y, transform.position.z } },
+					{ "Rotation", { transform.rotation.x, transform.rotation.y, transform.rotation.z } },
+					{ "Scale", { transform.scale.x, transform.scale.y, transform.scale.z } },
+				};
+				return state.dump();
+			};
+		outInfo.restoreState = [component, instanceIndex](std::string_view stateText)
+			{
+				const nlohmann::json state = nlohmann::json::parse(stateText, nullptr, false);
+				if (state.is_discarded()) return;
+				InstancedModelComponent::InstanceTransform transform{};
+				if (!component->GetInstanceLocalTransform(instanceIndex, transform)) return;
+				const auto position = state.value("Position", std::vector<float>{});
+				const auto rotation = state.value("Rotation", std::vector<float>{});
+				const auto scale = state.value("Scale", std::vector<float>{});
+				if (position.size() == 3) transform.position = { position[0], position[1], position[2] };
+				if (rotation.size() == 3) transform.rotation = { rotation[0], rotation[1], rotation[2] };
+				if (scale.size() == 3) transform.scale = { scale[0], scale[1], scale[2] };
+				component->SetInstanceLocalTransform(instanceIndex, transform); // 個別InstanceのUndoはGPU Buffer更新までComponentへ任せる。
+			};
+		outInfo.canDrawObjectId = false;
 		return true;
 	}
 
@@ -82,8 +136,7 @@ namespace Ken4lowEngine
 			Actor* actor = actorOwner.get();
 			if (!actor || actor->IsPendingDestroy()) continue;
 
-			const std::string actorKey = sceneNameText + "/Actor/" +
-				std::to_string(static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(actor)));
+			const std::string actorKey = sceneNameText + "/Actor/" + std::to_string(static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(actor)));
 			const uint64_t actorId = MakeStableEditorObjectId(actorKey);
 
 			EditorObjectInfo actorInfo{};
@@ -100,6 +153,19 @@ namespace Ken4lowEngine
 			actorInfo.canRename = true;
 			actorInfo.rename = [actor](std::string_view name) { actor->SetName(name); };
 			actorInfo.inspectorHint = "Actor / Component Details";
+			actorInfo.canCaptureState = true;
+			actorInfo.captureState = [actor]()
+				{
+					nlohmann::json state;
+					actor->ToJson(state);
+					state.erase("Components"); // Actor Inspectorの履歴ではComponent構成を作り直さずActor共通値だけ保持する。
+					return state.dump();
+				};
+			actorInfo.restoreState = [actor](std::string_view stateText)
+				{
+					const nlohmann::json state = nlohmann::json::parse(stateText, nullptr, false);
+					if (!state.is_discarded()) actor->FromJson(state);
+				};
 
 			if (SceneComponent* root = actor->GetRootComponent())
 			{
@@ -134,6 +200,10 @@ namespace Ken4lowEngine
 					actorWorld.SetSelectedEditorObject(actor, nullptr);
 					actorWorld.DrawSelectedInspectorContent();
 				};
+
+			EditorObjectInfo actorCommandProxy = actorInfo;
+			actorInfo.writeActive = [actorCommandProxy](bool active) { ExecuteActiveCommand(actorCommandProxy, active); };
+			actorInfo.rename = [actorCommandProxy](std::string_view name) { ExecuteRenameCommand(actorCommandProxy, name); };
 			outObjects.push_back(std::move(actorInfo));
 
 			std::unordered_map<const ActorComponent*, uint64_t> componentIds;
@@ -142,8 +212,7 @@ namespace Ken4lowEngine
 			{
 				ActorComponent* component = componentOwner.get();
 				if (!component) continue;
-				const std::string componentKey = actorKey + "/Component/" +
-					std::to_string(static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(component)));
+				const std::string componentKey = actorKey + "/Component/" + std::to_string(static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(component)));
 				componentIds.emplace(component, MakeStableEditorObjectId(componentKey));
 			}
 
@@ -168,11 +237,20 @@ namespace Ken4lowEngine
 				componentInfo.canRename = true;
 				componentInfo.rename = [component](std::string_view name) { component->SetName(name); };
 				componentInfo.inspectorHint = componentInfo.isRootComponent ? "Root Component" : "Actor Component";
-				componentInfo.canDrawObjectId = actor->IsActive() && component->IsActiveInHierarchy() && component->SupportsEditorObjectId();
-				componentInfo.drawObjectId = [component](uint32_t objectId)
+				componentInfo.canCaptureState = true;
+				componentInfo.captureState = [component]()
 					{
-						component->DrawEditorObjectId(objectId);
+						nlohmann::json state;
+						component->ToJson(state);
+						return state.dump();
 					};
+				componentInfo.restoreState = [component](std::string_view stateText)
+					{
+						const nlohmann::json state = nlohmann::json::parse(stateText, nullptr, false);
+						if (!state.is_discarded()) component->FromJson(state);
+					};
+				componentInfo.canDrawObjectId = actor->IsActive() && component->IsActiveInHierarchy() && component->SupportsEditorObjectId();
+				componentInfo.drawObjectId = [component](uint32_t objectId) { component->DrawEditorObjectId(objectId); };
 
 				if (auto* sceneComponent = dynamic_cast<SceneComponent*>(component))
 				{
@@ -233,6 +311,10 @@ namespace Ken4lowEngine
 						actorWorld.DrawSelectedInspectorContent();
 					};
 
+				EditorObjectInfo componentCommandProxy = componentInfo;
+				componentInfo.writeActive = [componentCommandProxy](bool active) { ExecuteActiveCommand(componentCommandProxy, active); };
+				componentInfo.rename = [componentCommandProxy](std::string_view name) { ExecuteRenameCommand(componentCommandProxy, name); };
+
 				InstancedModelComponent* instancedComponent = dynamic_cast<InstancedModelComponent*>(component);
 				if (instancedComponent && componentInfo.canDrawObjectId)
 				{
@@ -256,10 +338,7 @@ namespace Ken4lowEngine
 					for (size_t instanceIndex = 0; instanceIndex < visibleCount; ++instanceIndex)
 					{
 						EditorObjectInfo instanceInfo{};
-						if (BuildInstancedModelInstanceEditorInfo(instancedComponent, instanceIndex, componentId, sceneNameText, instanceInfo))
-						{
-							outObjects.push_back(std::move(instanceInfo));
-						}
+						if (BuildInstancedModelInstanceEditorInfo(instancedComponent, instanceIndex, componentId, sceneNameText, instanceInfo)) outObjects.push_back(std::move(instanceInfo));
 					}
 
 					const EditorSelection& selection = EditorContext::GetInstance()->GetSelection();
@@ -272,10 +351,7 @@ namespace Ken4lowEngine
 							if (selectedIndex >= visibleCount && selectedIndex < instanceCount)
 							{
 								EditorObjectInfo selectedInfo{};
-								if (BuildInstancedModelInstanceEditorInfo(instancedComponent, selectedIndex, componentId, sceneNameText, selectedInfo))
-								{
-									outObjects.push_back(std::move(selectedInfo)); // 512件超でもViewportで選んだInstanceだけはSelection更新対象へ残す。
-								}
+								if (BuildInstancedModelInstanceEditorInfo(instancedComponent, selectedIndex, componentId, sceneNameText, selectedInfo)) outObjects.push_back(std::move(selectedInfo));
 							}
 						}
 					}
@@ -283,5 +359,4 @@ namespace Ken4lowEngine
 			}
 		}
 	}
-
-}
+} // namespace Ken4lowEngine
