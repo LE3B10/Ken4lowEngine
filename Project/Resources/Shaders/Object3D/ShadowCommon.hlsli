@@ -174,6 +174,7 @@ float CalculatePointCubeShadow(
     SamplerComparisonState shadowSampler)
 {
     if (shadowParam.shadowTechnique != 3) { return 1.0f; }
+
     const float3 lightPosition = shadowParam.pointLightPositionAndFar.xyz;
     const float farZ = max(shadowParam.pointLightPositionAndFar.w, 0.02f);
     const float nearZ = clamp(shadowParam.cameraPositionAndPointNear.w, 0.01f, farZ * 0.5f);
@@ -183,10 +184,25 @@ float CalculatePointCubeShadow(
     const float distanceToLight = length(fromLight);
     if (distanceToLight <= nearZ || distanceToLight >= farZ) { return 1.0f; }
 
-	// Cubeの各Faceで実際にProjectionのZへ入る値は、方向ベクトルの最大絶対成分になる。
-	const float faceDepth = max(abs(fromLight.x), max(abs(fromLight.y), abs(fromLight.z)));
-    const float projectedDepth = farZ / (farZ - nearZ) - (farZ * nearZ) / ((farZ - nearZ) * max(faceDepth, nearZ));
-    const float visibility = pointShadowMap.SampleCmpLevelZero(shadowSampler, normalize(fromLight), projectedDepth - shadowParam.shadowBias);
+    const float compareDepth = saturate(distanceToLight / farZ) - shadowParam.shadowBias;
+    const float3 sampleDirection = normalize(fromLight);
+
+    uint shadowWidth, shadowHeight, mipLevels;
+    pointShadowMap.GetDimensions(0, shadowWidth, shadowHeight, mipLevels);
+    const float texelAngle = 2.0f / max((float)shadowWidth, 1.0f);
+    const float3 referenceUp = abs(sampleDirection.y) > 0.98f
+        ? float3(1.0f, 0.0f, 0.0f)
+        : float3(0.0f, 1.0f, 0.0f);
+    const float3 tangent = normalize(cross(referenceUp, sampleDirection));
+    const float3 bitangent = normalize(cross(sampleDirection, tangent));
+
+    float visibility = pointShadowMap.SampleCmpLevelZero(shadowSampler, sampleDirection, compareDepth);
+    visibility += pointShadowMap.SampleCmpLevelZero(shadowSampler, normalize(sampleDirection + tangent * texelAngle), compareDepth);
+    visibility += pointShadowMap.SampleCmpLevelZero(shadowSampler, normalize(sampleDirection - tangent * texelAngle), compareDepth);
+    visibility += pointShadowMap.SampleCmpLevelZero(shadowSampler, normalize(sampleDirection + bitangent * texelAngle), compareDepth);
+    visibility += pointShadowMap.SampleCmpLevelZero(shadowSampler, normalize(sampleDirection - bitangent * texelAngle), compareDepth);
+    visibility /= 5.0f; // Cube Face境界を跨いでも同じ距離基準の5tap PCFとして評価する。
+
     return lerp(1.0f - saturate(shadowParam.shadowStrength), 1.0f, visibility);
 }
 
