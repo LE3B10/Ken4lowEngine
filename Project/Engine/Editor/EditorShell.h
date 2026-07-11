@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EditorAssetPlacementService.h"
 #include "EditorContentBrowserPanel.h"
 #include "EditorContext.h"
 #include "EditorHierarchyPanel.h"
@@ -46,6 +47,7 @@ namespace Ken4lowEngine
 			ApplyViewportVisualPolicy();
 			DrawPlaceActors();
 			EditorContentBrowserPanel::GetInstance()->Draw(); // Resources全体を扱うContent Browser V2をDockSpaceへ登録する。
+			EditorContentBrowserPanel::GetInstance()->UpdateAssetDragSource(); // 選択したモデルやPrefabをViewportへドラッグできるようにする。
 			EditorHierarchyPanel::GetInstance()->Draw(); // World OutlinerとDetailsを同じ選択状態で先に登録する。
 #endif
 		}
@@ -63,6 +65,7 @@ namespace Ken4lowEngine
 
 			ApplyViewportVisualPolicy();
 			DrawViewportToolbar();
+			DrawViewportAssetDropTarget();
 #endif
 		}
 
@@ -243,6 +246,114 @@ namespace Ken4lowEngine
 							// 再生状態は維持したまま、Main Viewportへ渡す入力だけを切り替える。
 						}
 					}
+				}
+			}
+			ImGui::End();
+		}
+
+		/// <summary>
+		/// Content Browserからドラッグ中のアセットをMain Viewportで受け取り、配置位置へ生成します。
+		/// </summary>
+		void DrawViewportAssetDropTarget()
+		{
+			const ImGuiPayload* activePayload = ImGui::GetDragDropPayload();
+			if (!activePayload || !activePayload->IsDataType(kEditorAssetDragDropPayloadType))
+			{
+				return;
+			}
+
+			auto* windowManager = EditorWindowManager::GetInstance();
+			const EditorViewportRect& viewportRect = windowManager->GetMainViewportRect();
+			const float viewportWidth = viewportRect.screenMax.x - viewportRect.screenMin.x;
+			const float viewportHeight = viewportRect.screenMax.y - viewportRect.screenMin.y;
+			if (!viewportRect.valid || viewportWidth <= 1.0f || viewportHeight <= 1.0f)
+			{
+				return;
+			}
+
+			ImGui::SetNextWindowPos(ImVec2(viewportRect.screenMin.x, viewportRect.screenMin.y), ImGuiCond_Always);
+			ImGui::SetNextWindowSize(ImVec2(viewportWidth, viewportHeight), ImGuiCond_Always);
+			ImGui::SetNextWindowBgAlpha(0.0f);
+			const ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
+				ImGuiWindowFlags_NoDocking |
+				ImGuiWindowFlags_NoSavedSettings |
+				ImGuiWindowFlags_NoMove |
+				ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoScrollbar |
+				ImGuiWindowFlags_NoScrollWithMouse |
+				ImGuiWindowFlags_NoFocusOnAppearing |
+				ImGuiWindowFlags_NoNav |
+				ImGuiWindowFlags_NoBackground;
+
+			if (ImGui::Begin("##MainViewportAssetDropTarget", nullptr, flags))
+			{
+				ImGui::InvisibleButton("##ViewportAssetDropArea", ImVec2(viewportWidth, viewportHeight));
+				if (ImGui::BeginDragDropTarget())
+				{
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(
+						kEditorAssetDragDropPayloadType,
+						ImGuiDragDropFlags_AcceptBeforeDelivery | ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+					if (payload && payload->DataSize == sizeof(EditorAssetDragDropPayload))
+					{
+						const bool canPlace = !EditorPlayController::GetInstance()->IsPlaying();
+						const ImU32 borderColor = ImGui::GetColorU32(
+							canPlace ? ImVec4(0.95f, 0.62f, 0.12f, 1.0f) : ImVec4(0.95f, 0.24f, 0.20f, 1.0f));
+						ImDrawList* drawList = ImGui::GetWindowDrawList();
+						drawList->AddRect(
+							ImGui::GetItemRectMin(),
+							ImGui::GetItemRectMax(),
+							borderColor,
+							2.0f,
+							0,
+							4.0f);
+
+						const char* guideText = canPlace
+							? "ここにドロップしてアセットを配置"
+							: "再生中はアセットを配置できません";
+						const ImVec2 textSize = ImGui::CalcTextSize(guideText);
+						const ImVec2 itemMin = ImGui::GetItemRectMin();
+						const ImVec2 itemMax = ImGui::GetItemRectMax();
+						drawList->AddText(
+							ImVec2(
+								(itemMin.x + itemMax.x - textSize.x) * 0.5f,
+								(itemMin.y + itemMax.y - textSize.y) * 0.5f),
+							borderColor,
+							guideText);
+
+						if (payload->IsDelivery())
+						{
+							if (!canPlace)
+							{
+								windowManager->AddOutputLog(EditorLogLevel::Warning, "再生中はビューポートへアセットを配置できません。");
+							}
+							else
+							{
+								const ImVec2 mouse = ImGui::GetMousePos();
+								Vector3 worldPosition{};
+								const bool positionResolved = EditorAssetPlacementService::CalculateDropPosition(
+									{ mouse.x, mouse.y },
+									viewportRect.screenMin,
+									viewportRect.imageSize,
+									worldPosition);
+								if (!positionResolved)
+								{
+									windowManager->AddOutputLog(EditorLogLevel::Error, "ドロップ位置をワールド座標へ変換できませんでした。");
+								}
+								else
+								{
+									const auto* assetPayload = static_cast<const EditorAssetDragDropPayload*>(payload->Data);
+									const EditorAssetPlacementResult result = EditorAssetPlacementService::PlaceAsset(
+										windowManager->GetSceneManager(),
+										*assetPayload,
+										worldPosition);
+									windowManager->AddOutputLog(
+										result.succeeded ? EditorLogLevel::Info : EditorLogLevel::Error,
+										result.message);
+								}
+							}
+						}
+					}
+					ImGui::EndDragDropTarget();
 				}
 			}
 			ImGui::End();
