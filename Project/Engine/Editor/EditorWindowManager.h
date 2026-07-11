@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Vector2.h"
 #include "EditorContext.h"
 #include "EditorAssetBrowser.h"
@@ -10,7 +10,6 @@
 namespace Ken4lowEngine
 {
 	class SceneManager;
-
 
 	/// <summary>
 	/// UE5風エディタUIの各ウィンドウ表示状態を保持します。
@@ -88,6 +87,7 @@ namespace Ken4lowEngine
 
 		// SceneManagerの所有権はGameApplicationに残し、Editorは参照だけを保持する。
 		void SetSceneManager(SceneManager* sceneManager) { sceneManager_ = sceneManager; }
+		SceneManager* GetSceneManager() const { return sceneManager_; }
 
 		void Draw();
 		void DrawMenuBar();
