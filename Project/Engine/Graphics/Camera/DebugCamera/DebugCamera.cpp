@@ -85,7 +85,7 @@ namespace Ken4lowEngine
 				const float rawX = static_cast<float>(input->GetMouseMoveX());
 				const float rawY = static_cast<float>(input->GetMouseMoveY());
 				pitchDelta = std::clamp(rawY * 0.003f, -0.15f, 0.15f);
-				yawDelta = std::clamp(-rawX * 0.003f, -0.15f, 0.15f);
+				yawDelta = std::clamp(-rawX * 0.003f, -0.15f, 0.15f); // カーソル絶対位置ではなくDirectInputの相対移動量だけを使う。
 			}
 		}
 
