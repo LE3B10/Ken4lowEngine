@@ -18,8 +18,8 @@ namespace Ken4lowEngine
 
 	void EditorPlayController::Pause()
 	{
-		// 一時停止は入力キャプチャ状態を変えず、再生状態だけを停止させる。
 		playState_ = EditorPlayState::Pause;
+		inputMode_ = EditorInputMode::GameReleased; // 一時停止後すぐにPause/Stopを操作できるようカーソルをEditorへ返す。
 	}
 
 	void EditorPlayController::Stop()
