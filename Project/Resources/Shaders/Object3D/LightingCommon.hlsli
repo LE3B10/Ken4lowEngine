@@ -121,6 +121,7 @@ LightingTerms EvaluateDirectionalLight(
     ShadowParameter shadowParam,
     float shininess,
     LightingSettings lightingSettings,
+    uint lightIndex,
     Texture2D<float> shadowMap,
     ExtendedShadowParameter extendedShadowParam,
     Texture2DArray<float> csmShadowMaps,
@@ -132,9 +133,18 @@ LightingTerms EvaluateDirectionalLight(
     float NdotL = CalculateDiffuseFactor(normal, lightDir, lightingSettings);
     float3 lightColor = light.color.rgb * light.intensity;
 
-    float shadow = (shadowParam.shadowMode == 4)
-        ? CalculateCsmShadow(worldPosition, normal, lightDir, extendedShadowParam, csmShadowMaps, shadowSampler)
-        : CalculateShadow(worldPosition, normal, lightDir, shadowParam, shadowMap, shadowSampler);
+    float shadow = 1.0f;
+    if (lightIndex == extendedShadowParam.shadowCasterLightIndex)
+    {
+        if (extendedShadowParam.shadowTechnique == SHADOW_TECHNIQUE_CSM)
+        {
+            shadow = CalculateCsmShadow(worldPosition, normal, lightDir, extendedShadowParam, csmShadowMaps, shadowSampler);
+        }
+        else if (extendedShadowParam.shadowTechnique == SHADOW_TECHNIQUE_DIRECTIONAL)
+        {
+            shadow = CalculateDirectionalShadow(worldPosition, normal, lightDir, extendedShadowParam, shadowMap, shadowSampler);
+        }
+    }
 
     terms.diffuse = lightColor * NdotL * shadow;
     terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess, lightingSettings) * shadow;
@@ -167,7 +177,7 @@ LightingTerms EvaluatePointLight(
     float NdotL = CalculateDiffuseFactor(normal, lightDir, lightingSettings);
     float3 lightColor = light.color.rgb * (light.intensity * atten);
 
-    const float shadow = (extendedShadowParam.shadowTechnique == 3 && lightIndex == extendedShadowParam.shadowCasterLightIndex)
+    const float shadow = (extendedShadowParam.shadowTechnique == SHADOW_TECHNIQUE_POINT_CUBE && lightIndex == extendedShadowParam.shadowCasterLightIndex)
         ? CalculatePointCubeShadow(worldPosition, normal, lightDir, extendedShadowParam, pointShadowMap, shadowSampler)
         : 1.0f;
     terms.diffuse = lightColor * NdotL * shadow;
@@ -183,7 +193,9 @@ LightingTerms EvaluateSpotLight(
     ShadowParameter shadowParam,
     float shininess,
     LightingSettings lightingSettings,
+    uint lightIndex,
     Texture2D<float> shadowMap,
+    ExtendedShadowParameter extendedShadowParam,
     SamplerComparisonState shadowSampler)
 {
     LightingTerms terms = MakeEmptyLightingTerms();
@@ -203,7 +215,9 @@ LightingTerms EvaluateSpotLight(
     float NdotL = CalculateDiffuseFactor(normal, lightDir, lightingSettings);
     float3 lightColor = light.color.rgb * (light.intensity * atten * spot);
 
-    float shadow = (shadowParam.shadowMode == 2) ? CalculateShadow(worldPosition, normal, lightDir, shadowParam, shadowMap, shadowSampler) : 1.0f;
+    const float shadow = (extendedShadowParam.shadowTechnique == SHADOW_TECHNIQUE_SPOT_LINEAR && lightIndex == extendedShadowParam.shadowCasterLightIndex)
+        ? CalculateSpotLinearShadow(worldPosition, normal, lightDir, extendedShadowParam, shadowMap, shadowSampler)
+        : 1.0f;
     terms.diffuse = lightColor * NdotL * shadow;
     terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess, lightingSettings) * NdotL * shadow;
     return terms;
@@ -270,6 +284,7 @@ float3 AccumulateLighting(
                 shadowParam,
                 shininess,
                 lightingSettings,
+                i,
                 shadowMap,
                 extendedShadowParam,
                 csmShadowMaps,
@@ -278,7 +293,7 @@ float3 AccumulateLighting(
         }
         else if (light.lightType == LIGHT_TYPE_POINT)
         {
-			// 選択中Point Lightだけが6面Cube Shadowを使用し、他のPoint Lightは従来の減衰照明を維持する。
+            // 選択中Point Lightだけが6面Cube Shadowを使用し、他のPoint Lightは従来の減衰照明を維持する。
             terms = EvaluatePointLight(
                 light,
                 worldPosition,
@@ -302,7 +317,9 @@ float3 AccumulateLighting(
                 shadowParam,
                 shininess,
                 lightingSettings,
+                i,
                 shadowMap,
+                extendedShadowParam,
                 shadowSampler);
             activeLightCount++;
         }
