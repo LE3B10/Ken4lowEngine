@@ -128,7 +128,7 @@ namespace Ken4lowEngine
 			const size_t count = std::min(sourceInstances_.size(), maxInstanceCount_);
 			std::copy_n(sourceInstances_.begin(), count, mappedInstances_);
 			instanceCount_ = count;
-			return count; // Picking時はカリングで順番を詰め替えず、SV_InstanceIDと編集Indexを一致させる。
+			return count; // カリングで順番を詰め替えず、SV_InstanceIDと個別編集Indexを一致させる。
 		}
 
 		DirectXCommon* dxCommon_ = nullptr;
