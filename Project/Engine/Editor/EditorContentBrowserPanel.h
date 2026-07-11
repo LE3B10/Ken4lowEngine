@@ -2,8 +2,13 @@
 
 #include "EditorAssetDragDrop.h"
 #include "EditorAssetRegistryV2.h"
+#include "EditorPlayController.h"
 #include "EditorTexturePreviewCache.h"
+#include "EditorViewportController.h"
+#include "EditorViewportPicking.h"
 #include "EditorWindowManager.h"
+
+#include <SceneManager.h>
 
 #include <algorithm>
 #include <array>
@@ -37,6 +42,8 @@ namespace Ken4lowEngine
 		void UpdateAssetDragSource()
 		{
 #ifdef USE_IMGUI
+			UpdateViewportPicking(); // Content Browserの選択状態に関係なくMain Viewportクリックを先に処理する。
+
 			const EditorAssetData* asset = registry_.FindById(selectedAssetId_);
 			if (!asset || asset->isDirectory || !IsViewportPlaceableAsset(asset->type))
 			{
@@ -81,6 +88,69 @@ namespace Ken4lowEngine
 		EditorContentBrowserPanel& operator=(const EditorContentBrowserPanel&) = delete;
 
 #ifdef USE_IMGUI
+		void UpdateViewportPicking()
+		{
+			auto* viewportController = EditorViewportController::GetInstance();
+			if (!viewportController->IsEditorDisplay() || viewportController->GetTool() != EditorViewportTool::Select ||
+				EditorPlayController::GetInstance()->IsPlaying() || ImGui::GetDragDropPayload() != nullptr ||
+				!ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+			{
+				return;
+			}
+
+			auto* windowManager = EditorWindowManager::GetInstance();
+			const EditorViewportRect& viewportRect = windowManager->GetMainViewportRect();
+			if (!viewportRect.valid)
+			{
+				return;
+			}
+
+			const ImVec2 mouse = ImGui::GetMousePos();
+			const bool insideViewport =
+				mouse.x >= viewportRect.screenMin.x && mouse.y >= viewportRect.screenMin.y &&
+				mouse.x <= viewportRect.screenMax.x && mouse.y <= viewportRect.screenMax.y;
+			const bool insideToolbar = mouse.y <= viewportRect.screenMin.y + 58.0f;
+			if (!insideViewport || insideToolbar)
+			{
+				return;
+			}
+
+			SceneManager* sceneManager = windowManager->GetSceneManager();
+			BaseScene* scene = sceneManager ? sceneManager->GetCurrentScene() : nullptr;
+			if (!scene)
+			{
+				return;
+			}
+
+			EditorViewportPickingRay ray{};
+			if (!EditorViewportPicking::BuildRay(
+				{ mouse.x, mouse.y },
+				viewportRect.screenMin,
+				viewportRect.imageSize,
+				ray))
+			{
+				windowManager->AddOutputLog(EditorLogLevel::Warning, "Viewport Picking用Rayを作成できませんでした。");
+				return;
+			}
+
+			std::vector<EditorObjectInfo> objects;
+			scene->CollectEditorObjects(objects);
+			EditorObjectInfo hitObject{};
+			float hitDistance = 0.0f;
+			if (EditorViewportPicking::PickClosest(ray, objects, hitObject, &hitDistance))
+			{
+				EditorContext::GetInstance()->GetSelection().Select(hitObject);
+				windowManager->AddOutputLog(
+					EditorLogLevel::Info,
+					"Viewport選択: " + hitObject.displayName + " / ID=" + std::to_string(hitObject.id));
+			}
+			else
+			{
+				EditorContext::GetInstance()->GetSelection().Clear();
+				windowManager->AddOutputLog(EditorLogLevel::Info, "Viewportの空き領域を選択したため選択を解除しました。");
+			}
+		}
+
 		void InitializeIfNeeded();
 		void RefreshRegistry();
 		void NavigateTo(const std::filesystem::path& directory, bool recordHistory);
