@@ -20,6 +20,7 @@ namespace Ken4lowEngine
 {
 	/// <summary>
 	/// R32_UINTのObject-ID RenderTargetへEditor Componentを描画し、クリックした1PixelだけをReadbackします。
+	/// Instancing Componentは連続ID範囲を予約し、1Drawのまま各Instanceを識別します。
 	/// </summary>
 	class EditorGpuPickingManager
 	{
@@ -38,15 +39,11 @@ namespace Ken4lowEngine
 		}
 
 		void Initialize();
-		
 		void Finalize();
-
 		void RequestPick(uint32_t pixelX, uint32_t pixelY, EditorViewportSelectionMode selectionMode);
-		
 		bool HasPendingRequest() const { return pendingRequest_.pending; }
-
 		ExecuteResult Execute(BaseScene* scene);
-		
+
 	private:
 		struct PickRequest
 		{
@@ -62,20 +59,14 @@ namespace Ken4lowEngine
 		EditorGpuPickingManager& operator=(const EditorGpuPickingManager&) = delete;
 
 		void CreateObjectIdRenderTarget();
-		
 		void CreateDepthBuffer();
-
 		void CreateReadbackBuffer();
-		
 		void CopyRequestedPixel(ID3D12GraphicsCommandList* commandList, uint32_t pixelX, uint32_t pixelY);
-		
 		uint32_t ReadbackObjectId() const;
-		
 		static const EditorObjectInfo* FindActorAncestor(
 			const std::vector<EditorObjectInfo>& objects,
 			const EditorObjectInfo& hitObject);
-		
-	private:
+
 		DirectXCommon* dxCommon_ = nullptr;
 		Microsoft::WRL::ComPtr<ID3D12Resource> objectIdBuffer_;
 		Microsoft::WRL::ComPtr<ID3D12Resource> depthBuffer_;
