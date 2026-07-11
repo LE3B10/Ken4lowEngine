@@ -12,6 +12,7 @@
 #include <DebugCamera.h>
 #include <Matrix4x4.h>
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <Externals/ImGuizmo/ImGuizmo.h>
 
 #include <algorithm>
@@ -49,9 +50,9 @@ namespace Ken4lowEngine
 		void UpdateToolShortcuts(EditorViewportController& controller)
 		{
 			const ImGuiIO& io = ImGui::GetIO();
-			if (io.WantTextInput || ImGui::IsAnyItemActive())
+			if (io.WantTextInput || ImGui::IsAnyItemActive() || io.MouseDown[ImGuiMouseButton_Right] || io.MouseDown[ImGuiMouseButton_Middle])
 			{
-				return;
+				return; // Editor Camera操作中はW/E/QをGizmoショートカットとして処理しない。
 			}
 
 			if (ImGui::IsKeyPressed(ImGuiKey_Q, false)) controller.SetTool(EditorViewportTool::Select);
@@ -72,6 +73,7 @@ namespace Ken4lowEngine
 
 			const Vector3 forward = cameraManager->GetActiveCameraForward();
 			debugCamera->SetTranslate(worldTransform.position - forward * 8.0f);
+			debugCamera->RefreshViewProjection();
 		}
 	}
 
@@ -117,6 +119,12 @@ namespace Ken4lowEngine
 			return;
 		}
 
+		ImGuiWindow* viewportWindow = ImGui::FindWindowByName("Main Viewport");
+		if (!viewportWindow)
+		{
+			return;
+		}
+
 		EditorTransform worldTransform{};
 		if (!selected.TryReadWorldTransform(worldTransform))
 		{
@@ -143,7 +151,9 @@ namespace Ken4lowEngine
 		gizmoStyle.ScaleLineThickness = 4.0f;
 		gizmoStyle.ScaleLineCircleSize = 7.0f;
 		gizmoStyle.CenterCircleSize = 6.0f;
-		ImGuizmo::SetDrawlist(ImGui::GetForegroundDrawList());
+		// Main Viewport自身のDrawListとHover判定を使い、表示できるのに掴めない状態を解消する。
+		ImGuizmo::SetDrawlist(viewportWindow->DrawList);
+		ImGuizmo::SetAlternativeWindow(viewportWindow);
 		ImGuizmo::SetRect(
 			viewportRect.screenMin.x,
 			viewportRect.screenMin.y,
