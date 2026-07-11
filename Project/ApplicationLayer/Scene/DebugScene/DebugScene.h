@@ -29,7 +29,7 @@ namespace Ken4lowEngine
 namespace K4E = ::Ken4lowEngine;
 
 /// -------------------------------------------------------------
-///					　	デバッグシーン
+///　　　　　　　　　　デバッグシーン
 /// -------------------------------------------------------------
 class DebugScene : public K4E::BaseScene
 {
@@ -45,6 +45,9 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Update() override;
 	// Editor停止中もDebugScene専用負荷検証だけは更新する。
 	void UpdateEditor(float deltaTime) override;
+
+	// ShadowSystemがCasterを決める前にActorのLightComponentを同期する。
+	void PrepareShadowPass() override;
 
 	// 仮想3D描画処理
 	void Draw3DObjects() override;
