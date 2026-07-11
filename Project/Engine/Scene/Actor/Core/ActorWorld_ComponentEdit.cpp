@@ -2,9 +2,9 @@
 
 #include "ActorJsonSerializer.h"
 #include "ComponentFactory.h"
-#include "EditorCommandHistory.h"
-#include "EditorContext.h"
 #include "SceneComponent.h"
+#include <Editor/EditorCommandHistory.h>
+#include <Editor/EditorContext.h>
 
 #include <json.hpp>
 #include <memory>
