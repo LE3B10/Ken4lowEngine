@@ -1,6 +1,9 @@
 #pragma once
+#include "Engine/Graphics/Culling/BoundingVolume.h"
+
 #include <string>
 #include <string_view>
+#include <vector>
 #include <json.hpp>
 
 #ifdef USE_IMGUI
@@ -61,6 +64,11 @@ namespace Ken4lowEngine
 
 		/// <summary>このComponentがShadow Caster設定を持つか返す。</summary>
 		virtual bool SupportsShadowCasting() const { return false; }
+
+		/// <summary>
+		/// Main ViewportのEditor選択で使用するワールド空間Boundsを追加する。
+		/// </summary>
+		virtual void CollectEditorPickingSpheres([[maybe_unused]] std::vector<BoundingSphere>& outSpheres) const {}
 
 		/// <summary>
 		/// EditorやDebug用のImGui描画処理
