@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "ShadowMapArrayRenderTarget.h"
 
 #include "DirectXCommon.h"
