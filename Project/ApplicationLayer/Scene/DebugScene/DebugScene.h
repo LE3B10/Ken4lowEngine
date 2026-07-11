@@ -10,6 +10,8 @@
 #include <LightManager.h>
 #include <PhysicsWorld.h>
 #include <PhysicsDebugDraw.h>
+#include <RigidbodyComponent.h>
+#include <SceneComponent.h>
 
 #include <algorithm>
 #include <cmath>
@@ -34,9 +36,6 @@ namespace Ken4lowEngine
 
 namespace K4E = ::Ken4lowEngine;
 
-/// -------------------------------------------------------------
-///　　　　　　　　　　デバッグシーン
-/// -------------------------------------------------------------
 class DebugScene : public K4E::BaseScene
 {
 public:
@@ -46,37 +45,66 @@ public:
 	void Initialize() override;
 	void Update() override;
 	void UpdateEditor(float deltaTime) override;
-	void BeginEditorPlay() override;
-	void EndEditorPlay() override;
+
+	void BeginEditorPlay() override
+	{
+		editorActorSnapshots_.clear();
+		for (const auto& actorOwner : actorWorld_.GetActors())
+		{
+			K4E::Actor* actor = actorOwner.get();
+			K4E::SceneComponent* root = actor ? actor->GetRootComponent() : nullptr;
+			if (!actor || !root || actor->IsPendingDestroy())
+			{
+				continue;
+			}
+			editorActorSnapshots_.push_back({ actor, root->GetLocalPosition(), root->GetLocalRotation(), root->GetLocalScale() });
+		}
+		// Play開始時点のEdit Worldだけを保存し、Pause再開では取り直さない。
+	}
+
+	void EndEditorPlay() override
+	{
+		for (const EditorActorTransformSnapshot& snapshot : editorActorSnapshots_)
+		{
+			const bool actorExists = std::any_of(actorWorld_.GetActors().begin(), actorWorld_.GetActors().end(),
+				[&snapshot](const std::unique_ptr<K4E::Actor>& actor) { return actor.get() == snapshot.actor; });
+			if (!actorExists || !snapshot.actor)
+			{
+				continue;
+			}
+
+			if (K4E::SceneComponent* root = snapshot.actor->GetRootComponent())
+			{
+				root->SetLocalPosition(snapshot.position);
+				root->SetLocalRotation(snapshot.rotation);
+				root->SetLocalScale(snapshot.scale);
+				root->RefreshWorldTransform();
+			}
+			for (K4E::RigidbodyComponent* rigidbody : snapshot.actor->GetComponents<K4E::RigidbodyComponent>())
+			{
+				if (rigidbody) rigidbody->SetVelocity({ 0.0f, 0.0f, 0.0f });
+			}
+		}
+		editorActorSnapshots_.clear(); // Stop後はPlay中の物理変化を残さず編集状態へ戻す。
+	}
 
 	void CollectEditorObjects(std::vector<K4E::EditorObjectInfo>& outObjects) override
 	{
 		K4E::CollectActorWorldEditorObjects(actorWorld_, outObjects, "DebugScene");
 	}
 
-	K4E::ActorWorld* GetEditorActorWorld() override
-	{
-		return &actorWorld_;
-	}
+	K4E::ActorWorld* GetEditorActorWorld() override { return &actorWorld_; }
 
 	void PrepareShadowPass() override
 	{
 		std::vector<K4E::LightManager::PunctualLightGPU> componentLights;
 		for (const auto& actor : actorWorld_.GetActors())
 		{
-			if (!actor || actor->IsPendingDestroy() || !actor->IsActive())
-			{
-				continue;
-			}
-
+			if (!actor || actor->IsPendingDestroy() || !actor->IsActive()) continue;
 			for (const K4E::LightComponent* lightComponent : actor->GetComponents<K4E::LightComponent>())
 			{
 				if (!lightComponent || !lightComponent->IsActiveInHierarchy() || !lightComponent->IsEnabled() ||
-					lightComponent->GetLightType() == K4E::LightComponent::LightType::None)
-				{
-					continue;
-				}
-
+					lightComponent->GetLightType() == K4E::LightComponent::LightType::None) continue;
 				const K4E::Vector3& color = lightComponent->GetColor();
 				K4E::LightManager::PunctualLightGPU light{};
 				light.lightType = lightComponent->GetLightTypeValue();
@@ -96,7 +124,6 @@ public:
 				componentLights.push_back(light);
 			}
 		}
-
 		K4E::LightManager::GetInstance()->SetLightComponentLights(componentLights);
 	}
 
@@ -120,12 +147,9 @@ private:
 	void ReloadAnimationModelTest();
 	void DrawAnimationModelTestImGui();
 	void UpdateAnimationModelInputTest(float deltaTime);
-	void RefreshActorEditorVisuals(float deltaTime);
 
-private:
 	K4E::Input* input_ = nullptr;
 	bool isDebugCamera_ = false;
-
 	std::unique_ptr<CollisionManager> collisionManager_;
 	std::unique_ptr<PhysicsDebugController> physicsDebugController_;
 	std::unique_ptr<AnimationModelBatchTest> animationModelBatchTest_;
@@ -191,5 +215,5 @@ private:
 	K4E::ActorWorld actorWorld_;
 	K4E::PhysicsWorld actorPhysicsWorld_;
 	K4E::PhysicsDebugDraw actorPhysicsDebugDraw_;
-	std::vector<EditorActorTransformSnapshot> editorActorSnapshots_; // Play開始時のEdit WorldをStopで復元する。
+	std::vector<EditorActorTransformSnapshot> editorActorSnapshots_;
 };
