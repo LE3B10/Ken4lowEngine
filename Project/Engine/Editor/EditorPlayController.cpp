@@ -11,20 +11,20 @@ namespace Ken4lowEngine
 
 	void EditorPlayController::Play()
 	{
-		// Play開始時はゲーム操作へ即入れるように入力キャプチャも同時に有効化する。
+		// 再生開始時はゲーム操作へ即入れるように入力キャプチャも同時に有効化する。
 		playState_ = EditorPlayState::Play;
 		inputMode_ = EditorInputMode::GameCaptured;
 	}
 
 	void EditorPlayController::Pause()
 	{
-		// Pauseは入力キャプチャ状態を変えず、Play状態だけを一時停止へ遷移させる。
+		// 一時停止は入力キャプチャ状態を変えず、再生状態だけを停止させる。
 		playState_ = EditorPlayState::Pause;
 	}
 
 	void EditorPlayController::Stop()
 	{
-		// Stop時は編集へ戻し、ゲーム入力を解放して各SceneのEsc処理とは独立させる。
+		// 停止時は編集へ戻し、ゲーム入力を解放して各SceneのEsc処理とは独立させる。
 		playState_ = EditorPlayState::Edit;
 		inputMode_ = EditorInputMode::GameReleased;
 	}
@@ -43,13 +43,13 @@ namespace Ken4lowEngine
 
 	void EditorPlayController::CaptureGameInput()
 	{
-		// GameCapturedはゲーム更新を止めずMain Viewport上の操作だけをゲームへ戻す。
+		// ゲーム入力取得中もゲーム更新は止めず、Main Viewport上の操作だけをゲームへ渡す。
 		inputMode_ = EditorInputMode::GameCaptured;
 	}
 
 	void EditorPlayController::ReleaseGameInput()
 	{
-		// GameReleasedはゲーム更新を継続したまま入力だけEditor/ImGuiへ解放する。
+		// 入力解放中はゲーム更新を継続したまま、操作だけをEditorとImGuiへ戻す。
 		inputMode_ = EditorInputMode::GameReleased;
 	}
 
@@ -61,7 +61,7 @@ namespace Ken4lowEngine
 
 	void EditorPlayController::SetDebugFreezeEnabled(bool enabled)
 	{
-		// Debug Freezeは入力キャプチャとは別機能としてToolbar表示だけ同期する。
+		// デバッグ停止は入力キャプチャとは別機能としてToolbar表示だけ同期する。
 		debugFreezeEnabled_ = enabled;
 	}
 
@@ -100,12 +100,12 @@ namespace Ken4lowEngine
 		switch (playState_)
 		{
 		case EditorPlayState::Play:
-			return "Play";
+			return "再生中";
 		case EditorPlayState::Pause:
-			return "Pause";
+			return "一時停止";
 		case EditorPlayState::Edit:
 		default:
-			return "Edit";
+			return "編集中";
 		}
 	}
 
@@ -114,12 +114,12 @@ namespace Ken4lowEngine
 		switch (inputMode_)
 		{
 		case EditorInputMode::GameCaptured:
-			return "GameCaptured";
+			return "ゲーム入力取得";
 		case EditorInputMode::GameReleased:
-			return "GameReleased";
+			return "エディターへ解放";
 		case EditorInputMode::Editor:
 		default:
-			return "Editor";
+			return "エディター入力";
 		}
 	}
 
@@ -128,18 +128,18 @@ namespace Ken4lowEngine
 		switch (inputMode_)
 		{
 		case EditorInputMode::GameCaptured:
-			return "Input: Game Captured";
+			return "入力: ゲーム操作";
 		case EditorInputMode::GameReleased:
-			return "Input: Editor Released";
+			return "入力: エディターへ解放";
 		case EditorInputMode::Editor:
 		default:
-			return "Input: Editor";
+			return "入力: エディター操作";
 		}
 	}
 
 	const char* EditorPlayController::GetDebugFreezeStatusText() const
 	{
-		return debugFreezeEnabled_ ? "Debug Freeze: ON" : "Debug Freeze: OFF";
+		return debugFreezeEnabled_ ? "デバッグ停止: 有効" : "デバッグ停止: 無効";
 	}
 
 } // namespace Ken4lowEngine
