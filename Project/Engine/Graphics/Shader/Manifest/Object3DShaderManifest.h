@@ -13,6 +13,9 @@ namespace Ken4lowEngine
 		Object3DVS,
 		Object3DInstancingVS,
 		Object3DInstancingShadowVS,
+		Object3DInstancingPointShadowVS,
+		Object3DPointShadowVS,
+		Object3DPointShadowPS,
 		Object3DPS,
 		ShadowMapVS,
 	};
@@ -71,6 +74,42 @@ namespace Ken4lowEngine
 					L"main",
 					L"vs_6_0",
 					ShaderStage::Vertex,
+					RootSignatureType::ShadowMap
+				};
+				return desc;
+			}
+			case Object3DShaderId::Object3DInstancingPointShadowVS:
+			{
+				static const ShaderDescriptor desc{
+					L"Object3DInstancingPointShadowVS",
+					L"Resources/Shaders/Object3D/Object3dInstancingPointShadow.VS.hlsl",
+					L"main",
+					L"vs_6_0",
+					ShaderStage::Vertex,
+					RootSignatureType::ShadowMap
+				};
+				return desc;
+			}
+			case Object3DShaderId::Object3DPointShadowVS:
+			{
+				static const ShaderDescriptor desc{
+					L"Object3DPointShadowVS",
+					L"Resources/Shaders/Object3D/ShadowMapPoint.VS.hlsl",
+					L"main",
+					L"vs_6_0",
+					ShaderStage::Vertex,
+					RootSignatureType::ShadowMap
+				};
+				return desc;
+			}
+			case Object3DShaderId::Object3DPointShadowPS:
+			{
+				static const ShaderDescriptor desc{
+					L"Object3DPointShadowPS",
+					L"Resources/Shaders/Object3D/ShadowMapPoint.PS.hlsl",
+					L"main",
+					L"ps_6_0",
+					ShaderStage::Pixel,
 					RootSignatureType::ShadowMap
 				};
 				return desc;
