@@ -33,6 +33,6 @@ namespace Ken4lowEngine
 
 		Camera* camera_ = nullptr;
 		bool autoRegisterMainCamera_ = false;
-		bool inheritParentRotation_ = true; // falseならモデルやRootの回転変更をゲームカメラへ伝播させない。
+		bool inheritParentRotation_ = true; // falseならActorやModelの回転変更をゲームカメラへ伝播させない。
 	};
 } // namespace Ken4lowEngine
