@@ -7,6 +7,7 @@
 namespace Ken4lowEngine
 {
 	/// ---------- 前方宣言 ---------- ///
+	class ActorWorld;
 	class SceneManager;
 
 
@@ -59,6 +60,12 @@ namespace Ken4lowEngine
 		// World Outliner用の安全な表示情報をScene側から収集する入口です。
 		virtual void CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& /*outObjects*/) {}
 
+		/// <summary>
+		/// ViewportへのEditor配置を受け入れるActorWorldを返します。
+		/// Actor編集に対応していないSceneはnullptrのままにします。
+		/// </summary>
+		virtual ActorWorld* GetEditorActorWorld() { return nullptr; }
+
 		// シーンマネージャーをセット
 		virtual void SetSceneManager(SceneManager* sceneManager) { sceneManager_ = sceneManager; }
 
@@ -87,4 +94,4 @@ namespace Ken4lowEngine
 
 	};
 
-}
+} // namespace Ken4lowEngine
