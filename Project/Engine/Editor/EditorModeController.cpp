@@ -41,9 +41,13 @@ namespace Ken4lowEngine
 			playController->IsGameCaptured() && input->TriggerRawKey(DIK_ESCAPE))
 		{
 			playController->ReleaseGameInput();
+		}
+
+		if (input != nullptr && IsEditorModeEnabled() && playController->IsGameReleased())
+		{
 			input->SetGameInputEnabled(false);
 			input->SetLockCursor(false);
-			input->SetCursorVisible(true); // Scene更新より先にEscを処理し、Play状態を維持したままEditorへ入力を戻す。
+			input->SetCursorVisible(true); // UI Mouse SceneでもScene更新前にゲーム入力を止め、Editor操作へ戻す。
 		}
 #else
 		(void)input;
