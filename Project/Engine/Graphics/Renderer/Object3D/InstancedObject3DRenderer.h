@@ -68,6 +68,9 @@ namespace Ken4lowEngine
 		/// <summary>サブメッシュごとに1回、DrawIndexedInstancedを発行します。</summary>
 		void Draw();
 
+		/// <summary>全インスタンスを現在のShadow Sliceへまとめて描画します。</summary>
+		void DrawShadow();
+
 	public: /// ---------- アクセサ ---------- ///
 
 		size_t GetInstanceCount() const { return sourceInstances_.size(); }
@@ -143,3 +146,5 @@ namespace Ken4lowEngine
 		void RestoreModelMaterials();
 	};
 }
+
+#include "InstancedObject3DRendererShadow.inl"
