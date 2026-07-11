@@ -123,6 +123,12 @@ namespace Ken4lowEngine
 		EditorWindowState& GetWindowState() { return windowState_; }
 		const EditorWindowState& GetWindowState() const { return windowState_; }
 
+		/// <summary>
+		/// メインビューポート左上のパフォーマンス表示を切り替えます。
+		/// </summary>
+		void SetPerformanceOverlayVisible(bool visible) { showPerformanceOverlay_ = visible; }
+		bool IsPerformanceOverlayVisible() const { return showPerformanceOverlay_; }
+
 	private:
 		EditorWindowManager() = default;
 		~EditorWindowManager() = default;
