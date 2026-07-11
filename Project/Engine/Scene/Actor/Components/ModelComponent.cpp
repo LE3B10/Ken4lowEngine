@@ -88,16 +88,6 @@ namespace Ken4lowEngine
 		object3D_->DrawShadow(); // ShadowMap用の描画パスでモデルを描画する。
 	}
 
-	void ModelComponent::CollectEditorPickingSpheres(std::vector<BoundingSphere>& outSpheres) const
-	{
-		if (!visible_ || !IsActiveInHierarchy() || !object3D_ || !object3D_->HasWorldBoundsForCulling())
-		{
-			return;
-		}
-
-		outSpheres.push_back(object3D_->GetWorldBoundsForCulling()); // 実モデルのWorld BoundsをActor ID Pickingへ渡す。
-	}
-
 	void ModelComponent::DrawImGui()
 	{
 		// Local / World TransformをImGuiに表示する
