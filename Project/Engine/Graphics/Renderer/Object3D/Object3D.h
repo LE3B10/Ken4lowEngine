@@ -8,6 +8,7 @@
 #include "TransformationMatrix.h"
 #include "Engine/Graphics/Culling/BoundingVolume.h"
 
+#include <cstdint>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -66,6 +67,7 @@ namespace Ken4lowEngine
 		void Draw();
 		void DrawMeshes(const std::vector<size_t>& meshIndices);
 		void DrawShadow();
+		void DrawEditorObjectId(uint32_t objectId);
 
 	public: /// ---------- 設定処理 ---------- ///
 
