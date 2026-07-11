@@ -167,6 +167,14 @@ namespace Ken4lowEngine
 		}
 	}
 
+	void SceneManager::PrepareShadowPass()
+	{
+		if (scene_)
+		{
+			scene_->PrepareShadowPass(); // ShadowSystemがCasterを選ぶ前にEditor上の最新LightComponentを同期する。
+		}
+	}
+
 	void SceneManager::Draw3DObjects()
 	{
 		if (scene_)
