@@ -7,6 +7,8 @@
 #include "Camera.h"
 #include "TransformationMatrix.h"
 #include "Engine/Graphics/Culling/BoundingVolume.h"
+#include "Model.h"
+#include "ObjectIdPipeline.h"
 
 #include <cstdint>
 #include <fstream>
@@ -22,7 +24,6 @@ namespace Ken4lowEngine
 	class DirectXCommon;
 	class Object3DCommon;
 	class SkyBox;
-	class Model;
 
 	/// -------------------------------------------------------------
 	///						オブジェクト3Dクラス
@@ -67,7 +68,22 @@ namespace Ken4lowEngine
 		void Draw();
 		void DrawMeshes(const std::vector<size_t>& meshIndices);
 		void DrawShadow();
-		void DrawEditorObjectId(uint32_t objectId);
+
+		void DrawEditorObjectId(uint32_t objectId)
+		{
+			if (!dxCommon_ || !model_ || objectId == 0)
+			{
+				return;
+			}
+
+			ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+			ObjectIdPipeline::GetInstance()->BindStatic(commandList, objectId);
+			worldTransform_.SetPipeline(0);
+			for (auto& mesh : model_->GetMeshes())
+			{
+				mesh.Draw(); // 通常描画のMaterialを使わず、形状だけをR32_UINT Object-ID Targetへ描く。
+			}
+		}
 
 	public: /// ---------- 設定処理 ---------- ///
 
