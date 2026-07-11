@@ -4,6 +4,8 @@
 #include "ComponentProperty.h"
 #include "MaterialBinding.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -33,6 +35,21 @@ namespace Ken4lowEngine
 			animatedModel_->DrawShadow(); // 現在のNode Animation姿勢をShadow Mapへ反映する。
 		}
 		bool SupportsShadowCasting() const override { return true; }
+
+		void CollectEditorPickingSpheres(std::vector<BoundingSphere>& outSpheres) const override
+		{
+			if (!visible_ || !IsActiveInHierarchy() || !animatedModel_ || !hasMesh_)
+			{
+				return;
+			}
+
+			const Vector3& worldScale = GetWorldScale();
+			const float maximumScale = std::max({ std::abs(worldScale.x), std::abs(worldScale.y), std::abs(worldScale.z), 0.5f });
+			Vector3 center = GetWorldPosition();
+			center.y += maximumScale; // 人型モデルはRootが足元にある場合が多いためBounds中心を上へ補正する。
+			outSpheres.push_back({ center, maximumScale * 1.5f });
+		}
+
 		void DrawImGui() override;
 		void Finalize() override;
 
