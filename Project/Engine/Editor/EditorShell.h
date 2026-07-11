@@ -46,17 +46,20 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 			if (!EditorModeController::GetInstance()->IsEditorModeEnabled())
 			{
-				return;
+				return; // ゲームプレビュー中はEditor専用パネルを表示しない。
 			}
 
 			ApplyViewportVisualPolicy();
 			DrawPlaceActors();
-			EditorContentBrowserPanel::GetInstance()->Draw();
-			EditorContentBrowserPanel::GetInstance()->UpdateAssetDragSource();
-			EditorHierarchyPanel::GetInstance()->Draw();
+			EditorContentBrowserPanel::GetInstance()->Draw(); // Resources全体を扱うContent Browser V2をDockSpaceへ登録する。
+			EditorContentBrowserPanel::GetInstance()->UpdateAssetDragSource(); // 選択したモデルやPrefabをViewportへドラッグできるようにする。
+			EditorHierarchyPanel::GetInstance()->Draw(); // World OutlinerとDetailsを同じ選択状態で先に登録する。
 #endif
 		}
 
+		/// <summary>
+		/// メインビューポートの描画後に、操作モードと表示モードを切り替えるツールバーを重ねます。
+		/// </summary>
 		void DrawViewportOverlay()
 		{
 #ifdef USE_IMGUI
@@ -67,8 +70,8 @@ namespace Ken4lowEngine
 
 			ApplyViewportVisualPolicy();
 			DrawViewportToolbar();
-			EditorTransformGizmo::GetInstance()->Draw();
-			EditorContentBrowserPanel::GetInstance()->UpdateViewportPicking();
+			EditorTransformGizmo::GetInstance()->Draw(); // Phase 7のSelectionをWorld/Local Transform Gizmoへ接続する。
+			EditorContentBrowserPanel::GetInstance()->UpdateViewportPicking(); // 軸や平面Handle上のクリックを除外した後に選択を予約する。
 			DrawViewportAssetDropTarget();
 			UpdateEditorCameraNavigation();
 #endif
@@ -111,7 +114,11 @@ namespace Ken4lowEngine
 
 		static bool ContainsCaseInsensitive(std::string_view text, std::string_view filter)
 		{
-			if (filter.empty()) return true;
+			if (filter.empty())
+			{
+				return true;
+			}
+
 			std::string loweredText(text);
 			std::string loweredFilter(filter);
 			std::transform(loweredText.begin(), loweredText.end(), loweredText.begin(), [](unsigned char c) { return ToLowerAscii(c); });
@@ -121,6 +128,7 @@ namespace Ken4lowEngine
 
 		static bool MatchesPlaceableFilter(const PlaceableEntry& entry, std::string_view filter)
 		{
+			// 日本語名と英語キーワードの両方を検索対象にして、従来の入力にも対応する。
 			return ContainsCaseInsensitive(entry.label, filter) || ContainsCaseInsensitive(entry.searchKeywords, filter);
 		}
 
@@ -129,12 +137,17 @@ namespace Ken4lowEngine
 			const auto* viewportController = EditorViewportController::GetInstance();
 			const bool drawEditorVisuals = EditorModeController::GetInstance()->ShouldDrawDebugVisuals() &&
 				viewportController->IsEditorDisplay() && viewportController->IsAuxiliaryDisplayEnabled();
+			// ゲーム表示ではワイヤー、コライダー、ライト範囲などのEditor補助描画をまとめて除外する。
 			Wireframe::GetInstance()->SetDebugDrawEnabled(drawEditorVisuals);
 		}
 
 		void ReleaseEditorCameraCursor()
 		{
-			if (!cameraLookActive_) return;
+			if (!cameraLookActive_)
+			{
+				return; // ゲーム入力中のカーソル状態をEditor Camera終了処理で上書きしない。
+			}
+
 			cameraLookActive_ = false;
 			Input::GetInstance()->SetLockCursor(false);
 			Input::GetInstance()->SetCursorVisible(true);
@@ -156,16 +169,16 @@ namespace Ken4lowEngine
 			const EditorViewportRect& viewportRect = EditorWindowManager::GetInstance()->GetMainViewportRect();
 			if (!viewportRect.valid || EditorTransformGizmo::GetInstance()->IsUsing() || ImGui::GetDragDropPayload())
 			{
-				if (!ImGui::IsMouseDown(ImGuiMouseButton_Right)) ReleaseEditorCameraCursor();
+				if (!ImGui::IsMouseDown(ImGuiMouseButton_Right))
+				{
+					ReleaseEditorCameraCursor();
+				}
 				return;
 			}
 
 			if (viewportRect.isHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
 			{
 				cameraLookActive_ = true;
-				Input::GetInstance()->SetGameInputEnabled(false);
-				Input::GetInstance()->SetLockCursor(true);
-				Input::GetInstance()->SetCursorVisible(false); // RMB開始フレームからRaw相対入力モードへ切り替える。
 			}
 			if (cameraLookActive_ && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
 			{
@@ -174,7 +187,10 @@ namespace Ken4lowEngine
 
 			const bool middlePan = viewportRect.isHovered && ImGui::IsMouseDown(ImGuiMouseButton_Middle);
 			const bool wheelDolly = viewportRect.isHovered && std::abs(ImGui::GetIO().MouseWheel) > 0.001f;
-			if (!cameraLookActive_ && !middlePan && !wheelDolly) return;
+			if (!cameraLookActive_ && !middlePan && !wheelDolly)
+			{
+				return;
+			}
 
 			Input* input = Input::GetInstance();
 			const ImGuiIO& io = ImGui::GetIO();
@@ -187,6 +203,7 @@ namespace Ken4lowEngine
 				input->SetGameInputEnabled(false);
 				input->SetLockCursor(true);
 				input->SetCursorVisible(false);
+
 				const float deltaTime = std::clamp(io.DeltaTime, 1.0f / 240.0f, 1.0f / 15.0f);
 				const float moveSpeed = input->PushRawKey(DIK_LSHIFT) ? 24.0f : 8.0f;
 				const float moveStep = moveSpeed * deltaTime;
@@ -196,6 +213,9 @@ namespace Ken4lowEngine
 				if (input->PushRawKey(DIK_D)) localMove.x += moveStep;
 				if (input->PushRawKey(DIK_Q)) localMove.y -= moveStep;
 				if (input->PushRawKey(DIK_E)) localMove.y += moveStep;
+
+				pitchDelta = io.MouseDelta.y * 0.003f;
+				yawDelta = -io.MouseDelta.x * 0.003f;
 			}
 
 			if (middlePan)
@@ -203,18 +223,25 @@ namespace Ken4lowEngine
 				localMove.x -= io.MouseDelta.x * 0.015f;
 				localMove.y += io.MouseDelta.y * 0.015f;
 			}
-			if (wheelDolly) localMove.z += io.MouseWheel * 2.0f;
+			if (wheelDolly)
+			{
+				localMove.z += io.MouseWheel * 2.0f;
+			}
 
 			DebugCamera* debugCamera = cameraManager->GetDebugCamera();
 			if (debugCamera)
 			{
-				debugCamera->ApplyEditorNavigation(localMove, pitchDelta, yawDelta);
+				debugCamera->ApplyEditorNavigation(localMove, pitchDelta, yawDelta); // UE風のRMB視点操作とWASD/QE移動をDebug Cameraへ集約する。
 			}
 		}
 
 		bool DrawToolbarGlyphButton(const char* id, ToolbarGlyph glyph, bool enabled, const char* tooltip)
 		{
-			if (!enabled) ImGui::BeginDisabled();
+			if (!enabled)
+			{
+				ImGui::BeginDisabled();
+			}
+
 			const ImVec2 buttonSize{ 28.0f, 24.0f };
 			const bool clicked = ImGui::InvisibleButton(id, buttonSize);
 			const ImVec2 minimum = ImGui::GetItemRectMin();
@@ -234,6 +261,7 @@ namespace Ken4lowEngine
 				drawList->AddTriangleFilled(ImVec2(center.x - 5.0f, center.y - 7.0f), ImVec2(center.x - 5.0f, center.y + 7.0f), ImVec2(center.x + 7.0f, center.y), color);
 				break;
 			case ToolbarGlyph::Pause:
+				// Pauseは文字記号を使わず、縦長の矩形を2本描画する。
 				drawList->AddRectFilled(ImVec2(center.x - 6.0f, center.y - 7.0f), ImVec2(center.x - 2.0f, center.y + 7.0f), color, 0.8f);
 				drawList->AddRectFilled(ImVec2(center.x + 2.0f, center.y - 7.0f), ImVec2(center.x + 6.0f, center.y + 7.0f), color, 0.8f);
 				break;
@@ -246,8 +274,14 @@ namespace Ken4lowEngine
 				break;
 			}
 
-			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("%s", tooltip);
-			if (!enabled) ImGui::EndDisabled();
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+			{
+				ImGui::SetTooltip("%s", tooltip);
+			}
+			if (!enabled)
+			{
+				ImGui::EndDisabled();
+			}
 			return clicked && enabled;
 		}
 
@@ -265,6 +299,7 @@ namespace Ken4lowEngine
 			const bool canStartOrResume = playController->IsEditing() || playController->IsPaused();
 			if (DrawToolbarGlyphButton("##PlayIcon", ToolbarGlyph::Play, canStartOrResume, playController->IsPaused() ? "再開" : "再生"))
 			{
+				ReleaseEditorCameraCursor();
 				playController->Play();
 			}
 			ImGui::SameLine();
@@ -272,95 +307,336 @@ namespace Ken4lowEngine
 			if (DrawToolbarGlyphButton("##PauseIcon", ToolbarGlyph::Pause, playController->IsPlaying(), "一時停止"))
 			{
 				playController->Pause();
+				ReleaseEditorCameraCursor();
 			}
 			ImGui::SameLine();
 
-			if (DrawToolbarGlyphButton("##StopIcon", ToolbarGlyph::Stop, !playController->IsEditing(), "停止して編集状態へ戻る"))
+			if (DrawToolbarGlyphButton("##StopIcon", ToolbarGlyph::Stop, !playController->IsEditing(), "停止"))
 			{
 				playController->Stop();
+				ReleaseEditorCameraCursor();
 			}
 			ImGui::SameLine();
 
-			const bool buildEnabled = !windowManager->IsAssetBuildRunning();
-			if (DrawToolbarGlyphButton("##BuildIcon", ToolbarGlyph::Build, buildEnabled, buildEnabled ? "全アセットをビルド" : "アセットをビルド中"))
+			const bool canBuild = !windowManager->IsAssetBuildRunning();
+			if (DrawToolbarGlyphButton("##BuildAllIcon", ToolbarGlyph::Build, canBuild, canBuild ? "全アセットをビルド" : "アセットをビルド中"))
 			{
-				windowManager->StartAllAssetBuild();
+				windowManager->StartAllAssetBuild(); // 旧Toolbarを隠しても従来のBuild操作を失わないようアイコンから実行する。
+			}
+		}
+
+		void DrawViewportToolButton(const char* label, EditorViewportTool tool)
+		{
+			auto* viewportController = EditorViewportController::GetInstance();
+			const bool selected = viewportController->GetTool() == tool;
+			if (selected)
+			{
+				ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
+			}
+
+			if (ImGui::Button(label, ImVec2(54.0f, 0.0f)))
+			{
+				viewportController->SetTool(tool);
+			}
+
+			if (selected)
+			{
+				ImGui::PopStyleColor();
+			}
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("現在の操作モード: %s\nQ: 選択 / W: 移動 / E: 回転 / R: 拡縮", label);
 			}
 		}
 
 		void DrawViewportToolbar()
 		{
-			const EditorViewportRect& viewportRect = EditorWindowManager::GetInstance()->GetMainViewportRect();
-			if (!viewportRect.valid) return;
+			auto* windowManager = EditorWindowManager::GetInstance();
+			const EditorViewportRect& viewportRect = windowManager->GetMainViewportRect();
+			if (!viewportRect.valid)
+			{
+				return;
+			}
 
-			const ImVec2 toolbarPosition(viewportRect.screenMin.x + 8.0f, viewportRect.screenMin.y + 8.0f);
-			const ImVec2 toolbarSize(std::max(440.0f, viewportRect.imageSize.x - 16.0f), 40.0f);
-			ImGui::SetNextWindowPos(toolbarPosition, ImGuiCond_Always);
-			ImGui::SetNextWindowSize(toolbarSize, ImGuiCond_Always);
-			ImGui::SetNextWindowBgAlpha(0.88f);
-			const ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-				ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoDocking |
-				ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse;
-			if (ImGui::Begin("##MainViewportToolbar", nullptr, flags))
+			const float viewportWidth = viewportRect.screenMax.x - viewportRect.screenMin.x;
+			if (viewportWidth < 430.0f)
+			{
+				return;
+			}
+
+			ImGui::SetNextWindowPos(ImVec2(viewportRect.screenMin.x + 8.0f, viewportRect.screenMin.y + 8.0f), ImGuiCond_Always);
+			ImGui::SetNextWindowSize(ImVec2(viewportWidth - 16.0f, 42.0f), ImGuiCond_Always);
+			ImGui::SetNextWindowBgAlpha(0.92f);
+
+			const ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
+				ImGuiWindowFlags_NoDocking |
+				ImGuiWindowFlags_NoSavedSettings |
+				ImGuiWindowFlags_NoMove |
+				ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoScrollbar |
+				ImGuiWindowFlags_NoScrollWithMouse |
+				ImGuiWindowFlags_NoFocusOnAppearing |
+				ImGuiWindowFlags_NoNav;
+
+			if (ImGui::Begin(EditorPanelIds::ViewportToolbarOverlay, nullptr, flags))
 			{
 				DrawPlaybackControls();
 				ImGui::SameLine();
-				ImGui::SeparatorEx(ImGuiSeparatorFlags_Vertical);
+				ImGui::TextDisabled("|");
 				ImGui::SameLine();
-				EditorViewportController* controller = EditorViewportController::GetInstance();
-				const auto toolButton = [controller](const char* label, EditorViewportTool tool)
-					{
-						const bool selected = controller->GetTool() == tool;
-						if (selected) ImGui::PushStyleColor(ImGuiCol_Button, ImGui::GetStyleColorVec4(ImGuiCol_ButtonActive));
-						if (ImGui::Button(label)) controller->SetTool(tool);
-						if (selected) ImGui::PopStyleColor();
-					};
-				toolButton("選択", EditorViewportTool::Select); ImGui::SameLine();
-				toolButton("移動", EditorViewportTool::Translate); ImGui::SameLine();
-				toolButton("回転", EditorViewportTool::Rotate); ImGui::SameLine();
-				toolButton("拡縮", EditorViewportTool::Scale); ImGui::SameLine();
+				DrawViewportToolButton("選択", EditorViewportTool::Select);
+				ImGui::SameLine();
+				DrawViewportToolButton("移動", EditorViewportTool::Translate);
+				ImGui::SameLine();
+				DrawViewportToolButton("回転", EditorViewportTool::Rotate);
+				ImGui::SameLine();
+				DrawViewportToolButton("拡縮", EditorViewportTool::Scale);
 
-				if (ImGui::Button(controller->GetGizmoSpaceText())) controller->ToggleGizmoSpace();
-				ImGui::SameLine();
-				bool snap = controller->IsSnapEnabled();
-				if (ImGui::Checkbox("Snap", &snap)) controller->SetSnapEnabled(snap);
-				ImGui::SameLine();
-				if (ImGui::BeginCombo("##ViewportDisplay", controller->GetDisplayModeText()))
+				auto* viewportController = EditorViewportController::GetInstance();
+				if (viewportWidth >= 650.0f)
 				{
-					if (ImGui::Selectable("エディター表示", controller->IsEditorDisplay())) controller->SetDisplayMode(EditorViewportDisplayMode::Editor);
-					if (ImGui::Selectable("ゲーム表示", controller->IsGameDisplay())) controller->SetDisplayMode(EditorViewportDisplayMode::Game);
-					ImGui::EndCombo();
+					ImGui::SameLine();
+					ImGui::TextDisabled("|");
+					ImGui::SameLine();
+					if (ImGui::Button(viewportController->GetGizmoSpaceText(), ImVec2(58.0f, 0.0f)))
+					{
+						viewportController->ToggleGizmoSpace();
+					}
+					if (ImGui::IsItemHovered())
+					{
+						ImGui::SetTooltip("Gizmoの軸をWorld / Localで切り替えます。\nScaleは常にLocal軸です。");
+					}
+					ImGui::SameLine();
+					bool snapEnabled = viewportController->IsSnapEnabled();
+					if (ImGui::Checkbox("Snap##ViewportSnap", &snapEnabled))
+					{
+						viewportController->SetSnapEnabled(snapEnabled);
+					}
+					if (snapEnabled && viewportWidth >= 760.0f)
+					{
+						ImGui::SameLine();
+						ImGui::SetNextItemWidth(62.0f);
+						if (viewportController->GetTool() == EditorViewportTool::Rotate)
+						{
+							ImGui::DragFloat("##RotationSnap", &viewportController->GetRotationSnapDegrees(), 1.0f, 0.1f, 180.0f, "%.1f deg");
+						}
+						else if (viewportController->GetTool() == EditorViewportTool::Scale)
+						{
+							ImGui::DragFloat("##ScaleSnap", &viewportController->GetScaleSnap(), 0.01f, 0.001f, 10.0f, "%.2f");
+						}
+						else
+						{
+							Vector3& translationSnap = viewportController->GetTranslationSnap();
+							if (ImGui::DragFloat("##TranslationSnap", &translationSnap.x, 0.05f, 0.001f, 100.0f, "%.2f"))
+							{
+								translationSnap.y = translationSnap.x;
+								translationSnap.z = translationSnap.x;
+							}
+						}
+					}
+				}
+
+				if (viewportWidth >= 850.0f)
+				{
+					ImGui::SameLine();
+					ImGui::TextDisabled("|");
+					ImGui::SameLine();
+					ImGui::SetNextItemWidth(130.0f);
+					if (ImGui::BeginCombo("##ビューポート表示", viewportController->GetDisplayModeText()))
+					{
+						const bool editorSelected = viewportController->IsEditorDisplay();
+						if (ImGui::Selectable("エディター表示", editorSelected))
+						{
+							viewportController->SetDisplayMode(EditorViewportDisplayMode::Editor);
+						}
+						const bool gameSelected = viewportController->IsGameDisplay();
+						if (ImGui::Selectable("ゲーム表示", gameSelected))
+						{
+							viewportController->SetDisplayMode(EditorViewportDisplayMode::Game);
+						}
+						ImGui::EndCombo();
+					}
+				}
+
+				if (viewportWidth >= 1030.0f)
+				{
+					ImGui::SameLine();
+					bool auxiliaryDisplayEnabled = viewportController->IsAuxiliaryDisplayEnabled();
+					if (viewportController->IsGameDisplay()) ImGui::BeginDisabled();
+					if (ImGui::Checkbox("補助表示##ViewportAuxiliary", &auxiliaryDisplayEnabled))
+					{
+						viewportController->SetAuxiliaryDisplayEnabled(auxiliaryDisplayEnabled);
+					}
+					if (viewportController->IsGameDisplay()) ImGui::EndDisabled();
+					if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+					{
+						ImGui::SetTooltip("グリッド、コライダー、ライト範囲などのEditor補助描画を切り替えます。");
+					}
+
+					ImGui::SameLine();
+					bool performanceVisible = windowManager->IsPerformanceOverlayVisible();
+					if (ImGui::Checkbox("統計##ViewportStats", &performanceVisible))
+					{
+						windowManager->SetPerformanceOverlayVisible(performanceVisible);
+					}
 				}
 			}
 			ImGui::End();
 		}
 
+		/// <summary>
+		/// Content Browserからドラッグ中のアセットをMain Viewportで受け取り、配置位置へ生成します。
+		/// </summary>
 		void DrawViewportAssetDropTarget()
 		{
-			EditorAssetPlacementService::GetInstance()->DrawViewportDropTarget();
+			const ImGuiPayload* activePayload = ImGui::GetDragDropPayload();
+			if (!activePayload || !activePayload->IsDataType(kEditorAssetDragDropPayloadType))
+			{
+				return;
+			}
+
+			auto* windowManager = EditorWindowManager::GetInstance();
+			const EditorViewportRect& viewportRect = windowManager->GetMainViewportRect();
+			const float viewportWidth = viewportRect.screenMax.x - viewportRect.screenMin.x;
+			const float viewportHeight = viewportRect.screenMax.y - viewportRect.screenMin.y;
+			if (!viewportRect.valid || viewportWidth <= 1.0f || viewportHeight <= 1.0f)
+			{
+				return;
+			}
+
+			ImGui::SetNextWindowPos(ImVec2(viewportRect.screenMin.x, viewportRect.screenMin.y), ImGuiCond_Always);
+			ImGui::SetNextWindowSize(ImVec2(viewportWidth, viewportHeight), ImGuiCond_Always);
+			ImGui::SetNextWindowBgAlpha(0.0f);
+			const ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration |
+				ImGuiWindowFlags_NoDocking |
+				ImGuiWindowFlags_NoSavedSettings |
+				ImGuiWindowFlags_NoMove |
+				ImGuiWindowFlags_NoResize |
+				ImGuiWindowFlags_NoScrollbar |
+				ImGuiWindowFlags_NoScrollWithMouse |
+				ImGuiWindowFlags_NoFocusOnAppearing |
+				ImGuiWindowFlags_NoNav |
+				ImGuiWindowFlags_NoBackground;
+
+			if (ImGui::Begin("##MainViewportAssetDropTarget", nullptr, flags))
+			{
+				ImGui::InvisibleButton("##ViewportAssetDropArea", ImVec2(viewportWidth, viewportHeight));
+				if (ImGui::BeginDragDropTarget())
+				{
+					const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(
+						kEditorAssetDragDropPayloadType,
+						ImGuiDragDropFlags_AcceptBeforeDelivery | ImGuiDragDropFlags_AcceptNoDrawDefaultRect);
+					if (payload && payload->DataSize == sizeof(EditorAssetDragDropPayload))
+					{
+						const bool canPlace = !EditorPlayController::GetInstance()->IsPlaying();
+						const ImU32 borderColor = ImGui::GetColorU32(
+							canPlace ? ImVec4(0.95f, 0.62f, 0.12f, 1.0f) : ImVec4(0.95f, 0.24f, 0.20f, 1.0f));
+						ImDrawList* drawList = ImGui::GetWindowDrawList();
+						drawList->AddRect(
+							ImGui::GetItemRectMin(),
+							ImGui::GetItemRectMax(),
+							borderColor,
+							2.0f,
+							0,
+							4.0f);
+
+						const char* guideText = canPlace
+							? "ここにドロップしてアセットを配置"
+							: "再生中はアセットを配置できません";
+						const ImVec2 textSize = ImGui::CalcTextSize(guideText);
+						const ImVec2 itemMin = ImGui::GetItemRectMin();
+						const ImVec2 itemMax = ImGui::GetItemRectMax();
+						drawList->AddText(
+							ImVec2(
+								(itemMin.x + itemMax.x - textSize.x) * 0.5f,
+								(itemMin.y + itemMax.y - textSize.y) * 0.5f),
+							borderColor,
+							guideText);
+
+						if (payload->IsDelivery())
+						{
+							if (!canPlace)
+							{
+								windowManager->AddOutputLog(EditorLogLevel::Warning, "再生中はビューポートへアセットを配置できません。");
+							}
+							else
+							{
+								const ImVec2 mouse = ImGui::GetMousePos();
+								Vector3 worldPosition{};
+								const bool positionResolved = EditorAssetPlacementService::CalculateDropPosition(
+									{ mouse.x, mouse.y },
+									viewportRect.screenMin,
+									viewportRect.imageSize,
+									worldPosition);
+								if (!positionResolved)
+								{
+									windowManager->AddOutputLog(EditorLogLevel::Error, "ドロップ位置をワールド座標へ変換できませんでした。");
+								}
+								else
+								{
+									const auto* assetPayload = static_cast<const EditorAssetDragDropPayload*>(payload->Data);
+									const EditorAssetPlacementResult result = EditorAssetPlacementService::PlaceAsset(
+										windowManager->GetSceneManager(),
+										*assetPayload,
+										worldPosition);
+									windowManager->AddOutputLog(
+										result.succeeded ? EditorLogLevel::Info : EditorLogLevel::Error,
+										result.message);
+								}
+							}
+						}
+					}
+					ImGui::EndDragDropTarget();
+				}
+			}
+			ImGui::End();
 		}
 
-		void DrawPlaceableCategory(const char* categoryName, const PlaceableEntry* entries, size_t count)
+		void DrawPlaceableCategory(const char* categoryName, const PlaceableEntry* entries, std::size_t count)
 		{
-			if (!ImGui::CollapsingHeader(categoryName, ImGuiTreeNodeFlags_DefaultOpen)) return;
-			const std::string_view filter(placeActorsSearch_.data());
-			for (size_t i = 0; i < count; ++i)
+			// ImGuiの検索入力バッファをnull終端文字列としてstring_viewへ変換する。
+			const std::string_view searchFilter{ placeActorsSearch_.data() };
+
+			bool hasVisibleEntry = false;
+			for (std::size_t index = 0; index < count; ++index)
 			{
-				const PlaceableEntry& entry = entries[i];
-				if (!MatchesPlaceableFilter(entry, filter)) continue;
-				if (ImGui::Selectable(entry.label))
+				hasVisibleEntry |= MatchesPlaceableFilter(entries[index], searchFilter);
+			}
+
+			if (!hasVisibleEntry)
+			{
+				return;
+			}
+
+			if (!ImGui::CollapsingHeader(categoryName, ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				return;
+			}
+
+			for (std::size_t index = 0; index < count; ++index)
+			{
+				const PlaceableEntry& entry = entries[index];
+				if (!MatchesPlaceableFilter(entry, searchFilter))
+				{
+					continue;
+				}
+
+				ImGui::PushID(entry.searchKeywords);
+				if (ImGui::Button(entry.label, ImVec2(-1.0f, 34.0f)))
 				{
 					EditorContext::GetInstance()->QueuePlacement(entry.type, entry.label);
+					// Phase 1では配置要求だけを保存し、実際の生成は後続Phaseで接続する。
 				}
-				if (ImGui::IsItemHovered()) ImGui::SetTooltip("%s", entry.description);
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip("%s", entry.description);
+				}
+				ImGui::PopID();
 			}
 		}
 
 		void DrawPlaceActors()
 		{
-			const auto& windowState = EditorWindowManager::GetInstance()->GetWindowState();
-			if (!windowState.showScene) return;
-
 			constexpr std::array<PlaceableEntry, 4> basicEntries = {
 				PlaceableEntry{ "空のアクタ", "Empty Actor", "ルートSceneComponentだけを持つアクタを作成します。", EditorPlaceableType::EmptyActor },
 				PlaceableEntry{ "キューブ", "Cube", "キューブモデルを持つアクタを作成します。", EditorPlaceableType::Cube },
@@ -369,7 +645,7 @@ namespace Ken4lowEngine
 			};
 			constexpr std::array<PlaceableEntry, 3> lightEntries = {
 				PlaceableEntry{ "ディレクショナルライト", "Directional Light", "平行光源のLightComponentを持つアクタを作成します。", EditorPlaceableType::DirectionalLight },
-				PlaceableEntry{ "ポイントライト", "Point Light", "点光源のLightComponentを持つアクタを作成します。", EditorPlaceableType::PointLight },
+				PlaceableEntry{ "ポイントライト", "Point Light", "ポイント光源のLightComponentを持つアクタを作成します。", EditorPlaceableType::PointLight },
 				PlaceableEntry{ "スポットライト", "Spot Light", "スポット光源のLightComponentを持つアクタを作成します。", EditorPlaceableType::SpotLight },
 			};
 			constexpr std::array<PlaceableEntry, 2> volumeEntries = {
@@ -386,6 +662,7 @@ namespace Ken4lowEngine
 				ImGui::SetNextItemWidth(-1.0f);
 				ImGui::InputTextWithHint("##PlaceActorsSearch", "クラスを検索...", placeActorsSearch_.data(), placeActorsSearch_.size());
 				ImGui::Spacing();
+
 				DrawPlaceableCategory("基本", basicEntries.data(), basicEntries.size());
 				DrawPlaceableCategory("ライト", lightEntries.data(), lightEntries.size());
 				DrawPlaceableCategory("ボリューム", volumeEntries.data(), volumeEntries.size());
