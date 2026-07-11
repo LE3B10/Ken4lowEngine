@@ -5,9 +5,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
-#include <vector>
 
-#include "Engine/Graphics/Culling/BoundingVolume.h"
 #include "Vector3.h"
 
 namespace Ken4lowEngine
@@ -92,11 +90,11 @@ namespace Ken4lowEngine
 		using ReadTransformFunc = std::function<bool(EditorTransform&)>;
 		using WriteTransformFunc = std::function<void(const EditorTransform&)>;
 		using DrawInspectorFunc = std::function<void()>;
+		using DrawObjectIdFunc = std::function<void(uint32_t)>;
 		using ReadActiveFunc = std::function<bool()>;
 		using WriteActiveFunc = std::function<void(bool)>;
 		using RenameFunc = std::function<void(std::string_view)>;
 		using RequestActionFunc = std::function<void()>;
-		using ReadViewportPickingSpheresFunc = std::function<void(std::vector<BoundingSphere>&)>;
 
 		EditorObjectInfo() = default;
 
@@ -137,8 +135,8 @@ namespace Ken4lowEngine
 		bool canDelete = false;
 		RequestActionFunc requestDelete;
 
-		bool canPickInViewport = false;
-		ReadViewportPickingSpheresFunc readViewportPickingSpheres;
+		bool canDrawObjectId = false;
+		DrawObjectIdFunc drawObjectId;
 
 		// Detailsは毎フレーム再収集された入口だけを使い、古いraw pointerへ直接触れないようにする。
 		bool TryReadTransform(EditorTransform& outTransform) const
@@ -197,16 +195,12 @@ namespace Ken4lowEngine
 			}
 		}
 
-		bool CollectViewportPickingSpheres(std::vector<BoundingSphere>& outSpheres) const
+		void DrawObjectId(uint32_t objectId) const
 		{
-			if (!canPickInViewport || !readViewportPickingSpheres)
+			if (canDrawObjectId && drawObjectId && objectId != 0)
 			{
-				return false;
+				drawObjectId(objectId); // 0は空ピクセル専用IDとして予約する。
 			}
-
-			const std::size_t previousSize = outSpheres.size();
-			readViewportPickingSpheres(outSpheres);
-			return outSpheres.size() > previousSize;
 		}
 	};
 
