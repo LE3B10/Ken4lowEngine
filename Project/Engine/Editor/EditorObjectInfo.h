@@ -4,6 +4,7 @@
 #include <functional>
 #include <string>
 #include <string_view>
+#include <utility>
 
 #include "Vector3.h"
 
@@ -93,6 +94,17 @@ namespace Ken4lowEngine
 		using WriteActiveFunc = std::function<void(bool)>;
 		using RenameFunc = std::function<void(std::string_view)>;
 		using RequestActionFunc = std::function<void()>;
+
+		EditorObjectInfo() = default;
+
+		EditorObjectInfo(uint64_t objectId, std::string objectDisplayName, std::string objectTypeName, std::string objectSceneName)
+			: id(objectId),
+			displayName(std::move(objectDisplayName)),
+			typeName(std::move(objectTypeName)),
+			sceneName(std::move(objectSceneName))
+		{
+			// 階層用フィールド追加後も既存の4引数初期化を型安全に維持する。
+		}
 
 		uint64_t id = 0;
 		uint64_t parentId = 0;
