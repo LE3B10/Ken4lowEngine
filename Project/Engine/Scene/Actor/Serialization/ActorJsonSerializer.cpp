@@ -10,70 +10,56 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <json.hpp>
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		bool ValidateActorJson(const nlohmann::json& actorJson)
+		{
+			if (!actorJson.is_object() || !actorJson.contains("Components") || !actorJson["Components"].is_array()) return false;
+			for (const auto& componentJson : actorJson["Components"])
+			{
+				if (!componentJson.is_object() || !componentJson.contains("Class") || !componentJson["Class"].is_string()) return false;
+			}
+			return true;
+		}
+	}
+
+	nlohmann::json ActorJsonSerializer::SerializeActor(const Actor& actor)
+	{
+		nlohmann::json actorJson;
+		actor.ToJson(actorJson); // Command履歴はファイルを経由せずActor構成を保持する。
+		return actorJson;
+	}
+
 	bool ActorJsonSerializer::SaveActorToFile(const Actor& actor, std::string_view filePath)
 	{
 		const std::filesystem::path path(filePath);
-
-		if (path.has_parent_path())
-		{
-			std::filesystem::create_directories(path.parent_path()); // 親ディレクトリが存在しない場合は作成する
-		}
+		if (path.has_parent_path()) std::filesystem::create_directories(path.parent_path());
 
 		std::ofstream file(path);
-		if (!file.is_open())
-		{
-			return false; // ファイルが開けなかった場合は失敗を返す
-		}
-
-		nlohmann::json actorJson;
-		actor.ToJson(actorJson); // Actorの情報をJSONへ保存する
-
-		file << actorJson.dump(4); // JSONデータをフォーマットしてファイルに書き込む
+		if (!file.is_open()) return false;
+		file << SerializeActor(actor).dump(4);
 		return true;
 	}
 
 	bool ActorJsonSerializer::LoadActorFromFile(Actor& actor, std::string_view filePath)
 	{
-		const std::filesystem::path path{ std::string(filePath) }; // string_viewを安全にpathへ変換する。
-
-		std::ifstream file{ path }; // Most Vexing Parseを避けるため、波括弧でifstreamを生成する。
-		if (!file.is_open())
-		{
-			return false; // ファイルを開けなかった場合は読み込み失敗。
-		}
+		std::ifstream file{ std::filesystem::path{ std::string(filePath) } };
+		if (!file.is_open()) return false;
 
 		nlohmann::json actorJson;
-		file >> actorJson; // JSONファイルを読み込む。
+		file >> actorJson;
+		return LoadActorFromJson(actor, actorJson);
+	}
 
-		if (!actorJson.is_object())
-		{
-			return false; // Actor用JSONではない場合は読み込まない。
-		}
+	bool ActorJsonSerializer::LoadActorFromJson(Actor& actor, const nlohmann::json& actorJson)
+	{
+		if (!ValidateActorJson(actorJson)) return false;
 
-		if (!actorJson.contains("Components") || !actorJson["Components"].is_array())
-		{
-			return false; // Component配列が無い場合はActor構成として扱わない。
-		}
-
-		for (const auto& componentJson : actorJson["Components"])
-		{
-			if (!componentJson.is_object())
-			{
-				return false; // 不正なComponent要素がある場合は、Actorを壊す前に読み込みを中止する。
-			}
-
-			if (!componentJson.contains("Class") || !componentJson["Class"].is_string())
-			{
-				return false; // Classが無いComponentは復元できないため、Actorを壊す前に読み込みを中止する。
-			}
-		}
-
-		actor.ClearComponents(); // 既存Componentを破棄して、JSON構成で作り直す。
-		actor.FromJson(actorJson); // Actor名などの共通情報を復元する。
+		actor.ClearComponents();
+		actor.FromJson(actorJson);
 
 		std::unordered_map<std::string, SceneComponent*> sceneComponentsByName;
 		std::vector<std::pair<SceneComponent*, std::string>> pendingAttachments;
@@ -81,120 +67,62 @@ namespace Ken4lowEngine
 		for (const auto& componentJson : actorJson["Components"])
 		{
 			const std::string className = componentJson["Class"].get<std::string>();
-
-			std::string componentType = "ActorComponent";
-			if (componentJson.contains("Type") && componentJson["Type"].is_string())
-			{
-				componentType = componentJson["Type"].get<std::string>(); // SceneComponentかActorComponentかを取得する。
-			}
-
-			std::string parentName;
-			if (componentJson.contains("Parent") && componentJson["Parent"].is_string())
-			{
-				parentName = componentJson["Parent"].get<std::string>(); // 後でAttachToするため親名を保持する。
-			}
+			const std::string componentType = componentJson.value("Type", std::string("ActorComponent"));
+			const std::string parentName = componentJson.value("Parent", std::string{});
 
 			ActorComponent* createdComponent = nullptr;
-
 			if (componentType == "SceneComponent" && parentName.empty())
 			{
-				createdComponent = ComponentFactory::CreateRootSceneComponent(&actor, className); // 親が無いSceneComponentはRootとして生成する。
+				createdComponent = ComponentFactory::CreateRootSceneComponent(&actor, className);
 			}
 			else
 			{
-				createdComponent = ComponentFactory::CreateComponent(&actor, className); // 通常Componentとして生成する。
+				createdComponent = ComponentFactory::CreateComponent(&actor, className);
 			}
+			if (!createdComponent) continue;
 
-			if (!createdComponent)
-			{
-				continue; // 未対応Classなら無視する。
-			}
-
-			createdComponent->FromJson(componentJson); // Component固有情報を復元する。
-
+			createdComponent->FromJson(componentJson);
 			if (SceneComponent* sceneComponent = dynamic_cast<SceneComponent*>(createdComponent))
 			{
-				sceneComponentsByName[sceneComponent->GetName()] = sceneComponent; // 親子接続用に名前で登録する。
-
-				if (!parentName.empty())
-				{
-					pendingAttachments.emplace_back(sceneComponent, parentName); // 全Component生成後に親子接続する。
-				}
-				else if (!actor.GetRootComponent())
-				{
-					actor.SetRootComponent(sceneComponent); // Rootが未設定なら親無しSceneComponentをRootにする。
-				}
+				sceneComponentsByName[sceneComponent->GetName()] = sceneComponent;
+				if (!parentName.empty()) pendingAttachments.emplace_back(sceneComponent, parentName);
+				else if (!actor.GetRootComponent()) actor.SetRootComponent(sceneComponent);
 			}
 		}
 
 		for (const auto& [child, parentName] : pendingAttachments)
 		{
-			if (!child)
-			{
-				continue; // 子が無効なら接続しない。
-			}
-
 			const auto parentIt = sceneComponentsByName.find(parentName);
-			if (parentIt == sceneComponentsByName.end())
-			{
-				continue; // 親名に一致するSceneComponentが無い場合は接続しない。
-			}
-
-			child->AttachTo(parentIt->second); // JSONに保存されていた親子関係を復元する。
+			if (child && parentIt != sceneComponentsByName.end()) child->AttachTo(parentIt->second);
 		}
 
-		actor.InitializeComponents(); // 派生ActorのInitializeを呼ばず、復元したComponentだけを初期化する
+		actor.InitializeComponents();
 		return true;
 	}
 
 	std::unique_ptr<Actor> ActorJsonSerializer::CreateActorFromJson(std::string_view filePath, const ActorSpawnOptions& options)
 	{
-		const std::filesystem::path path{ std::string(filePath) }; // string_viewを安全にpathへ変換する
-
-		std::ifstream file{ path }; // Most Vexing Parseを避けるため、波括弧でifstreamを生成する
-		if (!file.is_open())
-		{
-			return nullptr; // ファイルを開けなかった場合はnullptrを返す
-		}
+		std::ifstream file{ std::filesystem::path{ std::string(filePath) } };
+		if (!file.is_open()) return nullptr;
 
 		nlohmann::json actorJson;
-		file >> actorJson; // JSONファイルを読み込む
+		file >> actorJson;
+		return CreateActorFromJson(actorJson, options);
+	}
 
-		if (!actorJson.is_object())
-		{
-			return nullptr; // Actor用JSONではない場合はnullptrを返す
-		}
+	std::unique_ptr<Actor> ActorJsonSerializer::CreateActorFromJson(const nlohmann::json& actorJson, const ActorSpawnOptions& options)
+	{
+		if (!ValidateActorJson(actorJson) || !actorJson.contains("Class") || !actorJson["Class"].is_string()) return nullptr;
 
-		if (!actorJson.contains("Class") || !actorJson["Class"].is_string())
-		{
-			return nullptr; // Classが無いActorは生成できないため、nullptrを返す
-		}
-
-		const std::string actorClass = actorJson["Class"].get<std::string>();
-
-		std::unique_ptr<Actor> actor = ActorFactory::CreateActor(actorClass); // ActorFactoryで指定ClassのActorを生成する
-		if (!actor)
-		{
-			return nullptr; // 未対応Classならnullptrを返す
-		}
-
-		if (!LoadActorFromFile(*actor, filePath))
-		{
-			return nullptr; // JSON読み込みに失敗した場合はnullptrを返す
-		}
+		std::unique_ptr<Actor> actor = ActorFactory::CreateActor(actorJson["Class"].get<std::string>());
+		if (!actor || !LoadActorFromJson(*actor, actorJson)) return nullptr;
 
 		if (options.applySpawnOffset && actor->GetRootComponent())
 		{
-			if (SceneComponent* root = actor->GetRootComponent())
-			{
-				Vector3 position = Vector3::Add(root->GetLocalPosition(), options.spawnOffset);
-				root->SetLocalPosition(position); // SpawnOffsetをRootComponentのローカル位置に適用する
-				root->RefreshWorldTransform(); // SpawnOffsetを適用した後にWorldTransformを更新する
-			}
+			SceneComponent* root = actor->GetRootComponent();
+			root->SetLocalPosition(Vector3::Add(root->GetLocalPosition(), options.spawnOffset));
+			root->RefreshWorldTransform(); // Actor生成CommandのRedoでも同じSpawnOffsetを再現する。
 		}
-
-
 		return actor;
 	}
-
-}
+} // namespace Ken4lowEngine
