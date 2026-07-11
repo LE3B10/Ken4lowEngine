@@ -11,7 +11,7 @@ namespace Ken4lowEngine
 
 
 	/// -------------------------------------------------------------
-	///					　	シーンの基底クラス
+	///　　　　　　　　　　シーンの基底クラス
 	/// -------------------------------------------------------------
 	enum class EditorInputPolicy
 	{
@@ -34,6 +34,9 @@ namespace Ken4lowEngine
 
 		// Editor Mode中にゲーム進行を止めたまま確認用更新だけ行う。
 		virtual void UpdateEditor(float /*deltaTime*/) {}
+
+		// ShadowSystemがライト種別と行列を確定する直前に、Scene側のライト情報を同期する。
+		virtual void PrepareShadowPass() {}
 
 		// 仮想3D描画処理
 		virtual void Draw3DObjects() = 0;
