@@ -50,9 +50,6 @@ namespace Ken4lowEngine
 		}
 	};
 
-	/// <summary>
-	/// Viewportへのアセット配置結果です。
-	/// </summary>
 	struct EditorAssetPlacementResult
 	{
 		Actor* spawnedActor = nullptr;
@@ -66,9 +63,6 @@ namespace Ken4lowEngine
 	class EditorAssetPlacementService
 	{
 	public:
-		/// <summary>
-		/// Main Viewport上のスクリーン座標から、Y=0平面またはカメラ前方の配置位置を計算します。
-		/// </summary>
 		static bool CalculateDropPosition(
 			const Vector2& screenMouse,
 			const Vector2& viewportScreenMin,
@@ -120,14 +114,10 @@ namespace Ken4lowEngine
 				}
 			}
 
-			// 地面と交差しない視線ではカメラ前方10mを配置位置として使用する。
-			outPosition = rayOrigin + worldDirection * 10.0f;
+			outPosition = rayOrigin + worldDirection * 10.0f; // 地面と交差しない視線ではドロップ瞬間のワールド位置へ固定する。
 			return true;
 		}
 
-		/// <summary>
-		/// SceneManagerが保持する現在SceneへPayloadを配置します。
-		/// </summary>
 		static EditorAssetPlacementResult PlaceAsset(
 			SceneManager* sceneManager,
 			const EditorAssetDragDropPayload& payload,
@@ -137,9 +127,6 @@ namespace Ken4lowEngine
 			return PlaceAsset(scene, payload, worldPosition);
 		}
 
-		/// <summary>
-		/// Payloadを現在Sceneへ配置します。
-		/// </summary>
 		static EditorAssetPlacementResult PlaceAsset(
 			BaseScene* scene,
 			const EditorAssetDragDropPayload& payload,
@@ -189,11 +176,6 @@ namespace Ken4lowEngine
 					return result;
 				}
 
-				if (SceneComponent* root = actor->GetRootComponent())
-				{
-					root->SetLocalPosition(worldPosition);
-					root->RefreshWorldTransform();
-				}
 				result.spawnedActor = actor;
 				result.succeeded = true;
 				result.message = "アクタープリファブをビューポートへ配置しました: " + prefabPath;
@@ -205,6 +187,13 @@ namespace Ken4lowEngine
 
 			if (result.succeeded && result.spawnedActor)
 			{
+				if (SceneComponent* root = result.spawnedActor->GetRootComponent())
+				{
+					root->Detach();
+					root->SetLocalPosition(worldPosition);
+					root->RefreshWorldTransform(); // 配置確定時に親を外し、カメラ追従ではなくWorld座標へ固定する。
+				}
+
 				SelectSpawnedActor(*scene, *result.spawnedActor);
 				EditorContext::GetInstance()->MarkLevelDirty();
 			}
