@@ -27,6 +27,11 @@ namespace Ken4lowEngine
 		void Update(float deltaTime) override;
 
 		/// <summary>
+		/// Editor停止中に親子Transformだけを再計算する。
+		/// </summary>
+		void UpdateEditor(float deltaTime) override;
+
+		/// <summary>
 		/// 現在のLocalTransformからWorldTransformを即座に再計算する。
 		/// </summary>
 		void RefreshWorldTransform()
@@ -46,154 +51,73 @@ namespace Ken4lowEngine
 
 	public: /// ---------- JSONシリアライズ / デシリアライズ ---------- ///
 
-		/// <summary>
-		/// JSON保存用のComponentクラス名を取得する
-		/// </summary>
 		virtual std::string GetClassTypeName() const override
 		{
-			return "SceneComponent"; // SceneComponentの型名を返す。派生クラスでオーバーライドする
+			return "SceneComponent";
 		}
 
-		/// <summary>
-		/// SceneComponentのTransformと親情報をJSONへ保存する
-		/// </summary>
 		virtual void ToJson(nlohmann::json& outJson) const override;
-
-		/// <summary>
-		/// JSONからSceneComponentのTransform情報を復元する
-		/// </summary>
 		void FromJson(const nlohmann::json& inJson) override;
 
-	public: /// ---------- 
+	public: /// ---------- 有効状態 ---------- ///
 
-		/// <summary>
-		/// 親SceneComponentも含めて有効かどうかを取得する
-		/// </summary>
 		bool IsActiveInHierarchy() const override;
 
 	public: /// ---------- 親子関係 ---------- ///
 
-		/// <summary>
-		/// 指定したSceneComponentの子として接続する。
-		/// </summary>
 		void AttachTo(SceneComponent* parent);
-
-		/// <summary>
-		/// 現在の親Componentから切り離す。
-		/// </summary>
 		void Detach();
-
-		/// <summary>
-		/// 親SceneComponentを取得する。
-		/// </summary>
 		SceneComponent* GetParent() const { return parent_; }
-
-		/// <summary>
-		/// 子SceneComponent一覧を取得する。
-		/// </summary>
 		const std::vector<SceneComponent*>& GetChildren() const { return children_; }
 
 	public: /// ---------- Transform Getter ---------- ///
 
-		/// <summary>
-		/// 親から見たローカル位置を取得する。
-		/// </summary>
 		const Vector3& GetLocalPosition() const { return localPosition_; }
-
-		/// <summary>
-		/// 親から見たローカル回転を取得する。
-		/// </summary>
 		const Vector3& GetLocalRotation() const { return localRotation_; }
-
-		/// <summary>
-		/// 親から見たローカルスケールを取得する。
-		/// </summary>
 		const Vector3& GetLocalScale() const { return localScale_; }
-
-		/// <summary>
-		/// ワールド位置を取得する。
-		/// </summary>
 		const Vector3& GetWorldPosition() const { return worldPosition_; }
-
-		/// <summary>
-		/// ワールド回転を取得する。
-		/// </summary>
 		const Vector3& GetWorldRotation() const { return worldRotation_; }
-
-		/// <summary>
-		/// ワールドスケールを取得する。
-		/// </summary>
 		const Vector3& GetWorldScale() const { return worldScale_; }
 
 	public: /// ---------- Transform Setter ---------- ///
 
-		/// <summary>
-		/// 親から見たローカル位置を設定する。
-		/// </summary>
 		void SetLocalPosition(const Vector3& position)
 		{
-			localPosition_ = position; // 親を基準にした相対位置を更新する。
+			localPosition_ = position;
 		}
 
-		/// <summary>
-		/// 親から見たローカル回転を設定する。
-		/// </summary>
 		void SetLocalRotation(const Vector3& rotation)
 		{
-			localRotation_ = rotation; // 親を基準にした相対回転を更新する。
+			localRotation_ = rotation;
 		}
 
-		/// <summary>
-		/// 親から見たローカルスケールを設定する。
-		/// </summary>
 		void SetLocalScale(const Vector3& scale)
 		{
-			localScale_ = scale; // 親を基準にした相対スケールを更新する。
+			localScale_ = scale;
 		}
 
 	public: /// ---------- Mutable Access ---------- ///
 
-		/// <summary>
-		/// ローカル位置を直接編集するための参照を取得する。
-		/// </summary>
 		Vector3& LocalPosition() { return localPosition_; }
-
-		/// <summary>
-		/// ローカル回転を直接編集するための参照を取得する。
-		/// </summary>
 		Vector3& LocalRotation() { return localRotation_; }
-
-		/// <summary>
-		/// ローカルスケールを直接編集するための参照を取得する。
-		/// </summary>
 		Vector3& LocalScale() { return localScale_; }
 
 	private: /// ---------- 内部処理 ---------- ///
 
-		/// <summary>
-		/// ローカルTransformからワールドTransformを計算する。
-		/// </summary>
 		void UpdateWorldTransform();
-
-		/// <summary>
-		/// 子Componentから指定したComponentを取り除く。
-		/// </summary>
 		void RemoveChild(SceneComponent* child);
 
 	private: /// ---------- メンバ変数 ---------- ///
 
-		// 親Component。所有権は持たない
 		SceneComponent* parent_ = nullptr;
-
-		// 子Component一覧。所有権はActor側のComponent管理に任せる
 		std::vector<SceneComponent*> children_;
 
-		Vector3 localPosition_{ 0.0f, 0.0f, 0.0f }; // 親から見た相対位置。
-		Vector3 localRotation_{ 0.0f, 0.0f, 0.0f }; // 親から見た相対回転。
-		Vector3 localScale_{ 1.0f, 1.0f, 1.0f };    // 親から見た相対スケール。
+		Vector3 localPosition_{ 0.0f, 0.0f, 0.0f };
+		Vector3 localRotation_{ 0.0f, 0.0f, 0.0f };
+		Vector3 localScale_{ 1.0f, 1.0f, 1.0f };
 
-		Vector3 worldPosition_{ 0.0f, 0.0f, 0.0f }; // 最終的なワールド位置。
-		Vector3 worldRotation_{ 0.0f, 0.0f, 0.0f }; // 最終的なワールド回転。
-		Vector3 worldScale_{ 1.0f, 1.0f, 1.0f };    // 最終的なワールドスケール。
+		Vector3 worldPosition_{ 0.0f, 0.0f, 0.0f };
+		Vector3 worldRotation_{ 0.0f, 0.0f, 0.0f };
+		Vector3 worldScale_{ 1.0f, 1.0f, 1.0f };
 	};
-}
+} // namespace Ken4lowEngine
