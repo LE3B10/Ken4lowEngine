@@ -103,6 +103,6 @@ namespace Ken4lowEngine
 		if (!camera_) return;
 		camera_->SetTranslate(GetWorldPosition());
 		camera_->SetRotate(inheritParentRotation_ ? GetWorldRotation() : GetLocalRotation());
-		camera_->SetScale({ 1.0f, 1.0f, 1.0f }); // CameraのView行列へActorやModelのScaleを継承させない。
+		camera_->SetScale({ 1.0f, 1.0f, 1.0f }); // ActorやModelのScaleをCameraのView行列へ継承させない。
 	}
 } // namespace Ken4lowEngine
