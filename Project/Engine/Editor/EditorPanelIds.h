@@ -6,8 +6,8 @@ namespace Ken4lowEngine::EditorPanelIds
 	inline constexpr const char* PlaceActors = "Place Actors";
 	inline constexpr const char* MainViewport = "Main Viewport";
 	inline constexpr const char* ViewportToolbarOverlay = "ビューポートツールバー###ViewportToolbarOverlay";
-	inline constexpr const char* WorldOutliner = "World Outliner";
-	inline constexpr const char* Details = "Details";
+	inline constexpr const char* WorldOutliner = "アウトライナー###World Outliner";
+	inline constexpr const char* Details = "詳細###Details";
 	inline constexpr const char* ContentBrowser = "Content Browser";
 	inline constexpr const char* OutputLog = "Output Log";
 	inline constexpr const char* Scene = "Scene";
