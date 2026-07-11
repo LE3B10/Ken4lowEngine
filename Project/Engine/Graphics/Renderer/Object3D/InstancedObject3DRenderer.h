@@ -10,6 +10,7 @@
 #include "ObjectIdPipeline.h"
 #include "SRVManager.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -18,9 +19,7 @@
 
 namespace Ken4lowEngine
 {
-	/// <summary>
-	/// CPUでObject3Dを大量生成せず、同じModelをGPUインスタンシングでまとめて描画する専用レンダラーです。
-	/// </summary>
+	/// <summary>同じModelをGPUインスタンシングでまとめて描画する専用レンダラーです。</summary>
 	class InstancedObject3DRenderer
 	{
 	public:
@@ -31,7 +30,6 @@ namespace Ken4lowEngine
 			Vector4 color;
 		};
 
-		/// <summary>JSONなどの配置データへ移しやすい、インスタンス単位のTransformと色です。</summary>
 		struct InstanceTransform
 		{
 			Vector3 position{};
@@ -45,77 +43,65 @@ namespace Ken4lowEngine
 		InstancedObject3DRenderer(const InstancedObject3DRenderer&) = delete;
 		InstancedObject3DRenderer& operator=(const InstancedObject3DRenderer&) = delete;
 
-		/// <summary>共有Modelと、最大インスタンス数分のStructuredBufferを初期化します。</summary>
 		void Initialize(const std::string& modelPath, size_t maxInstanceCount = 30000);
 		void Finalize();
-
-		/// <summary>モデルの総インデックス数を取得します。</summary>
 		uint64_t GetModelTotalIndexCount() const;
-
-		/// <summary>描画する静的インスタンスをGPU可視バッファへ一括転送します。</summary>
 		bool SetInstances(const std::vector<InstanceData>& instances);
-
-		/// <summary>World行列列から逆転置行列を生成して一括登録します。</summary>
 		bool SetWorldMatrices(const std::vector<Matrix4x4>& worldMatrices, const Vector4& color = { 1.0f, 1.0f, 1.0f, 1.0f });
-
-		/// <summary>位置・回転・スケール・色からGPU用InstanceDataを構築します。</summary>
 		bool SetTransforms(const std::vector<InstanceTransform>& transforms);
-
-		/// <summary>解決済みMaterialDescを全インスタンス共通のMaterialへ反映します。</summary>
 		void ApplyMaterialDesc(const MaterialDesc& desc);
-
-		/// <summary>Material Bindingを解除し、モデル読み込み時のMaterial状態へ戻します。</summary>
 		void ResetMaterialBinding();
-
-		/// <summary>サブメッシュごとに1回、DrawIndexedInstancedを発行します。</summary>
 		void Draw();
-
-		/// <summary>全インスタンスを現在のShadow Sliceへまとめて描画します。</summary>
 		void DrawShadow();
 
-		/// <summary>全Instanceを同じComponent IDでR32_UINT Object-ID Targetへ描画します。</summary>
-		void DrawEditorObjectId(uint32_t objectId)
+		/// <summary>全InstanceへbaseObjectId + SV_InstanceIDを書き込み、1Drawで個別Pickingします。</summary>
+		void DrawEditorObjectId(uint32_t baseObjectId)
 		{
-			if (!initialized_ || !dxCommon_ || !model_ || sourceInstances_.empty() || objectId == 0)
-			{
-				return;
-			}
+			const size_t count = UploadSourceInstancesForEditorPicking();
+			if (count == 0 || baseObjectId == 0) return;
 
 			const Matrix4x4 viewProjection = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
 			perViewData_->viewProjection = viewProjection;
-			UpdateVisibleInstances(viewProjection);
-			if (instanceCount_ == 0)
-			{
-				return;
-			}
-
 			ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 			SRVManager::GetInstance()->PreDraw();
-			ObjectIdPipeline::GetInstance()->BindInstanced(commandList, objectId);
+			ObjectIdPipeline::GetInstance()->BindInstanced(commandList, baseObjectId, true);
 			SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, instanceSrvIndex_);
 			commandList->SetGraphicsRootConstantBufferView(1, perViewResource_->GetGPUVirtualAddress());
 			for (auto& mesh : model_->GetMeshes())
 			{
-				mesh.DrawInstanced(static_cast<UINT>(instanceCount_)); // Instanceごとの行列を維持したままComponent IDだけを出力する。
+				mesh.DrawInstanced(static_cast<UINT>(count));
 			}
 		}
 
-	public: /// ---------- アクセサ ---------- ///
+		/// <summary>選択輪郭用に指定Instanceだけを同じObject IDで描画します。</summary>
+		void DrawEditorInstanceObjectId(size_t sourceInstanceIndex, uint32_t objectId)
+		{
+			const size_t count = UploadSourceInstancesForEditorPicking();
+			if (count == 0 || sourceInstanceIndex >= count || objectId == 0) return;
+
+			perViewData_->viewProjection = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
+			ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+			SRVManager::GetInstance()->PreDraw();
+			ObjectIdPipeline::GetInstance()->BindInstanced(commandList, objectId, false);
+			SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, instanceSrvIndex_);
+			commandList->SetGraphicsRootConstantBufferView(1, perViewResource_->GetGPUVirtualAddress());
+			for (auto& mesh : model_->GetMeshes())
+			{
+				mesh.DrawInstanced(1, static_cast<UINT>(sourceInstanceIndex)); // StructuredBufferの元Indexを維持して1体だけ描く。
+			}
+		}
 
 		size_t GetInstanceCount() const { return sourceInstances_.size(); }
 		size_t GetVisibleInstanceCount() const { return instanceCount_; }
 		size_t GetMaxInstanceCount() const { return maxInstanceCount_; }
-
 		void SetDebugIndexBudget(uint64_t budget) { debugIndexBudget_ = budget; }
 		uint64_t GetEstimatedDrawIndexCount() const { return estimatedDrawIndexCount_; }
 		bool WasDrawSkippedByBudget() const { return drawSkippedByBudget_; }
-
 		void SetMaterialColor(const Vector4& color) { material_.SetColor(color); }
 		void SetFrustumCullingEnabled(bool enabled);
 		bool IsFrustumCullingEnabled() const { return frustumCullingEnabled_; }
 
-	private: /// ---------- メンバ変数 ---------- ///
-
+	private:
 		struct PerViewData { Matrix4x4 viewProjection; };
 		struct CameraForGPU { float x, y, z, padding; };
 		struct DissolveSetting
@@ -136,17 +122,24 @@ namespace Ken4lowEngine
 			float padding[1];
 		};
 
+		size_t UploadSourceInstancesForEditorPicking()
+		{
+			if (!initialized_ || !dxCommon_ || !model_ || !mappedInstances_ || sourceInstances_.empty()) return 0;
+			const size_t count = std::min(sourceInstances_.size(), maxInstanceCount_);
+			std::copy_n(sourceInstances_.begin(), count, mappedInstances_);
+			instanceCount_ = count;
+			return count; // Picking時はカリングで順番を詰め替えず、SV_InstanceIDと編集Indexを一致させる。
+		}
+
 		DirectXCommon* dxCommon_ = nullptr;
 		std::shared_ptr<Model> model_;
 		Material material_{};
-		MaterialTextureSlots materialTextureSlots_{}; // 全Instance共通の5 Texture Slotを保持する。
-
+		MaterialTextureSlots materialTextureSlots_{};
 		ComPtr<ID3D12Resource> instanceResource_;
 		InstanceData* mappedInstances_ = nullptr;
 		uint32_t instanceSrvIndex_ = UINT32_MAX;
 		size_t maxInstanceCount_ = 0;
 		size_t instanceCount_ = 0;
-
 		ComPtr<ID3D12Resource> perViewResource_;
 		PerViewData* perViewData_ = nullptr;
 		ComPtr<ID3D12Resource> cameraResource_;
@@ -155,7 +148,6 @@ namespace Ken4lowEngine
 		DissolveSetting* dissolveData_ = nullptr;
 		ComPtr<ID3D12Resource> shadowParameterResource_;
 		ShadowParameterForGPU* shadowParameterData_ = nullptr;
-
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> materialSRVs_;
 		std::vector<bool> materialUsePointSampling_;
 		D3D12_GPU_DESCRIPTOR_HANDLE environmentMapHandle_{};
@@ -168,10 +160,7 @@ namespace Ken4lowEngine
 		uint64_t estimatedDrawIndexCount_ = 0;
 		bool drawSkippedByBudget_ = false;
 
-		/// <summary>カリング設定に応じ、描画対象だけをGPUバッファの先頭へ詰め直します。</summary>
 		void UpdateVisibleInstances(const Matrix4x4& viewProjection);
-
-		/// <summary>共有Modelが保持するSubMesh TextureとSampler設定をRendererへ復元します。</summary>
 		void RestoreModelMaterials();
 	};
 }
