@@ -1288,6 +1288,9 @@
     <ClCompile Include="Engine\Editor\EditorGpuPickingManager.cpp">
       <Filter>Engine\Editor</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelObjectIdRenderer.cpp">
+      <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2667,6 +2670,9 @@
     <ClInclude Include="Engine\Graphics\Renderer\Object3D\ObjectIdPipeline.h">
       <Filter>Engine\Graphics\Renderer\Object3D</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelObjectIdRenderer.h">
+      <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
@@ -3156,6 +3162,9 @@
   <ItemGroup>
     <None Include="Engine\Graphics\Renderer\Object3D\InstancedObject3DRendererShadow.inl">
       <Filter>Engine\Graphics\Renderer\Object3D</Filter>
+    </None>
+    <None Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelShadow.inl">
+      <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
     </None>
   </ItemGroup>
 </Project>
