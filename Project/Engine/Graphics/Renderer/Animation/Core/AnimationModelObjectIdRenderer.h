@@ -9,6 +9,6 @@ namespace Ken4lowEngine
 	/// <summary>
 	/// AnimationModelが公開するMeshとWorldTransformを使い、Editor Object-ID Passへ形状を描画します。
 	/// </summary>
-	inline void DrawAnimationModelObjectId(AnimationModel& animationModel, uint32_t objectId);
+	void DrawAnimationModelObjectId(AnimationModel& animationModel, uint32_t objectId);
 	
 } // namespace Ken4lowEngine
