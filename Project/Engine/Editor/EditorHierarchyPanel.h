@@ -176,7 +176,7 @@ namespace Ken4lowEngine
 			bool active = true;
 			if (object.ReadActive(active))
 			{
-				if (ImGui::Checkbox("##有効", &active))
+				if (ImGui::Checkbox("##OutlinerActive", &active))
 				{
 					object.WriteActive(active);
 				}
@@ -224,19 +224,13 @@ namespace Ken4lowEngine
 					std::snprintf(renameBuffer_.data(), renameBuffer_.size(), "%s", object.displayName.c_str());
 					openRenamePopup_ = true;
 				}
-				if (object.canDuplicate)
+				if (object.canDuplicate && ImGui::MenuItem("複製"))
 				{
-					if (ImGui::MenuItem("複製"))
-					{
-						object.RequestDuplicate();
-					}
+					object.RequestDuplicate();
 				}
-				if (object.canDelete)
+				if (object.canDelete && ImGui::MenuItem("削除"))
 				{
-					if (ImGui::MenuItem("削除"))
-					{
-						object.RequestDelete();
-					}
+					object.RequestDelete();
 				}
 				ImGui::EndPopup();
 			}
@@ -374,6 +368,7 @@ namespace Ken4lowEngine
 					else
 					{
 						const EditorObjectInfo& selected = selection.GetSelected();
+						ImGui::PushID(static_cast<int>(selected.id & 0x7fffffff)); // 選択オブジェクトごとにDetails全体のID空間を分離する。
 						ImGui::Text("%s  %s", selected.icon.c_str(), selected.displayName.c_str());
 						ImGui::TextDisabled("%s", selected.typeName.c_str());
 
@@ -382,7 +377,7 @@ namespace Ken4lowEngine
 							std::array<char, 256> nameBuffer{};
 							std::snprintf(nameBuffer.data(), nameBuffer.size(), "%s", selected.displayName.c_str());
 							ImGui::SetNextItemWidth(-1.0f);
-							if (ImGui::InputText("名前", nameBuffer.data(), nameBuffer.size(), ImGuiInputTextFlags_EnterReturnsTrue))
+							if (ImGui::InputText("名前##SelectedObjectName", nameBuffer.data(), nameBuffer.size(), ImGuiInputTextFlags_EnterReturnsTrue))
 							{
 								selected.Rename(nameBuffer.data());
 								EditorContext::GetInstance()->MarkLevelDirty();
@@ -390,13 +385,13 @@ namespace Ken4lowEngine
 						}
 
 						bool active = true;
-						if (selected.ReadActive(active) && ImGui::Checkbox("有効", &active))
+						if (selected.ReadActive(active) && ImGui::Checkbox("有効##SelectedObjectActive", &active))
 						{
 							selected.WriteActive(active);
 							EditorContext::GetInstance()->MarkLevelDirty();
 						}
 
-						if (ImGui::CollapsingHeader("基本情報", ImGuiTreeNodeFlags_DefaultOpen))
+						if (ImGui::CollapsingHeader("基本情報##SelectedObjectInfo", ImGuiTreeNodeFlags_DefaultOpen))
 						{
 							ImGui::Text("種類: %s", selected.typeName.c_str());
 							ImGui::Text("シーン: %s", selected.sceneName.c_str());
@@ -410,7 +405,9 @@ namespace Ken4lowEngine
 						ImGui::Separator();
 						if (selected.drawInspector)
 						{
+							ImGui::PushID("SelectedObjectInspector");
 							selected.drawInspector();
+							ImGui::PopID();
 						}
 						else
 						{
@@ -427,6 +424,7 @@ namespace Ken4lowEngine
 								break;
 							}
 						}
+						ImGui::PopID();
 					}
 				}
 				ImGui::EndChild();
