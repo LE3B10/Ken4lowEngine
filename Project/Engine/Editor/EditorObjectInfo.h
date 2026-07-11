@@ -124,6 +124,8 @@ namespace Ken4lowEngine
 		ReadTransformFunc readTransform;
 		DrawInspectorFunc drawInspector;
 		WriteTransformFunc writeTransform;
+		ReadTransformFunc readWorldTransform;
+		WriteTransformFunc writeWorldTransform;
 
 		bool canToggleActive = false;
 		ReadActiveFunc readActive;
@@ -151,6 +153,31 @@ namespace Ken4lowEngine
 			{
 				writeTransform(transform);
 			}
+		}
+
+		// GizmoはViewport上のWorld座標を扱う。専用入口がない既存オブジェクトはLocal入口をWorldとして再利用する。
+		bool TryReadWorldTransform(EditorTransform& outTransform) const
+		{
+			if (!canEditTransform)
+			{
+				return false;
+			}
+			return readWorldTransform ? readWorldTransform(outTransform) : TryReadTransform(outTransform);
+		}
+
+		// SceneComponent階層はWorldからLocalへ戻す必要があるため、Detailsの書き戻しとは入口を分ける。
+		void WriteWorldTransform(const EditorTransform& transform) const
+		{
+			if (!canEditTransform)
+			{
+				return;
+			}
+			if (writeWorldTransform)
+			{
+				writeWorldTransform(transform);
+				return;
+			}
+			WriteTransform(transform);
 		}
 
 		bool ReadActive(bool& outActive) const

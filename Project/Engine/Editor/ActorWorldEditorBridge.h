@@ -6,6 +6,7 @@
 #include <SceneComponent.h>
 
 #include <cstdint>
+#include <cmath>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -70,6 +71,14 @@ namespace Ken4lowEngine
 						root->SetLocalScale(transform.scale);
 						root->RefreshWorldTransform();
 					};
+				actorInfo.readWorldTransform = [root](EditorTransform& outTransform)
+					{
+						outTransform.position = root->GetWorldPosition();
+						outTransform.rotation = root->GetWorldRotation();
+						outTransform.scale = root->GetWorldScale();
+						return true;
+					};
+				actorInfo.writeWorldTransform = actorInfo.writeTransform; // RootはLocalとWorldが一致する。
 			}
 
 			actorInfo.drawInspector = [&actorWorld, actor]()
@@ -150,6 +159,34 @@ namespace Ken4lowEngine
 							sceneComponent->SetLocalPosition(transform.position);
 							sceneComponent->SetLocalRotation(transform.rotation);
 							sceneComponent->SetLocalScale(transform.scale);
+							sceneComponent->RefreshWorldTransform();
+						};
+					componentInfo.readWorldTransform = [sceneComponent](EditorTransform& outTransform)
+						{
+							outTransform.position = sceneComponent->GetWorldPosition();
+							outTransform.rotation = sceneComponent->GetWorldRotation();
+							outTransform.scale = sceneComponent->GetWorldScale();
+							return true;
+						};
+					componentInfo.writeWorldTransform = [sceneComponent](const EditorTransform& worldTransform)
+						{
+							EditorTransform localTransform = worldTransform;
+							if (const SceneComponent* parent = sceneComponent->GetParent())
+							{
+								const Vector3& parentPosition = parent->GetWorldPosition();
+								const Vector3& parentRotation = parent->GetWorldRotation();
+								const Vector3& parentScale = parent->GetWorldScale();
+								localTransform.position = worldTransform.position - parentPosition;
+								localTransform.rotation = worldTransform.rotation - parentRotation;
+								localTransform.scale = {
+									std::abs(parentScale.x) > 0.0001f ? worldTransform.scale.x / parentScale.x : worldTransform.scale.x,
+									std::abs(parentScale.y) > 0.0001f ? worldTransform.scale.y / parentScale.y : worldTransform.scale.y,
+									std::abs(parentScale.z) > 0.0001f ? worldTransform.scale.z / parentScale.z : worldTransform.scale.z,
+								};
+							}
+							sceneComponent->SetLocalPosition(localTransform.position);
+							sceneComponent->SetLocalRotation(localTransform.rotation);
+							sceneComponent->SetLocalScale(localTransform.scale);
 							sceneComponent->RefreshWorldTransform();
 						};
 				}

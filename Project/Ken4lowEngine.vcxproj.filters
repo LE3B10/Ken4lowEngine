@@ -16,6 +16,9 @@
     <FxCompile Include="Resources\Shaders\PostEffect\DepthOutlineEffect.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
+    <FxCompile Include="Resources\Shaders\EditorPicking\SelectionOutline.PS.hlsl">
+      <Filter>Shader\PixelShader</Filter>
+    </FxCompile>
     <FxCompile Include="Resources\Shaders\Object3D\Object3d.PS.hlsl">
       <Filter>Shader\PixelShader</Filter>
     </FxCompile>
@@ -1286,6 +1289,15 @@
       <Filter>Engine\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Editor\EditorGpuPickingManager.cpp">
+      <Filter>Engine\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Editor\EditorSelectionOutlineManager.cpp">
+      <Filter>Engine\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Editor\EditorTransformGizmo.cpp">
+      <Filter>Engine\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Externals\ImGuizmo\ImGuizmo.cpp">
       <Filter>Engine\Editor</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelObjectIdRenderer.cpp">
@@ -2659,6 +2671,15 @@
       <Filter>Engine\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Editor\EditorGpuPickingManager.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorSelectionOutlineManager.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorTransformGizmo.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Externals\ImGuizmo\ImGuizmo.h">
       <Filter>Engine\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Editor\EditorViewportPicking.h">

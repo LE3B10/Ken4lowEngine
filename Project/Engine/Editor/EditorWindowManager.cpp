@@ -2,6 +2,7 @@
 #include "EditorWindowManager.h"
 
 #include "EditorPlayController.h"
+#include "EditorSelectionOutlineManager.h"
 #include "ImGuiManager.h"
 #include "PostEffectManager.h"
 #include "GameViewportConstants.h"
@@ -530,6 +531,19 @@ namespace Ken4lowEngine
 			{
 				// SetCursorPosを使わずDrawListへ直接描画してImGuiの境界更新assertを避ける。
 				ImGui::GetWindowDrawList()->AddImage(static_cast<ImTextureID>(gameSrv.ptr), imageScreenMin, imageScreenMax, ImVec2(0.0f, 0.0f), ImVec2(1.0f, 1.0f));
+
+				EditorSelectionOutlineManager* outlineManager = EditorSelectionOutlineManager::GetInstance();
+				const D3D12_GPU_DESCRIPTOR_HANDLE outlineSrv = outlineManager->GetOutlineSrvHandleGPU();
+				if (outlineManager->HasVisibleOutline() && outlineSrv.ptr != 0)
+				{
+					// 透明Textureの輪郭だけを同じ矩形へ重ね、選択Object以外のGame描画は変えない。
+					ImGui::GetWindowDrawList()->AddImage(
+						static_cast<ImTextureID>(outlineSrv.ptr),
+						imageScreenMin,
+						imageScreenMax,
+						ImVec2(0.0f, 0.0f),
+						ImVec2(1.0f, 1.0f));
+				}
 			}
 			else if (gameSrv.ptr == 0 && availableSize.x > 1.0f && availableSize.y > 1.0f)
 			{

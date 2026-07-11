@@ -69,6 +69,11 @@ namespace Ken4lowEngine
 			callbacks.renderPostEffectToGameRenderTarget();
 		}
 
+		if (callbacks.renderEditorSelectionOutline)
+		{
+			callbacks.renderEditorSelectionOutline(); // Selection Maskと輪郭TextureはGame描画を変更せずImGui合成用に生成する。
+		}
+
 		// HUD/UI/SpriteはMain Viewportに含めるため、PostEffect後のGameRenderTargetへ直接重ねる。
 		if (callbacks.beginGameRenderTargetOverlay)
 		{

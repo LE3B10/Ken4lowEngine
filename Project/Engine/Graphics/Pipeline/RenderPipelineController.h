@@ -26,6 +26,7 @@ namespace Ken4lowEngine
 			std::function<void()> executeEditorPickingPass;
 			std::function<void()> drawGameWorldToSceneTarget;
 			std::function<void()> renderPostEffectToGameRenderTarget;
+			std::function<void()> renderEditorSelectionOutline;
 			std::function<void()> beginGameRenderTargetOverlay;
 			std::function<void()> drawScene2DOverlay;
 			std::function<void()> endGameRenderTargetOverlay;

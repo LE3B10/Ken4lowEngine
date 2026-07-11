@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include <Vector3.h>
+
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif
@@ -19,7 +21,7 @@ namespace Ken4lowEngine
 
 	/// <summary>
 	/// ビューポート上部ツールバーで選択する操作モードです。
-	/// 実際のギズモ操作はPhase 8で接続します。
+	/// Phase 8ではTranslate / Rotate / ScaleをImGuizmoへ接続します。
 	/// </summary>
 	enum class EditorViewportTool : uint8_t
 	{
@@ -36,6 +38,15 @@ namespace Ken4lowEngine
 	{
 		Actor = 0,
 		Component,
+	};
+
+	/// <summary>
+	/// Transform Gizmoの軸をWorld基準または選択ObjectのLocal基準で扱います。
+	/// </summary>
+	enum class EditorGizmoSpace : uint8_t
+	{
+		World = 0,
+		Local,
 	};
 
 	/// <summary>
@@ -57,6 +68,23 @@ namespace Ken4lowEngine
 
 		void SetTool(EditorViewportTool tool) { activeTool_ = tool; }
 		EditorViewportTool GetTool() const { return activeTool_; }
+
+		void SetGizmoSpace(EditorGizmoSpace space) { gizmoSpace_ = space; }
+		EditorGizmoSpace GetGizmoSpace() const { return gizmoSpace_; }
+		void ToggleGizmoSpace()
+		{
+			gizmoSpace_ = gizmoSpace_ == EditorGizmoSpace::World ? EditorGizmoSpace::Local : EditorGizmoSpace::World;
+		}
+		const char* GetGizmoSpaceText() const { return gizmoSpace_ == EditorGizmoSpace::World ? "World" : "Local"; }
+
+		void SetSnapEnabled(bool enabled) { snapEnabled_ = enabled; }
+		bool IsSnapEnabled() const { return snapEnabled_; }
+		Vector3& GetTranslationSnap() { return translationSnap_; }
+		const Vector3& GetTranslationSnap() const { return translationSnap_; }
+		float& GetRotationSnapDegrees() { return rotationSnapDegrees_; }
+		float GetRotationSnapDegrees() const { return rotationSnapDegrees_; }
+		float& GetScaleSnap() { return scaleSnap_; }
+		float GetScaleSnap() const { return scaleSnap_; }
 
 		void SetSelectionMode(EditorViewportSelectionMode mode) { selectionMode_ = mode; }
 		EditorViewportSelectionMode GetSelectionMode() const
@@ -107,7 +135,12 @@ namespace Ken4lowEngine
 
 		EditorViewportDisplayMode displayMode_ = EditorViewportDisplayMode::Editor;
 		EditorViewportTool activeTool_ = EditorViewportTool::Select;
+		EditorGizmoSpace gizmoSpace_ = EditorGizmoSpace::World;
 		EditorViewportSelectionMode selectionMode_ = EditorViewportSelectionMode::Actor;
 		bool auxiliaryDisplayEnabled_ = true;
+		bool snapEnabled_ = false;
+		Vector3 translationSnap_ = { 0.5f, 0.5f, 0.5f };
+		float rotationSnapDegrees_ = 15.0f;
+		float scaleSnap_ = 0.1f;
 	};
 } // namespace Ken4lowEngine

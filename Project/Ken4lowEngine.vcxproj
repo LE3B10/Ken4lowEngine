@@ -122,6 +122,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.cpp" />
     <ClCompile Include="Engine\Editor\EditorContentBrowserPanel.cpp" />
     <ClCompile Include="Engine\Editor\EditorGpuPickingManager.cpp" />
+    <ClCompile Include="Engine\Editor\EditorSelectionOutlineManager.cpp" />
+    <ClCompile Include="Engine\Editor\EditorTransformGizmo.cpp" />
+    <ClCompile Include="Externals\ImGuizmo\ImGuizmo.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelObjectIdRenderer.cpp" />
     <ClCompile Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_ComponentEdit.cpp" />
@@ -852,7 +857,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Editor\EditorHierarchyPanel.h" />
     <ClInclude Include="Engine\Editor\EditorPanelIds.h" />
     <ClInclude Include="Engine\Editor\EditorShell.h" />
+    <ClInclude Include="Engine\Editor\EditorSelectionOutlineManager.h" />
+    <ClInclude Include="Engine\Editor\EditorTransformGizmo.h" />
     <ClInclude Include="Engine\Editor\EditorViewportController.h" />
+    <ClInclude Include="Externals\ImGuizmo\ImGuizmo.h" />
     <ClInclude Include="Engine\Editor\EditorViewportPicking.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelObjectIdRenderer.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Object3D\ObjectIdPipeline.h" />
@@ -1427,6 +1435,15 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   <ItemGroup>
     <None Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelShadow.inl" />
     <None Include="Engine\Graphics\Renderer\Object3D\InstancedObject3DRendererShadow.inl" />
+    <None Include="Externals\ImGuizmo\LICENSE" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Resources\Shaders\EditorPicking\SelectionOutline.PS.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

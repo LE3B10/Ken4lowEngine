@@ -7,6 +7,7 @@
 #include "EditorModeController.h"
 #include "EditorPanelIds.h"
 #include "EditorPlayController.h"
+#include "EditorTransformGizmo.h"
 #include "EditorViewportController.h"
 #include "EditorWindowManager.h"
 
@@ -65,6 +66,7 @@ namespace Ken4lowEngine
 
 			ApplyViewportVisualPolicy();
 			DrawViewportToolbar();
+			EditorTransformGizmo::GetInstance()->Draw(); // Phase 7のSelectionをWorld/Local Transform Gizmoへ接続する。
 			DrawViewportAssetDropTarget();
 #endif
 		}
@@ -142,7 +144,7 @@ namespace Ken4lowEngine
 			}
 			if (ImGui::IsItemHovered())
 			{
-				ImGui::SetTooltip("現在の操作モード: %s\n変形ギズモへの接続はPhase 8で行います。", label);
+				ImGui::SetTooltip("現在の操作モード: %s\nQ: 選択 / W: 移動 / E: 回転 / R: 拡縮", label);
 			}
 		}
 
@@ -185,54 +187,96 @@ namespace Ken4lowEngine
 				ImGui::SameLine();
 				DrawViewportToolButton("拡縮", EditorViewportTool::Scale);
 
-				ImGui::SameLine();
-				ImGui::TextDisabled("|");
-				ImGui::SameLine();
-
 				auto* viewportController = EditorViewportController::GetInstance();
-				ImGui::SetNextItemWidth(130.0f);
-				if (ImGui::BeginCombo("##ビューポート表示", viewportController->GetDisplayModeText()))
+				if (viewportWidth >= 520.0f)
 				{
-					const bool editorSelected = viewportController->IsEditorDisplay();
-					if (ImGui::Selectable("エディター表示", editorSelected))
+					ImGui::SameLine();
+					ImGui::TextDisabled("|");
+					ImGui::SameLine();
+					if (ImGui::Button(viewportController->GetGizmoSpaceText(), ImVec2(58.0f, 0.0f)))
 					{
-						viewportController->SetDisplayMode(EditorViewportDisplayMode::Editor);
+						viewportController->ToggleGizmoSpace();
 					}
-					const bool gameSelected = viewportController->IsGameDisplay();
-					if (ImGui::Selectable("ゲーム表示", gameSelected))
+					if (ImGui::IsItemHovered())
 					{
-						viewportController->SetDisplayMode(EditorViewportDisplayMode::Game);
+						ImGui::SetTooltip("Gizmoの軸をWorld / Localで切り替えます。\nScaleは常にLocal軸です。");
 					}
-					ImGui::EndCombo();
+					ImGui::SameLine();
+					bool snapEnabled = viewportController->IsSnapEnabled();
+					if (ImGui::Checkbox("Snap", &snapEnabled))
+					{
+						viewportController->SetSnapEnabled(snapEnabled);
+					}
+					if (snapEnabled && viewportWidth >= 650.0f)
+					{
+						ImGui::SameLine();
+						ImGui::SetNextItemWidth(62.0f);
+						if (viewportController->GetTool() == EditorViewportTool::Rotate)
+						{
+							ImGui::DragFloat("##RotationSnap", &viewportController->GetRotationSnapDegrees(), 1.0f, 0.1f, 180.0f, "%.1f deg");
+						}
+						else if (viewportController->GetTool() == EditorViewportTool::Scale)
+						{
+							ImGui::DragFloat("##ScaleSnap", &viewportController->GetScaleSnap(), 0.01f, 0.001f, 10.0f, "%.2f");
+						}
+						else
+						{
+							Vector3& translationSnap = viewportController->GetTranslationSnap();
+							if (ImGui::DragFloat("##TranslationSnap", &translationSnap.x, 0.05f, 0.001f, 100.0f, "%.2f"))
+							{
+								translationSnap.y = translationSnap.x;
+								translationSnap.z = translationSnap.x;
+							}
+						}
+					}
 				}
 
-				ImGui::SameLine();
-				bool auxiliaryDisplayEnabled = viewportController->IsAuxiliaryDisplayEnabled();
-				if (viewportController->IsGameDisplay())
+				if (viewportWidth >= 720.0f)
 				{
-					ImGui::BeginDisabled();
-				}
-				if (ImGui::Checkbox("補助表示", &auxiliaryDisplayEnabled))
-				{
-					viewportController->SetAuxiliaryDisplayEnabled(auxiliaryDisplayEnabled);
-				}
-				if (viewportController->IsGameDisplay())
-				{
-					ImGui::EndDisabled();
-				}
-				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-				{
-					ImGui::SetTooltip("グリッド、コライダー、ライト範囲などのEditor補助描画を切り替えます。");
-				}
-
-				ImGui::SameLine();
-				bool performanceVisible = windowManager->IsPerformanceOverlayVisible();
-				if (ImGui::Checkbox("統計", &performanceVisible))
-				{
-					windowManager->SetPerformanceOverlayVisible(performanceVisible);
+					ImGui::SameLine();
+					ImGui::TextDisabled("|");
+					ImGui::SameLine();
+					ImGui::SetNextItemWidth(130.0f);
+					if (ImGui::BeginCombo("##ビューポート表示", viewportController->GetDisplayModeText()))
+					{
+						const bool editorSelected = viewportController->IsEditorDisplay();
+						if (ImGui::Selectable("エディター表示", editorSelected))
+						{
+							viewportController->SetDisplayMode(EditorViewportDisplayMode::Editor);
+						}
+						const bool gameSelected = viewportController->IsGameDisplay();
+						if (ImGui::Selectable("ゲーム表示", gameSelected))
+						{
+							viewportController->SetDisplayMode(EditorViewportDisplayMode::Game);
+						}
+						ImGui::EndCombo();
+					}
 				}
 
-				if (viewportWidth >= 760.0f)
+				if (viewportWidth >= 900.0f)
+				{
+					ImGui::SameLine();
+					bool auxiliaryDisplayEnabled = viewportController->IsAuxiliaryDisplayEnabled();
+					if (viewportController->IsGameDisplay()) ImGui::BeginDisabled();
+					if (ImGui::Checkbox("補助表示", &auxiliaryDisplayEnabled))
+					{
+						viewportController->SetAuxiliaryDisplayEnabled(auxiliaryDisplayEnabled);
+					}
+					if (viewportController->IsGameDisplay()) ImGui::EndDisabled();
+					if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+					{
+						ImGui::SetTooltip("グリッド、コライダー、ライト範囲などのEditor補助描画を切り替えます。");
+					}
+
+					ImGui::SameLine();
+					bool performanceVisible = windowManager->IsPerformanceOverlayVisible();
+					if (ImGui::Checkbox("統計", &performanceVisible))
+					{
+						windowManager->SetPerformanceOverlayVisible(performanceVisible);
+					}
+				}
+
+				if (viewportWidth >= 1100.0f)
 				{
 					auto* playController = EditorPlayController::GetInstance();
 					ImGui::SameLine();

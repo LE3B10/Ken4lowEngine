@@ -16,6 +16,7 @@
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
 #include "Editor/EditorGpuPickingManager.h"
+#include "Editor/EditorSelectionOutlineManager.h"
 #include "Editor/EditorShell.h"
 #include "Editor/EditorWindowManager.h"
 #include "Editor/EditorModeController.h"
@@ -45,6 +46,7 @@ namespace Ken4lowEngine
 		// DebugビルドはEditor Mode ON、Release相当ではGame Preview Modeとして初期化する。
 		EditorModeController::GetInstance()->Initialize();
 		EditorGpuPickingManager::GetInstance()->Initialize(); // Descriptor Manager初期化後にR32_UINT ID Bufferを生成する。
+		EditorSelectionOutlineManager::GetInstance()->Initialize(); // 選択Object専用のMask/Outline Textureを生成する。
 #endif // USE_IMGUI
 
 		/// ---------- 入力の初期化 ---------- ///
@@ -184,6 +186,10 @@ namespace Ken4lowEngine
 		editorModeEnabled = EditorModeController::GetInstance()->ShouldDrawEditorUi();
 		if (editorModeEnabled)
 		{
+			callbacks.renderEditorSelectionOutline = [this]()
+				{
+					EditorSelectionOutlineManager::GetInstance()->Render(sceneManager_->GetCurrentScene());
+				};
 			callbacks.buildEditorUi = [this]()
 				{
 					/// ---------- ImGuiフレーム開始 ---------- ///
@@ -269,6 +275,7 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		// SceneManager破棄後にEditorが古い参照へアクセスしないよう先に解除する。
 		EditorWindowManager::GetInstance()->SetSceneManager(nullptr);
+		EditorSelectionOutlineManager::GetInstance()->Finalize(); // Descriptor Manager破棄前に輪郭用GPU Resourceを解放する。
 		EditorGpuPickingManager::GetInstance()->Finalize(); // Descriptor Manager破棄前にPicking用GPU Resourceを解放する。
 #endif // USE_IMGUI
 
