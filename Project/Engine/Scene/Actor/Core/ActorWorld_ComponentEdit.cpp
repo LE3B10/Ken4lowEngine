@@ -114,6 +114,7 @@ namespace Ken4lowEngine
 		ActorComponent* deleteTarget = selectedComponent_;
 		selectedComponent_ = nullptr;
 		selectedActor_ = owner;
+		EditorContext::GetInstance()->GetSelection().Clear(); // 削除直後のDetailsが破棄済みComponentを再参照しないようにする。
 		const bool removed = owner->RemoveComponent(deleteTarget);
 		if (wasPhysicsRegistered) RegisterPhysicsComponents(*owner);
 		if (!removed)
