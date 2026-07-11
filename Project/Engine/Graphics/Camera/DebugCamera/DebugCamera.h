@@ -71,7 +71,7 @@ namespace Ken4lowEngine
 		float farClip_ = 0.0f;
 		Matrix4x4 viewProjectionMatrix_;
 		Quaternion rotation_{};
-		bool editorLookCaptureInitialized_ = false; // RMBを押した最初のフレームの大きな差分を捨てる。
+		bool editorLookCaptureInitialized_ = false; // RMB開始時のカーソル再配置差分を1フレームだけ捨てる。
 
 	private: /// ---------- コピー禁止 ---------- ///
 
