@@ -11,11 +11,15 @@
 #include "EditorViewportController.h"
 #include "EditorWindowManager.h"
 
+#include <CameraManager.h>
+#include <DebugCamera.h>
+#include <Input.h>
 #include <Wireframe.h>
 
 #include <algorithm>
 #include <array>
 #include <cctype>
+#include <cmath>
 #include <string>
 #include <string_view>
 
@@ -64,11 +68,13 @@ namespace Ken4lowEngine
 				return;
 			}
 
+			HandlePlayInputRelease();
 			ApplyViewportVisualPolicy();
 			DrawViewportToolbar();
 			EditorTransformGizmo::GetInstance()->Draw(); // Phase 7のSelectionをWorld/Local Transform Gizmoへ接続する。
 			EditorContentBrowserPanel::GetInstance()->UpdateViewportPicking(); // 軸や平面Handle上のクリックを除外した後に選択を予約する。
 			DrawViewportAssetDropTarget();
+			UpdateEditorCameraNavigation();
 #endif
 		}
 
@@ -80,6 +86,16 @@ namespace Ken4lowEngine
 			const char* description;
 			EditorPlaceableType type;
 		};
+
+#ifdef USE_IMGUI
+		enum class ToolbarGlyph
+		{
+			Save,
+			Play,
+			Pause,
+			Stop,
+		};
+#endif
 
 		EditorShell() = default;
 		~EditorShell() = default;
@@ -123,6 +139,190 @@ namespace Ken4lowEngine
 				viewportController->IsEditorDisplay() && viewportController->IsAuxiliaryDisplayEnabled();
 			// ゲーム表示ではワイヤー、コライダー、ライト範囲などのEditor補助描画をまとめて除外する。
 			Wireframe::GetInstance()->SetDebugDrawEnabled(drawEditorVisuals);
+		}
+
+		void HandlePlayInputRelease()
+		{
+			EditorPlayController* playController = EditorPlayController::GetInstance();
+			Input* input = Input::GetInstance();
+			if (!playController->IsPlaying() || !playController->IsGameCaptured() || !input->TriggerRawKey(DIK_ESCAPE))
+			{
+				return;
+			}
+
+			playController->ReleaseGameInput();
+			input->SetGameInputEnabled(false);
+			input->SetLockCursor(false);
+			input->SetCursorVisible(true); // EscではPlayを止めず、ゲーム入力だけをEditorへ返す。
+		}
+
+		void ReleaseEditorCameraCursor()
+		{
+			cameraLookActive_ = false;
+			Input::GetInstance()->SetLockCursor(false);
+			Input::GetInstance()->SetCursorVisible(true);
+		}
+
+		void UpdateEditorCameraNavigation()
+		{
+			EditorPlayController* playController = EditorPlayController::GetInstance();
+			EditorViewportController* viewportController = EditorViewportController::GetInstance();
+			CameraManager* cameraManager = CameraManager::GetInstance();
+			const bool useEditorCamera = !playController->IsPlaying() && viewportController->IsEditorDisplay();
+			cameraManager->SetUseDebugCamera(useEditorCamera);
+			if (!useEditorCamera)
+			{
+				ReleaseEditorCameraCursor();
+				return;
+			}
+
+			const EditorViewportRect& viewportRect = EditorWindowManager::GetInstance()->GetMainViewportRect();
+			if (!viewportRect.valid || EditorTransformGizmo::GetInstance()->IsUsing() || ImGui::GetDragDropPayload())
+			{
+				if (!ImGui::IsMouseDown(ImGuiMouseButton_Right))
+				{
+					ReleaseEditorCameraCursor();
+				}
+				return;
+			}
+
+			if (viewportRect.isHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Right))
+			{
+				cameraLookActive_ = true;
+			}
+			if (!ImGui::IsMouseDown(ImGuiMouseButton_Right))
+			{
+				cameraLookActive_ = false;
+			}
+
+			const bool middlePan = viewportRect.isHovered && ImGui::IsMouseDown(ImGuiMouseButton_Middle);
+			const bool wheelDolly = viewportRect.isHovered && std::abs(ImGui::GetIO().MouseWheel) > 0.001f;
+			if (!cameraLookActive_ && !middlePan && !wheelDolly)
+			{
+				ReleaseEditorCameraCursor();
+				return;
+			}
+
+			Input* input = Input::GetInstance();
+			const ImGuiIO& io = ImGui::GetIO();
+			Vector3 localMove{};
+			float pitchDelta = 0.0f;
+			float yawDelta = 0.0f;
+
+			if (cameraLookActive_)
+			{
+				input->SetGameInputEnabled(false);
+				input->SetLockCursor(true);
+				input->SetCursorVisible(false);
+
+				const float deltaTime = std::clamp(io.DeltaTime, 1.0f / 240.0f, 1.0f / 15.0f);
+				const float moveSpeed = input->PushRawKey(DIK_LSHIFT) ? 24.0f : 8.0f;
+				const float moveStep = moveSpeed * deltaTime;
+				if (input->PushRawKey(DIK_W)) localMove.z += moveStep;
+				if (input->PushRawKey(DIK_S)) localMove.z -= moveStep;
+				if (input->PushRawKey(DIK_A)) localMove.x -= moveStep;
+				if (input->PushRawKey(DIK_D)) localMove.x += moveStep;
+				if (input->PushRawKey(DIK_Q)) localMove.y -= moveStep;
+				if (input->PushRawKey(DIK_E)) localMove.y += moveStep;
+
+				pitchDelta = io.MouseDelta.y * 0.003f;
+				yawDelta = -io.MouseDelta.x * 0.003f;
+			}
+
+			if (middlePan)
+			{
+				localMove.x -= io.MouseDelta.x * 0.015f;
+				localMove.y += io.MouseDelta.y * 0.015f;
+			}
+			if (wheelDolly)
+			{
+				localMove.z += io.MouseWheel * 2.0f;
+			}
+
+			DebugCamera* debugCamera = cameraManager->GetDebugCamera();
+			if (debugCamera)
+			{
+				debugCamera->ApplyEditorNavigation(localMove, pitchDelta, yawDelta); // UE風のRMB視点操作とWASD/QE移動をDebug Cameraへ集約する。
+			}
+		}
+
+		bool DrawToolbarGlyphButton(const char* id, ToolbarGlyph glyph, bool enabled, const char* tooltip)
+		{
+			if (!enabled)
+			{
+				ImGui::BeginDisabled();
+			}
+
+			const ImVec2 buttonSize{ 28.0f, 24.0f };
+			const bool clicked = ImGui::InvisibleButton(id, buttonSize);
+			const ImVec2 minimum = ImGui::GetItemRectMin();
+			const ImVec2 maximum = ImGui::GetItemRectMax();
+			const ImVec2 center{ (minimum.x + maximum.x) * 0.5f, (minimum.y + maximum.y) * 0.5f };
+			const ImU32 color = ImGui::GetColorU32(enabled ? ImGuiCol_Text : ImGuiCol_TextDisabled);
+			ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+			switch (glyph)
+			{
+			case ToolbarGlyph::Save:
+				drawList->AddRect(ImVec2(center.x - 7.0f, center.y - 8.0f), ImVec2(center.x + 7.0f, center.y + 8.0f), color, 1.0f, 0, 1.8f);
+				drawList->AddRectFilled(ImVec2(center.x - 4.5f, center.y - 7.0f), ImVec2(center.x + 3.0f, center.y - 2.0f), color, 0.5f);
+				drawList->AddRect(ImVec2(center.x - 4.5f, center.y + 1.0f), ImVec2(center.x + 4.5f, center.y + 6.5f), color, 0.5f, 0, 1.4f);
+				break;
+			case ToolbarGlyph::Play:
+				drawList->AddTriangleFilled(ImVec2(center.x - 5.0f, center.y - 7.0f), ImVec2(center.x - 5.0f, center.y + 7.0f), ImVec2(center.x + 7.0f, center.y), color);
+				break;
+			case ToolbarGlyph::Pause:
+				// Pauseは文字やギリシャ数字を使わず、縦長の矩形を2本描画する。
+				drawList->AddRectFilled(ImVec2(center.x - 6.0f, center.y - 7.0f), ImVec2(center.x - 2.0f, center.y + 7.0f), color, 0.8f);
+				drawList->AddRectFilled(ImVec2(center.x + 2.0f, center.y - 7.0f), ImVec2(center.x + 6.0f, center.y + 7.0f), color, 0.8f);
+				break;
+			case ToolbarGlyph::Stop:
+				drawList->AddRectFilled(ImVec2(center.x - 6.5f, center.y - 6.5f), ImVec2(center.x + 6.5f, center.y + 6.5f), color, 1.0f);
+				break;
+			}
+
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+			{
+				ImGui::SetTooltip("%s", tooltip);
+			}
+			if (!enabled)
+			{
+				ImGui::EndDisabled();
+			}
+			return clicked && enabled;
+		}
+
+		void DrawPlaybackControls()
+		{
+			EditorPlayController* playController = EditorPlayController::GetInstance();
+			EditorWindowManager* windowManager = EditorWindowManager::GetInstance();
+
+			if (DrawToolbarGlyphButton("##SaveLevelIcon", ToolbarGlyph::Save, true, "レベル保存（Phase 10で接続）"))
+			{
+				windowManager->AddOutputLog(EditorLogLevel::Info, "レベル保存はPhase 10で接続します。");
+			}
+			ImGui::SameLine();
+
+			const bool canStartOrResume = playController->IsEditing() || playController->IsPaused();
+			if (DrawToolbarGlyphButton("##PlayIcon", ToolbarGlyph::Play, canStartOrResume, playController->IsPaused() ? "再開" : "再生"))
+			{
+				ReleaseEditorCameraCursor();
+				playController->Play();
+			}
+			ImGui::SameLine();
+
+			if (DrawToolbarGlyphButton("##PauseIcon", ToolbarGlyph::Pause, playController->IsPlaying(), "一時停止"))
+			{
+				playController->Pause();
+				ReleaseEditorCameraCursor();
+			}
+			ImGui::SameLine();
+
+			if (DrawToolbarGlyphButton("##StopIcon", ToolbarGlyph::Stop, !playController->IsEditing(), "停止"))
+			{
+				playController->Stop();
+				ReleaseEditorCameraCursor();
+			}
 		}
 
 		void DrawViewportToolButton(const char* label, EditorViewportTool tool)
@@ -180,6 +380,10 @@ namespace Ken4lowEngine
 
 			if (ImGui::Begin(EditorPanelIds::ViewportToolbarOverlay, nullptr, flags))
 			{
+				DrawPlaybackControls();
+				ImGui::SameLine();
+				ImGui::TextDisabled("|");
+				ImGui::SameLine();
 				DrawViewportToolButton("選択", EditorViewportTool::Select);
 				ImGui::SameLine();
 				DrawViewportToolButton("移動", EditorViewportTool::Translate);
@@ -189,7 +393,7 @@ namespace Ken4lowEngine
 				DrawViewportToolButton("拡縮", EditorViewportTool::Scale);
 
 				auto* viewportController = EditorViewportController::GetInstance();
-				if (viewportWidth >= 520.0f)
+				if (viewportWidth >= 650.0f)
 				{
 					ImGui::SameLine();
 					ImGui::TextDisabled("|");
@@ -204,11 +408,11 @@ namespace Ken4lowEngine
 					}
 					ImGui::SameLine();
 					bool snapEnabled = viewportController->IsSnapEnabled();
-					if (ImGui::Checkbox("Snap", &snapEnabled))
+					if (ImGui::Checkbox("Snap##ViewportSnap", &snapEnabled))
 					{
 						viewportController->SetSnapEnabled(snapEnabled);
 					}
-					if (snapEnabled && viewportWidth >= 650.0f)
+					if (snapEnabled && viewportWidth >= 760.0f)
 					{
 						ImGui::SameLine();
 						ImGui::SetNextItemWidth(62.0f);
@@ -232,7 +436,7 @@ namespace Ken4lowEngine
 					}
 				}
 
-				if (viewportWidth >= 720.0f)
+				if (viewportWidth >= 850.0f)
 				{
 					ImGui::SameLine();
 					ImGui::TextDisabled("|");
@@ -254,12 +458,12 @@ namespace Ken4lowEngine
 					}
 				}
 
-				if (viewportWidth >= 900.0f)
+				if (viewportWidth >= 1030.0f)
 				{
 					ImGui::SameLine();
 					bool auxiliaryDisplayEnabled = viewportController->IsAuxiliaryDisplayEnabled();
 					if (viewportController->IsGameDisplay()) ImGui::BeginDisabled();
-					if (ImGui::Checkbox("補助表示", &auxiliaryDisplayEnabled))
+					if (ImGui::Checkbox("補助表示##ViewportAuxiliary", &auxiliaryDisplayEnabled))
 					{
 						viewportController->SetAuxiliaryDisplayEnabled(auxiliaryDisplayEnabled);
 					}
@@ -271,25 +475,9 @@ namespace Ken4lowEngine
 
 					ImGui::SameLine();
 					bool performanceVisible = windowManager->IsPerformanceOverlayVisible();
-					if (ImGui::Checkbox("統計", &performanceVisible))
+					if (ImGui::Checkbox("統計##ViewportStats", &performanceVisible))
 					{
 						windowManager->SetPerformanceOverlayVisible(performanceVisible);
-					}
-				}
-
-				if (viewportWidth >= 1100.0f)
-				{
-					auto* playController = EditorPlayController::GetInstance();
-					ImGui::SameLine();
-					ImGui::TextDisabled("状態: %s", playController->GetPlayStateText());
-					if (playController->IsPlaying())
-					{
-						ImGui::SameLine();
-						if (ImGui::Button(playController->IsGameCaptured() ? "入力を解放" : "ゲーム入力を取得"))
-						{
-							playController->ToggleInputCapture();
-							// 再生状態は維持したまま、Main Viewportへ渡す入力だけを切り替える。
-						}
 					}
 				}
 			}
@@ -495,5 +683,6 @@ namespace Ken4lowEngine
 #endif
 
 		std::array<char, 96> placeActorsSearch_{};
+		bool cameraLookActive_ = false;
 	};
 } // namespace Ken4lowEngine
