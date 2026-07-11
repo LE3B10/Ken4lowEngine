@@ -32,7 +32,7 @@ namespace Ken4lowEngine
 	class Camera;
 
 	/// -------------------------------------------------------------
-	///				　アニメーションを描画するクラス
+	///　　　　　　　アニメーションを描画するクラス
 	/// -------------------------------------------------------------
 	class AnimationModel
 	{
@@ -54,7 +54,6 @@ namespace Ken4lowEngine
 			uint32_t shadowDebugMode;      // 0:None 1:ShadowMap 2:ShadowFactor
 			float padding[1];              // パディング
 		};
-
 
 		// 互換用：旧 AnimationModel::BodyPartCollider 名を維持
 		using BodyPartCollider = ::Ken4lowEngine::BodyPartCollider;
@@ -101,6 +100,9 @@ namespace Ken4lowEngine
 		/// Compute スキニング → Graphics の順にパイプラインを設定して描画します。
 		/// </summary>
 		void Draw();
+
+		/// <summary>現在のNode AnimationまたはSkeletal PoseをShadow Mapへ描画します。</summary>
+		void DrawShadow();
 
 		/// <summary>
 		/// 単一の AnimationModel をまとめて描画するユーティリティ関数です。
@@ -311,7 +313,6 @@ namespace Ken4lowEngine
 		/// </summary>
 		void SetLodSwitchUpdateEvery(uint32_t frames) { lodController_.SetLodSwitchUpdateEvery(frames); }
 
-
 	public: /// ---------- デバッグ用アクセッサ ---------- ///
 
 		// スケルトンを取得（デバッグ用）
@@ -434,6 +435,10 @@ namespace Ken4lowEngine
 		/// </summary>
 		void UpdateAnimation();
 		void UpdateShadowParameters();
+		void EnsureShadowTransformResource();
+		Matrix4x4 BuildCurrentShadowWorldMatrix() const;
+		bool IsShadowSkinningCacheCurrent() const;
+		void UpdateShadowSkinningCacheState();
 
 	public: /// ---------- ボーン情報の初期化 ---------- ///
 
@@ -463,16 +468,16 @@ namespace Ken4lowEngine
 	private: /// ---------- メンバ変数 ---------- ///
 
 		WorldTransform worldTransform; // ワールド変換情報
-		Material material_;			   // マテリアル情報
+		Material material_;            // マテリアル情報
 
 		DirectXCommon* dxCommon_ = nullptr;  // DirectX共通クラス
-		Camera* camera_ = nullptr;			 // カメラ
+		Camera* camera_ = nullptr;            // カメラ
 
 		// 環境マップのテクスチャ
 		D3D12_GPU_DESCRIPTOR_HANDLE environmentMapHandle_{};
 		MaterialTextureSlots materialTextureSlots_{}; // 全LOD・SubMeshで共有する5 Texture Slot。
 
-		ModelData modelData;	// モデルデータ
+		ModelData modelData;    // モデルデータ
 		std::string fileName_;  // 読み込んだファイル名を保持
 		std::string animationFileName_; // AnimationClipを読み込むファイル名
 
@@ -492,15 +497,16 @@ namespace Ken4lowEngine
 		SkeletonAnimator skeletonAnimator_{}; // スケルトン更新（アニメ適用）
 		std::vector<std::unique_ptr<SkinCluster>> skinClusterLOD_; // LOD別
 
-
 		// バッファリソースの作成
 		TransformationAnimationMatrix* wvpData_ = nullptr;
 		CameraForGPU* cameraData = nullptr;
 		ShadowParameterForGPU* shadowParameterData_ = nullptr;
+		TransformationAnimationMatrix* shadowTransformData_ = nullptr;
 
-		ComPtr <ID3D12Resource> wvpResource;	// 定数バッファ : ワールド変換行列
-		ComPtr <ID3D12Resource> cameraResource; // 定数バッファ : カメラ情報
+		ComPtr<ID3D12Resource> wvpResource; // 定数バッファ : ワールド変換行列
+		ComPtr<ID3D12Resource> cameraResource; // 定数バッファ : カメラ情報
 		ComPtr<ID3D12Resource> shadowParameterResource_; // Skinning PS 用 ShadowParameter
+		ComPtr<ID3D12Resource> shadowTransformResource_; // Animation/Skeletal Shadow Pass用行列
 		D3D12_GPU_DESCRIPTOR_HANDLE shadowMapHandle_{};
 
 		bool hideHead_ = false; // デフォルトは表示
@@ -509,6 +515,13 @@ namespace Ken4lowEngine
 		AnimationModelSkinningCS skinningCS_;
 		bool useComputeSkinning_ = true; // UIでON/OFFするなら残す（Freeze用途）
 		bool useDebugSkinningViewProjection_ = false; // DebugScene専用表示補正。実ゲームでは既定OFF。
+		bool shadowSkinningPrepared_ = false;
+		float shadowPreparedAnimationTime_ = 0.0f;
+		float shadowPreparedCrossFadeTime_ = 0.0f;
+		int shadowPreparedAnimationIndex_ = -1;
+		int shadowPreparedPreviousAnimationIndex_ = -1;
+		int shadowPreparedLodIndex_ = -1;
+		ID3D12Resource* shadowPreparedSkinnedBuffer_ = nullptr;
 
 		// LOD制御（距離LOD + 距離カリング + 更新間引き）
 		AnimationModelLODController lodController_{};
@@ -519,5 +532,6 @@ namespace Ken4lowEngine
 		std::vector<std::string> lodFileNames_;    // 出力
 	};
 
-
 } // namespace Ken4lowEngine
+
+#include "AnimationModelShadow.inl"
