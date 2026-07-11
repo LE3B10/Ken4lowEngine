@@ -1,6 +1,7 @@
 #include "CameraManager.h"
 #include "Camera.h"
 #include "DebugCamera.h"
+#include "Wireframe.h"
 
 #include <cmath>
 
@@ -16,6 +17,7 @@ namespace Ken4lowEngine
 	{
 		debugCamera_ = DebugCamera::GetInstance();
 		useDebugCamera_ = false;
+		editorCameraInitializedFromMain_ = false;
 	}
 
 	void CameraManager::Finalize()
@@ -23,6 +25,7 @@ namespace Ken4lowEngine
 		mainCamera_ = nullptr;
 		debugCamera_ = nullptr;
 		useDebugCamera_ = false;
+		editorCameraInitializedFromMain_ = false;
 	}
 
 	void CameraManager::Update()
@@ -60,72 +63,62 @@ namespace Ken4lowEngine
 
 	void CameraManager::SetMainCamera(Camera* camera)
 	{
+		if (mainCamera_ != camera)
+		{
+			editorCameraInitializedFromMain_ = false;
+		}
 		mainCamera_ = camera;
 	}
 
 	void CameraManager::SetUseDebugCamera(bool useDebugCamera)
 	{
+#ifdef _DEBUG
+		if (useDebugCamera && !editorCameraInitializedFromMain_ && debugCamera_ && mainCamera_)
+		{
+			debugCamera_->SetTranslate(mainCamera_->GetTranslate());
+			debugCamera_->SetRotate(mainCamera_->GetRotate());
+			debugCamera_->SetFovY(mainCamera_->GetFovY());
+			debugCamera_->SetAspectRatio(mainCamera_->GetAspectRatio());
+			debugCamera_->SetNearClip(mainCamera_->GetNearClip());
+			debugCamera_->SetFarClip(mainCamera_->GetFarClip());
+			debugCamera_->RefreshViewProjection();
+			editorCameraInitializedFromMain_ = true; // 初回だけ現在のゲーム画面と同じ位置からEditor Camera操作を開始する。
+		}
+#endif
 		useDebugCamera_ = useDebugCamera;
+		Wireframe::GetInstance()->SetDebugCamera(useDebugCamera_); // モデルとWireframeを必ず同じActive Cameraで描画する。
 	}
 
 	Matrix4x4 CameraManager::GetActiveViewMatrix() const
 	{
 #ifdef _DEBUG
-		if (useDebugCamera_ && debugCamera_)
-		{
-			return debugCamera_->GetViewMatrix();
-		}
+		if (useDebugCamera_ && debugCamera_) { return debugCamera_->GetViewMatrix(); }
 #endif
-		if (mainCamera_)
-		{
-			return mainCamera_->GetViewMatrix();
-		}
-		return Matrix4x4::MakeIdentity();
+		return mainCamera_ ? mainCamera_->GetViewMatrix() : Matrix4x4::MakeIdentity();
 	}
 
 	Matrix4x4 CameraManager::GetActiveProjectionMatrix() const
 	{
 #ifdef _DEBUG
-		if (useDebugCamera_ && debugCamera_)
-		{
-			return debugCamera_->GetProjectionMatrix();
-		}
+		if (useDebugCamera_ && debugCamera_) { return debugCamera_->GetProjectionMatrix(); }
 #endif
-		if (mainCamera_)
-		{
-			return mainCamera_->GetProjectionMatrix();
-		}
-		return Matrix4x4::MakeIdentity();
+		return mainCamera_ ? mainCamera_->GetProjectionMatrix() : Matrix4x4::MakeIdentity();
 	}
 
 	Matrix4x4 CameraManager::GetActiveViewProjectionMatrix() const
 	{
 #ifdef _DEBUG
-		if (useDebugCamera_ && debugCamera_)
-		{
-			return debugCamera_->GetViewProjectionMatrix();
-		}
+		if (useDebugCamera_ && debugCamera_) { return debugCamera_->GetViewProjectionMatrix(); }
 #endif
-		if (mainCamera_)
-		{
-			return mainCamera_->GetViewProjectionMatrix();
-		}
-		return Matrix4x4::MakeIdentity();
+		return mainCamera_ ? mainCamera_->GetViewProjectionMatrix() : Matrix4x4::MakeIdentity();
 	}
 
 	Vector3 CameraManager::GetActiveCameraPosition() const
 	{
 #ifdef _DEBUG
-		if (useDebugCamera_ && debugCamera_)
-		{
-			return debugCamera_->GetTranslate();
-		}
+		if (useDebugCamera_ && debugCamera_) { return debugCamera_->GetTranslate(); }
 #endif
-		if (mainCamera_)
-		{
-			return mainCamera_->GetTranslate();
-		}
-		return { 0.0f, 0.0f, 0.0f };
+		return mainCamera_ ? mainCamera_->GetTranslate() : Vector3{ 0.0f, 0.0f, 0.0f };
 	}
 
 	Vector3 CameraManager::GetActiveCameraForward() const
@@ -170,4 +163,4 @@ namespace Ken4lowEngine
 #endif
 		return mainCamera_ ? mainCamera_->GetAspectRatio() : 16.0f / 9.0f;
 	}
-}
+} // namespace Ken4lowEngine
