@@ -6,6 +6,7 @@
 #include "EditorContext.h"
 
 #include <atomic>
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -104,6 +105,7 @@ namespace Ken4lowEngine
 				if (ActorJsonSerializer::SaveActorToFile(*saveTargetActor, snapshotPath))
 				{
 					auto duplicatedActor = std::make_shared<Actor*>(nullptr);
+					EditorCommandHistory::GetInstance()->Clear(); // Actor寿命を変更する前に古いActor参照を持つCommandを破棄する。
 					EditorCommandHistory::GetInstance()->Execute(std::make_unique<EditorLambdaCommand>(
 						"アクタ複製",
 						[this, duplicatedActor, snapshotPath]()
@@ -125,7 +127,7 @@ namespace Ken4lowEngine
 							selectedActor_ = nullptr;
 							selectedComponent_ = nullptr;
 							EditorContext::GetInstance()->GetSelection().Clear();
-							EditorContext::GetInstance()->MarkLevelDirty(); // ActorWorld::UpdateでDestroy予約を安全に確定する。
+							EditorContext::GetInstance()->MarkLevelDirty();
 						}));
 				}
 			}
@@ -144,6 +146,7 @@ namespace Ken4lowEngine
 					if (ActorJsonSerializer::SaveActorToFile(*saveTargetActor, snapshotPath))
 					{
 						auto actorState = std::make_shared<Actor*>(saveTargetActor);
+						EditorCommandHistory::GetInstance()->Clear();
 						EditorCommandHistory::GetInstance()->Execute(std::make_unique<EditorLambdaCommand>(
 							"アクタ削除",
 							[this, actorState]()
@@ -180,7 +183,6 @@ namespace Ken4lowEngine
 		{
 			const std::string componentName = selectedComponent_->GetName().empty() ? "名前なしコンポーネント" : selectedComponent_->GetName();
 			ImGui::Text("選択中のコンポーネント: %s", componentName.c_str());
-
 			Actor* owner = selectedComponent_->GetOwner();
 			const bool isRootComponent = owner && selectedComponent_ == owner->GetRootComponent();
 			if (isRootComponent)
@@ -211,7 +213,7 @@ namespace Ken4lowEngine
 			if (selectedComponent_)
 			{
 				ImGui::Separator();
-				selectedComponent_->DrawInspectorImGui(); // 即時削除後は無効になったComponentへアクセスしない。
+				selectedComponent_->DrawInspectorImGui();
 			}
 		}
 		else if (selectedActor_)
@@ -235,7 +237,6 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		Actor* targetActor = selectedActor_;
 		if (!targetActor && selectedComponent_) targetActor = selectedComponent_->GetOwner();
-
 		ImGui::SeparatorText("コンポーネント追加");
 		if (!targetActor)
 		{
