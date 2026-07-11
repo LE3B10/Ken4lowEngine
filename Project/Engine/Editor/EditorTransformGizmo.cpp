@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "EditorTransformGizmo.h"
 
 #ifdef USE_IMGUI
