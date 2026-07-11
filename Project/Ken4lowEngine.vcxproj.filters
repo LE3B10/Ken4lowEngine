@@ -2619,6 +2619,15 @@
     <ClInclude Include="Engine\Scene\Management\ISceneTransition.h">
       <Filter>Engine\Scene\Management</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorShell.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorPanelIds.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorContext.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

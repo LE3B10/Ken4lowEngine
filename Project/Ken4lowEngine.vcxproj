@@ -839,6 +839,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\BulletEnemySoABenchmarkPanel.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.h" />
     <ClInclude Include="ApplicationLayer\UISystem\UiSpriteFactory.h" />
+    <ClInclude Include="Engine\Editor\EditorContext.h" />
+    <ClInclude Include="Engine\Editor\EditorPanelIds.h" />
+    <ClInclude Include="Engine\Editor\EditorShell.h" />
     <ClInclude Include="Engine\Math\MathUtil.h" />
     <ClInclude Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.h" />
     <ClInclude Include="Engine\Scene\Actor\Factory\ActorFactory.h" />
