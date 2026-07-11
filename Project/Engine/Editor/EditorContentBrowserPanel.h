@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EditorAssetDragDrop.h"
 #include "EditorAssetRegistryV2.h"
 #include "EditorTexturePreviewCache.h"
 #include "EditorWindowManager.h"
@@ -14,6 +15,10 @@
 #include <string_view>
 #include <vector>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
+
 namespace Ken4lowEngine
 {
 	/// <summary>
@@ -25,6 +30,42 @@ namespace Ken4lowEngine
 		static EditorContentBrowserPanel* GetInstance();
 
 		void Draw();
+
+		/// <summary>
+		/// 選択中のモデルまたはActor PrefabをMain Viewportへ渡すDrag Sourceを更新します。
+		/// </summary>
+		void UpdateAssetDragSource()
+		{
+#ifdef USE_IMGUI
+			const EditorAssetData* asset = registry_.FindById(selectedAssetId_);
+			if (!asset || asset->isDirectory || !IsViewportPlaceableAsset(asset->type))
+			{
+				return;
+			}
+
+			// 同じContent Browserウィンドウへ再度入って、子領域上のドラッグを外部Sourceとして登録する。
+			if (!ImGui::Begin("コンテンツブラウザ###Content Browser", nullptr, ImGuiWindowFlags_NoCollapse))
+			{
+				ImGui::End();
+				return;
+			}
+
+			const bool canStartDrag =
+				ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows | ImGuiHoveredFlags_AllowWhenBlockedByActiveItem) &&
+				ImGui::IsMouseDragging(ImGuiMouseButton_Left, 6.0f);
+
+			if (canStartDrag && ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceExtern))
+			{
+				const EditorAssetDragDropPayload payload = MakeEditorAssetDragDropPayload(*asset);
+				ImGui::SetDragDropPayload(kEditorAssetDragDropPayloadType, &payload, sizeof(payload));
+				ImGui::TextUnformatted("ビューポートへ配置");
+				ImGui::Text("%s", asset->name.c_str());
+				ImGui::TextDisabled("種類: %s", EditorAssetRegistryV2::GetTypeName(asset->type));
+				ImGui::EndDragDropSource();
+			}
+			ImGui::End();
+#endif
+		}
 
 	private:
 		enum class AssetSortMode
