@@ -94,7 +94,7 @@ namespace Ken4lowEngine
 
 	inline void AnimationModel::DrawShadow()
 	{
-		if (!dxCommon_ || lods_.empty() || lodController_.IsCulled())
+		if (!dxCommon_ || lods_.empty())
 		{
 			return;
 		}
@@ -108,9 +108,20 @@ namespace Ken4lowEngine
 		auto& lod = lods_[lodIndex];
 		if (skinningCS_.IsSkinningModel() && useComputeSkinning_ && !IsShadowSkinningCacheCurrent())
 		{
+			if (lodIndex >= static_cast<int>(skinClusterLOD_.size()) || !skinClusterLOD_[lodIndex])
+			{
+				return;
+			}
+
 			UAVManager::GetInstance()->PreDispatch();
 			AnimationPipelineBuilder::GetInstance()->SetComputeSetting();
-			DispatchSkinningCS();
+			const D3D12_GPU_DESCRIPTOR_HANDLE inputSrv =
+				UAVManager::GetInstance()->GetGPUDescriptorHandle(lod.srvInputVerticesOnUavHeap);
+			const D3D12_GPU_DESCRIPTOR_HANDLE outputUav =
+				UAVManager::GetInstance()->GetGPUDescriptorHandle(lod.uavIndex);
+			skinningCS_.Dispatch(
+				dxCommon_, skinClusterLOD_[lodIndex].get(), inputSrv, lod.influenceSrvGpuOnUavHeap,
+				outputUav, lod.vertexCount, lod.skinnedVB.Get(), lod.skinnedState);
 			UpdateShadowSkinningCacheState(); // Point 6面とCSM 4層では同じPoseのCompute Skinning結果を再利用する。
 		}
 
@@ -137,7 +148,7 @@ namespace Ken4lowEngine
 		}
 
 		const size_t subMeshCount = animationMesh_ ? animationMesh_->GetSubmeshCount() : 0;
-		for (size_t index = 0; index < subMeshCount; ++index)
+		for (size_t index = 0; index < subMeshCount && index < modelData.subMeshes.size(); ++index)
 		{
 			const auto& vbv = animationMesh_->GetVertexBufferView(index);
 			const auto& ibv = animationMesh_->GetIndexBufferView(index);
