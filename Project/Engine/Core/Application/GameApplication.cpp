@@ -29,7 +29,7 @@ namespace Ken4lowEngine
 	GameApplication::~GameApplication() = default;
 
 	/// -------------------------------------------------------------
-	///				　		　　初期化処理
+	///　　　　　　　　　　　　　初期化処理
 	/// -------------------------------------------------------------
 	void GameApplication::Initialize()
 	{
@@ -82,7 +82,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///				　			更新処理
+	///　　　　　　　　　　　　　更新処理
 	/// -------------------------------------------------------------
 	void GameApplication::Update()
 	{
@@ -121,7 +121,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///				　			描画処理
+	///　　　　　　　　　　　　　描画処理
 	/// -------------------------------------------------------------
 	void GameApplication::Draw()
 	{
@@ -129,6 +129,10 @@ namespace Ken4lowEngine
 		GameTimer::GetInstance()->BeginDraw();
 
 		RenderPipelineController::FrameCallbacks callbacks{};
+		callbacks.prepareShadowPass = [this]()
+			{
+				sceneManager_->PrepareShadowPass(); // LightComponentの最新値をShadowSystemのCaster選択より先に反映する。
+			};
 		callbacks.drawShadowObjects = [this]()
 			{
 				// 影を落とす3Dオブジェクトだけを描画し、ShadowMapへ深度を書き込む既存処理を呼ぶ。
@@ -241,7 +245,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///				　			終了処理
+	///　　　　　　　　　　　　　終了処理
 	/// -------------------------------------------------------------
 	void GameApplication::Finalize()
 	{
@@ -263,7 +267,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///						ゲーム本編3D描画の共通処理
+	///　　　　　　　　　ゲーム本編3D描画の共通処理
 	/// -------------------------------------------------------------
 	void GameApplication::DrawCurrentScene3DPass()
 	{
@@ -280,7 +284,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///						HUD/UI/Sprite描画の共通処理
+	///　　　　　　　　　HUD/UI/Sprite描画の共通処理
 	/// -------------------------------------------------------------
 	void GameApplication::DrawCurrentScene2DOverlay()
 	{
@@ -289,7 +293,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///						SceneRenderTargetへのゲーム本編描画処理
+	///　　　　　　　　　SceneRenderTargetへのゲーム本編描画処理
 	/// -------------------------------------------------------------
 	void GameApplication::DrawGameWorldToSceneTarget()
 	{
@@ -300,7 +304,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///						BackBufferへのポストエフェクト反映処理
+	///　　　　　　　　　BackBufferへのポストエフェクト反映処理
 	/// -------------------------------------------------------------
 	void GameApplication::ApplyPostEffectToBackBuffer()
 	{
@@ -309,7 +313,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///						BackBufferへのUI描画処理
+	///　　　　　　　　　BackBufferへのUI描画処理
 	/// -------------------------------------------------------------
 	void GameApplication::DrawGameUIToBackBuffer()
 	{
