@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EditorContext.h"
+#include "EditorHierarchyPanel.h"
 #include "EditorModeController.h"
 #include "EditorPanelIds.h"
 #include "EditorPlayController.h"
@@ -43,6 +44,7 @@ namespace Ken4lowEngine
 
 			ApplyViewportVisualPolicy();
 			DrawPlaceActors();
+			EditorHierarchyPanel::GetInstance()->Draw(); // World OutlinerとDetailsを同じ選択状態で先に登録する。
 #endif
 		}
 
