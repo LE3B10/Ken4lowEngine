@@ -167,9 +167,17 @@ float3 DirectLightingPBR(
         if (light.lightType == LIGHT_TYPE_DIRECTIONAL)
         {
             lightDir = normalize(-light.direction);
-            shadow = (shadowParam.shadowMode == 4)
-                ? CalculateCsmShadow(worldPosition, surface.normal, lightDir, extendedShadowParam, csmShadowMaps, shadowSampler)
-                : CalculateShadow(worldPosition, surface.normal, lightDir, shadowParam, shadowMap, shadowSampler);
+            if (i == extendedShadowParam.shadowCasterLightIndex)
+            {
+                if (extendedShadowParam.shadowTechnique == SHADOW_TECHNIQUE_CSM)
+                {
+                    shadow = CalculateCsmShadow(worldPosition, surface.normal, lightDir, extendedShadowParam, csmShadowMaps, shadowSampler);
+                }
+                else if (extendedShadowParam.shadowTechnique == SHADOW_TECHNIQUE_DIRECTIONAL)
+                {
+                    shadow = CalculateDirectionalShadow(worldPosition, surface.normal, lightDir, extendedShadowParam, shadowMap, shadowSampler);
+                }
+            }
         }
         else if (light.lightType == LIGHT_TYPE_POINT)
         {
@@ -178,7 +186,7 @@ float3 DirectLightingPBR(
             lightDir = toL / max(d, kMinLightLength);
             float range = max(light.radius, kMinRange);
             attenuation = pow(saturate(1.0f - d / range), max(light.decay, kMinRange)) * step(d, range);
-            if (extendedShadowParam.shadowTechnique == 3 && i == extendedShadowParam.shadowCasterLightIndex)
+            if (extendedShadowParam.shadowTechnique == SHADOW_TECHNIQUE_POINT_CUBE && i == extendedShadowParam.shadowCasterLightIndex)
             {
                 shadow = CalculatePointCubeShadow(worldPosition, surface.normal, lightDir, extendedShadowParam, pointShadowMap, shadowSampler);
             }
@@ -194,7 +202,10 @@ float3 DirectLightingPBR(
             float3 dir = normalize(light.direction);
             float ct = dot(-dir, lightDir);
             attenuation *= smoothstep(light.cosAngle, light.cosFalloffStart, ct) * step(light.cosAngle, ct);
-            shadow = (shadowParam.shadowMode == 2) ? CalculateShadow(worldPosition, surface.normal, lightDir, shadowParam, shadowMap, shadowSampler) : 1.0f;
+            if (extendedShadowParam.shadowTechnique == SHADOW_TECHNIQUE_SPOT_LINEAR && i == extendedShadowParam.shadowCasterLightIndex)
+            {
+                shadow = CalculateSpotLinearShadow(worldPosition, surface.normal, lightDir, extendedShadowParam, shadowMap, shadowSampler);
+            }
         }
         else
         {

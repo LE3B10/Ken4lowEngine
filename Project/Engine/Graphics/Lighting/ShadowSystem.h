@@ -16,15 +16,15 @@ namespace Ken4lowEngine
 	class ShadowMapArrayRenderTarget;
 
 	/// <summary>
-	/// 既存b4 ShadowParameterを変更せず、Point Cube ShadowとCSMだけをb6へ追加するGPU契約です。
+	/// 既存b4 ShadowParameterを変更せず、選択ライトのFrame共通行列とPoint Cube / CSM情報をb6へ追加するGPU契約です。
 	/// </summary>
 	struct ExtendedShadowParameterGPU
 	{
-		std::array<Matrix4x4, 4> cascadeLightViewProjection{};
+		std::array<Matrix4x4, 4> cascadeLightViewProjection{}; // [0]はLegacy Directional/SpotでもFrame共通行列として使用する。
 		Vector4 cascadeSplits{};
-		Vector4 pointLightPositionAndFar{};
+		Vector4 pointLightPositionAndFar{}; // Local Light時はPosition/Far、CSM時はCamera Forward/MaxDistance。
 		Vector4 cameraPositionAndPointNear{};
-		uint32_t shadowTechnique = 0; // 0:Legacy/Off 3:PointCube 4:CSM
+		uint32_t shadowTechnique = 0; // 0:Off 1:Directional 2:SpotLinear 3:PointCube 4:CSM
 		uint32_t cascadeCount = 0;
 		uint32_t shadowCasterLightIndex = UINT32_MAX; // GPU転送後のPunctualLight index
 		uint32_t padding0 = 0;
@@ -48,7 +48,7 @@ namespace Ken4lowEngine
 		void Finalize();
 		void Resize(uint32_t shadowMapSize);
 
-		/// <summary>選択中ライトに応じ、Legacy/Spotを1回、Pointを6回、CSMを4回描画します。</summary>
+		/// <summary>選択中ライトに応じ、Directional/Spotを1回、Pointを6回、CSMを4回描画します。</summary>
 		void Execute(LightManager& lightManager, const std::function<void()>& drawShadowObjects);
 
 		/// <summary>b6、t10、t11を現在のRootSignatureへバインドします。</summary>

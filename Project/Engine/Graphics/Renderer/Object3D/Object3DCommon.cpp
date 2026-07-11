@@ -140,7 +140,7 @@ namespace Ken4lowEngine
 		LightManager::PunctualLightGPU light{};
 		LightManager::ShadowCasterType casterType = LightManager::ShadowCasterType::None;
 		if (!LightManager::GetInstance()->TryGetActiveShadowCasterLightInfo(lightIndex, light, casterType) ||
-			casterType != LightManager::ShadowCasterType::Point)
+			(casterType != LightManager::ShadowCasterType::Point && casterType != LightManager::ShadowCasterType::Spot))
 		{
 			pointShadowPassData_->lightPositionAndFar = { 0.0f, 0.0f, 0.0f, 1.0f };
 			return;
@@ -153,33 +153,35 @@ namespace Ken4lowEngine
 	void Object3DCommon::SetShadowMapRenderSetting()
 	{
 		auto* commandList = dxCommon_->GetCommandManager()->GetCommandList();
-		const bool isPointShadow = LightManager::GetInstance()->GetActiveShadowCasterType() == LightManager::ShadowCasterType::Point;
-		const PipelineBundle& pipeline = isPointShadow
+		const LightManager::ShadowCasterType casterType = LightManager::GetInstance()->GetActiveShadowCasterType();
+		const bool isLocalLinearShadow = casterType == LightManager::ShadowCasterType::Point || casterType == LightManager::ShadowCasterType::Spot;
+		const PipelineBundle& pipeline = isLocalLinearShadow
 			? shadowCasterPipelineSet_.GetObjectPoint()
 			: shadowCasterPipelineSet_.GetObjectDepth();
 
 		commandList->SetGraphicsRootSignature(pipeline.rootSignature.Get());
 		commandList->SetPipelineState(pipeline.pipelineState.Get());
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		if (isPointShadow && pointShadowPassResource_)
+		if (isLocalLinearShadow && pointShadowPassResource_)
 		{
 			UpdatePointShadowPassData();
-			commandList->SetGraphicsRootConstantBufferView(1, pointShadowPassResource_->GetGPUVirtualAddress()); // 6面で共通のLight位置とFar距離をPSへ渡す。
+			commandList->SetGraphicsRootConstantBufferView(1, pointShadowPassResource_->GetGPUVirtualAddress()); // SpotとPointは同じ線形距離Depth契約を使う。
 		}
 	}
 
 	void Object3DCommon::SetInstancedShadowMapRenderSetting()
 	{
 		auto* commandList = dxCommon_->GetCommandManager()->GetCommandList();
-		const bool isPointShadow = LightManager::GetInstance()->GetActiveShadowCasterType() == LightManager::ShadowCasterType::Point;
-		const PipelineBundle& pipeline = isPointShadow
+		const LightManager::ShadowCasterType casterType = LightManager::GetInstance()->GetActiveShadowCasterType();
+		const bool isLocalLinearShadow = casterType == LightManager::ShadowCasterType::Point || casterType == LightManager::ShadowCasterType::Spot;
+		const PipelineBundle& pipeline = isLocalLinearShadow
 			? shadowCasterPipelineSet_.GetInstancedPoint()
 			: shadowCasterPipelineSet_.GetInstancedDepth();
 
 		commandList->SetGraphicsRootSignature(pipeline.rootSignature.Get());
 		commandList->SetPipelineState(pipeline.pipelineState.Get());
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-		if (isPointShadow && pointShadowPassResource_)
+		if (isLocalLinearShadow && pointShadowPassResource_)
 		{
 			UpdatePointShadowPassData();
 			commandList->SetGraphicsRootConstantBufferView(2, pointShadowPassResource_->GetGPUVirtualAddress()); // Instancing用Rootのt0を避けてb1をIndex 2へ束縛する。

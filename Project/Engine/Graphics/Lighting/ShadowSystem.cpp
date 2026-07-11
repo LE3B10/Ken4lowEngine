@@ -18,6 +18,8 @@ namespace Ken4lowEngine
 
 	namespace
 	{
+		constexpr uint32_t kDirectionalShadowTechnique = 1;
+		constexpr uint32_t kSpotLinearShadowTechnique = 2;
 		constexpr uint32_t kPointShadowTechnique = 3;
 		constexpr uint32_t kCsmShadowTechnique = 4;
 
@@ -80,6 +82,8 @@ namespace Ken4lowEngine
 		}
 
 		const uint32_t gpuLightIndex = ResolveGpuLightIndex(lightManager, lightIndex);
+		gpuData_->shadowCasterLightIndex = gpuLightIndex; // 通常描画側は選択中ライトだけへShadowを適用する。
+
 		if (casterType == LightManager::ShadowCasterType::Point)
 		{
 			ExecutePointPass(lightManager, light, gpuLightIndex, drawShadowObjects);
@@ -94,6 +98,19 @@ namespace Ken4lowEngine
 		}
 		else
 		{
+			if (casterType == LightManager::ShadowCasterType::Spot)
+			{
+				const float farZ = std::max(ClampPositive(light.distance, 1.0f), 1.0f);
+				const float nearZ = std::clamp(lightManager.spotShadowNearZ_, 0.01f, farZ * 0.5f);
+				gpuData_->shadowTechnique = kSpotLinearShadowTechnique;
+				gpuData_->pointLightPositionAndFar = { light.position.x, light.position.y, light.position.z, farZ };
+				gpuData_->cameraPositionAndPointNear.w = nearZ;
+			}
+			else if (casterType == LightManager::ShadowCasterType::Directional)
+			{
+				gpuData_->shadowTechnique = kDirectionalShadowTechnique;
+			}
+
 			ExecuteLegacyPass(lightManager, drawShadowObjects);
 			csmRenderTarget_->End(dxCommon_->GetCommandManager()->GetCommandList());
 			pointRenderTarget_->End(dxCommon_->GetCommandManager()->GetCommandList());
@@ -112,6 +129,7 @@ namespace Ken4lowEngine
 	void ShadowSystem::ExecuteLegacyPass(LightManager& lightManager, const std::function<void()>& drawShadowObjects)
 	{
 		activePassLightViewProjection_ = lightManager.BuildShadowLightViewProjection(CameraManager::GetInstance()->GetActiveCameraPosition());
+		gpuData_->cascadeLightViewProjection[0] = activePassLightViewProjection_; // Receiverは各Objectの更新状態ではなくFrame共通行列を参照する。
 		dxCommon_->BeginShadowMapPass();
 		if (drawShadowObjects) { drawShadowObjects(); }
 		dxCommon_->EndShadowMapPass();
@@ -166,13 +184,17 @@ namespace Ken4lowEngine
 		}
 
 		const Vector3 cameraPosition = cameraManager->GetActiveCameraPosition();
-		const Vector3 forward = cameraManager->GetActiveCameraForward();
+		const Vector3 forward = Vector3::NormalizeSafe(cameraManager->GetActiveCameraForward(), { 0.0f, 0.0f, 1.0f });
 		const Vector3 worldUp = std::fabs(Vector3::Dot(forward, { 0.0f, 1.0f, 0.0f })) > 0.98f ? Vector3{ 1.0f, 0.0f, 0.0f } : Vector3{ 0.0f, 1.0f, 0.0f };
 		const Vector3 right = Vector3::NormalizeSafe(Vector3::Cross(worldUp, forward), { 1.0f, 0.0f, 0.0f });
 		const Vector3 up = Vector3::NormalizeSafe(Vector3::Cross(forward, right), { 0.0f, 1.0f, 0.0f });
 		const float tanHalfFov = std::tan(cameraManager->GetActiveFovY() * 0.5f);
 		const float aspect = std::max(cameraManager->GetActiveAspectRatio(), 0.01f);
 		const Vector3 lightDirection = Vector3::NormalizeSafe(light.direction, { 0.3f, -1.0f, 0.2f });
+
+		gpuData_->shadowTechnique = kCsmShadowTechnique;
+		gpuData_->shadowCasterLightIndex = gpuLightIndex;
+		gpuData_->pointLightPositionAndFar = { forward.x, forward.y, forward.z, shadowFar }; // CSM時はxyzをCamera ForwardとしてCascade選択へ使う。
 
 		float sliceNear = cameraNear;
 		for (uint32_t cascade = 0; cascade < kCascadeCount; ++cascade)
@@ -212,8 +234,6 @@ namespace Ken4lowEngine
 		csmRenderTarget_->End(dxCommon_->GetCommandManager()->GetCommandList());
 		gpuData_->cascadeSplits = { splits[0], splits[1], splits[2], splits[3] };
 		gpuData_->cascadeCount = kCascadeCount;
-		gpuData_->shadowTechnique = kCsmShadowTechnique;
-		gpuData_->shadowCasterLightIndex = gpuLightIndex;
 	}
 
 	uint32_t ShadowSystem::ResolveGpuLightIndex(const LightManager& lightManager, int32_t legacyLightIndex) const
