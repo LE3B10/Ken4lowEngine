@@ -26,6 +26,15 @@ namespace Ken4lowEngine
 	};
 
 	/// <summary>
+	/// Object-ID Passの結果をActorまたはComponentのどちらとして選択するかを表します。
+	/// </summary>
+	enum class EditorViewportSelectionMode : uint8_t
+	{
+		Actor = 0,
+		Component,
+	};
+
+	/// <summary>
 	/// ビューポートツールバーの表示状態と、Editor/Game表示の切り替え状態を管理します。
 	/// </summary>
 	class EditorViewportController
@@ -45,12 +54,20 @@ namespace Ken4lowEngine
 		void SetTool(EditorViewportTool tool) { activeTool_ = tool; }
 		EditorViewportTool GetTool() const { return activeTool_; }
 
+		void SetSelectionMode(EditorViewportSelectionMode mode) { selectionMode_ = mode; }
+		EditorViewportSelectionMode GetSelectionMode() const { return selectionMode_; }
+
 		void SetAuxiliaryDisplayEnabled(bool enabled) { auxiliaryDisplayEnabled_ = enabled; }
 		bool IsAuxiliaryDisplayEnabled() const { return auxiliaryDisplayEnabled_; }
 
 		const char* GetDisplayModeText() const
 		{
 			return IsGameDisplay() ? "ゲーム表示" : "エディター表示";
+		}
+
+		const char* GetSelectionModeText() const
+		{
+			return selectionMode_ == EditorViewportSelectionMode::Component ? "コンポーネント" : "アクタ";
 		}
 
 		const char* GetToolText() const
@@ -77,6 +94,7 @@ namespace Ken4lowEngine
 
 		EditorViewportDisplayMode displayMode_ = EditorViewportDisplayMode::Editor;
 		EditorViewportTool activeTool_ = EditorViewportTool::Select;
+		EditorViewportSelectionMode selectionMode_ = EditorViewportSelectionMode::Actor;
 		bool auxiliaryDisplayEnabled_ = true;
 	};
 } // namespace Ken4lowEngine
