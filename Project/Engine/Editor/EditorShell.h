@@ -69,10 +69,13 @@ namespace Ken4lowEngine
 
 		void DrawPlaceableCategory(const char* categoryName, const PlaceableEntry* entries, std::size_t count)
 		{
+			// ImGuiの固定長入力バッファを終端文字列としてstring_viewへ明示変換する。
+			const std::string_view searchFilter(placeActorsSearch_.data());
+
 			bool hasVisibleEntry = false;
 			for (std::size_t index = 0; index < count; ++index)
 			{
-				hasVisibleEntry |= ContainsCaseInsensitive(entries[index].label, placeActorsSearch_);
+				hasVisibleEntry |= ContainsCaseInsensitive(entries[index].label, searchFilter);
 			}
 			if (!hasVisibleEntry)
 			{
@@ -87,7 +90,7 @@ namespace Ken4lowEngine
 			for (std::size_t index = 0; index < count; ++index)
 			{
 				const PlaceableEntry& entry = entries[index];
-				if (!ContainsCaseInsensitive(entry.label, placeActorsSearch_))
+				if (!ContainsCaseInsensitive(entry.label, searchFilter))
 				{
 					continue;
 				}
