@@ -42,6 +42,16 @@ namespace Ken4lowEngine
 		/// </summary>
 		void Update();
 
+		/// <summary>
+		/// Editor Camera操作で変更した位置と回転から行列だけを即時更新します。
+		/// </summary>
+		void RefreshViewProjection();
+
+		/// <summary>
+		/// Editor Viewportから受け取ったローカル移動量と回転差分を反映します。
+		/// </summary>
+		void ApplyEditorNavigation(const Vector3& localMove, float pitchDelta, float yawDelta);
+
 	private: /// ---------- メンバ関数 ---------- ///
 
 		/// <summary>
@@ -111,104 +121,49 @@ namespace Ken4lowEngine
 		/// アスペクト比を設定します。<br/>
 		/// 例：画面幅 / 画面高さ。
 		/// </summary>
-		/// <param name="aspectRatio">アスペクト比。</param>
 		void SetAspectRatio(float aspectRatio);
 
 		/// <summary>
 		/// ニアクリップ面までの距離を設定します。
 		/// </summary>
-		/// <param name="nearClip">ニアクリップ距離。</param>
 		void SetNearClip(float nearClip) { nearClip_ = nearClip; }
 
 		/// <summary>
 		/// ファークリップ面までの距離を設定します。
 		/// </summary>
-		/// <param name="farClip">ファークリップ距離。</param>
 		void SetFarClip(float farClip) { farClip_ = farClip; }
 
 	public: /// ---------- 取得 ---------- ///
 
-		/// <summary>
-		/// 現在のビュー行列を取得します。
-		/// </summary>
 		Matrix4x4 GetViewMatrix() const { return viewMatrix_; }
-
-		/// <summary>
-		/// 現在の射影行列を取得します。
-		/// </summary>
 		Matrix4x4 GetProjectionMatrix() const { return projectionMatrix_; }
-
-		/// <summary>
-		/// 現在のビュー射影行列を取得します。
-		/// </summary>
 		Matrix4x4 GetViewProjectionMatrix() const { return viewProjectionMatrix_; }
-
-		/// <summary>
-		/// 現在のニアクリップ距離を取得します。
-		/// </summary>
 		float GetNearClip() const { return nearClip_; }
-
-		/// <summary>
-		/// 現在のファークリップ距離を取得します。
-		/// </summary>
 		float GetFarClip() const { return farClip_; }
-
-		/// <summary>
-		/// 現在の回転角（オイラー角）を取得します。
-		/// </summary>
 		Vector3 GetRotate() const { return worldTransform_.rotate_; }
-
-		/// <summary>
-		/// 現在のカメラ位置を取得します。
-		/// </summary>
 		Vector3 GetTranslate() const { return worldTransform_.translate_; }
-
-		/// <summary>
-		/// 垂直方向視野角(FoV Y)を取得します。
-		/// </summary>
 		float GetFovY() const { return fovY_; }
-
-		/// <summary>
-		/// 現在のアスペクト比を取得します。
-		/// </summary>
 		float GetAspectRatio() const { return aspectRatio_; }
 
 	private: /// ---------- メンバ変数 ---------- ///
 
-		// ワールドトランスフォーム
 		WorldTransform worldTransform_;
-
-		// ワールド行列データ
 		Matrix4x4 worldMatrix_;
-
-		// 回転行列
 		Matrix4x4 rotateMatrix_;
-
-		// ビュー行列データ
 		Matrix4x4 viewMatrix_;
-
-		// プロジェクション行列データ
 		Matrix4x4 projectionMatrix_;
-		float fovY_ = 0.0f;		   // 水平方向視野角
-		float aspectRatio_ = 0.0f; // アスペクト比
-		float nearClip_ = 0.0f;    // ニアクリップ
-		float farClip_ = 0.0f;	   // ファークリップ
-
-		// 合成行列
+		float fovY_ = 0.0f;
+		float aspectRatio_ = 0.0f;
+		float nearClip_ = 0.0f;
+		float farClip_ = 0.0f;
 		Matrix4x4 viewProjectionMatrix_;
-
-		// クォータニオン
 		Quaternion rotation_{};
 
 	private: /// ---------- コピー禁止 ---------- ///
 
-		/// <summary>外部からの生成を禁止するプライベートコンストラクタ。</summary>
 		DebugCamera() = default;
-		/// <summary>デフォルトデストラクタ。</summary>
 		~DebugCamera() = default;
-		/// <summary>コピーコンストラクタは禁止。</summary>
 		DebugCamera(const DebugCamera&) = delete;
-		/// <summary>代入演算子は禁止。</summary>
 		DebugCamera& operator=(const DebugCamera&) = delete;
 	};
 
