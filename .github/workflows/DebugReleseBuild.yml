@@ -36,6 +36,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          show-progress: false
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v3
@@ -46,11 +48,11 @@ jobs:
         run: msbuild -version
 
       - name: Build ${{ matrix.configuration }}
-        run: >
-          msbuild "${{ env.SOLUTION_FILE_PATH }}"
-          /m
-          /t:Rebuild
-          /p:Platform=x64
-          /p:Configuration=${{ matrix.configuration }}
-          /verbosity:minimal
-          "/clp:ErrorsOnly;Summary" # Phase 7の検証中はコンパイルエラーを短いログへ集約する。
+        shell: pwsh
+        run: |
+          $logPath = "msbuild-${{ matrix.configuration }}.log"
+          & msbuild "${{ env.SOLUTION_FILE_PATH }}" /m /t:Rebuild /p:Platform=x64 /p:Configuration=${{ matrix.configuration }} /verbosity:minimal "/clp:ErrorsOnly;Summary" *> $logPath
+          $buildExitCode = $LASTEXITCODE
+          # Phase 7の検証中は失敗理由だけをActionsログへ出して修正箇所を特定しやすくする。
+          Get-Content $logPath | Where-Object { $_ -match 'error (C|LNK|MSB)[0-9]+|Build FAILED|[0-9]+ Error\(s\)' }
+          exit $buildExitCode
