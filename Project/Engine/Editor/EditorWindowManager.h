@@ -112,6 +112,9 @@ namespace Ken4lowEngine
 		void SetPerformanceOverlayVisible(bool visible) { showPerformanceOverlay_ = visible; }
 		bool IsPerformanceOverlayVisible() const { return showPerformanceOverlay_; }
 
+		bool StartAllAssetBuild() { return assetBuildService_.StartBuild(EditorAssetBuildKind::All); }
+		bool IsAssetBuildRunning() const { return assetBuildService_.IsRunning(); }
+
 	private:
 		EditorWindowManager() = default;
 		~EditorWindowManager() = default;
