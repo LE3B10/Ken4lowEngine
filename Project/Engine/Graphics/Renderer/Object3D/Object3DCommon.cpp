@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "Object3DCommon.h"
 #include "DirectXCommon.h"
 #include "CameraManager.h"
