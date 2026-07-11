@@ -34,6 +34,7 @@ namespace Ken4lowEngine
 		void SetRenderSetting();
 		void SetInstancedRenderSetting();
 		void SetShadowMapRenderSetting();
+		void SetInstancedShadowMapRenderSetting();
 		bool ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds, bool isStageObject = false);
 		bool ShouldDrawMesh(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds);
 		FrustumCullingSystem& GetFrustumCullingSystem() { return frustumCullingSystem_; }
