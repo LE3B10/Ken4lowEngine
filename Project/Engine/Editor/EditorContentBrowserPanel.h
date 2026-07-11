@@ -2,13 +2,13 @@
 
 #include "EditorAssetDragDrop.h"
 #include "EditorAssetRegistryV2.h"
+#include "EditorGpuPickingManager.h"
 #include "EditorPlayController.h"
 #include "EditorTexturePreviewCache.h"
 #include "EditorViewportController.h"
-#include "EditorViewportPicking.h"
 #include "EditorWindowManager.h"
 
-#include <SceneManager.h>
+#include <GameViewportConstants.h>
 
 #include <algorithm>
 #include <array>
@@ -98,9 +98,8 @@ namespace Ken4lowEngine
 				return;
 			}
 
-			auto* windowManager = EditorWindowManager::GetInstance();
-			const EditorViewportRect& viewportRect = windowManager->GetMainViewportRect();
-			if (!viewportRect.valid)
+			const EditorViewportRect& viewportRect = EditorWindowManager::GetInstance()->GetMainViewportRect();
+			if (!viewportRect.valid || viewportRect.imageSize.x <= 1.0f || viewportRect.imageSize.y <= 1.0f)
 			{
 				return;
 			}
@@ -115,40 +114,23 @@ namespace Ken4lowEngine
 				return;
 			}
 
-			SceneManager* sceneManager = windowManager->GetSceneManager();
-			BaseScene* scene = sceneManager ? sceneManager->GetCurrentScene() : nullptr;
-			if (!scene)
-			{
-				return;
-			}
+			const float localX = mouse.x - viewportRect.screenMin.x;
+			const float localY = mouse.y - viewportRect.screenMin.y;
+			const float scaledX = (localX / viewportRect.imageSize.x) * static_cast<float>(GameViewportConstants::Width);
+			const float scaledY = (localY / viewportRect.imageSize.y) * static_cast<float>(GameViewportConstants::Height);
+			const uint32_t pixelX = static_cast<uint32_t>(std::clamp(
+				std::floor(scaledX),
+				0.0f,
+				static_cast<float>(GameViewportConstants::Width - 1u)));
+			const uint32_t pixelY = static_cast<uint32_t>(std::clamp(
+				std::floor(scaledY),
+				0.0f,
+				static_cast<float>(GameViewportConstants::Height - 1u)));
 
-			EditorViewportPickingRay ray{};
-			if (!EditorViewportPicking::BuildRay(
-				{ mouse.x, mouse.y },
-				viewportRect.screenMin,
-				viewportRect.imageSize,
-				ray))
-			{
-				windowManager->AddOutputLog(EditorLogLevel::Warning, "Viewport Picking用Rayを作成できませんでした。");
-				return;
-			}
-
-			std::vector<EditorObjectInfo> objects;
-			scene->CollectEditorObjects(objects);
-			EditorObjectInfo hitObject{};
-			float hitDistance = 0.0f;
-			if (EditorViewportPicking::PickClosest(ray, objects, hitObject, &hitDistance))
-			{
-				EditorContext::GetInstance()->GetSelection().Select(hitObject);
-				windowManager->AddOutputLog(
-					EditorLogLevel::Info,
-					"Viewport選択: " + hitObject.displayName + " / ID=" + std::to_string(hitObject.id));
-			}
-			else
-			{
-				EditorContext::GetInstance()->GetSelection().Clear();
-				windowManager->AddOutputLog(EditorLogLevel::Info, "Viewportの空き領域を選択したため選択を解除しました。");
-			}
+			EditorGpuPickingManager::GetInstance()->RequestPick(
+				pixelX,
+				pixelY,
+				viewportController->GetSelectionMode()); // 表示拡縮後の座標を固定1920x1080 ID Bufferへ戻して予約する。
 		}
 
 		void InitializeIfNeeded();
