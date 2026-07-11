@@ -33,7 +33,7 @@ namespace Ken4lowEngine
 		Generic,
 		Actor,
 		Component,
-		Instance,
+		Instance, // GPU Instancing内の1要素を独立したEditor選択対象として扱う。
 	};
 
 	enum class EditorInspectorType
@@ -188,7 +188,7 @@ namespace Ken4lowEngine
 		{
 			if (buildObjectIdEntry)
 			{
-				return buildObjectIdEntry(offset, outEntry); // Instancing Componentはoffsetごとに選択可能な仮想Objectを生成する。
+				return buildObjectIdEntry(offset, outEntry);
 			}
 			if (offset != 0) return false;
 			outEntry = *this;
