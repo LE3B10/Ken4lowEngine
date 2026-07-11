@@ -2,6 +2,10 @@
 
 #include <cstdint>
 
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
+
 namespace Ken4lowEngine
 {
 	/// <summary>
@@ -55,7 +59,16 @@ namespace Ken4lowEngine
 		EditorViewportTool GetTool() const { return activeTool_; }
 
 		void SetSelectionMode(EditorViewportSelectionMode mode) { selectionMode_ = mode; }
-		EditorViewportSelectionMode GetSelectionMode() const { return selectionMode_; }
+		EditorViewportSelectionMode GetSelectionMode() const
+		{
+#ifdef USE_IMGUI
+			if (ImGui::GetCurrentContext() && ImGui::GetIO().KeyCtrl)
+			{
+				return EditorViewportSelectionMode::Component; // Ctrlを押しているクリックだけComponent選択へ一時切り替えする。
+			}
+#endif
+			return selectionMode_;
+		}
 
 		void SetAuxiliaryDisplayEnabled(bool enabled) { auxiliaryDisplayEnabled_ = enabled; }
 		bool IsAuxiliaryDisplayEnabled() const { return auxiliaryDisplayEnabled_; }
