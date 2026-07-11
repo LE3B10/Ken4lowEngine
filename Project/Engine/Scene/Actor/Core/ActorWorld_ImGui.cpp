@@ -2,7 +2,12 @@
 
 #include "ActorJsonSerializer.h"
 #include "ComponentFactory.h"
+#include "EditorCommandHistory.h"
+#include "EditorContext.h"
 
+#include <atomic>
+#include <filesystem>
+#include <memory>
 #include <string>
 
 #ifdef USE_IMGUI
@@ -11,6 +16,17 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		std::string MakeEditorUndoActorPath(const char* prefix, const Actor* actor)
+		{
+			static std::atomic_uint64_t serial = 0;
+			const auto value = ++serial;
+			return "../Generated/Intermediate/EditorUndo/" + std::string(prefix) + "_" +
+				std::to_string(reinterpret_cast<uintptr_t>(actor)) + "_" + std::to_string(value) + ".json";
+		}
+	}
+
 	void ActorWorld::DrawImGui()
 	{
 #ifdef USE_IMGUI
@@ -21,34 +37,23 @@ namespace Ken4lowEngine
 				ImGui::Text("アクタ数: %zu", actors_.size());
 				DrawActorPrefabSpawnImGui();
 				ImGui::Separator();
-
 				for (size_t actorIndex = 0; actorIndex < actors_.size(); ++actorIndex)
 				{
 					Actor* actor = actors_[actorIndex].get();
-					if (!actor)
-					{
-						continue;
-					}
-
+					if (!actor) continue;
 					Actor* beforeSelectedActor = selectedActor_;
 					ActorComponent* beforeSelectedComponent = selectedComponent_;
 					ImGui::PushID(static_cast<int>(actorIndex));
 					actor->DrawHierarchyImGui(selectedActor_, selectedComponent_);
 					ImGui::PopID();
-
-					if (beforeSelectedActor != selectedActor_ || beforeSelectedComponent != selectedComponent_)
-					{
-						requestFocusActorDetails_ = true;
-					}
+					if (beforeSelectedActor != selectedActor_ || beforeSelectedComponent != selectedComponent_) requestFocusActorDetails_ = true;
 				}
 			}
 			ImGui::End();
 			DrawDetailsImGui();
 		}
-
-		// 統合Detailsで編集したライト設定も同じフレームの描画へ反映する。
 		SyncLightComponentsToLightManager();
-#endif // USE_IMGUI
+#endif
 	}
 
 	void ActorWorld::DrawDetailsImGui()
@@ -59,44 +64,31 @@ namespace Ken4lowEngine
 			ImGui::SetNextWindowFocus();
 			requestFocusActorDetails_ = false;
 		}
-
-		if (ImGui::Begin("Actor Details"))
-		{
-			DrawSelectedInspectorContent();
-		}
+		if (ImGui::Begin("Actor Details")) DrawSelectedInspectorContent();
 		ImGui::End();
-#endif // USE_IMGUI
+#endif
 	}
 
 	void ActorWorld::DrawSelectedInspectorContent()
 	{
 #ifdef USE_IMGUI
 		Actor* saveTargetActor = selectedActor_;
-		if (!saveTargetActor && selectedComponent_)
-		{
-			saveTargetActor = selectedComponent_->GetOwner();
-		}
+		if (!saveTargetActor && selectedComponent_) saveTargetActor = selectedComponent_->GetOwner();
 
 		if (saveTargetActor)
 		{
 			if (ImGui::Button("選択アクタをJSON保存"))
 			{
-				const std::string actorName = saveTargetActor->GetName().empty()
-					? saveTargetActor->GetClassTypeName()
-					: saveTargetActor->GetName();
+				const std::string actorName = saveTargetActor->GetName().empty() ? saveTargetActor->GetClassTypeName() : saveTargetActor->GetName();
 				const std::string filePath = "Resources/ActorPrefabs/" + actorName + ".json";
 				const bool succeeded = ActorJsonSerializer::SaveActorToFile(*saveTargetActor, filePath);
-				lastActorJsonSaveMessage_ = succeeded
-					? "保存しました: " + filePath
-					: "保存に失敗しました: " + filePath;
+				lastActorJsonSaveMessage_ = succeeded ? "保存しました: " + filePath : "保存に失敗しました: " + filePath;
 			}
 
 			ImGui::SameLine();
 			if (ImGui::Button("JSONから再読込"))
 			{
-				const std::string actorName = saveTargetActor->GetName().empty()
-					? saveTargetActor->GetClassTypeName()
-					: saveTargetActor->GetName();
+				const std::string actorName = saveTargetActor->GetName().empty() ? saveTargetActor->GetClassTypeName() : saveTargetActor->GetName();
 				const std::string filePath = "Resources/ActorPrefabs/" + actorName + ".json";
 				selectedComponent_ = nullptr;
 				pendingReloadActor_ = saveTargetActor;
@@ -106,45 +98,87 @@ namespace Ken4lowEngine
 			}
 
 			ImGui::SameLine();
-			if (ImGui::Button("アクタを削除"))
+			if (ImGui::Button("アクタを複製"))
 			{
-				ImGui::OpenPopup("アクタを削除しますか？");
+				const std::string snapshotPath = MakeEditorUndoActorPath("DuplicateActor", saveTargetActor);
+				if (ActorJsonSerializer::SaveActorToFile(*saveTargetActor, snapshotPath))
+				{
+					auto duplicatedActor = std::make_shared<Actor*>(nullptr);
+					EditorCommandHistory::GetInstance()->Execute(std::make_unique<EditorLambdaCommand>(
+						"アクタ複製",
+						[this, duplicatedActor, snapshotPath]()
+						{
+							*duplicatedActor = SpawnActorFromJson(snapshotPath);
+							if (*duplicatedActor)
+							{
+								selectedActor_ = *duplicatedActor;
+								selectedComponent_ = nullptr;
+								EditorContext::GetInstance()->GetSelection().Clear();
+								EditorContext::GetInstance()->MarkLevelDirty();
+							}
+						},
+						[this, duplicatedActor]()
+						{
+							if (!*duplicatedActor) return;
+							(*duplicatedActor)->Destroy();
+							*duplicatedActor = nullptr;
+							selectedActor_ = nullptr;
+							selectedComponent_ = nullptr;
+							EditorContext::GetInstance()->GetSelection().Clear();
+							EditorContext::GetInstance()->MarkLevelDirty(); // ActorWorld::UpdateでDestroy予約を安全に確定する。
+						}));
+				}
 			}
+
+			ImGui::SameLine();
+			if (ImGui::Button("アクタを削除")) ImGui::OpenPopup("アクタを削除しますか？");
 
 			if (ImGui::BeginPopupModal("アクタを削除しますか？", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 			{
 				ImGui::Text("%s を削除します。", saveTargetActor->GetName().c_str());
-				ImGui::TextDisabled("この操作はPhase 9でUndo / Redoへ接続します。");
+				ImGui::TextDisabled("Ctrl+Zで削除前の状態へ戻せます。");
 				ImGui::Separator();
 				if (ImGui::Button("削除", ImVec2(120.0f, 0.0f)))
 				{
-					pendingDeleteActor_ = saveTargetActor;
-					hasPendingDeleteActor_ = true;
-					selectedActor_ = nullptr;
-					selectedComponent_ = nullptr;
-					lastActorJsonSaveMessage_ = "削除を予約しました: " + saveTargetActor->GetName();
+					const std::string snapshotPath = MakeEditorUndoActorPath("DeleteActor", saveTargetActor);
+					if (ActorJsonSerializer::SaveActorToFile(*saveTargetActor, snapshotPath))
+					{
+						auto actorState = std::make_shared<Actor*>(saveTargetActor);
+						EditorCommandHistory::GetInstance()->Execute(std::make_unique<EditorLambdaCommand>(
+							"アクタ削除",
+							[this, actorState]()
+							{
+								if (!*actorState) return;
+								(*actorState)->Destroy();
+								*actorState = nullptr;
+								selectedActor_ = nullptr;
+								selectedComponent_ = nullptr;
+								EditorContext::GetInstance()->GetSelection().Clear();
+								EditorContext::GetInstance()->MarkLevelDirty();
+							},
+							[this, actorState, snapshotPath]()
+							{
+								*actorState = SpawnActorFromJson(snapshotPath);
+								selectedActor_ = *actorState;
+								selectedComponent_ = nullptr;
+								EditorContext::GetInstance()->GetSelection().Clear();
+								EditorContext::GetInstance()->MarkLevelDirty();
+							}));
+					}
 					ImGui::CloseCurrentPopup();
 				}
 				ImGui::SameLine();
-				if (ImGui::Button("キャンセル", ImVec2(120.0f, 0.0f)))
-				{
-					ImGui::CloseCurrentPopup();
-				}
+				if (ImGui::Button("キャンセル", ImVec2(120.0f, 0.0f))) ImGui::CloseCurrentPopup();
 				ImGui::EndPopup();
 			}
 
-			if (!lastActorJsonSaveMessage_.empty())
-			{
-				ImGui::TextWrapped("%s", lastActorJsonSaveMessage_.c_str());
-			}
+			if (!lastActorJsonSaveMessage_.empty()) ImGui::TextWrapped("%s", lastActorJsonSaveMessage_.c_str());
 			ImGui::Separator();
 		}
 
 		if (selectedComponent_)
 		{
-			const std::string componentName = selectedComponent_->GetName().empty()
-				? "名前なしコンポーネント"
-				: selectedComponent_->GetName();
+			const std::string componentName = selectedComponent_->GetName().empty() ? "名前なしコンポーネント" : selectedComponent_->GetName();
 			ImGui::Text("選択中のコンポーネント: %s", componentName.c_str());
 
 			Actor* owner = selectedComponent_->GetOwner();
@@ -155,15 +189,9 @@ namespace Ken4lowEngine
 			}
 			else
 			{
-				if (ImGui::Button("コンポーネントを複製"))
-				{
-					DuplicateSelectedComponent();
-				}
+				if (ImGui::Button("コンポーネントを複製")) DuplicateSelectedComponent();
 				ImGui::SameLine();
-				if (ImGui::Button("コンポーネントを削除"))
-				{
-					ImGui::OpenPopup("コンポーネントを削除しますか？");
-				}
+				if (ImGui::Button("コンポーネントを削除")) ImGui::OpenPopup("コンポーネントを削除しますか？");
 			}
 
 			if (ImGui::BeginPopupModal("コンポーネントを削除しますか？", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
@@ -176,21 +204,19 @@ namespace Ken4lowEngine
 					ImGui::CloseCurrentPopup();
 				}
 				ImGui::SameLine();
-				if (ImGui::Button("キャンセル", ImVec2(120.0f, 0.0f)))
-				{
-					ImGui::CloseCurrentPopup();
-				}
+				if (ImGui::Button("キャンセル", ImVec2(120.0f, 0.0f))) ImGui::CloseCurrentPopup();
 				ImGui::EndPopup();
 			}
 
-			ImGui::Separator();
-			selectedComponent_->DrawInspectorImGui();
+			if (selectedComponent_)
+			{
+				ImGui::Separator();
+				selectedComponent_->DrawInspectorImGui(); // 即時削除後は無効になったComponentへアクセスしない。
+			}
 		}
 		else if (selectedActor_)
 		{
-			const std::string actorName = selectedActor_->GetName().empty()
-				? "名前なしアクタ"
-				: selectedActor_->GetName();
+			const std::string actorName = selectedActor_->GetName().empty() ? "名前なしアクタ" : selectedActor_->GetName();
 			ImGui::Text("選択中のアクタ: %s", actorName.c_str());
 			ImGui::Separator();
 			selectedActor_->DrawInspectorImGui();
@@ -201,17 +227,14 @@ namespace Ken4lowEngine
 		}
 
 		DrawAddComponentImGui();
-#endif // USE_IMGUI
+#endif
 	}
 
 	void ActorWorld::DrawAddComponentImGui()
 	{
 #ifdef USE_IMGUI
 		Actor* targetActor = selectedActor_;
-		if (!targetActor && selectedComponent_)
-		{
-			targetActor = selectedComponent_->GetOwner();
-		}
+		if (!targetActor && selectedComponent_) targetActor = selectedComponent_->GetOwner();
 
 		ImGui::SeparatorText("コンポーネント追加");
 		if (!targetActor)
@@ -227,12 +250,7 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		if (selectedAddComponentTypeIndex_ < 0 ||
-			selectedAddComponentTypeIndex_ >= static_cast<int>(componentTypes.size()))
-		{
-			selectedAddComponentTypeIndex_ = 0;
-		}
-
+		if (selectedAddComponentTypeIndex_ < 0 || selectedAddComponentTypeIndex_ >= static_cast<int>(componentTypes.size())) selectedAddComponentTypeIndex_ = 0;
 		const ComponentFactory::ComponentTypeInfo& selectedType = componentTypes[selectedAddComponentTypeIndex_];
 		if (ImGui::BeginCombo("種類", selectedType.displayName.c_str()))
 		{
@@ -245,32 +263,15 @@ namespace Ken4lowEngine
 					currentCategory = typeInfo.category;
 					ImGui::TextDisabled("%s", currentCategory.c_str());
 				}
-
 				const bool alreadyExists = targetActor->HasComponentClass(typeInfo.className);
 				const bool disabled = !typeInfo.allowMultiple && alreadyExists;
-				if (disabled)
-				{
-					ImGui::BeginDisabled();
-				}
-
+				if (disabled) ImGui::BeginDisabled();
 				const bool isSelected = selectedAddComponentTypeIndex_ == index;
 				const std::string selectableLabel = typeInfo.displayName + "##" + typeInfo.className;
-				if (ImGui::Selectable(selectableLabel.c_str(), isSelected))
-				{
-					selectedAddComponentTypeIndex_ = index;
-				}
-				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-				{
-					ImGui::SetTooltip("%s", typeInfo.description.c_str());
-				}
-				if (isSelected)
-				{
-					ImGui::SetItemDefaultFocus();
-				}
-				if (disabled)
-				{
-					ImGui::EndDisabled();
-				}
+				if (ImGui::Selectable(selectableLabel.c_str(), isSelected)) selectedAddComponentTypeIndex_ = index;
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) ImGui::SetTooltip("%s", typeInfo.description.c_str());
+				if (isSelected) ImGui::SetItemDefaultFocus();
+				if (disabled) ImGui::EndDisabled();
 			}
 			ImGui::EndCombo();
 		}
@@ -284,14 +285,8 @@ namespace Ken4lowEngine
 			ImGui::TextDisabled("このコンポーネントは1つだけ追加できます。");
 			ImGui::BeginDisabled();
 		}
-		if (ImGui::Button("追加##AddComponent"))
-		{
-			AddComponentToSelectedActor(selectedType.className);
-		}
-		if (!canAdd)
-		{
-			ImGui::EndDisabled();
-		}
-#endif // USE_IMGUI
+		if (ImGui::Button("追加##AddComponent")) AddComponentToSelectedActor(selectedType.className);
+		if (!canAdd) ImGui::EndDisabled();
+#endif
 	}
 } // namespace Ken4lowEngine
