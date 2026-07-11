@@ -154,6 +154,14 @@ namespace Ken4lowEngine
 			cursor_ = 0;
 		}
 
+		void DiscardDependentRedoCommands()
+		{
+			if (!isReplaying_ || cursor_ >= commands_.size()) return;
+			const std::size_t keepCount = cursor_ + 1;
+			commands_.erase(commands_.begin() + static_cast<std::ptrdiff_t>(keepCount), commands_.end());
+			// 構造変更前のComponentを参照する後続Redoだけを捨て、構造Command自身は再実行できるように残す。
+		}
+
 		bool CanUndo() const { return cursor_ > 0 && cursor_ <= commands_.size(); }
 		bool CanRedo() const { return cursor_ < commands_.size(); }
 		bool IsReplaying() const { return isReplaying_; }
