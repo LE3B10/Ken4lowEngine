@@ -52,6 +52,11 @@ namespace Ken4lowEngine
 			callbacks.buildEditorUi();
 		}
 
+		if (callbacks.executeEditorPickingPass)
+		{
+			callbacks.executeEditorPickingPass(); // ImGuiで予約したクリックを通常Scene描画前の専用R32_UINT Passで解決する。
+		}
+
 		// 3D/ParticleはSceneRenderTargetへ描き、PostEffectの入力を従来と同じ形で作る。
 		if (callbacks.drawGameWorldToSceneTarget)
 		{
