@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "BaseScene.h"
 #include "CollisionManager.h"
 #include "GpuParticleEffectDesc.h"
@@ -58,6 +58,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	void CollectEditorObjects(std::vector<K4E::EditorObjectInfo>& outObjects) override
 	{
 		K4E::CollectActorWorldEditorObjects(actorWorld_, outObjects, "DebugScene");
+	}
+
+	/// <summary>
+	/// Content BrowserからのViewport配置先としてDebugSceneのActorWorldを公開する。
+	/// </summary>
+	K4E::ActorWorld* GetEditorActorWorld() override
+	{
+		return &actorWorld_;
 	}
 
 	// ShadowSystemがCasterを決める前にActorのLightComponentを同期する。
