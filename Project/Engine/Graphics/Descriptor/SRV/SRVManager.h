@@ -62,6 +62,12 @@ namespace Ken4lowEngine
 
 		void CreateSRVForShadowMap(uint32_t srvIndex, ID3D12Resource* shadowMap);
 
+		/// <summary>CSM用の深度Texture2DArray SRVを作成します。</summary>
+		void CreateSRVForShadowMapArray(uint32_t srvIndex, ID3D12Resource* shadowMapArray, uint32_t arraySize);
+
+		/// <summary>Point Light Cube Shadow用の深度TextureCube SRVを作成します。</summary>
+		void CreateSRVForShadowCube(uint32_t srvIndex, ID3D12Resource* shadowCube);
+
 		/// <summary>
 		/// 描画前に、この SRV ヒープをコマンドリストへセットします。<br/>
 		/// SRV を使う前に必ず呼び出してください。

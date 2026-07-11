@@ -175,8 +175,7 @@ namespace Ken4lowEngine
 		light.intensity = clampFiniteValue(light.intensity, 1.0f, 0.0f, 100.0f);
 		if (lightManager.dxCommon_ && lightManager.shadowMapSize_ != sanitizedShadowMapSize)
 		{
-			lightManager.shadowMapSize_ = sanitizedShadowMapSize;
-			lightManager.dxCommon_->SetShadowMapSize(lightManager.shadowMapSize_, lightManager.shadowMapSize_);
+			lightManager.ApplyShadowMapSizeFromParameter(sanitizedShadowMapSize); // Legacy/CSM/Pointの希望解像度を同時に更新する。
 		}
 		else
 		{

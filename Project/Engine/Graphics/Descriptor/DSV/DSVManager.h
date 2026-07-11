@@ -94,6 +94,9 @@ public: /// ---------- メンバ関数 ---------- ///
 
 	void CreateDSVForShadowMap(uint32_t dsvIndex, ID3D12Resource* resource);
 
+	/// <summary>Shadow用Texture2DArrayの指定SliceへD32_FLOAT DSVを作成します。</summary>
+	void CreateDSVForShadowMapArraySlice(uint32_t dsvIndex, ID3D12Resource* resource, uint32_t arraySlice);
+
 public: /// ---------- ゲッター ---------- ///
 
 	/// <summary>

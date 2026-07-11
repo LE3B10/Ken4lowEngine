@@ -93,8 +93,7 @@ namespace Ken4lowEngine
 		shadowParameterData_->shadowBias = lightMgr->GetShadowBias();
 		shadowParameterData_->normalBias = lightMgr->GetNormalBias();
 		shadowParameterData_->shadowStrength = lightMgr->GetShadowStrength();
-		const auto casterType = lightMgr->GetActiveShadowCasterType();
-		shadowParameterData_->shadowMode = lightMgr->IsShadowEnabled() ? (casterType == LightManager::ShadowCasterType::Spot ? 2u : (casterType == LightManager::ShadowCasterType::Directional ? 1u : 0u)) : 0u;
+		shadowParameterData_->shadowMode = lightMgr->GetShadowReceiverMode();
 		shadowParameterData_->shadowDebugMode = lightMgr->IsShadowMapDebugEnabled() ? 1u : (lightMgr->IsShadowFactorDebugEnabled() ? 2u : 0u);
 	}
 
@@ -111,8 +110,7 @@ namespace Ken4lowEngine
 		shadowParameterData_->shadowBias = lightMgr->GetShadowBias();
 		shadowParameterData_->normalBias = lightMgr->GetNormalBias();
 		shadowParameterData_->shadowStrength = lightMgr->GetShadowStrength();
-		const auto casterType = lightMgr->GetActiveShadowCasterType();
-		shadowParameterData_->shadowMode = lightMgr->IsShadowEnabled() ? (casterType == LightManager::ShadowCasterType::Spot ? 2u : (casterType == LightManager::ShadowCasterType::Directional ? 1u : 0u)) : 0u;
+		shadowParameterData_->shadowMode = lightMgr->GetShadowReceiverMode();
 		shadowParameterData_->shadowDebugMode = lightMgr->IsShadowMapDebugEnabled() ? 1u : (lightMgr->IsShadowFactorDebugEnabled() ? 2u : 0u);
 	}
 
@@ -239,6 +237,9 @@ namespace Ken4lowEngine
 	void Object3D::DrawShadow()
 	{
 		if (!model_) { return; }
+
+		// Point 6面/CSM 4層では同じObjectを複数回描くため、現在Sliceの行列をDraw直前に反映する。
+		UpdateShadowMatrix(LightManager::GetInstance()->GetActiveShadowPassLightViewProjection());
 
 		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 

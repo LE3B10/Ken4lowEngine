@@ -29,6 +29,9 @@ namespace Ken4lowEngine
 			kNormalSRV = 13,
 			kOcclusionSRV = 14,
 			kEmissiveSRV = 15,
+			kExtendedShadowCBV = 16,
+			kCsmShadowMapSRV = 17,
+			kPointShadowMapSRV = 18,
 			kCount
 		};
 
@@ -54,7 +57,7 @@ namespace Ken4lowEngine
 		}
 
 		D3D12_ROOT_SIGNATURE_DESC MakeObject3DRootSignatureDesc(
-			std::array<D3D12_DESCRIPTOR_RANGE, 9>& ranges,
+			std::array<D3D12_DESCRIPTOR_RANGE, 11>& ranges,
 			std::array<D3D12_ROOT_PARAMETER, Object3DRootParameterIndex::kCount>& rootParameters,
 			std::array<D3D12_STATIC_SAMPLER_DESC, 3>& staticSamplers)
 		{
@@ -88,10 +91,18 @@ namespace Ken4lowEngine
 			ranges[4].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 			ranges[4].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			for (size_t i = 5; i < ranges.size(); ++i)
+			for (size_t i = 5; i < 9; ++i)
 			{
 				ranges[i] = {};
 				ranges[i].BaseShaderRegister = static_cast<UINT>(i + 1); // t6～t9を既存Registerの後ろへ追加する。
+				ranges[i].NumDescriptors = 1;
+				ranges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+				ranges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+			}
+			for (size_t i = 9; i < ranges.size(); ++i)
+			{
+				ranges[i] = {};
+				ranges[i].BaseShaderRegister = static_cast<UINT>(i + 1); // t10:CSM t11:PointCube
 				ranges[i].NumDescriptors = 1;
 				ranges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 				ranges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -186,6 +197,23 @@ namespace Ken4lowEngine
 			rootParameters[kEmissiveSRV].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 			rootParameters[kEmissiveSRV].DescriptorTable.NumDescriptorRanges = 1;
 			rootParameters[kEmissiveSRV].DescriptorTable.pDescriptorRanges = &ranges[8];
+
+			rootParameters[kExtendedShadowCBV] = {};
+			rootParameters[kExtendedShadowCBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+			rootParameters[kExtendedShadowCBV].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+			rootParameters[kExtendedShadowCBV].Descriptor.ShaderRegister = 6;
+
+			rootParameters[kCsmShadowMapSRV] = {};
+			rootParameters[kCsmShadowMapSRV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+			rootParameters[kCsmShadowMapSRV].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+			rootParameters[kCsmShadowMapSRV].DescriptorTable.NumDescriptorRanges = 1;
+			rootParameters[kCsmShadowMapSRV].DescriptorTable.pDescriptorRanges = &ranges[9];
+
+			rootParameters[kPointShadowMapSRV] = {};
+			rootParameters[kPointShadowMapSRV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+			rootParameters[kPointShadowMapSRV].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+			rootParameters[kPointShadowMapSRV].DescriptorTable.NumDescriptorRanges = 1;
+			rootParameters[kPointShadowMapSRV].DescriptorTable.pDescriptorRanges = &ranges[10];
 
 			staticSamplers[0] = {};
 			staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
@@ -299,7 +327,7 @@ namespace Ken4lowEngine
 		ComPtr<IDxcBlob> shadowVsBlob = ShaderCompiler::CompileShader(shadowVs, dxcManager);
 
 		{
-			std::array<D3D12_DESCRIPTOR_RANGE, 9> ranges{};
+			std::array<D3D12_DESCRIPTOR_RANGE, 11> ranges{};
 			std::array<D3D12_ROOT_PARAMETER, Object3DRootParameterIndex::kCount> rootParameters{};
 		std::array<D3D12_STATIC_SAMPLER_DESC, 3> staticSamplers{};
 

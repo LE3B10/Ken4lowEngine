@@ -200,6 +200,19 @@ namespace Ken4lowEngine
 		dxCommon_->GetDevice()->CreateDepthStencilView(resource, &dsvDesc, GetCPUDescriptorHandle(dsvIndex));
 	}
 
+	void DSVManager::CreateDSVForShadowMapArraySlice(uint32_t dsvIndex, ID3D12Resource* resource, uint32_t arraySlice)
+	{
+		assert(resource && "ShadowMap array resource is null!");
+		D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc{};
+		dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+		dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+		dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+		dsvDesc.Texture2DArray.MipSlice = 0;
+		dsvDesc.Texture2DArray.FirstArraySlice = arraySlice;
+		dsvDesc.Texture2DArray.ArraySize = 1;
+		dxCommon_->GetDevice()->CreateDepthStencilView(resource, &dsvDesc, GetCPUDescriptorHandle(dsvIndex));
+	}
+
 
 	/// -------------------------------------------------------------
 	///			指定インデックスのCPUデスクリプタハンドルを取得

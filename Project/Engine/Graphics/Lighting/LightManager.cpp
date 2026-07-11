@@ -4,6 +4,7 @@
 #include "LightEditorPanel.h"
 #include "LightGpuBuffer.h"
 #include "LightPresetService.h"
+#include "ShadowSystem.h"
 #include "ImGuiManager.h"
 #include "Wireframe.h"
 
@@ -114,11 +115,22 @@ namespace Ken4lowEngine
 		lightParameterController_.Initialize(this);
 		lightParameterController_.RegisterParameters();
 		lightParameterController_.ApplyParameters();
+
+		if (!shadowSystem_)
+		{
+			shadowSystem_ = std::make_unique<ShadowSystem>();
+			shadowSystem_->Initialize(dxCommon_, shadowMapSize_);
+		}
 	}
 
 	void LightManager::Finalize()
 	{
 		lightParameterController_.Finalize();
+		if (shadowSystem_)
+		{
+			shadowSystem_->Finalize();
+			shadowSystem_.reset();
+		}
 
 		if (lightGpuBuffer_)
 		{
@@ -178,6 +190,10 @@ namespace Ken4lowEngine
 		settings.directionalShadowFarZ = directionalShadowFarZ_;
 		settings.directionalShadowFocusOffset = directionalShadowFocusOffset_;
 		settings.spotShadowNearZ = spotShadowNearZ_;
+		settings.pointShadowNearZ = pointShadowNearZ_;
+		settings.enableCsm = enableCsm_;
+		settings.csmMaxDistance = csmMaxDistance_;
+		settings.csmSplitLambda = csmSplitLambda_;
 		return settings;
 	}
 
@@ -200,6 +216,10 @@ namespace Ken4lowEngine
 		directionalShadowFarZ_ = settings.directionalShadowFarZ;
 		directionalShadowFocusOffset_ = settings.directionalShadowFocusOffset;
 		spotShadowNearZ_ = settings.spotShadowNearZ;
+		pointShadowNearZ_ = settings.pointShadowNearZ;
+		enableCsm_ = settings.enableCsm;
+		csmMaxDistance_ = settings.csmMaxDistance;
+		csmSplitLambda_ = settings.csmSplitLambda;
 	}
 
 	void LightManager::ApplyShadowMapSizeFromParameter(uint32_t size)
@@ -209,6 +229,7 @@ namespace Ken4lowEngine
 			// ShadowMapの再生成は実際にサイズが変わった時だけ行い、GPUリソース更新を最小化する。
 			shadowMapSize_ = size;
 			dxCommon_->SetShadowMapSize(shadowMapSize_, shadowMapSize_);
+			if (shadowSystem_) { shadowSystem_->Resize(shadowMapSize_); }
 			return;
 		}
 		shadowMapSize_ = size;
@@ -389,11 +410,23 @@ namespace Ken4lowEngine
 		return ShadowCasterType::None;
 	}
 
+	uint32_t LightManager::GetShadowReceiverMode() const
+	{
+		if (!enableShadow_) { return 0u; }
+		switch (GetActiveShadowCasterType())
+		{
+		case ShadowCasterType::Directional: return enableCsm_ ? 4u : 1u;
+		case ShadowCasterType::Spot: return 2u;
+		case ShadowCasterType::Point: return 3u;
+		default: return 0u;
+		}
+	}
+
 	bool LightManager::TryGetActiveShadowCasterLightInfo(int32_t& outIndex, PunctualLightGPU& outLight, ShadowCasterType& outType) const
 	{
 		const auto isCandidate = [](const PunctualLightGPU& light)
 			{
-				return light.intensity > 0.0f && light.enabled != 0u && (light.lightType == 1 || light.lightType == 3);
+				return light.intensity > 0.0f && light.enabled != 0u && (light.lightType == 1 || light.lightType == 2 || light.lightType == 3);
 			};
 		if (shadowCasterLightIndex_ >= 0 && shadowCasterLightIndex_ < static_cast<int32_t>(punctualLights_.size()))
 		{
@@ -402,7 +435,19 @@ namespace Ken4lowEngine
 			{
 				outIndex = shadowCasterLightIndex_;
 				outLight = selected;
-				outType = (selected.lightType == 3) ? ShadowCasterType::Spot : ShadowCasterType::Directional;
+				outType = (selected.lightType == 3) ? ShadowCasterType::Spot : (selected.lightType == 2 ? ShadowCasterType::Point : ShadowCasterType::Directional);
+				return true;
+			}
+		}
+		const int32_t componentIndex = shadowCasterLightIndex_ - static_cast<int32_t>(punctualLights_.size());
+		if (componentIndex >= 0 && componentIndex < static_cast<int32_t>(lightComponentLights_.size()))
+		{
+			const auto& selected = lightComponentLights_[componentIndex];
+			if (isCandidate(selected))
+			{
+				outIndex = shadowCasterLightIndex_;
+				outLight = selected;
+				outType = (selected.lightType == 3) ? ShadowCasterType::Spot : (selected.lightType == 2 ? ShadowCasterType::Point : ShadowCasterType::Directional);
 				return true;
 			}
 		}
@@ -413,7 +458,16 @@ namespace Ken4lowEngine
 			if (!isCandidate(light)) { continue; }
 			outIndex = i;
 			outLight = light;
-			outType = (light.lightType == 3) ? ShadowCasterType::Spot : ShadowCasterType::Directional;
+			outType = (light.lightType == 3) ? ShadowCasterType::Spot : (light.lightType == 2 ? ShadowCasterType::Point : ShadowCasterType::Directional);
+			return true;
+		}
+		for (int32_t i = 0; i < static_cast<int32_t>(lightComponentLights_.size()); ++i)
+		{
+			const auto& light = lightComponentLights_[i];
+			if (!isCandidate(light)) { continue; }
+			outIndex = static_cast<int32_t>(punctualLights_.size()) + i;
+			outLight = light;
+			outType = (light.lightType == 3) ? ShadowCasterType::Spot : (light.lightType == 2 ? ShadowCasterType::Point : ShadowCasterType::Directional);
 			return true;
 		}
 		return false;
@@ -440,9 +494,19 @@ namespace Ken4lowEngine
 			const float spotOuterCos = std::clamp(light.cosAngle, 0.01f, 0.999f);
 			const float outerAngle = std::acos(spotOuterCos) * 2.0f;
 			const float fovY = std::clamp(outerAngle, 0.15f, 3.0f);
-			const Matrix4x4 view = Matrix4x4::MakeLookAtMatrix(light.position, light.position + Vector3::Normalize(light.direction), { 0.0f, 1.0f, 0.0f });
-			const Matrix4x4 proj = Matrix4x4::MakePerspectiveFovMatrix(fovY, 1.0f, spotShadowNearZ_, spotDistance);
-			return Matrix4x4::Multiply(view, proj);
+			const float spotNear = std::clamp(spotShadowNearZ_, 0.001f, spotDistance - 0.001f);
+			const Vector3 spotDirection = Vector3::NormalizeSafe(light.direction, { 0.0f, -1.0f, 0.0f });
+			const Vector3 spotUp = std::fabs(Vector3::Dot(spotDirection, { 0.0f, 1.0f, 0.0f })) > 0.98f ? Vector3{ 1.0f, 0.0f, 0.0f } : Vector3{ 0.0f, 1.0f, 0.0f };
+			const Matrix4x4 view = Matrix4x4::MakeLookAtMatrix(light.position, light.position + spotDirection, spotUp);
+			const Matrix4x4 proj = Matrix4x4::MakePerspectiveFovMatrix(fovY, 1.0f, spotNear, spotDistance);
+			currentShadowFocusPosition_ = light.position + spotDirection * (spotDistance * 0.5f);
+			currentShadowDirection_ = spotDirection;
+			currentShadowLightViewProjection_ = Matrix4x4::Multiply(view, proj);
+			currentShadowFrustumWidth_ = fovY;
+			currentShadowFrustumHeight_ = fovY;
+			currentShadowFrustumNearZ_ = spotNear;
+			currentShadowFrustumFarZ_ = spotDistance;
+			return currentShadowLightViewProjection_;
 		}
 
 		Vector3 directionalFocusPosition = focusPosition;
@@ -456,6 +520,18 @@ namespace Ken4lowEngine
 		const float shadowHeight = std::max(std::fabs(directionalShadowHeight_), 0.01f);
 		const float shadowNear = std::clamp(directionalShadowNearZ_, 0.01f, 500.0f);
 		const float shadowFar = std::max(directionalShadowFarZ_, shadowNear + 1.0f);
+		// カメラの微小移動でShadow境界が泳がないよう、Light空間のXYをShadow texel単位へ固定する。
+		const Vector3 normalizedDirection = Vector3::NormalizeSafe(lightDir, { 0.3f, -1.0f, 0.2f });
+		const Vector3 referenceUp = std::fabs(Vector3::Dot(normalizedDirection, { 0.0f, 1.0f, 0.0f })) > 0.98f ? Vector3{ 1.0f, 0.0f, 0.0f } : Vector3{ 0.0f, 1.0f, 0.0f };
+		const Vector3 shadowRight = Vector3::NormalizeSafe(Vector3::Cross(referenceUp, normalizedDirection), { 1.0f, 0.0f, 0.0f });
+		const Vector3 shadowUp = Vector3::NormalizeSafe(Vector3::Cross(normalizedDirection, shadowRight), { 0.0f, 1.0f, 0.0f });
+		const float texelX = (shadowWidth * 2.0f) / static_cast<float>(std::max(shadowMapSize_, 1u));
+		const float texelY = (shadowHeight * 2.0f) / static_cast<float>(std::max(shadowMapSize_, 1u));
+		const float projectedX = Vector3::Dot(directionalFocusPosition, shadowRight);
+		const float projectedY = Vector3::Dot(directionalFocusPosition, shadowUp);
+		directionalFocusPosition += shadowRight * (std::round(projectedX / texelX) * texelX - projectedX);
+		directionalFocusPosition += shadowUp * (std::round(projectedY / texelY) * texelY - projectedY);
+
 		// Shadow Frustum debugは実際のLightViewProjectionから復元し、サイズに関係なく描画する
 		const Matrix4x4 lightViewProjection = Matrix4x4::MakeLightViewProjection(
 			lightDir, directionalFocusPosition, directionalShadowDistance_, shadowWidth, shadowHeight, shadowNear, shadowFar);
@@ -491,6 +567,29 @@ namespace Ken4lowEngine
 	{
 		// LightingSettingsの所有はLightManagerに残し、HLSL定数バッファ反映だけをLightGpuBufferへ委譲する。
 		lightGpuBuffer_->BindLightingSettings(rootIndexCB_b5, lightingSettings_);
+	}
+
+	void LightManager::ExecuteShadowPasses(const std::function<void()>& drawShadowObjects)
+	{
+		if (shadowSystem_)
+		{
+			shadowSystem_->Execute(*this, drawShadowObjects);
+			return;
+		}
+		// 初期化途中などShadowSystemがまだ無い場合も旧単一Passへ安全に戻す。
+		dxCommon_->BeginShadowMapPass();
+		if (drawShadowObjects) { drawShadowObjects(); }
+		dxCommon_->EndShadowMapPass();
+	}
+
+	void LightManager::BindExtendedShadowResources(uint32_t extendedShadowCbvRootIndex, uint32_t csmSrvRootIndex, uint32_t pointSrvRootIndex) const
+	{
+		if (shadowSystem_) { shadowSystem_->Bind(extendedShadowCbvRootIndex, csmSrvRootIndex, pointSrvRootIndex); }
+	}
+
+	const Matrix4x4& LightManager::GetActiveShadowPassLightViewProjection() const
+	{
+		return shadowSystem_ ? shadowSystem_->GetActivePassLightViewProjection() : currentShadowLightViewProjection_;
 	}
 
 	void LightManager::AddDefaultDirectionalLight()

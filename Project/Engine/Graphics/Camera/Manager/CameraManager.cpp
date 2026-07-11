@@ -127,4 +127,47 @@ namespace Ken4lowEngine
 		}
 		return { 0.0f, 0.0f, 0.0f };
 	}
+
+	Vector3 CameraManager::GetActiveCameraForward() const
+	{
+#ifdef _DEBUG
+		if (useDebugCamera_ && debugCamera_)
+		{
+			return Vector3::NormalizeSafe(Vector3::Transform({ 0.0f, 0.0f, 1.0f }, Matrix4x4::MakeRotateMatrix(debugCamera_->GetRotate())), { 0.0f, 0.0f, 1.0f });
+		}
+#endif
+		return mainCamera_ ? mainCamera_->GetForward() : Vector3{ 0.0f, 0.0f, 1.0f };
+	}
+
+	float CameraManager::GetActiveNearClip() const
+	{
+#ifdef _DEBUG
+		if (useDebugCamera_ && debugCamera_) { return debugCamera_->GetNearClip(); }
+#endif
+		return mainCamera_ ? mainCamera_->GetNearClip() : 0.1f;
+	}
+
+	float CameraManager::GetActiveFarClip() const
+	{
+#ifdef _DEBUG
+		if (useDebugCamera_ && debugCamera_) { return debugCamera_->GetFarClip(); }
+#endif
+		return mainCamera_ ? mainCamera_->GetFarClip() : 1000.0f;
+	}
+
+	float CameraManager::GetActiveFovY() const
+	{
+#ifdef _DEBUG
+		if (useDebugCamera_ && debugCamera_) { return debugCamera_->GetFovY(); }
+#endif
+		return mainCamera_ ? mainCamera_->GetFovY() : 1.0f;
+	}
+
+	float CameraManager::GetActiveAspectRatio() const
+	{
+#ifdef _DEBUG
+		if (useDebugCamera_ && debugCamera_) { return debugCamera_->GetAspectRatio(); }
+#endif
+		return mainCamera_ ? mainCamera_->GetAspectRatio() : 16.0f / 9.0f;
+	}
 }

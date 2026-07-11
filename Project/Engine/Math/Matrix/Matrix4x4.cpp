@@ -291,7 +291,10 @@ namespace Ken4lowEngine
 	{
 		Vector3 dir = Vector3::Normalize(lightDirection);
 		Vector3 eye = target - dir * distanceFromTarget;
-		Vector3 up = { 0.0f, 1.0f, 0.0f };
+		// Directional Lightが真上/真下を向いてもLookAtのCross積が0にならないUp軸を選ぶ。
+		Vector3 up = std::fabs(Vector3::Dot(dir, { 0.0f, 1.0f, 0.0f })) > 0.98f
+			? Vector3{ 1.0f, 0.0f, 0.0f }
+			: Vector3{ 0.0f, 1.0f, 0.0f };
 		const float width = std::max(std::fabs(orthoHalfWidth), 0.01f);
 		const float height = std::max(std::fabs(orthoHalfHeight), 0.01f);
 		const float shadowNear = std::max(nearZ, 0.001f);

@@ -84,6 +84,7 @@ namespace Ken4lowEngine
 
 		LightManager::GetInstance()->BindPunctualLights(5, 6);
 		LightManager::GetInstance()->BindLightingSettings(11);
+		LightManager::GetInstance()->BindExtendedShadowResources(16, 17, 18);
 	}
 
 	void Object3DCommon::SetInstancedRenderSetting()
@@ -97,6 +98,7 @@ namespace Ken4lowEngine
 
 		LightManager::GetInstance()->BindPunctualLights(5, 6);
 		LightManager::GetInstance()->BindLightingSettings(11);
+		LightManager::GetInstance()->BindExtendedShadowResources(17, 18, 19);
 	}
 
 	bool Object3DCommon::ShouldDrawObject(const BoundingSphere& worldBounds, bool objectCullingEnabled, bool hasBounds, bool isStageObject)

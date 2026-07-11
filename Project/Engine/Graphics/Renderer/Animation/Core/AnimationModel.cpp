@@ -1046,10 +1046,7 @@ namespace Ken4lowEngine
 		shadowParameterData_->shadowBias = lightMgr->GetShadowBias();
 		shadowParameterData_->normalBias = lightMgr->GetNormalBias();
 		shadowParameterData_->shadowStrength = lightMgr->GetShadowStrength();
-		const auto casterType = lightMgr->GetActiveShadowCasterType();
-		shadowParameterData_->shadowMode = lightMgr->IsShadowEnabled()
-			? (casterType == LightManager::ShadowCasterType::Spot ? 2u : (casterType == LightManager::ShadowCasterType::Directional ? 1u : 0u))
-			: 0u;
+		shadowParameterData_->shadowMode = lightMgr->GetShadowReceiverMode();
 		shadowParameterData_->shadowDebugMode = lightMgr->IsShadowMapDebugEnabled() ? 1u : (lightMgr->IsShadowFactorDebugEnabled() ? 2u : 0u);
 	}
 

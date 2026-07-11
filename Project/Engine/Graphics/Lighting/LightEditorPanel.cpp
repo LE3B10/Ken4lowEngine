@@ -193,15 +193,18 @@ namespace Ken4lowEngine
 		ImGui::Text("Manual Shadow Focus Position: (%.2f, %.2f, %.2f)", lightManager.manualShadowFocusPosition_.x, lightManager.manualShadowFocusPosition_.y, lightManager.manualShadowFocusPosition_.z);
 		ImGui::Text("Shadow Focus Offset: %.2f", lightManager.directionalShadowFocusOffset_);
 		ImGui::Text("Spot Shadow NearZ: %.3f", lightManager.spotShadowNearZ_);
+		ImGui::Text("Point Shadow NearZ: %.3f", lightManager.pointShadowNearZ_);
+		ImGui::Text("CSM: %s  Cascades: 4  MaxDistance: %.1f  Lambda: %.2f", lightManager.enableCsm_ ? "Enabled" : "Disabled", lightManager.csmMaxDistance_, lightManager.csmSplitLambda_);
+		ImGui::TextDisabled("Edit Point/CSM values in Parameters > LightManager.");
 		ImGui::Text("Shadow Caster Light Index: %d", lightManager.shadowCasterLightIndex_);
 		if (hasPointLight)
 		{
-			ImGui::TextColored(ImVec4(1.0f, 0.75f, 0.2f, 1.0f), "PointLight Shadow: Not Implemented (Cube ShadowMap required)");
-			ImGui::Text("Enable Shadow affects Directional/Spot only.");
+			ImGui::TextColored(ImVec4(0.35f, 1.0f, 0.45f, 1.0f), "PointLight Shadow: Cube 6-face path ready");
+			ImGui::Text("Select a Point light as Shadow Caster to activate it.");
 		}
 		else
 		{
-			ImGui::Text("PointLight Shadow: Not Implemented");
+			ImGui::Text("PointLight Shadow: ready (no active Point light)");
 		}
 		if (hasAreaLight)
 		{
@@ -227,15 +230,15 @@ namespace Ken4lowEngine
 			ImGui::Text("Spot: LightViewProjection active");
 			ImGui::Text("LightViewProjection: generated in LightManager (spot)");
 		}
-		else if (hasPointLight)
+		else if (casterType == LightManager::ShadowCasterType::Point)
 		{
-			ImGui::Text("Point: Not used, Cube ShadowMap required");
+			ImGui::Text("Point: Cube ShadowMap 6 faces active");
 		}
 		else
 		{
 			ImGui::Text("None: no shadow-casting light selected");
 		}
-		const char* activeCasterName = (casterType == LightManager::ShadowCasterType::Directional) ? "Directional" : (casterType == LightManager::ShadowCasterType::Spot) ? "Spot" : "None";
+		const char* activeCasterName = (casterType == LightManager::ShadowCasterType::Directional) ? "Directional" : (casterType == LightManager::ShadowCasterType::Spot) ? "Spot" : (casterType == LightManager::ShadowCasterType::Point) ? "Point" : "None";
 		ImGui::SeparatorText("Shadow Debug");
 		ImGui::Text("Active Shadow Caster Type: %s", activeCasterName);
 		int32_t activeLightIndex = -1;

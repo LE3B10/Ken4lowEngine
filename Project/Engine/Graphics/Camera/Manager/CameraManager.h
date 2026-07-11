@@ -40,6 +40,11 @@ namespace Ken4lowEngine
 		Matrix4x4 GetActiveProjectionMatrix() const;
 		Matrix4x4 GetActiveViewProjectionMatrix() const;
 		Vector3 GetActiveCameraPosition() const;
+		Vector3 GetActiveCameraForward() const;
+		float GetActiveNearClip() const;
+		float GetActiveFarClip() const;
+		float GetActiveFovY() const;
+		float GetActiveAspectRatio() const;
 		const AudioListener& GetAudioListener() const { return audioListener_; }
 
 		// Object3D や FPS など「Camera* が欲しい側」用

@@ -68,6 +68,7 @@ namespace Ken4lowEngine
 
 		LightManager::GetInstance()->BindPunctualLights(5, 6);
 		LightManager::GetInstance()->BindLightingSettings(9);
+		LightManager::GetInstance()->BindExtendedShadowResources(14, 15, 16);
 	}
 
 	/// ---------------------------------------------------------------
@@ -145,7 +146,19 @@ namespace Ken4lowEngine
 			materialTextureRanges[i].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 		}
 
-		D3D12_ROOT_PARAMETER rootParameters[14] = {};
+		D3D12_DESCRIPTOR_RANGE csmShadowMapRange{};
+		csmShadowMapRange.BaseShaderRegister = 10;
+		csmShadowMapRange.NumDescriptors = 1;
+		csmShadowMapRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+		csmShadowMapRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+		D3D12_DESCRIPTOR_RANGE pointShadowMapRange{};
+		pointShadowMapRange.BaseShaderRegister = 11;
+		pointShadowMapRange.NumDescriptors = 1;
+		pointShadowMapRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+		pointShadowMapRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+		D3D12_ROOT_PARAMETER rootParameters[17] = {};
 
 		rootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 		rootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
@@ -199,6 +212,20 @@ namespace Ken4lowEngine
 			rootParameters[10 + i].DescriptorTable.NumDescriptorRanges = 1;
 			rootParameters[10 + i].DescriptorTable.pDescriptorRanges = &materialTextureRanges[i];
 		}
+
+		rootParameters[14].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+		rootParameters[14].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[14].Descriptor.ShaderRegister = 6;
+
+		rootParameters[15].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParameters[15].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[15].DescriptorTable.NumDescriptorRanges = 1;
+		rootParameters[15].DescriptorTable.pDescriptorRanges = &csmShadowMapRange;
+
+		rootParameters[16].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+		rootParameters[16].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+		rootParameters[16].DescriptorTable.NumDescriptorRanges = 1;
+		rootParameters[16].DescriptorTable.pDescriptorRanges = &pointShadowMapRange;
 
 		descriptionRootSignature.pParameters = rootParameters;
 		descriptionRootSignature.NumParameters = _countof(rootParameters);

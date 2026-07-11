@@ -754,6 +754,9 @@
     <ClCompile Include="Engine\Graphics\Lighting\LightManager.cpp">
       <Filter>Engine\Graphics\Lighting</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Graphics\Lighting\ShadowSystem.cpp">
+      <Filter>Engine\Graphics\Lighting</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Graphics\Lighting\LightEditorPanel.cpp">
       <Filter>Engine\Graphics\Lighting</Filter>
     </ClCompile>
@@ -899,6 +902,9 @@
       <Filter>Engine\Graphics\RenderTarget\Main</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\RenderTarget\Shadow\ShadowMapRenderTarget.cpp">
+      <Filter>Engine\Graphics\RenderTarget\Shadow</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Graphics\RenderTarget\Shadow\ShadowMapArrayRenderTarget.cpp">
       <Filter>Engine\Graphics\RenderTarget\Shadow</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\RenderState\Blend\BlendStateFactory.cpp">
@@ -1974,6 +1980,9 @@
     <ClInclude Include="Engine\Graphics\Lighting\LightManager.h">
       <Filter>Engine\Graphics\Lighting</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Graphics\Lighting\ShadowSystem.h">
+      <Filter>Engine\Graphics\Lighting</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Graphics\Lighting\LightEditorPanel.h">
       <Filter>Engine\Graphics\Lighting</Filter>
     </ClInclude>
@@ -2155,6 +2164,9 @@
       <Filter>Engine\Graphics\RenderTarget\Main</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\RenderTarget\Shadow\ShadowMapRenderTarget.h">
+      <Filter>Engine\Graphics\RenderTarget\Shadow</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\RenderTarget\Shadow\ShadowMapArrayRenderTarget.h">
       <Filter>Engine\Graphics\RenderTarget\Shadow</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\RenderState\Blend\BlendStateFactory.h">

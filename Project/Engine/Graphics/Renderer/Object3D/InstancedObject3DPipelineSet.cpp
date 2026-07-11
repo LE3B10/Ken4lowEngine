@@ -31,6 +31,9 @@ namespace Ken4lowEngine
 			kNormalSRV,
 			kOcclusionSRV,
 			kEmissiveSRV,
+			kExtendedShadowCBV,
+			kCsmShadowMapSRV,
+			kPointShadowMapSRV,
 			kCount
 		};
 
@@ -44,11 +47,11 @@ namespace Ken4lowEngine
 		}
 
 		D3D12_ROOT_SIGNATURE_DESC MakeRootSignatureDesc(
-			std::array<D3D12_DESCRIPTOR_RANGE, 10>& ranges,
+			std::array<D3D12_DESCRIPTOR_RANGE, 12>& ranges,
 			std::array<D3D12_ROOT_PARAMETER, kCount>& parameters,
 			std::array<D3D12_STATIC_SAMPLER_DESC, 3>& samplers)
 		{
-			const UINT registers[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+			const UINT registers[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
 			for (size_t i = 0; i < ranges.size(); ++i)
 			{
 				ranges[i].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
@@ -88,6 +91,9 @@ namespace Ken4lowEngine
 			setTable(kNormalSRV, 7, D3D12_SHADER_VISIBILITY_PIXEL);
 			setTable(kOcclusionSRV, 8, D3D12_SHADER_VISIBILITY_PIXEL);
 			setTable(kEmissiveSRV, 9, D3D12_SHADER_VISIBILITY_PIXEL);
+			setCBV(kExtendedShadowCBV, 6, D3D12_SHADER_VISIBILITY_PIXEL);
+			setTable(kCsmShadowMapSRV, 10, D3D12_SHADER_VISIBILITY_PIXEL);
+			setTable(kPointShadowMapSRV, 11, D3D12_SHADER_VISIBILITY_PIXEL);
 
 			samplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
 			samplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -132,7 +138,7 @@ namespace Ken4lowEngine
 		ComPtr<IDxcBlob> vsBlob = ShaderCompiler::CompileShader(vs, dxcManager);
 		ComPtr<IDxcBlob> psBlob = ShaderCompiler::CompileShader(ps, dxcManager);
 
-		std::array<D3D12_DESCRIPTOR_RANGE, 10> ranges{};
+		std::array<D3D12_DESCRIPTOR_RANGE, 12> ranges{};
 		std::array<D3D12_ROOT_PARAMETER, kCount> parameters{};
 		std::array<D3D12_STATIC_SAMPLER_DESC, 3> samplers{};
 		D3D12_ROOT_SIGNATURE_DESC rootDesc = MakeRootSignatureDesc(ranges, parameters, samplers);

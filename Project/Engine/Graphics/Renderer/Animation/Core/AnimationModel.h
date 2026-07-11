@@ -50,7 +50,7 @@ namespace Ken4lowEngine
 			float shadowBias;              // シャドウバイアス
 			float normalBias;              // 法線方向オフセット量
 			float shadowStrength;          // 影の濃さ（DirectLight のみへ適用）
-			uint32_t shadowMode;           // 0:Off 1:Directional 2:Spot
+			uint32_t shadowMode;           // 0:Off 1:Directional 2:Spot 3:PointCube 4:CSM
 			uint32_t shadowDebugMode;      // 0:None 1:ShadowMap 2:ShadowFactor
 			float padding[1];              // パディング
 		};

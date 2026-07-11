@@ -11,9 +11,26 @@ struct ShadowParameter
     float shadowBias;
     float normalBias;
     float shadowStrength;
-    uint shadowMode; // 0:Off 1:Directional 2:Spot
+    uint shadowMode; // 0:Off 1:Directional 2:Spot 3:PointCube 4:CSM
     uint shadowDebugMode; // 0:None 1:ShadowMap 2:ShadowFactor
     float padding;
+};
+
+// 既存ShadowParameter(b4)のレイアウトは変更せず、Phase 5の拡張値だけをb6へ分離する。
+struct ExtendedShadowParameter
+{
+    float4x4 cascadeLightViewProjection[4];
+    float4 cascadeSplits;
+    float4 pointLightPositionAndFar;
+    float4 cameraPositionAndPointNear;
+    uint shadowTechnique; // 0:Legacy/Off 3:PointCube 4:CSM
+    uint cascadeCount;
+    uint shadowCasterLightIndex;
+    uint padding0;
+    float shadowBias;
+    float normalBias;
+    float shadowStrength;
+    float padding1;
 };
 
 float CalculateShadowPCF(
@@ -94,6 +111,83 @@ float CalculateShadow(
         shadowParam,
         shadowMap,
         shadowSampler);
+}
+
+uint SelectShadowCascade(float cameraDistance, ExtendedShadowParameter shadowParam)
+{
+    uint cascadeIndex = 0;
+    cascadeIndex += cameraDistance > shadowParam.cascadeSplits.x;
+    cascadeIndex += cameraDistance > shadowParam.cascadeSplits.y;
+    cascadeIndex += cameraDistance > shadowParam.cascadeSplits.z;
+    return min(cascadeIndex, max(shadowParam.cascadeCount, 1u) - 1u);
+}
+
+float CalculateCsmShadow(
+    float3 worldPosition,
+    float3 normal,
+    float3 lightDir,
+    ExtendedShadowParameter shadowParam,
+    Texture2DArray<float> csmShadowMaps,
+    SamplerComparisonState shadowSampler)
+{
+    if (shadowParam.shadowTechnique != 4 || shadowParam.cascadeCount == 0)
+    {
+        return 1.0f;
+    }
+
+    const float cameraDistance = length(worldPosition - shadowParam.cameraPositionAndPointNear.xyz);
+    const uint cascadeIndex = SelectShadowCascade(cameraDistance, shadowParam);
+    const float NoL = saturate(dot(normal, lightDir));
+    const float3 biasedPosition = worldPosition + normal * shadowParam.normalBias * (1.0f - NoL);
+    const float4 shadowPosition = mul(float4(biasedPosition, 1.0f), shadowParam.cascadeLightViewProjection[cascadeIndex]);
+    if (abs(shadowPosition.w) < kEpsilon) { return 1.0f; }
+    const float3 projected = shadowPosition.xyz / shadowPosition.w;
+    const float2 uv = float2(projected.x * 0.5f + 0.5f, -projected.y * 0.5f + 0.5f);
+    if (any(uv < 0.0f) || any(uv > 1.0f) || projected.z < 0.0f || projected.z > 1.0f) { return 1.0f; }
+
+    uint width, height, layers;
+    csmShadowMaps.GetDimensions(width, height, layers);
+    const float2 texelSize = 1.0f / max(float2(width, height), float2(1.0f, 1.0f));
+    float visibility = 0.0f;
+    [unroll]
+    for (int y = -kPCFRadius; y <= kPCFRadius; ++y)
+    {
+        [unroll]
+        for (int x = -kPCFRadius; x <= kPCFRadius; ++x)
+        {
+            visibility += csmShadowMaps.SampleCmpLevelZero(
+                shadowSampler,
+                float3(uv + float2(x, y) * texelSize, (float)cascadeIndex),
+                projected.z - shadowParam.shadowBias);
+        }
+    }
+    visibility /= 9.0f;
+    return lerp(1.0f - saturate(shadowParam.shadowStrength), 1.0f, visibility);
+}
+
+float CalculatePointCubeShadow(
+    float3 worldPosition,
+    float3 normal,
+    float3 lightDir,
+    ExtendedShadowParameter shadowParam,
+    TextureCube<float> pointShadowMap,
+    SamplerComparisonState shadowSampler)
+{
+    if (shadowParam.shadowTechnique != 3) { return 1.0f; }
+    const float3 lightPosition = shadowParam.pointLightPositionAndFar.xyz;
+    const float farZ = max(shadowParam.pointLightPositionAndFar.w, 0.02f);
+    const float nearZ = clamp(shadowParam.cameraPositionAndPointNear.w, 0.01f, farZ * 0.5f);
+    const float NoL = saturate(dot(normal, lightDir));
+    const float3 biasedPosition = worldPosition + normal * shadowParam.normalBias * (1.0f - NoL);
+    const float3 fromLight = biasedPosition - lightPosition;
+    const float distanceToLight = length(fromLight);
+    if (distanceToLight <= nearZ || distanceToLight >= farZ) { return 1.0f; }
+
+	// Cubeの各Faceで実際にProjectionのZへ入る値は、方向ベクトルの最大絶対成分になる。
+	const float faceDepth = max(abs(fromLight.x), max(abs(fromLight.y), abs(fromLight.z)));
+    const float projectedDepth = farZ / (farZ - nearZ) - (farZ * nearZ) / ((farZ - nearZ) * max(faceDepth, nearZ));
+    const float visibility = pointShadowMap.SampleCmpLevelZero(shadowSampler, normalize(fromLight), projectedDepth - shadowParam.shadowBias);
+    return lerp(1.0f - saturate(shadowParam.shadowStrength), 1.0f, visibility);
 }
 
 #endif

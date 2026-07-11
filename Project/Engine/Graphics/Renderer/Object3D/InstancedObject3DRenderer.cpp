@@ -8,6 +8,7 @@
 #include "Model.h"
 #include "ModelManager.h"
 #include "CameraManager.h"
+#include "LightManager.h"
 #include "Frustum.h"
 
 #include <algorithm>
@@ -277,6 +278,13 @@ namespace Ken4lowEngine
 		cameraData_->y = cameraPosition.y;
 		cameraData_->z = cameraPosition.z;
 		cameraData_->padding = 0.0f;
+		const auto* lightManager = LightManager::GetInstance();
+		shadowParameterData_->lightViewProjection = lightManager->BuildShadowLightViewProjection(cameraPosition);
+		shadowParameterData_->shadowBias = lightManager->GetShadowBias();
+		shadowParameterData_->normalBias = lightManager->GetNormalBias();
+		shadowParameterData_->shadowStrength = lightManager->GetShadowStrength();
+		shadowParameterData_->shadowMode = lightManager->GetShadowReceiverMode();
+		shadowParameterData_->shadowDebugMode = lightManager->IsShadowMapDebugEnabled() ? 1u : (lightManager->IsShadowFactorDebugEnabled() ? 2u : 0u);
 		material_.Update();
 
 		auto* commandList = dxCommon_->GetCommandManager()->GetCommandList();

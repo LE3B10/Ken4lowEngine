@@ -1,6 +1,7 @@
 #include "RenderPipelineController.h"
 
 #include "DirectXCommon.h"
+#include "LightManager.h"
 
 namespace Ken4lowEngine
 {
@@ -34,13 +35,8 @@ namespace Ken4lowEngine
 
 	void RenderPipelineController::ExecuteShadowMapPass(const FrameCallbacks& callbacks)
 	{
-		// ShadowMapは通常描画より前に作る。順序を変えず、Begin/Draw/Endだけをここへ集約する。
-		dxCommon_->BeginShadowMapPass();
-		if (callbacks.drawShadowObjects)
-		{
-			callbacks.drawShadowObjects();
-		}
-		dxCommon_->EndShadowMapPass();
+		// 通常描画より前という順序は維持し、選択ライトに応じた1/4/6回のSlice描画だけShadowSystemへ委譲する。
+		LightManager::GetInstance()->ExecuteShadowPasses(callbacks.drawShadowObjects);
 	}
 
 	void RenderPipelineController::ExecuteEditorFrame(const FrameCallbacks& callbacks)

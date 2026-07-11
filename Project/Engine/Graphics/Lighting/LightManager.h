@@ -7,6 +7,7 @@
 #include "ShadowSettings.h"
 #include <memory>
 #include <string>
+#include <functional>
 
 namespace Ken4lowEngine
 {
@@ -16,6 +17,7 @@ namespace Ken4lowEngine
 	class LightGpuBuffer;
 	class LightEditorPanel;
 	class LightPresetService;
+	class ShadowSystem;
 
 
 	/// -------------------------------------------------------------
@@ -62,6 +64,7 @@ namespace Ken4lowEngine
 			None = 0,
 			Directional = 1,
 			Spot = 2,
+			Point = 3,
 		};
 
 		// 既存コードの LightManager::ShadowFocusMode 参照を維持するための互換エイリアス。
@@ -186,6 +189,7 @@ namespace Ken4lowEngine
 		bool IsShadowFactorDebugEnabled() const { return showShadowFactorDebug_; }
 		LightingSettingsGPU& GetMutableLightingSettingsForEditor() { return lightingSettings_; }
 		ShadowCasterType GetActiveShadowCasterType() const;
+		uint32_t GetShadowReceiverMode() const;
 		Matrix4x4 BuildShadowLightViewProjection(const Vector3& focusPosition) const;
 		bool TryGetActiveShadowCasterLightInfo(int32_t& outIndex, PunctualLightGPU& outLight, ShadowCasterType& outType) const;
 		void SetShadowCasterLightIndex(int32_t index) { shadowCasterLightIndex_ = index; }
@@ -263,6 +267,15 @@ namespace Ken4lowEngine
 		/// </summary>
 		void ApplyShadowMapSizeFromParameter(uint32_t size);
 
+		/// <summary>選択ライトに応じたLegacy/Spot、Point 6面、CSM 4層のShadow Passを実行します。</summary>
+		void ExecuteShadowPasses(const std::function<void()>& drawShadowObjects);
+
+		/// <summary>既存b4を維持したまま追加したb6/t10/t11を通常描画へバインドします。</summary>
+		void BindExtendedShadowResources(uint32_t extendedShadowCbvRootIndex, uint32_t csmSrvRootIndex, uint32_t pointSrvRootIndex) const;
+
+		/// <summary>現在描画中のShadow Sliceで使用するLight ViewProjectionを返します。</summary>
+		const Matrix4x4& GetActiveShadowPassLightViewProjection() const;
+
 	private: /// ---------- メンバ関数 ---------- ///
 
 		/// <summary>
@@ -291,9 +304,11 @@ namespace Ken4lowEngine
 
 		friend class LightEditorPanel; // UI専用クラスだけが既存Inspector表示に必要な内部状態を読み書きする。
 		friend class LightPresetService; // Preset保存/読み込み専用クラスだけが既存JSON互換のため状態を写し取る。
+		friend class ShadowSystem; // 複数Shadow Passの行列生成とGPU転送だけがShadow設定/ライト配列を参照する。
 
 		DirectXCommon* dxCommon_ = nullptr;
 		std::unique_ptr<LightGpuBuffer> lightGpuBuffer_;
+		std::unique_ptr<ShadowSystem> shadowSystem_;
 
 		std::vector<PunctualLightGPU> punctualLights_; // GPUに送るグローバル/Legacyライト情報
 		std::vector<PunctualLightGPU> lightComponentLights_; // LightComponentから収集した全ライト情報
@@ -325,6 +340,10 @@ namespace Ken4lowEngine
 		mutable float currentShadowFrustumNearZ_ = 0.1f;
 		mutable float currentShadowFrustumFarZ_ = 120.0f;
 		float spotShadowNearZ_ = 0.1f;
+		float pointShadowNearZ_ = 0.1f;
+		bool enableCsm_ = false;
+		float csmMaxDistance_ = 160.0f;
+		float csmSplitLambda_ = 0.7f;
 		int32_t shadowCasterLightIndex_ = -1;
 		LightParameterController lightParameterController_;
 

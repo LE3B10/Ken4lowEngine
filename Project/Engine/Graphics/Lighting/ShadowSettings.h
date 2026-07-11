@@ -52,7 +52,15 @@ namespace Ken4lowEngine
 		float directionalShadowFarZ = 120.0f;
 		float directionalShadowFocusOffset = 0.0f;
 
-		// SpotShadowの射影Near値。PointShadowではCubeMap/Atlas固有の設定が必要になるため、この値へ無理に統合しない。
+		// SpotShadowの射影Near値。
 		float spotShadowNearZ = 0.1f;
+
+		// Point Light Cube Shadowは6面共通のNear値を持ち、Far値には選択Point Lightのradiusを使う。
+		float pointShadowNearZ = 0.1f;
+
+		// CSMは既存単一Directional Shadowと切り替え可能にし、初期OFFで従来の見た目を維持する。
+		bool enableCsm = false;
+		float csmMaxDistance = 160.0f;
+		float csmSplitLambda = 0.7f;
 	};
 }

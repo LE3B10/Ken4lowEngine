@@ -44,6 +44,7 @@ ConstantBuffer<Camera> gCamera : register(b1);
 ConstantBuffer<LightInfo> gLightInfo : register(b2);
 ConstantBuffer<ShadowParameter> gShadowParameter : register(b4);
 ConstantBuffer<LightingSettings> gLightingSettings : register(b5);
+ConstantBuffer<ExtendedShadowParameter> gExtendedShadowParameter : register(b6);
 
 Texture2D<float4> gTexture : register(t0); // テクスチャ
 TextureCube<float4> gEnvironmentTexture : register(t1); // 環境マップ
@@ -53,6 +54,8 @@ Texture2D<float4> gMetallicRoughnessTexture : register(t6);
 Texture2D<float4> gNormalTexture : register(t7);
 Texture2D<float4> gOcclusionTexture : register(t8);
 Texture2D<float4> gEmissiveTexture : register(t9);
+Texture2DArray<float> gCsmShadowMaps : register(t10);
+TextureCube<float> gPointShadowMap : register(t11);
 
 SamplerState gSampler : register(s0);
 SamplerComparisonState gShadowSampler : register(s1);
@@ -92,13 +95,43 @@ PixelShaderOutput main(VertexShaderOutput input)
         }
         spotShadowFactor = CalculateShadow(worldPosition, normal, dominantSpotDir, gShadowParameter, gShadowMap, gShadowSampler);
     }
+	else if (gShadowParameter.shadowMode == 4)
+	{
+		float3 directionalLightDir = float3(0.0f, 1.0f, 0.0f);
+		[loop]
+		for (uint directionalIndex = 0; directionalIndex < gLightInfo.gLightCount; ++directionalIndex)
+		{
+			if (gPunctualLights[directionalIndex].lightType == LIGHT_TYPE_DIRECTIONAL)
+			{
+				directionalLightDir = normalize(-gPunctualLights[directionalIndex].direction);
+				break;
+			}
+		}
+		spotShadowFactor = CalculateCsmShadow(worldPosition, normal, directionalLightDir, gExtendedShadowParameter, gCsmShadowMaps, gShadowSampler);
+	}
+	else if (gShadowParameter.shadowMode == 3 && gExtendedShadowParameter.shadowCasterLightIndex < gLightInfo.gLightCount)
+	{
+		PunctualLight pointCaster = gPunctualLights[gExtendedShadowParameter.shadowCasterLightIndex];
+		spotShadowFactor = CalculatePointCubeShadow(worldPosition, normal, normalize(pointCaster.position - worldPosition), gExtendedShadowParameter, gPointShadowMap, gShadowSampler);
+	}
 
     if (gShadowParameter.shadowDebugMode == 1)
     {
-        float4 shadowPosition = mul(float4(worldPosition, 1.0f), gShadowParameter.lightViewProjection);
+		if (gShadowParameter.shadowMode == 3)
+		{
+			float3 cubeDirection = normalize(worldPosition - gExtendedShadowParameter.pointLightPositionAndFar.xyz);
+			float cubeDepth = gPointShadowMap.SampleLevel(gSampler, cubeDirection, 0.0f);
+			output.color = float4(cubeDepth.xxx, 1.0f);
+			return output;
+		}
+		uint debugCascade = SelectShadowCascade(length(worldPosition - gExtendedShadowParameter.cameraPositionAndPointNear.xyz), gExtendedShadowParameter);
+		float4x4 debugLightViewProjection = (gShadowParameter.shadowMode == 4) ? gExtendedShadowParameter.cascadeLightViewProjection[debugCascade] : gShadowParameter.lightViewProjection;
+        float4 shadowPosition = mul(float4(worldPosition, 1.0f), debugLightViewProjection);
         float3 proj = shadowPosition.xyz / max(shadowPosition.w, 1e-5f);
         float2 uv = float2(proj.x * 0.5f + 0.5f, -proj.y * 0.5f + 0.5f);
-        float depth = gShadowMap.SampleLevel(gSampler, saturate(uv), 0.0f);
+        float depth = (gShadowParameter.shadowMode == 4)
+			? gCsmShadowMaps.SampleLevel(gSampler, float3(saturate(uv), (float)debugCascade), 0.0f)
+			: gShadowMap.SampleLevel(gSampler, saturate(uv), 0.0f);
         output.color = float4(depth.xxx, 1.0f);
         return output;
     }
@@ -116,6 +149,9 @@ PixelShaderOutput main(VertexShaderOutput input)
         gShadowParameter,
         gMaterial.shininess,
         gShadowMap,
+        gExtendedShadowParameter,
+        gCsmShadowMaps,
+        gPointShadowMap,
         gShadowSampler,
         gLightingSettings);
 
@@ -171,7 +207,7 @@ PixelShaderOutput main(VertexShaderOutput input)
         surface.normal = pbrNormal;
         surface.viewDir = viewDir;
 
-        float3 directPbr = DirectLightingPBR(gPunctualLights, gLightInfo.gLightCount, worldPosition, surface, gShadowParameter, gShadowMap, gShadowSampler);
+        float3 directPbr = DirectLightingPBR(gPunctualLights, gLightInfo.gLightCount, worldPosition, surface, gShadowParameter, gShadowMap, gExtendedShadowParameter, gCsmShadowMaps, gPointShadowMap, gShadowSampler);
         float3 ibl = EvaluatePbrIBLFallback(surface, gEnvironmentTexture, gSampler, gLightingSettings);
         shadedColor = directPbr + ibl + surface.emissive;
     }

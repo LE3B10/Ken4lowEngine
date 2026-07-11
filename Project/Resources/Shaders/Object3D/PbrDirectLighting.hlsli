@@ -144,6 +144,9 @@ float3 DirectLightingPBR(
     PbrSurface surface,
     ShadowParameter shadowParam,
     Texture2D<float> shadowMap,
+    ExtendedShadowParameter extendedShadowParam,
+    Texture2DArray<float> csmShadowMaps,
+    TextureCube<float> pointShadowMap,
     SamplerComparisonState shadowSampler)
 {
     float3 result = 0.0.xxx;
@@ -164,7 +167,9 @@ float3 DirectLightingPBR(
         if (light.lightType == LIGHT_TYPE_DIRECTIONAL)
         {
             lightDir = normalize(-light.direction);
-            shadow = CalculateShadow(worldPosition, surface.normal, lightDir, shadowParam, shadowMap, shadowSampler);
+            shadow = (shadowParam.shadowMode == 4)
+                ? CalculateCsmShadow(worldPosition, surface.normal, lightDir, extendedShadowParam, csmShadowMaps, shadowSampler)
+                : CalculateShadow(worldPosition, surface.normal, lightDir, shadowParam, shadowMap, shadowSampler);
         }
         else if (light.lightType == LIGHT_TYPE_POINT)
         {
@@ -173,6 +178,10 @@ float3 DirectLightingPBR(
             lightDir = toL / max(d, kMinLightLength);
             float range = max(light.radius, kMinRange);
             attenuation = pow(saturate(1.0f - d / range), max(light.decay, kMinRange)) * step(d, range);
+            if (extendedShadowParam.shadowTechnique == 3 && i == extendedShadowParam.shadowCasterLightIndex)
+            {
+                shadow = CalculatePointCubeShadow(worldPosition, surface.normal, lightDir, extendedShadowParam, pointShadowMap, shadowSampler);
+            }
         }
         else if (light.lightType == LIGHT_TYPE_SPOT)
         {

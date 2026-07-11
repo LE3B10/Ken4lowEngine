@@ -122,6 +122,8 @@ LightingTerms EvaluateDirectionalLight(
     float shininess,
     LightingSettings lightingSettings,
     Texture2D<float> shadowMap,
+    ExtendedShadowParameter extendedShadowParam,
+    Texture2DArray<float> csmShadowMaps,
     SamplerComparisonState shadowSampler)
 {
     LightingTerms terms = MakeEmptyLightingTerms();
@@ -130,13 +132,9 @@ LightingTerms EvaluateDirectionalLight(
     float NdotL = CalculateDiffuseFactor(normal, lightDir, lightingSettings);
     float3 lightColor = light.color.rgb * light.intensity;
 
-    float shadow = CalculateShadow(
-        worldPosition,
-        normal,
-        lightDir,
-        shadowParam,
-        shadowMap,
-        shadowSampler);
+    float shadow = (shadowParam.shadowMode == 4)
+        ? CalculateCsmShadow(worldPosition, normal, lightDir, extendedShadowParam, csmShadowMaps, shadowSampler)
+        : CalculateShadow(worldPosition, normal, lightDir, shadowParam, shadowMap, shadowSampler);
 
     terms.diffuse = lightColor * NdotL * shadow;
     terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess, lightingSettings) * shadow;
@@ -149,7 +147,11 @@ LightingTerms EvaluatePointLight(
     float3 normal,
     float3 viewDir,
     float shininess,
-    LightingSettings lightingSettings)
+    LightingSettings lightingSettings,
+    uint lightIndex,
+    ExtendedShadowParameter extendedShadowParam,
+    TextureCube<float> pointShadowMap,
+    SamplerComparisonState shadowSampler)
 {
     LightingTerms terms = MakeEmptyLightingTerms();
 
@@ -165,8 +167,11 @@ LightingTerms EvaluatePointLight(
     float NdotL = CalculateDiffuseFactor(normal, lightDir, lightingSettings);
     float3 lightColor = light.color.rgb * (light.intensity * atten);
 
-    terms.diffuse = lightColor * NdotL;
-    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess, lightingSettings) * NdotL;
+    const float shadow = (extendedShadowParam.shadowTechnique == 3 && lightIndex == extendedShadowParam.shadowCasterLightIndex)
+        ? CalculatePointCubeShadow(worldPosition, normal, lightDir, extendedShadowParam, pointShadowMap, shadowSampler)
+        : 1.0f;
+    terms.diffuse = lightColor * NdotL * shadow;
+    terms.specular = lightColor * ComputeSpecular(normal, lightDir, viewDir, shininess, lightingSettings) * NdotL * shadow;
     return terms;
 }
 
@@ -238,6 +243,9 @@ float3 AccumulateLighting(
     ShadowParameter shadowParam,
     float shininess,
     Texture2D<float> shadowMap,
+    ExtendedShadowParameter extendedShadowParam,
+    Texture2DArray<float> csmShadowMaps,
+    TextureCube<float> pointShadowMap,
     SamplerComparisonState shadowSampler,
     LightingSettings lightingSettings)
 {
@@ -263,19 +271,25 @@ float3 AccumulateLighting(
                 shininess,
                 lightingSettings,
                 shadowMap,
+                extendedShadowParam,
+                csmShadowMaps,
                 shadowSampler);
             activeLightCount++;
         }
         else if (light.lightType == LIGHT_TYPE_POINT)
         {
-            // PointLight shadow is currently not implemented (requires cube/6-face shadow map).
+			// 選択中Point Lightだけが6面Cube Shadowを使用し、他のPoint Lightは従来の減衰照明を維持する。
             terms = EvaluatePointLight(
                 light,
                 worldPosition,
                 normal,
                 viewDir,
                 shininess,
-                lightingSettings);
+                lightingSettings,
+                i,
+                extendedShadowParam,
+                pointShadowMap,
+                shadowSampler);
             activeLightCount++;
         }
         else if (light.lightType == LIGHT_TYPE_SPOT)

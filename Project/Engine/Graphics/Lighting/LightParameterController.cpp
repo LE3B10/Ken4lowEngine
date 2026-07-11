@@ -144,6 +144,10 @@ namespace Ken4lowEngine
 		parameters->AddItem(kLightManagerGroup, "directionalShadowFarZ", shadowSettings.directionalShadowFarZ, 1.01f, 1000.0f);
 		parameters->AddItem(kLightManagerGroup, "directionalShadowFocusOffset", shadowSettings.directionalShadowFocusOffset, -200.0f, 200.0f);
 		parameters->AddItem(kLightManagerGroup, "spotShadowNearZ", shadowSettings.spotShadowNearZ, 0.01f, 50.0f);
+		parameters->AddItem(kLightManagerGroup, "pointShadowNearZ", shadowSettings.pointShadowNearZ, 0.01f, 50.0f);
+		parameters->AddItem(kLightManagerGroup, "enableCsm", shadowSettings.enableCsm);
+		parameters->AddItem(kLightManagerGroup, "csmMaxDistance", shadowSettings.csmMaxDistance, 10.0f, 1000.0f);
+		parameters->AddItem(kLightManagerGroup, "csmSplitLambda", shadowSettings.csmSplitLambda, 0.0f, 1.0f);
 
 		// Light #0が存在しない場合は、保存値の反映先として既定ライトを補う。
 		lightManager_->EnsureDefaultLightForParameter();
@@ -221,6 +225,10 @@ namespace Ken4lowEngine
 		shadowSettings.directionalShadowFarZ = ClampFinite(GetLightParameterOrDefault(parameters, "directionalShadowFarZ", shadowSettings.directionalShadowFarZ), 120.0f, shadowSettings.directionalShadowNearZ + 0.001f, 20000.0f);
 		shadowSettings.directionalShadowFocusOffset = ClampFinite(GetLightParameterOrDefault(parameters, "directionalShadowFocusOffset", shadowSettings.directionalShadowFocusOffset), 0.0f, -10000.0f, 10000.0f);
 		shadowSettings.spotShadowNearZ = ClampFinite(GetLightParameterOrDefault(parameters, "spotShadowNearZ", shadowSettings.spotShadowNearZ), 0.1f, 0.001f, 5000.0f);
+		shadowSettings.pointShadowNearZ = ClampFinite(GetLightParameterOrDefault(parameters, "pointShadowNearZ", shadowSettings.pointShadowNearZ), 0.1f, 0.001f, 5000.0f);
+		shadowSettings.enableCsm = GetLightParameterOrDefault(parameters, "enableCsm", shadowSettings.enableCsm);
+		shadowSettings.csmMaxDistance = ClampFinite(GetLightParameterOrDefault(parameters, "csmMaxDistance", shadowSettings.csmMaxDistance), 160.0f, 10.0f, 5000.0f);
+		shadowSettings.csmSplitLambda = ClampFinite(GetLightParameterOrDefault(parameters, "csmSplitLambda", shadowSettings.csmSplitLambda), 0.7f, 0.0f, 1.0f);
 
 		// Light #0が存在しない場合は、保存値の反映先として既定ライトを補う。
 		lightManager_->EnsureDefaultLightForParameter();
@@ -238,7 +246,9 @@ namespace Ken4lowEngine
 		light.cosAngle = ClampFinite(GetLightParameterOrDefault(parameters, "light0.cosAngle", light.cosAngle), 0.5f, 0.0f, 1.0f);
 		if (light.cosFalloffStart < light.cosAngle) { light.cosFalloffStart = light.cosAngle; }
 		light.areaSize = ClampFiniteVector3(GetLightParameterOrDefault(parameters, "light0.areaSize", light.areaSize), { 2.0f, 2.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, { 10000.0f, 10000.0f, 10000.0f });
-		shadowSettings.shadowCasterLightIndex = std::clamp(shadowSettings.shadowCasterLightIndex, -1, static_cast<int32_t>(lightManager_->GetPunctualLightsForParameter().size()) - 1);
+		const int32_t selectableShadowLightCount = static_cast<int32_t>(
+			lightManager_->GetPunctualLightsForParameter().size() + lightManager_->GetLightComponentLightsForDebug().size());
+		shadowSettings.shadowCasterLightIndex = std::clamp(shadowSettings.shadowCasterLightIndex, -1, selectableShadowLightCount - 1);
 		// 検証済みのShadow設定をまとめてLightManagerへ反映する。
 		lightManager_->SetShadowSettingsFromParameter(shadowSettings);
 		SyncFromCurrentState(); // クランプや正規化後の値をParameterManager表示にも戻す。
@@ -292,6 +302,10 @@ namespace Ken4lowEngine
 		parameters->SetValue(kLightManagerGroup, "directionalShadowFarZ", shadowSettings.directionalShadowFarZ);
 		parameters->SetValue(kLightManagerGroup, "directionalShadowFocusOffset", shadowSettings.directionalShadowFocusOffset);
 		parameters->SetValue(kLightManagerGroup, "spotShadowNearZ", shadowSettings.spotShadowNearZ);
+		parameters->SetValue(kLightManagerGroup, "pointShadowNearZ", shadowSettings.pointShadowNearZ);
+		parameters->SetValue(kLightManagerGroup, "enableCsm", shadowSettings.enableCsm);
+		parameters->SetValue(kLightManagerGroup, "csmMaxDistance", shadowSettings.csmMaxDistance);
+		parameters->SetValue(kLightManagerGroup, "csmSplitLambda", shadowSettings.csmSplitLambda);
 
 		const auto& punctualLights = lightManager_->GetPunctualLightsForParameter();
 		if (punctualLights.empty())
