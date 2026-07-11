@@ -80,9 +80,9 @@ namespace Ken4lowEngine
 
 	void ModelComponent::DrawShadow()
 	{
-		if (!visible_ || !object3D_)
+		if (!visible_ || !IsCastShadowEnabled() || !object3D_)
 		{
-			return; // 影描画対象がない場合は描画しない。
+			return; // 非表示またはCastShadow無効のComponentはShadow Mapへ描画しない。
 		}
 
 		object3D_->DrawShadow(); // ShadowMap用の描画パスでモデルを描画する。
