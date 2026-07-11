@@ -59,6 +59,7 @@ namespace Ken4lowEngine
 		lastActorJsonSaveMessage_ = "Added Component : " + newComponent->GetName();
 
 		const std::string afterState = ActorJsonSerializer::SerializeActor(*targetActor).dump();
+		EditorCommandHistory::GetInstance()->Clear(); // Component再構築で無効になる古いComponentポインタを履歴へ残さない。
 		EditorCommandHistory::GetInstance()->PushExecuted(std::make_unique<EditorStateCommand>(
 			"コンポーネント追加", beforeState, afterState,
 			[this, targetActor](std::string_view stateText)
@@ -71,7 +72,7 @@ namespace Ken4lowEngine
 				selectedActor_ = targetActor;
 				selectedComponent_ = nullptr;
 				EditorContext::GetInstance()->GetSelection().Clear();
-				EditorContext::GetInstance()->MarkLevelDirty(); // Component再構築後は古いComponent選択を残さない。
+				EditorContext::GetInstance()->MarkLevelDirty();
 			}));
 		EditorContext::GetInstance()->MarkLevelDirty();
 	}
@@ -114,7 +115,7 @@ namespace Ken4lowEngine
 		ActorComponent* deleteTarget = selectedComponent_;
 		selectedComponent_ = nullptr;
 		selectedActor_ = owner;
-		EditorContext::GetInstance()->GetSelection().Clear(); // 削除直後のDetailsが破棄済みComponentを再参照しないようにする。
+		EditorContext::GetInstance()->GetSelection().Clear();
 		const bool removed = owner->RemoveComponent(deleteTarget);
 		if (wasPhysicsRegistered) RegisterPhysicsComponents(*owner);
 		if (!removed)
@@ -124,6 +125,7 @@ namespace Ken4lowEngine
 		}
 
 		const std::string afterState = ActorJsonSerializer::SerializeActor(*owner).dump();
+		EditorCommandHistory::GetInstance()->Clear();
 		EditorCommandHistory::GetInstance()->PushExecuted(std::make_unique<EditorStateCommand>(
 			"コンポーネント削除", beforeState, afterState,
 			[this, owner](std::string_view stateText)
@@ -207,6 +209,7 @@ namespace Ken4lowEngine
 		lastActorJsonSaveMessage_ = "Duplicated Component : " + duplicatedComponent->GetName();
 
 		const std::string afterState = ActorJsonSerializer::SerializeActor(*owner).dump();
+		EditorCommandHistory::GetInstance()->Clear();
 		EditorCommandHistory::GetInstance()->PushExecuted(std::make_unique<EditorStateCommand>(
 			"コンポーネント複製", beforeState, afterState,
 			[this, owner](std::string_view stateText)
