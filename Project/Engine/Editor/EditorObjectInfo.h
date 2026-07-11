@@ -5,7 +5,9 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
+#include "Engine/Graphics/Culling/BoundingVolume.h"
 #include "Vector3.h"
 
 namespace Ken4lowEngine
@@ -94,6 +96,7 @@ namespace Ken4lowEngine
 		using WriteActiveFunc = std::function<void(bool)>;
 		using RenameFunc = std::function<void(std::string_view)>;
 		using RequestActionFunc = std::function<void()>;
+		using ReadViewportPickingSpheresFunc = std::function<void(std::vector<BoundingSphere>&)>;
 
 		EditorObjectInfo() = default;
 
@@ -133,6 +136,9 @@ namespace Ken4lowEngine
 		RequestActionFunc requestDuplicate;
 		bool canDelete = false;
 		RequestActionFunc requestDelete;
+
+		bool canPickInViewport = false;
+		ReadViewportPickingSpheresFunc readViewportPickingSpheres;
 
 		// Detailsは毎フレーム再収集された入口だけを使い、古いraw pointerへ直接触れないようにする。
 		bool TryReadTransform(EditorTransform& outTransform) const
@@ -189,6 +195,18 @@ namespace Ken4lowEngine
 			{
 				requestDelete();
 			}
+		}
+
+		bool CollectViewportPickingSpheres(std::vector<BoundingSphere>& outSpheres) const
+		{
+			if (!canPickInViewport || !readViewportPickingSpheres)
+			{
+				return false;
+			}
+
+			const std::size_t previousSize = outSpheres.size();
+			readViewportPickingSpheres(outSpheres);
+			return outSpheres.size() > previousSize;
 		}
 	};
 
