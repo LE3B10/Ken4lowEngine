@@ -33,7 +33,7 @@ namespace Ken4lowEngine
 		Generic,
 		Actor,
 		Component,
-		Instance, // GPU Instancing内の1要素を独立したEditor選択対象として扱う。
+		Instance,
 	};
 
 	enum class EditorInspectorType
@@ -85,6 +85,8 @@ namespace Ken4lowEngine
 		using WriteActiveFunc = std::function<void(bool)>;
 		using RenameFunc = std::function<void(std::string_view)>;
 		using RequestActionFunc = std::function<void()>;
+		using CaptureStateFunc = std::function<std::string()>;
+		using RestoreStateFunc = std::function<void(std::string_view)>;
 
 		EditorObjectInfo() = default;
 		EditorObjectInfo(uint64_t objectId, std::string objectDisplayName, std::string objectTypeName, std::string objectSceneName)
@@ -119,6 +121,10 @@ namespace Ken4lowEngine
 		RequestActionFunc requestDuplicate;
 		bool canDelete = false;
 		RequestActionFunc requestDelete;
+
+		bool canCaptureState = false;
+		CaptureStateFunc captureState;
+		RestoreStateFunc restoreState;
 
 		bool canDrawObjectId = false;
 		DrawObjectIdFunc drawObjectId;
@@ -177,6 +183,16 @@ namespace Ken4lowEngine
 		void RequestDelete() const
 		{
 			if (canDelete && requestDelete) requestDelete();
+		}
+
+		std::string CaptureState() const
+		{
+			return canCaptureState && captureState ? captureState() : std::string{};
+		}
+
+		void RestoreState(std::string_view state) const
+		{
+			if (canCaptureState && restoreState) restoreState(state); // Inspector Commandは同じ対象へ文字列化した状態を戻す。
 		}
 
 		void DrawObjectId(uint32_t objectId) const
