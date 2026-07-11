@@ -32,6 +32,16 @@ namespace Ken4lowEngine
 		Vector3 scale = { 1.0f, 1.0f, 1.0f };
 	};
 
+	/// <summary>
+	/// World Outliner上でオブジェクトを分類する種類です。
+	/// </summary>
+	enum class EditorObjectKind
+	{
+		Generic,
+		Actor,
+		Component,
+	};
+
 	enum class EditorInspectorType
 	{
 		None,
@@ -71,7 +81,6 @@ namespace Ken4lowEngine
 		}
 	}
 
-
 	/// <summary>
 	/// World OutlinerとDetailsへ安全に渡すための軽量なエディタ表示用オブジェクト情報です。
 	/// </summary>
@@ -80,11 +89,21 @@ namespace Ken4lowEngine
 		using ReadTransformFunc = std::function<bool(EditorTransform&)>;
 		using WriteTransformFunc = std::function<void(const EditorTransform&)>;
 		using DrawInspectorFunc = std::function<void()>;
+		using ReadActiveFunc = std::function<bool()>;
+		using WriteActiveFunc = std::function<void(bool)>;
+		using RenameFunc = std::function<void(std::string_view)>;
+		using RequestActionFunc = std::function<void()>;
 
 		uint64_t id = 0;
+		uint64_t parentId = 0;
+		int sortOrder = 0;
 		std::string displayName;
 		std::string typeName;
 		std::string sceneName;
+		std::string icon = "[O]";
+		EditorObjectKind objectKind = EditorObjectKind::Generic;
+		bool isRootComponent = false;
+
 		bool canEditTransform = false;
 		std::string transformUnavailableReason = "Transform editing is not available for this object.";
 		EditorInspectorType inspectorType = EditorInspectorType::None;
@@ -92,6 +111,16 @@ namespace Ken4lowEngine
 		ReadTransformFunc readTransform;
 		DrawInspectorFunc drawInspector;
 		WriteTransformFunc writeTransform;
+
+		bool canToggleActive = false;
+		ReadActiveFunc readActive;
+		WriteActiveFunc writeActive;
+		bool canRename = false;
+		RenameFunc rename;
+		bool canDuplicate = false;
+		RequestActionFunc requestDuplicate;
+		bool canDelete = false;
+		RequestActionFunc requestDelete;
 
 		// Detailsは毎フレーム再収集された入口だけを使い、古いraw pointerへ直接触れないようにする。
 		bool TryReadTransform(EditorTransform& outTransform) const
@@ -105,6 +134,48 @@ namespace Ken4lowEngine
 			if (canEditTransform && writeTransform)
 			{
 				writeTransform(transform);
+			}
+		}
+
+		bool ReadActive(bool& outActive) const
+		{
+			if (!canToggleActive || !readActive)
+			{
+				return false;
+			}
+			outActive = readActive();
+			return true;
+		}
+
+		void WriteActive(bool active) const
+		{
+			if (canToggleActive && writeActive)
+			{
+				writeActive(active);
+			}
+		}
+
+		void Rename(std::string_view name) const
+		{
+			if (canRename && rename && !name.empty())
+			{
+				rename(name);
+			}
+		}
+
+		void RequestDuplicate() const
+		{
+			if (canDuplicate && requestDuplicate)
+			{
+				requestDuplicate();
+			}
+		}
+
+		void RequestDelete() const
+		{
+			if (canDelete && requestDelete)
+			{
+				requestDelete();
 			}
 		}
 	};
