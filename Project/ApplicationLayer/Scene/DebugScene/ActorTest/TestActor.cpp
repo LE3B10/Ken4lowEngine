@@ -25,7 +25,7 @@ void TestActor::Initialize()
 	camera.SetLocalRotation({ 0.2f, 0.0f, 0.0f });
 	camera.SetInheritParentRotation(false);
 	camera.SetAutoRegisterMainCamera(true);
-	camera.AttachTo(&root); // 位置だけActorへ追従し、モデル回転とScaleはCameraへ継承しない。
+	camera.AttachTo(&root); // 位置だけActorへ追従し、Actorの回転とスケールはCameraへ継承しない。
 
 	auto& rigidbody = AddComponent<Ken4lowEngine::RigidbodyComponent>();
 	rigidbody.SetName("Rigidbody Component");
