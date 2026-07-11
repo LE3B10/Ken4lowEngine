@@ -42,13 +42,14 @@ namespace Ken4lowEngine
 		/// <summary>全インスタンスを現在のShadow Passへまとめて描画する。</summary>
 		void DrawShadow() override
 		{
-			if (!visible_ || !renderer_)
+			if (!visible_ || !IsCastShadowEnabled() || !renderer_)
 			{
 				return;
 			}
 
 			renderer_->DrawShadow(); // CPUで個別Drawせず、Shadow PassでもGPU Instancingを維持する。
 		}
+		bool SupportsShadowCasting() const override { return true; }
 
 		/// <summary>
 		/// InstancedModelComponentのImGui描画処理
