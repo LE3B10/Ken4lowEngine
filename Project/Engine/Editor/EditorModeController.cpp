@@ -1,5 +1,6 @@
 #include "EditorModeController.h"
 
+#include "EditorPlayController.h"
 #include "EditorWindowManager.h"
 #include <Input.h>
 #include <Wireframe.h>
@@ -33,6 +34,16 @@ namespace Ken4lowEngine
 		{
 			// F1はゲーム操作と競合しにくいDebug専用ショートカットとして扱う。
 			SetEditorModeEnabled(!editorModeEnabled_);
+		}
+
+		EditorPlayController* playController = EditorPlayController::GetInstance();
+		if (input != nullptr && IsEditorModeEnabled() && playController->IsPlaying() &&
+			playController->IsGameCaptured() && input->TriggerRawKey(DIK_ESCAPE))
+		{
+			playController->ReleaseGameInput();
+			input->SetGameInputEnabled(false);
+			input->SetLockCursor(false);
+			input->SetCursorVisible(true); // Scene更新より先にEscを処理し、Play状態を維持したままEditorへ入力を戻す。
 		}
 #else
 		(void)input;
