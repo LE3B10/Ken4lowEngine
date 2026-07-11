@@ -219,23 +219,37 @@ namespace Ken4lowEngine
 
 	void EditorContentBrowserPanel::DrawBreadcrumbs()
 	{
+		std::filesystem::path requestedDirectory;
+		bool navigationRequested = false;
+
 		if (ImGui::Button("コンテンツ"))
 		{
-			NavigateTo({}, true);
+			requestedDirectory.clear();
+			navigationRequested = true;
 		}
 
+		// 描画中にcurrentDirectory_を書き換えるとpathの反復子が無効になるため、コピーを走査する。
+		const std::filesystem::path directorySnapshot = currentDirectory_;
 		std::filesystem::path accumulated;
-		for (const std::filesystem::path& part : currentDirectory_)
+		for (const std::filesystem::path& part : directorySnapshot)
 		{
 			accumulated /= part;
 			ImGui::SameLine();
 			ImGui::TextDisabled(">");
 			ImGui::SameLine();
+
 			const std::string label = part.generic_string() + "##Breadcrumb" + accumulated.generic_string();
 			if (ImGui::Button(label.c_str()))
 			{
-				NavigateTo(accumulated, true);
+				// パンくず描画完了後に移動し、走査中のpathを変更しない。
+				requestedDirectory = accumulated;
+				navigationRequested = true;
 			}
+		}
+
+		if (navigationRequested)
+		{
+			NavigateTo(requestedDirectory, true);
 		}
 	}
 
