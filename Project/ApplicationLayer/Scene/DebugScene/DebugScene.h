@@ -5,7 +5,7 @@
 #include "AnimationStateController.h"
 
 #include <ActorWorld.h>
-#include <ActorWorldEditorBridge.h>
+#include <Editor/ActorWorldEditorBridge.h>
 #include <LightComponent.h>
 #include <LightManager.h>
 #include <PhysicsWorld.h>
