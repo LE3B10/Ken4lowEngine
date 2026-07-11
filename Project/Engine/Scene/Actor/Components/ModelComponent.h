@@ -47,9 +47,14 @@ namespace Ken4lowEngine
 		/// </summary>
 		void DrawShadow() override;
 		bool SupportsShadowCasting() const override { return true; }
-
-		/// <summary>Object3Dの実モデルBoundsをViewport Pickingへ公開する。</summary>
-		void CollectEditorPickingSpheres(std::vector<BoundingSphere>& outSpheres) const override;
+		bool SupportsEditorObjectId() const override { return true; }
+		void DrawEditorObjectId(uint32_t objectId) override
+		{
+			if (visible_ && IsActiveInHierarchy() && object3D_)
+			{
+				object3D_->DrawEditorObjectId(objectId); // 通常Materialを使わずComponent IDだけをR32_UINTへ書き込む。
+			}
+		}
 
 		/// <summary>
 		/// ModelComponentのImGui描画処理。
