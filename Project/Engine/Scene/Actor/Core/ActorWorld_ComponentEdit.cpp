@@ -1,8 +1,13 @@
 #include "ActorWorld.h"
 
+#include "ActorJsonSerializer.h"
 #include "ComponentFactory.h"
+#include "EditorCommandHistory.h"
+#include "EditorContext.h"
 #include "SceneComponent.h"
 
+#include <json.hpp>
+#include <memory>
 #include <string>
 
 namespace Ken4lowEngine
@@ -10,12 +15,7 @@ namespace Ken4lowEngine
 	void ActorWorld::AddComponentToSelectedActor(std::string_view componentClassName)
 	{
 		Actor* targetActor = selectedActor_;
-
-		if (!targetActor && selectedComponent_)
-		{
-			targetActor = selectedComponent_->GetOwner(); // Component選択中なら所有Actorへ追加する
-		}
-
+		if (!targetActor && selectedComponent_) targetActor = selectedComponent_->GetOwner();
 		if (!targetActor)
 		{
 			lastActorJsonSaveMessage_ = "Add Component failed : no selected Actor";
@@ -23,147 +23,67 @@ namespace Ken4lowEngine
 		}
 
 		const std::string className{ componentClassName };
-
 		if (!ComponentFactory::IsAllowMultiple(className) && targetActor->HasComponentClass(className))
 		{
-			lastActorJsonSaveMessage_ = "Add Component failed : already exists" + className;
-			return; // alloMutiple = false のComponentはUI以外の経路からも重複追加させない
-		}
-
-		// 既にPhysicsWorldへ登録済みなら、一度解除してからComponentを追加する
-		const bool wasPhysicsRegistered = targetActor->IsPhysicsRegistered();
-		if (wasPhysicsRegistered)
-		{
-			UnregisterPhysicsComponents(*targetActor);
-		}
-
-		ActorComponent* newComponent = nullptr;
-
-		// RootComponentが無いActorにSceneComponent系を追加する場合はRootとして生成する
-		if (!targetActor->GetRootComponent())
-		{
-			newComponent = ComponentFactory::CreateRootSceneComponent(targetActor, componentClassName);
-		}
-
-		if (!newComponent)
-		{
-			newComponent = ComponentFactory::CreateComponent(targetActor, componentClassName);
-		}
-
-		if (!newComponent)
-		{
-			if (wasPhysicsRegistered)
-			{
-				RegisterPhysicsComponents(*targetActor); // 追加失敗時は元のPhysics登録状態へ戻す
-			}
-
-			lastActorJsonSaveMessage_ = "Add Component failed : " + std::string(componentClassName);
+			lastActorJsonSaveMessage_ = "Add Component failed : already exists " + className;
 			return;
 		}
 
-		// Component名が重複しないようにする
-		newComponent->SetName(MakeUniqueComponentName(*targetActor, std::string(componentClassName)));
+		const std::string beforeState = ActorJsonSerializer::SerializeActor(*targetActor).dump();
+		const bool wasPhysicsRegistered = targetActor->IsPhysicsRegistered();
+		if (wasPhysicsRegistered) UnregisterPhysicsComponents(*targetActor);
 
-		// SceneComponent系なら、Rootがある場合はRoot配下へAttachする
+		ActorComponent* newComponent = nullptr;
+		if (!targetActor->GetRootComponent()) newComponent = ComponentFactory::CreateRootSceneComponent(targetActor, componentClassName);
+		if (!newComponent) newComponent = ComponentFactory::CreateComponent(targetActor, componentClassName);
+		if (!newComponent)
+		{
+			if (wasPhysicsRegistered) RegisterPhysicsComponents(*targetActor);
+			lastActorJsonSaveMessage_ = "Add Component failed : " + className;
+			return;
+		}
+
+		newComponent->SetName(MakeUniqueComponentName(*targetActor, className));
 		if (SceneComponent* newSceneComponent = dynamic_cast<SceneComponent*>(newComponent))
 		{
 			SceneComponent* rootComponent = targetActor->GetRootComponent();
-
-			if (rootComponent && rootComponent != newSceneComponent)
-			{
-				newSceneComponent->AttachTo(rootComponent); // 追加したSceneComponentはRoot配下に置く
-			}
-
+			if (rootComponent && rootComponent != newSceneComponent) newSceneComponent->AttachTo(rootComponent);
 			newSceneComponent->RefreshWorldTransform();
 		}
-
-		if (isInitialized_)
-		{
-			newComponent->Initialize(); // 追加したComponentだけ初期化する
-		}
-
-		if (wasPhysicsRegistered)
-		{
-			RegisterPhysicsComponents(*targetActor); // Collider/Rigidbody追加に対応するためPhysics登録を作り直す
-		}
+		if (isInitialized_) newComponent->Initialize();
+		if (wasPhysicsRegistered) RegisterPhysicsComponents(*targetActor);
 
 		selectedActor_ = nullptr;
 		selectedComponent_ = newComponent;
 		requestFocusActorDetails_ = true;
-
 		lastActorJsonSaveMessage_ = "Added Component : " + newComponent->GetName();
+
+		const std::string afterState = ActorJsonSerializer::SerializeActor(*targetActor).dump();
+		EditorCommandHistory::GetInstance()->PushExecuted(std::make_unique<EditorStateCommand>(
+			"コンポーネント追加", beforeState, afterState,
+			[this, targetActor](std::string_view stateText)
+			{
+				const nlohmann::json state = nlohmann::json::parse(stateText, nullptr, false);
+				if (state.is_discarded()) return;
+				UnregisterPhysicsComponents(*targetActor);
+				ActorJsonSerializer::LoadActorFromJson(*targetActor, state);
+				RegisterPhysicsComponents(*targetActor);
+				selectedActor_ = targetActor;
+				selectedComponent_ = nullptr;
+				EditorContext::GetInstance()->GetSelection().Clear();
+				EditorContext::GetInstance()->MarkLevelDirty(); // Component再構築後は古いComponent選択を残さない。
+			}));
+		EditorContext::GetInstance()->MarkLevelDirty();
 	}
 
 	void ActorWorld::ProcessPendingComponentDelete()
 	{
-		if (!hasPendingDeleteComponent_ || !pendingDeleteComponent_)
-		{
-			return; // Component削除予約が無い場合は何もしない。
-		}
-
+		if (!hasPendingDeleteComponent_ || !pendingDeleteComponent_) return;
 		ActorComponent* deleteComponent = pendingDeleteComponent_;
-
-		hasPendingDeleteComponent_ = false; // 再処理防止。
+		hasPendingDeleteComponent_ = false;
 		pendingDeleteComponent_ = nullptr;
-
-		Actor* owner = deleteComponent->GetOwner();
-		if (!owner)
-		{
-			lastActorJsonSaveMessage_ = "Delete Component failed : no owner";
-			return;
-		}
-
-		// ActorWorldが所有しているActorか確認する。
-		bool ownerExists = false;
-		for (const auto& actor : actors_)
-		{
-			if (actor.get() == owner)
-			{
-				ownerExists = true;
-				break;
-			}
-		}
-
-		if (!ownerExists)
-		{
-			lastActorJsonSaveMessage_ = "Delete Component failed : owner not found";
-			return;
-		}
-
-		if (deleteComponent == owner->GetRootComponent())
-		{
-			lastActorJsonSaveMessage_ = "Delete Component failed : RootComponent cannot be deleted";
-			return;
-		}
-
-		const std::string deletedComponentName = deleteComponent->GetName();
-
-		const bool wasPhysicsRegistered = owner->IsPhysicsRegistered();
-		if (wasPhysicsRegistered)
-		{
-			UnregisterPhysicsComponents(*owner); // Collider/Rigidbodyを消す可能性があるので一度解除する。
-		}
-
-		if (selectedComponent_ == deleteComponent)
-		{
-			selectedComponent_ = nullptr; // 削除対象を選択していた場合は選択解除する。
-			selectedActor_ = owner;       // 削除後は所有Actorを選択状態に戻す。
-		}
-
-		const bool removed = owner->RemoveComponent(deleteComponent);
-
-		if (wasPhysicsRegistered)
-		{
-			RegisterPhysicsComponents(*owner); // 残ったCollider/Rigidbodyを再登録する。
-		}
-
-		if (!removed)
-		{
-			lastActorJsonSaveMessage_ = "Delete Component failed : " + deletedComponentName;
-			return;
-		}
-
-		lastActorJsonSaveMessage_ = "Deleted Component : " + deletedComponentName;
+		selectedComponent_ = deleteComponent;
+		DeleteSelectedComponent();
 	}
 
 	void ActorWorld::DeleteSelectedComponent()
@@ -180,17 +100,45 @@ namespace Ken4lowEngine
 			lastActorJsonSaveMessage_ = "Delete Component failed : no owner";
 			return;
 		}
-
 		if (selectedComponent_ == owner->GetRootComponent())
 		{
 			lastActorJsonSaveMessage_ = "Delete Component failed : RootComponent cannot be deleted";
 			return;
 		}
 
-		pendingDeleteComponent_ = selectedComponent_;
-		hasPendingDeleteComponent_ = true;
+		const std::string beforeState = ActorJsonSerializer::SerializeActor(*owner).dump();
+		const std::string deletedComponentName = selectedComponent_->GetName();
+		const bool wasPhysicsRegistered = owner->IsPhysicsRegistered();
+		if (wasPhysicsRegistered) UnregisterPhysicsComponents(*owner);
 
-		lastActorJsonSaveMessage_ = "Delete Component requested : " + selectedComponent_->GetName();
+		ActorComponent* deleteTarget = selectedComponent_;
+		selectedComponent_ = nullptr;
+		selectedActor_ = owner;
+		const bool removed = owner->RemoveComponent(deleteTarget);
+		if (wasPhysicsRegistered) RegisterPhysicsComponents(*owner);
+		if (!removed)
+		{
+			lastActorJsonSaveMessage_ = "Delete Component failed : " + deletedComponentName;
+			return;
+		}
+
+		const std::string afterState = ActorJsonSerializer::SerializeActor(*owner).dump();
+		EditorCommandHistory::GetInstance()->PushExecuted(std::make_unique<EditorStateCommand>(
+			"コンポーネント削除", beforeState, afterState,
+			[this, owner](std::string_view stateText)
+			{
+				const nlohmann::json state = nlohmann::json::parse(stateText, nullptr, false);
+				if (state.is_discarded()) return;
+				UnregisterPhysicsComponents(*owner);
+				ActorJsonSerializer::LoadActorFromJson(*owner, state);
+				RegisterPhysicsComponents(*owner);
+				selectedActor_ = owner;
+				selectedComponent_ = nullptr;
+				EditorContext::GetInstance()->GetSelection().Clear();
+				EditorContext::GetInstance()->MarkLevelDirty();
+			}));
+		lastActorJsonSaveMessage_ = "Deleted Component : " + deletedComponentName;
+		EditorContext::GetInstance()->MarkLevelDirty();
 	}
 
 	void ActorWorld::DuplicateSelectedComponent()
@@ -207,97 +155,71 @@ namespace Ken4lowEngine
 			lastActorJsonSaveMessage_ = "Duplicate Component failed : no owner Actor";
 			return;
 		}
-
 		if (selectedComponent_ == owner->GetRootComponent())
 		{
 			lastActorJsonSaveMessage_ = "Duplicate Component failed : RootComponent cannot be duplicated";
 			return;
 		}
 
-		const bool wasPhysicsRegistered = owner->IsPhysicsRegistered();
-		if (wasPhysicsRegistered)
-		{
-			UnregisterPhysicsComponents(*owner); // Physics登録済みのときだけ一度解除する
-		}
-
 		nlohmann::json sourceJson;
-		selectedComponent_->ToJson(sourceJson); // Serialize / Deserializeを使ってComponent設定を安全に複製する
-
+		selectedComponent_->ToJson(sourceJson);
 		if (!sourceJson.contains("Class") || !sourceJson["Class"].is_string())
 		{
-			if (wasPhysicsRegistered)
-			{
-				RegisterPhysicsComponents(*owner);
-			}
-
 			lastActorJsonSaveMessage_ = "Duplicate Component failed : invalid Component class";
 			return;
 		}
-
 		const std::string className = sourceJson["Class"].get<std::string>();
-
 		if (!ComponentFactory::IsAllowMultiple(className) && owner->HasComponentClass(className))
 		{
-			if (wasPhysicsRegistered)
-			{
-				RegisterPhysicsComponents(*owner);
-			}
-
 			lastActorJsonSaveMessage_ = "Duplicate Component failed : already exists " + className;
-			return; // Camera / Rigidbodyなど１つだけのComponentは複製させない
+			return;
 		}
+
+		const std::string beforeState = ActorJsonSerializer::SerializeActor(*owner).dump();
+		const bool wasPhysicsRegistered = owner->IsPhysicsRegistered();
+		if (wasPhysicsRegistered) UnregisterPhysicsComponents(*owner);
 
 		ActorComponent* duplicatedComponent = ComponentFactory::CreateComponent(owner, className);
 		if (!duplicatedComponent)
 		{
-			if (wasPhysicsRegistered)
-			{
-				RegisterPhysicsComponents(*owner); // 追加失敗時は元のPhysics登録状態へ戻す
-			}
-
+			if (wasPhysicsRegistered) RegisterPhysicsComponents(*owner);
 			lastActorJsonSaveMessage_ = "Duplicate Component failed : " + className;
 			return;
 		}
 
 		duplicatedComponent->FromJson(sourceJson);
-
-		const std::string baseName = selectedComponent_->GetName().empty()
-			? className
-			: selectedComponent_->GetName();
-
+		const std::string baseName = selectedComponent_->GetName().empty() ? className : selectedComponent_->GetName();
 		duplicatedComponent->SetName(MakeUniqueComponentName(*owner, baseName + "_Copy"));
-
 		if (SceneComponent* duplicatedScene = dynamic_cast<SceneComponent*>(duplicatedComponent))
 		{
 			SceneComponent* sourceScene = dynamic_cast<SceneComponent*>(selectedComponent_);
-
-			if (sourceScene && sourceScene->GetParent())
-			{
-				duplicatedScene->AttachTo(sourceScene->GetParent());
-			}
-			else if (owner->GetRootComponent() && owner->GetRootComponent() != duplicatedScene)
-			{
-				duplicatedScene->AttachTo(owner->GetRootComponent());
-			}
-
+			if (sourceScene && sourceScene->GetParent()) duplicatedScene->AttachTo(sourceScene->GetParent());
+			else if (owner->GetRootComponent() && owner->GetRootComponent() != duplicatedScene) duplicatedScene->AttachTo(owner->GetRootComponent());
 			duplicatedScene->RefreshWorldTransform();
 		}
-
-		if (isInitialized_)
-		{
-			duplicatedComponent->Initialize();
-		}
-
-		if (wasPhysicsRegistered)
-		{
-			RegisterPhysicsComponents(*owner); // 複製後のCollider/Rigidbodyを再登録する
-		}
+		if (isInitialized_) duplicatedComponent->Initialize();
+		if (wasPhysicsRegistered) RegisterPhysicsComponents(*owner);
 
 		selectedActor_ = nullptr;
 		selectedComponent_ = duplicatedComponent;
 		requestFocusActorDetails_ = true;
-
 		lastActorJsonSaveMessage_ = "Duplicated Component : " + duplicatedComponent->GetName();
-	}
 
-}
+		const std::string afterState = ActorJsonSerializer::SerializeActor(*owner).dump();
+		EditorCommandHistory::GetInstance()->PushExecuted(std::make_unique<EditorStateCommand>(
+			"コンポーネント複製", beforeState, afterState,
+			[this, owner](std::string_view stateText)
+			{
+				const nlohmann::json state = nlohmann::json::parse(stateText, nullptr, false);
+				if (state.is_discarded()) return;
+				UnregisterPhysicsComponents(*owner);
+				ActorJsonSerializer::LoadActorFromJson(*owner, state);
+				RegisterPhysicsComponents(*owner);
+				selectedActor_ = owner;
+				selectedComponent_ = nullptr;
+				EditorContext::GetInstance()->GetSelection().Clear();
+				EditorContext::GetInstance()->MarkLevelDirty();
+			}));
+		EditorContext::GetInstance()->MarkLevelDirty();
+	}
+} // namespace Ken4lowEngine
