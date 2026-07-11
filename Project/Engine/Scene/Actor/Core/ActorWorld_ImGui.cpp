@@ -2,8 +2,8 @@
 
 #include "ActorJsonSerializer.h"
 #include "ComponentFactory.h"
-#include "EditorCommandHistory.h"
-#include "EditorContext.h"
+#include <Editor/EditorCommandHistory.h>
+#include <Editor/EditorContext.h>
 
 #include <atomic>
 #include <cstdint>
