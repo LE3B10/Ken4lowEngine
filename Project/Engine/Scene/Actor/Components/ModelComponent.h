@@ -46,6 +46,7 @@ namespace Ken4lowEngine
 		/// ModelComponentのシャドウ描画処理。
 		/// </summary>
 		void DrawShadow() override;
+		bool SupportsShadowCasting() const override { return true; }
 
 		/// <summary>
 		/// ModelComponentのImGui描画処理。
