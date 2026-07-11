@@ -35,6 +35,11 @@ namespace Ken4lowEngine
 
 	void RenderPipelineController::ExecuteShadowMapPass(const FrameCallbacks& callbacks)
 	{
+		if (callbacks.prepareShadowPass)
+		{
+			callbacks.prepareShadowPass(); // Editorで変更したLightComponentをCaster選択と行列生成より先に同期する。
+		}
+
 		// 通常描画より前という順序は維持し、選択ライトに応じた1/4/6回のSlice描画だけShadowSystemへ委譲する。
 		LightManager::GetInstance()->ExecuteShadowPasses(callbacks.drawShadowObjects);
 	}
