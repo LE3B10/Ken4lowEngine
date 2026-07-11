@@ -36,14 +36,8 @@ namespace Ken4lowEngine
 
 		float KeepScaleInvertible(float value)
 		{
-			if (!std::isfinite(value))
-			{
-				return 1.0f;
-			}
-			if (std::abs(value) >= 0.001f)
-			{
-				return value;
-			}
+			if (!std::isfinite(value)) return 1.0f;
+			if (std::abs(value) >= 0.001f) return value;
 			return value < 0.0f ? -0.001f : 0.001f;
 		}
 
@@ -52,9 +46,8 @@ namespace Ken4lowEngine
 			const ImGuiIO& io = ImGui::GetIO();
 			if (io.WantTextInput || ImGui::IsAnyItemActive() || io.MouseDown[ImGuiMouseButton_Right] || io.MouseDown[ImGuiMouseButton_Middle])
 			{
-				return; // Editor Camera操作中はW/E/QをGizmoショートカットとして処理しない。
+				return;
 			}
-
 			if (ImGui::IsKeyPressed(ImGuiKey_Q, false)) controller.SetTool(EditorViewportTool::Select);
 			if (ImGui::IsKeyPressed(ImGuiKey_W, false)) controller.SetTool(EditorViewportTool::Translate);
 			if (ImGui::IsKeyPressed(ImGuiKey_E, false)) controller.SetTool(EditorViewportTool::Rotate);
@@ -68,12 +61,24 @@ namespace Ken4lowEngine
 			DebugCamera* debugCamera = cameraManager->GetDebugCamera();
 			if (!cameraManager->IsUsingDebugCamera() || !debugCamera || !selected.TryReadWorldTransform(worldTransform))
 			{
-				return; // Game CameraをEditor操作で動かさず、Debug Camera使用時だけF Focusを有効にする。
+				return;
 			}
-
 			const Vector3 forward = cameraManager->GetActiveCameraForward();
 			debugCamera->SetTranslate(worldTransform.position - forward * 8.0f);
 			debugCamera->RefreshViewProjection();
+		}
+
+		void ReleaseViewportImageItemForGizmo(ImGuiWindow* viewportWindow)
+		{
+			ImGuiContext& context = *ImGui::GetCurrentContext();
+			if (context.HoveredWindow != viewportWindow || !ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+			{
+				return;
+			}
+
+			context.HoveredId = 0;
+			context.HoveredIdPreviousFrame = 0;
+			ImGui::ClearActiveID(); // MainViewportのInvisibleButtonだけを解除してImGuizmoへ左クリックを渡す。
 		}
 	}
 
@@ -85,56 +90,32 @@ namespace Ken4lowEngine
 
 	void EditorTransformGizmo::Draw()
 	{
-		if (!EditorModeController::GetInstance()->IsEditorModeEnabled() || EditorPlayController::GetInstance()->IsPlaying())
-		{
-			return;
-		}
+		if (!EditorModeController::GetInstance()->IsEditorModeEnabled() || EditorPlayController::GetInstance()->IsPlaying()) return;
 
 		EditorViewportController& viewportController = *EditorViewportController::GetInstance();
-		if (!viewportController.IsEditorDisplay())
-		{
-			return;
-		}
+		if (!viewportController.IsEditorDisplay()) return;
 		UpdateToolShortcuts(viewportController);
 
 		EditorSelection& selection = EditorContext::GetInstance()->GetSelection();
-		if (!selection.HasSelection())
-		{
-			return;
-		}
+		if (!selection.HasSelection()) return;
 
 		const EditorObjectInfo& selected = selection.GetSelected();
 		if (ImGui::IsKeyPressed(ImGuiKey_F, false) && !ImGui::GetIO().WantTextInput && !ImGui::IsAnyItemActive())
 		{
 			FocusDebugCamera(selected);
 		}
-		if (viewportController.GetTool() == EditorViewportTool::Select || !selected.canEditTransform)
-		{
-			return;
-		}
+		if (viewportController.GetTool() == EditorViewportTool::Select || !selected.canEditTransform) return;
 
 		const EditorViewportRect& viewportRect = EditorWindowManager::GetInstance()->GetMainViewportRect();
-		if (!viewportRect.valid || viewportRect.imageSize.x <= 1.0f || viewportRect.imageSize.y <= 1.0f)
-		{
-			return;
-		}
+		if (!viewportRect.valid || viewportRect.imageSize.x <= 1.0f || viewportRect.imageSize.y <= 1.0f) return;
 
 		ImGuiWindow* viewportWindow = ImGui::FindWindowByName("Main Viewport");
-		if (!viewportWindow)
-		{
-			return;
-		}
+		if (!viewportWindow) return;
 
 		EditorTransform worldTransform{};
-		if (!selected.TryReadWorldTransform(worldTransform))
-		{
-			return;
-		}
+		if (!selected.TryReadWorldTransform(worldTransform)) return;
 
-		Matrix4x4 transformMatrix = Matrix4x4::MakeAffineMatrix(
-			worldTransform.scale,
-			worldTransform.rotation,
-			worldTransform.position);
+		Matrix4x4 transformMatrix = Matrix4x4::MakeAffineMatrix(worldTransform.scale, worldTransform.rotation, worldTransform.position);
 		const Matrix4x4 view = CameraManager::GetInstance()->GetActiveViewMatrix();
 		const Matrix4x4 projection = CameraManager::GetInstance()->GetActiveProjectionMatrix();
 
@@ -142,7 +123,7 @@ namespace Ken4lowEngine
 		ImGuizmo::Enable(true);
 		ImGuizmo::AllowAxisFlip(false);
 		ImGuizmo::SetOrthographic(false);
-		ImGuizmo::SetGizmoSizeClipSpace(0.13f); // 小さいViewportでもXYZ軸・平面Handleを掴める大きさにする。
+		ImGuizmo::SetGizmoSizeClipSpace(0.13f);
 		ImGuizmo::Style& gizmoStyle = ImGuizmo::GetStyle();
 		gizmoStyle.TranslationLineThickness = 4.0f;
 		gizmoStyle.TranslationLineArrowSize = 8.0f;
@@ -151,21 +132,16 @@ namespace Ken4lowEngine
 		gizmoStyle.ScaleLineThickness = 4.0f;
 		gizmoStyle.ScaleLineCircleSize = 7.0f;
 		gizmoStyle.CenterCircleSize = 6.0f;
-		// Main Viewport自身のDrawListとHover判定を使い、表示できるのに掴めない状態を解消する。
 		ImGuizmo::SetDrawlist(viewportWindow->DrawList);
 		ImGuizmo::SetAlternativeWindow(viewportWindow);
-		ImGuizmo::SetRect(
-			viewportRect.screenMin.x,
-			viewportRect.screenMin.y,
-			viewportRect.imageSize.x,
-			viewportRect.imageSize.y);
+		ImGuizmo::SetRect(viewportRect.screenMin.x, viewportRect.screenMin.y, viewportRect.imageSize.x, viewportRect.imageSize.y);
+
+		ReleaseViewportImageItemForGizmo(viewportWindow);
 
 		const EditorViewportTool activeTool = viewportController.GetTool();
 		const ImGuizmo::OPERATION operation = ToImGuizmoOperation(activeTool);
-		const ImGuizmo::MODE mode = activeTool == EditorViewportTool::Scale ||
-			viewportController.GetGizmoSpace() == EditorGizmoSpace::Local
-			? ImGuizmo::LOCAL
-			: ImGuizmo::WORLD;
+		const ImGuizmo::MODE mode = activeTool == EditorViewportTool::Scale || viewportController.GetGizmoSpace() == EditorGizmoSpace::Local
+			? ImGuizmo::LOCAL : ImGuizmo::WORLD;
 
 		float snap[3] = {};
 		const float* snapValues = nullptr;
@@ -192,26 +168,14 @@ namespace Ken4lowEngine
 		}
 
 		const bool changed = ImGuizmo::Manipulate(
-			&view.m[0][0],
-			&projection.m[0][0],
-			operation,
-			mode,
-			&transformMatrix.m[0][0],
-			nullptr,
-			snapValues);
-		if (!changed)
-		{
-			return;
-		}
+			&view.m[0][0], &projection.m[0][0], operation, mode,
+			&transformMatrix.m[0][0], nullptr, snapValues);
+		if (!changed) return;
 
 		float translation[3] = {};
 		float rotationDegrees[3] = {};
 		float scale[3] = {};
-		ImGuizmo::DecomposeMatrixToComponents(
-			&transformMatrix.m[0][0],
-			translation,
-			rotationDegrees,
-			scale);
+		ImGuizmo::DecomposeMatrixToComponents(&transformMatrix.m[0][0], translation, rotationDegrees, scale);
 
 		constexpr float toRadians = std::numbers::pi_v<float> / 180.0f;
 		EditorTransform editedWorldTransform{};
@@ -222,9 +186,7 @@ namespace Ken4lowEngine
 			rotationDegrees[2] * toRadians,
 		};
 		editedWorldTransform.scale = {
-			KeepScaleInvertible(scale[0]),
-			KeepScaleInvertible(scale[1]),
-			KeepScaleInvertible(scale[2]),
+			KeepScaleInvertible(scale[0]), KeepScaleInvertible(scale[1]), KeepScaleInvertible(scale[2]),
 		};
 
 		selected.WriteWorldTransform(editedWorldTransform);
@@ -239,9 +201,7 @@ namespace Ken4lowEngine
 	bool EditorTransformGizmo::IsOver() const
 	{
 		const EditorSelection& selection = EditorContext::GetInstance()->GetSelection();
-		return selection.HasSelection() &&
-			EditorViewportController::GetInstance()->GetTool() != EditorViewportTool::Select &&
-			ImGuizmo::IsOver();
+		return selection.HasSelection() && EditorViewportController::GetInstance()->GetTool() != EditorViewportTool::Select && ImGuizmo::IsOver();
 	}
 } // namespace Ken4lowEngine
 #endif // USE_IMGUI
