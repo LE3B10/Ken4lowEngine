@@ -16,8 +16,8 @@ namespace Ken4lowEngine
 	/// </summary>
 	struct EditorWindowState
 	{
-		// WindowメニューのCommonカテゴリで切り替える標準エディタウィンドウです。
-		bool showToolbar = true;
+		// 旧文字Toolbarは既定で隠し、Viewport上のアイコンToolbarを標準操作にする。
+		bool showToolbar = false;
 		bool showMainViewport = true;
 		bool showContentBrowser = true;
 		bool showWorldOutliner = true;
@@ -25,14 +25,12 @@ namespace Ken4lowEngine
 		bool showOutputLog = true;
 		bool showScene = true;
 
-		// WindowメニューのRenderingカテゴリで切り替える描画調整ウィンドウです。
 		bool showParameters = true;
 		bool showDisplay = true;
 		bool showPostEffectSettings = true;
 		bool showLightEditor = true;
 		bool showJsonAssetManager = true;
 
-		// WindowメニューのScene Debugカテゴリで切り替えるシーン依存デバッグウィンドウです。
 		bool showTitleDebug = true;
 		bool showStageSelectDebug = true;
 		bool showGameDebug = true;
@@ -57,7 +55,7 @@ namespace Ken4lowEngine
 		Vector2 screenMin = { 0.0f, 0.0f };
 		Vector2 screenMax = { 0.0f, 0.0f };
 		Vector2 imageSize = { 0.0f, 0.0f };
-		bool isHovered = false; // Main Viewportのゲーム画像上だけをゲーム入力の対象にする
+		bool isHovered = false;
 		bool valid = false;
 	};
 
@@ -85,7 +83,6 @@ namespace Ken4lowEngine
 
 		static EditorWindowManager* GetInstance();
 
-		// SceneManagerの所有権はGameApplicationに残し、Editorは参照だけを保持する。
 		void SetSceneManager(SceneManager* sceneManager) { sceneManager_ = sceneManager; }
 		SceneManager* GetSceneManager() const { return sceneManager_; }
 
@@ -101,19 +98,8 @@ namespace Ken4lowEngine
 		void InitializeEditorServices();
 		void FinalizeEditorServices();
 
-		/// <summary>
-		/// Editor外の機能からOutput Logへ通知を追加します。
-		/// </summary>
 		void AddOutputLog(EditorLogLevel level, const std::string& message);
-
-		/// <summary>
-		/// スクリーン座標をMain Viewport左上基準へ変換する入口です。
-		/// </summary>
 		Vector2 ConvertScreenToMainViewportPosition(const Vector2& screenPosition) const;
-
-		/// <summary>
-		/// ImGuiのMain Viewport内マウス座標をゲーム基準解像度へ変換します。
-		/// </summary>
 		bool GetMousePositionInGameViewport(Vector2& outMouse) const;
 
 		const EditorViewportRect& GetMainViewportRect() const { return mainViewportRect_; }
@@ -123,9 +109,6 @@ namespace Ken4lowEngine
 		EditorWindowState& GetWindowState() { return windowState_; }
 		const EditorWindowState& GetWindowState() const { return windowState_; }
 
-		/// <summary>
-		/// メインビューポート左上のパフォーマンス表示を切り替えます。
-		/// </summary>
 		void SetPerformanceOverlayVisible(bool visible) { showPerformanceOverlay_ = visible; }
 		bool IsPerformanceOverlayVisible() const { return showPerformanceOverlay_; }
 
@@ -139,22 +122,22 @@ namespace Ken4lowEngine
 		void DrawTextureGrid();
 		void DrawAssetDetails();
 
-		SceneManager* sceneManager_ = nullptr; // GameApplication所有のSceneManagerへの非所有参照
+		SceneManager* sceneManager_ = nullptr;
 		EditorWindowState windowState_{};
-		EditorViewportRect mainViewportRect_{}; // Main Viewport内で実際にゲーム画面を表示している矩形
-		Vector2 mainViewportScreenPosition_ = { 0.0f, 0.0f }; // マウス座標をMain Viewport基準へ変換するための左上座標
-		Vector2 mainViewportSize_ = { 0.0f, 0.0f }; // Main Viewport内でGameRenderTargetを表示しているサイズ
-		EditorInputDebugInfo inputDebugInfo_{}; // Toolbarへゲーム入力ゲートの状態を可視化する
-		EditorSelection& selection_ = EditorContext::GetInstance()->GetSelection(); // 全Editor Panelが同じ選択状態を参照する。
-		EditorOutputLog outputLog_{}; // Content BrowserとBuild結果を表示するエディタ用ログバッファ
-		EditorAssetBrowser assetBrowser_{}; // Resources配下の実ファイル列挙を担当するContent Browserモデル
-		EditorTexturePreviewCache texturePreviewCache_{}; // Content Browserの選択画像だけをSRV化してプレビューするキャッシュ
-		EditorAssetBuildService assetBuildService_{}; // Tools/Scriptsのアセットビルド実行を担当するサービス
-		bool editorServicesInitialized_ = false; // USE_IMGUI時だけEditorサービスを遅延初期化する。
-		bool outputLogAutoScroll_ = true; // Output Logの末尾追従設定をUI状態として保持する。
-		bool openRebuildDefaultLayoutPopup_ = false; // Rebuild Default Layoutを即時実行せず確認Popupへ遅延する。
-		PerformanceMonitor outputLogPerformanceMonitor_{}; // Output Logで表示するパフォーマンス計測状態を保持する。
-		OutputLogPerformanceDisplayMode outputLogPerformanceDisplayMode_ = OutputLogPerformanceDisplayMode::FPS; // Output Log内のFPS/ms切り替え状態を保持する。
+		EditorViewportRect mainViewportRect_{};
+		Vector2 mainViewportScreenPosition_ = { 0.0f, 0.0f };
+		Vector2 mainViewportSize_ = { 0.0f, 0.0f };
+		EditorInputDebugInfo inputDebugInfo_{};
+		EditorSelection& selection_ = EditorContext::GetInstance()->GetSelection();
+		EditorOutputLog outputLog_{};
+		EditorAssetBrowser assetBrowser_{};
+		EditorTexturePreviewCache texturePreviewCache_{};
+		EditorAssetBuildService assetBuildService_{};
+		bool editorServicesInitialized_ = false;
+		bool outputLogAutoScroll_ = true;
+		bool openRebuildDefaultLayoutPopup_ = false;
+		PerformanceMonitor outputLogPerformanceMonitor_{};
+		OutputLogPerformanceDisplayMode outputLogPerformanceDisplayMode_ = OutputLogPerformanceDisplayMode::FPS;
 		bool showPerformanceInOutputLog_ = true;
 		bool showPerformanceOverlay_ = true;
 		bool performanceOverlayCompactMode_ = false;
