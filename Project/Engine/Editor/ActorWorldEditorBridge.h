@@ -5,8 +5,6 @@
 #include <ActorWorld.h>
 #include <SceneComponent.h>
 
-#include <algorithm>
-#include <cmath>
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -16,43 +14,6 @@
 
 namespace Ken4lowEngine
 {
-	/// <summary>
-	/// Actorが持つ描画ComponentのBoundsを集め、描画Boundsが無いActorにはRoot位置の小さなBoundsを用意します。
-	/// </summary>
-	inline void CollectActorViewportPickingSpheres(Actor& actor, std::vector<BoundingSphere>& outSpheres)
-	{
-		if (!actor.IsActive() || actor.IsPendingDestroy())
-		{
-			return;
-		}
-
-		const std::size_t initialCount = outSpheres.size();
-		for (const auto& componentOwner : actor.GetComponents())
-		{
-			const ActorComponent* component = componentOwner.get();
-			if (!component || !component->IsActiveInHierarchy())
-			{
-				continue;
-			}
-			component->CollectEditorPickingSpheres(outSpheres); // 描画Componentが持つ実BoundsをActor IDへ集約する。
-		}
-
-		if (outSpheres.size() != initialCount)
-		{
-			return;
-		}
-
-		SceneComponent* root = actor.GetRootComponent();
-		if (!root)
-		{
-			return;
-		}
-
-		const Vector3& scale = root->GetWorldScale();
-		const float maximumScale = std::max({ std::abs(scale.x), std::abs(scale.y), std::abs(scale.z), 1.0f });
-		outSpheres.push_back({ root->GetWorldPosition(), maximumScale * 0.5f });
-	}
-
 	/// <summary>
 	/// Actor / Componentの実体を直接所有せず、World OutlinerとDetails用の軽量情報へ変換します。
 	/// </summary>
@@ -90,11 +51,6 @@ namespace Ken4lowEngine
 			actorInfo.canRename = true;
 			actorInfo.rename = [actor](std::string_view name) { actor->SetName(name); };
 			actorInfo.inspectorHint = "Actor / Component Details";
-			actorInfo.canPickInViewport = actor->GetRootComponent() != nullptr;
-			actorInfo.readViewportPickingSpheres = [actor](std::vector<BoundingSphere>& outSpheres)
-				{
-					CollectActorViewportPickingSpheres(*actor, outSpheres);
-				};
 
 			if (SceneComponent* root = actor->GetRootComponent())
 			{
@@ -163,6 +119,11 @@ namespace Ken4lowEngine
 				componentInfo.inspectorHint = componentInfo.isRootComponent
 					? "Root Component"
 					: "Actor Component";
+				componentInfo.canDrawObjectId = actor->IsActive() && component->IsActiveInHierarchy() && component->SupportsEditorObjectId();
+				componentInfo.drawObjectId = [component](uint32_t objectId)
+					{
+						component->DrawEditorObjectId(objectId); // GizmoやWireframeを経由せずComponent本体だけをID Bufferへ描画する。
+					};
 
 				if (auto* sceneComponent = dynamic_cast<SceneComponent*>(component))
 				{
