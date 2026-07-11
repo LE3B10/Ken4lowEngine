@@ -17,6 +17,9 @@ namespace Ken4lowEngine
 		/// <summary>現在Gizmo本体をドラッグしているか返します。</summary>
 		bool IsUsing() const;
 
+		/// <summary>マウスがGizmoの軸・平面・回転リング上にあるか返します。</summary>
+		bool IsOver() const;
+
 	private:
 		EditorTransformGizmo() = default;
 		~EditorTransformGizmo() = default;

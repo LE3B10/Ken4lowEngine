@@ -5,6 +5,7 @@
 #include "EditorGpuPickingManager.h"
 #include "EditorPlayController.h"
 #include "EditorTexturePreviewCache.h"
+#include "EditorTransformGizmo.h"
 #include "EditorViewportController.h"
 #include "EditorWindowManager.h"
 
@@ -42,8 +43,6 @@ namespace Ken4lowEngine
 		void UpdateAssetDragSource()
 		{
 #ifdef USE_IMGUI
-			UpdateViewportPicking(); // Content Browserの選択状態に関係なくMain Viewportクリックを先に処理する。
-
 			const EditorAssetData* asset = registry_.FindById(selectedAssetId_);
 			if (!asset || asset->isDirectory || !IsViewportPlaceableAsset(asset->type))
 			{
@@ -74,6 +73,14 @@ namespace Ken4lowEngine
 #endif
 		}
 
+		/// <summary>Gizmo判定後のMain ViewportクリックをObject-ID Pickingへ渡します。</summary>
+		void UpdateViewportPicking()
+		{
+#ifdef USE_IMGUI
+			UpdateViewportPickingInternal();
+#endif
+		}
+
 	private:
 		enum class AssetSortMode
 		{
@@ -88,10 +95,11 @@ namespace Ken4lowEngine
 		EditorContentBrowserPanel& operator=(const EditorContentBrowserPanel&) = delete;
 
 #ifdef USE_IMGUI
-		void UpdateViewportPicking()
+		void UpdateViewportPickingInternal()
 		{
 			auto* viewportController = EditorViewportController::GetInstance();
-			if (!viewportController->IsEditorDisplay() || viewportController->GetTool() != EditorViewportTool::Select ||
+			const EditorTransformGizmo* transformGizmo = EditorTransformGizmo::GetInstance();
+			if (!viewportController->IsEditorDisplay() || transformGizmo->IsOver() || transformGizmo->IsUsing() ||
 				EditorPlayController::GetInstance()->IsPlaying() || ImGui::GetDragDropPayload() != nullptr ||
 				!ImGui::IsMouseClicked(ImGuiMouseButton_Left))
 			{
@@ -130,7 +138,7 @@ namespace Ken4lowEngine
 			EditorGpuPickingManager::GetInstance()->RequestPick(
 				pixelX,
 				pixelY,
-				viewportController->GetSelectionMode()); // 表示拡縮後の座標を固定1920x1080 ID Bufferへ戻して予約する。
+				viewportController->GetSelectionMode()); // Gizmo操作以外のクリックはToolを切り替えずObject選択へ使う。
 		}
 
 		void InitializeIfNeeded();
