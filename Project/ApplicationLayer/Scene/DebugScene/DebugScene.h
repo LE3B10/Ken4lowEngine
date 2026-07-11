@@ -5,12 +5,17 @@
 #include "AnimationStateController.h"
 
 #include <ActorWorld.h>
+#include <LightComponent.h>
+#include <LightManager.h>
 #include <PhysicsWorld.h>
 #include <PhysicsDebugDraw.h>
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <array>
 #include <memory>
+#include <numbers>
 #include <string>
 #include <vector>
 
@@ -47,7 +52,46 @@ public: /// ---------- メンバ関数 ---------- ///
 	void UpdateEditor(float deltaTime) override;
 
 	// ShadowSystemがCasterを決める前にActorのLightComponentを同期する。
-	void PrepareShadowPass() override;
+	void PrepareShadowPass() override
+	{
+		std::vector<K4E::LightManager::PunctualLightGPU> componentLights;
+		for (const auto& actor : actorWorld_.GetActors())
+		{
+			if (!actor || actor->IsPendingDestroy() || !actor->IsActive())
+			{
+				continue;
+			}
+
+			for (const K4E::LightComponent* lightComponent : actor->GetComponents<K4E::LightComponent>())
+			{
+				if (!lightComponent || !lightComponent->IsActiveInHierarchy() || !lightComponent->IsEnabled() ||
+					lightComponent->GetLightType() == K4E::LightComponent::LightType::None)
+				{
+					continue;
+				}
+
+				const K4E::Vector3& color = lightComponent->GetColor();
+				K4E::LightManager::PunctualLightGPU light{};
+				light.lightType = lightComponent->GetLightTypeValue();
+				light.color = { color.x, color.y, color.z, 1.0f };
+				light.intensity = lightComponent->GetIntensity();
+				light.position = lightComponent->GetWorldPosition();
+				light.radius = lightComponent->GetRange();
+				light.decay = lightComponent->GetDecay();
+				light.direction = lightComponent->CalculateDirection();
+				light.distance = lightComponent->GetRange();
+				const float outerAngle = std::clamp(lightComponent->GetOuterAngle(), 0.1f, 179.0f);
+				const float innerAngle = std::clamp(lightComponent->GetInnerAngle(), 0.0f, outerAngle);
+				light.cosAngle = std::cos(outerAngle * std::numbers::pi_v<float> / 180.0f);
+				light.cosFalloffStart = std::cos(innerAngle * std::numbers::pi_v<float> / 180.0f);
+				light.areaSize = lightComponent->GetAreaSize();
+				light.enabled = 1u;
+				componentLights.push_back(light); // Editor操作直後のLight位置と種類を同じフレームのShadow Passへ渡す。
+			}
+		}
+
+		K4E::LightManager::GetInstance()->SetLightComponentLights(componentLights);
+	}
 
 	// 仮想3D描画処理
 	void Draw3DObjects() override;
