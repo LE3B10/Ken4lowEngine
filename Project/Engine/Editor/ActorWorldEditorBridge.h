@@ -80,11 +80,7 @@ namespace Ken4lowEngine
 				instanceTransform.scale = transform.scale;
 				component->SetInstanceWorldTransform(instanceIndex, instanceTransform);
 			};
-		outInfo.canDrawObjectId = true;
-		outInfo.drawObjectId = [component, instanceIndex](uint32_t objectId)
-			{
-				component->DrawEditorInstanceObjectId(instanceIndex, objectId); // 選択輪郭では該当Instanceだけを描画する。
-			};
+		outInfo.canDrawObjectId = false; // Picking描画はComponentの連続ID 1Drawへ集約し、Instanceごとの重複Drawを防ぐ。
 		return true;
 	}
 
