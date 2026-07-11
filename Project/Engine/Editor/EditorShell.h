@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EditorContentBrowserPanel.h"
 #include "EditorContext.h"
 #include "EditorHierarchyPanel.h"
 #include "EditorModeController.h"
@@ -44,6 +45,7 @@ namespace Ken4lowEngine
 
 			ApplyViewportVisualPolicy();
 			DrawPlaceActors();
+			EditorContentBrowserPanel::GetInstance()->Draw(); // Resources全体を扱うContent Browser V2をDockSpaceへ登録する。
 			EditorHierarchyPanel::GetInstance()->Draw(); // World OutlinerとDetailsを同じ選択状態で先に登録する。
 #endif
 		}
