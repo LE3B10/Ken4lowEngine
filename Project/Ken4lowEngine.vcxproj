@@ -125,11 +125,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Editor\EditorGpuPickingManager.cpp" />
     <ClCompile Include="Engine\Editor\EditorSelectionOutlineManager.cpp" />
     <ClCompile Include="Engine\Editor\EditorTransformGizmo.cpp" />
-    <ClCompile Include="Externals\ImGuizmo\ImGuizmo.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <WarningLevel>Level3</WarningLevel>
-      <TreatWarningAsError>false</TreatWarningAsError>
-    </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelObjectIdRenderer.cpp" />
     <ClCompile Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_ComponentEdit.cpp" />
@@ -863,7 +858,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Editor\EditorSelectionOutlineManager.h" />
     <ClInclude Include="Engine\Editor\EditorTransformGizmo.h" />
     <ClInclude Include="Engine\Editor\EditorViewportController.h" />
-    <ClInclude Include="Externals\ImGuizmo\ImGuizmo.h" />
     <ClInclude Include="Engine\Editor\EditorViewportPicking.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelObjectIdRenderer.h" />
     <ClInclude Include="Engine\Graphics\Renderer\Object3D\ObjectIdPipeline.h" />
@@ -1438,7 +1432,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   <ItemGroup>
     <None Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelShadow.inl" />
     <None Include="Engine\Graphics\Renderer\Object3D\InstancedObject3DRendererShadow.inl" />
-    <None Include="Externals\ImGuizmo\LICENSE" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\EditorPicking\SelectionOutline.PS.hlsl">

@@ -1297,13 +1297,12 @@
     <ClCompile Include="Engine\Editor\EditorTransformGizmo.cpp">
       <Filter>Engine\Editor</Filter>
     </ClCompile>
-    <ClCompile Include="Externals\ImGuizmo\ImGuizmo.cpp">
-      <Filter>Engine\Editor</Filter>
-    </ClCompile>
     <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelObjectIdRenderer.cpp">
       <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Editor\ActorWorldEditorBridge.cpp" />
+    <ClCompile Include="Engine\Editor\ActorWorldEditorBridge.cpp">
+      <Filter>Engine\Editor</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2680,9 +2679,6 @@
     <ClInclude Include="Engine\Editor\EditorTransformGizmo.h">
       <Filter>Engine\Editor</Filter>
     </ClInclude>
-    <ClInclude Include="Externals\ImGuizmo\ImGuizmo.h">
-      <Filter>Engine\Editor</Filter>
-    </ClInclude>
     <ClInclude Include="Engine\Editor\EditorViewportPicking.h">
       <Filter>Engine\Editor</Filter>
     </ClInclude>
@@ -3188,6 +3184,5 @@
     <None Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelShadow.inl">
       <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
     </None>
-    <None Include="Externals\ImGuizmo\LICENSE" />
   </ItemGroup>
 </Project>
