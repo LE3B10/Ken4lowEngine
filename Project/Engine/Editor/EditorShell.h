@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EditorContext.h"
+#include "EditorModeController.h"
 #include "EditorPanelIds.h"
 
 #include <algorithm>
@@ -30,6 +31,10 @@ namespace Ken4lowEngine
 		void Draw()
 		{
 #ifdef USE_IMGUI
+			if (!EditorModeController::GetInstance()->IsEditorModeEnabled())
+			{
+				return; // Game Preview中はEditor専用Panelを表示しない。
+			}
 			DrawPlaceActors();
 #endif
 		}
