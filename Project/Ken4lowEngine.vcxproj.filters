@@ -1282,7 +1282,12 @@
     <ClCompile Include="Engine\Scene\Management\SceneManager.cpp">
       <Filter>Engine\Scene\Management</Filter>
     </ClCompile>
-    <ClCompile Include="Engine\Editor\EditorContentBrowserPanel.cpp" />
+    <ClCompile Include="Engine\Editor\EditorContentBrowserPanel.cpp">
+      <Filter>Engine\Editor</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Editor\EditorGpuPickingManager.cpp">
+      <Filter>Engine\Editor</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2644,6 +2649,24 @@
     <ClInclude Include="Engine\Editor\EditorViewportController.h">
       <Filter>Engine\Editor</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorAssetDragDrop.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorAssetPlacementService.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorGpuPickingManager.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorViewportPicking.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Object3D\ShadowCasterPipelineSet.h">
+      <Filter>Engine\Graphics\Renderer\Object3D</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Graphics\Renderer\Object3D\ObjectIdPipeline.h">
+      <Filter>Engine\Graphics\Renderer\Object3D</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
@@ -3129,5 +3152,10 @@
     <Filter Include="ApplicationLayer\Character\Enemy\Navigation">
       <UniqueIdentifier>{505378d6-1e02-4983-891e-b58cd07dbdae}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Engine\Graphics\Renderer\Object3D\InstancedObject3DRendererShadow.inl">
+      <Filter>Engine\Graphics\Renderer\Object3D</Filter>
+    </None>
   </ItemGroup>
 </Project>
