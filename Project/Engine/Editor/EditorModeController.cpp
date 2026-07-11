@@ -1,11 +1,17 @@
 #include "EditorModeController.h"
 
+#include "EditorCommandHistory.h"
+#include "EditorContext.h"
 #include "EditorPlayController.h"
 #include "EditorWindowManager.h"
 #include <Input.h>
 #include <Wireframe.h>
 
 #include <string>
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
 
 namespace Ken4lowEngine
 {
@@ -18,10 +24,8 @@ namespace Ken4lowEngine
 	void EditorModeController::Initialize()
 	{
 #ifdef _DEBUG
-		// Debug起動直後は従来通りEditor Modeから始める。
 		editorModeEnabled_ = true;
 #else
-		// ReleaseではEditor機能を開かず、常にゲーム画面確認相当にする。
 		editorModeEnabled_ = false;
 #endif
 		ApplyModeSideEffects();
@@ -32,11 +36,32 @@ namespace Ken4lowEngine
 #ifdef _DEBUG
 		if (input != nullptr && input->TriggerRawKey(DIK_F1))
 		{
-			// F1はゲーム操作と競合しにくいDebug専用ショートカットとして扱う。
-			SetEditorModeEnabled(!editorModeEnabled_);
+			SetEditorModeEnabled(!editorModeEnabled_); // F1はEditor / Game Preview切り替え専用にする。
 		}
 
 		EditorPlayController* playController = EditorPlayController::GetInstance();
+		if (input != nullptr && IsEditorModeEnabled() && playController->IsEditing())
+		{
+			bool allowHistoryShortcut = true;
+#ifdef USE_IMGUI
+			allowHistoryShortcut = !ImGui::GetIO().WantTextInput;
+#endif
+			if (allowHistoryShortcut)
+			{
+				const bool control = input->PushRawKey(DIK_LCONTROL) || input->PushRawKey(DIK_RCONTROL);
+				const bool shift = input->PushRawKey(DIK_LSHIFT) || input->PushRawKey(DIK_RSHIFT);
+				EditorCommandHistory* history = EditorCommandHistory::GetInstance();
+				bool changed = false;
+				if (control && input->TriggerRawKey(DIK_Z)) changed = shift ? history->Redo() : history->Undo();
+				else if (control && input->TriggerRawKey(DIK_Y)) changed = history->Redo();
+				if (changed)
+				{
+					EditorContext::GetInstance()->MarkLevelDirty();
+					EditorWindowManager::GetInstance()->AddOutputLog(EditorLogLevel::Info, "[Editor] Undo / Redoを実行しました。");
+				}
+			}
+		}
+
 		if (input != nullptr && IsEditorModeEnabled() && playController->IsPlaying() &&
 			playController->IsGameCaptured() && input->TriggerRawKey(DIK_ESCAPE))
 		{
@@ -47,7 +72,7 @@ namespace Ken4lowEngine
 		{
 			input->SetGameInputEnabled(false);
 			input->SetLockCursor(false);
-			input->SetCursorVisible(true); // UI Mouse SceneでもScene更新前にゲーム入力を止め、Editor操作へ戻す。
+			input->SetCursorVisible(true);
 		}
 #else
 		(void)input;
@@ -67,6 +92,7 @@ namespace Ken4lowEngine
 		}
 
 		editorModeEnabled_ = enabled;
+		if (!editorModeEnabled_) EditorCommandHistory::GetInstance()->Clear(); // Editor対象が無効になる前に古いポインタを持つ履歴を破棄する。
 		ApplyModeSideEffects();
 		NotifyModeChanged();
 	}
@@ -82,14 +108,11 @@ namespace Ken4lowEngine
 
 	void EditorModeController::ApplyModeSideEffects()
 	{
-		// Debug表示の最終入口をモードと同期し、Game Preview中はWireframe/Collider線を破棄する。
 		Wireframe::GetInstance()->SetDebugDrawEnabled(ShouldDrawDebugVisuals());
-
 		if (Input* input = Input::GetInstance())
 		{
 			if (IsGamePreviewMode())
 			{
-				// Preview中はEditor Viewport由来の座標補正と入力抑制を解除し、ゲーム入力を優先する。
 				input->SetGameInputEnabled(true);
 				input->ClearEditorViewportMouseOverride();
 			}
@@ -103,5 +126,4 @@ namespace Ken4lowEngine
 		EditorWindowManager::GetInstance()->AddOutputLog(EditorLogLevel::Info, std::string("[Editor] Switched to ") + modeName + " (F1).");
 #endif
 	}
-
 } // namespace Ken4lowEngine
