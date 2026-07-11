@@ -23,6 +23,7 @@ namespace Ken4lowEngine
 			std::function<void()> prepareShadowPass;
 			std::function<void()> drawShadowObjects;
 			std::function<void()> buildEditorUi;
+			std::function<void()> executeEditorPickingPass;
 			std::function<void()> drawGameWorldToSceneTarget;
 			std::function<void()> renderPostEffectToGameRenderTarget;
 			std::function<void()> beginGameRenderTargetOverlay;
@@ -67,4 +68,4 @@ namespace Ken4lowEngine
 
 		DirectXCommon* dxCommon_ = nullptr;
 	};
-}
+} // namespace Ken4lowEngine
