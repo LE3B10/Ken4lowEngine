@@ -13,8 +13,10 @@ namespace Ken4lowEngine
 		void Initialize(PipelineFactory& factory, DXCCompilerManager* dxcManager, DXGI_FORMAT rtvFormat, DXGI_FORMAT dsvFormat);
 		void Finalize();
 		const PipelineBundle& GetDefault() const { return defaultPipeline_; }
+		const PipelineBundle& GetShadow() const { return shadowPipeline_; }
 
 	private:
 		PipelineBundle defaultPipeline_{};
+		PipelineBundle shadowPipeline_{};
 	};
 }
