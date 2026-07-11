@@ -11,11 +11,14 @@
 #include <Matrix4x4.h>
 #include <ModelComponent.h>
 #include <SceneComponent.h>
+#include <SceneManager.h>
 #include <Vector2.h>
 #include <Vector3.h>
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <cstdint>
 #include <filesystem>
 #include <string>
 #include <vector>
@@ -120,6 +123,18 @@ namespace Ken4lowEngine
 			// 地面と交差しない視線ではカメラ前方10mを配置位置として使用する。
 			outPosition = rayOrigin + worldDirection * 10.0f;
 			return true;
+		}
+
+		/// <summary>
+		/// SceneManagerが保持する現在SceneへPayloadを配置します。
+		/// </summary>
+		static EditorAssetPlacementResult PlaceAsset(
+			SceneManager* sceneManager,
+			const EditorAssetDragDropPayload& payload,
+			const Vector3& worldPosition)
+		{
+			BaseScene* scene = sceneManager ? sceneManager->GetCurrentScene() : nullptr;
+			return PlaceAsset(scene, payload, worldPosition);
 		}
 
 		/// <summary>
