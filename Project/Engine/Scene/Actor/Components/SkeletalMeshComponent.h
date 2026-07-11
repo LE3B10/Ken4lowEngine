@@ -4,6 +4,8 @@
 #include "ComponentProperty.h"
 #include "MaterialBinding.h"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -33,6 +35,21 @@ namespace Ken4lowEngine
 			animationModel_->DrawShadow(); // Compute Skinning済みの現在姿勢をShadow Mapへ描画する。
 		}
 		bool SupportsShadowCasting() const override { return true; }
+
+		void CollectEditorPickingSpheres(std::vector<BoundingSphere>& outSpheres) const override
+		{
+			if (!visible_ || !IsActiveInHierarchy() || !animationModel_ || !hasMesh_)
+			{
+				return;
+			}
+
+			const Vector3& worldScale = GetWorldScale();
+			const float maximumScale = std::max({ std::abs(worldScale.x), std::abs(worldScale.y), std::abs(worldScale.z), 0.5f });
+			Vector3 center = GetWorldPosition();
+			center.y += maximumScale; // Skeletal Meshの足元Rootを考慮し、クリック可能範囲を胴体中心へ移動する。
+			outSpheres.push_back({ center, maximumScale * 1.5f });
+		}
+
 		void DrawImGui() override;
 		void Finalize() override;
 
