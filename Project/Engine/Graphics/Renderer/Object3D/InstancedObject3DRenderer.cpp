@@ -207,6 +207,15 @@ namespace Ken4lowEngine
 		instanceBufferDirty_ = true;
 	}
 
+	size_t InstancedObject3DRenderer::UploadSourceInstancesForEditorPicking()
+	{
+		if (!initialized_ || !dxCommon_ || !model_ || !mappedInstances_ || sourceInstances_.empty()) return 0;
+		const size_t count = std::min(sourceInstances_.size(), maxInstanceCount_);
+		std::copy_n(sourceInstances_.begin(), count, mappedInstances_);
+		instanceCount_ = count;
+		return count; // カリングで順番を詰め替えず、SV_InstanceIDと個別編集Indexを一致させる。
+	}
+
 	void InstancedObject3DRenderer::UpdateVisibleInstances(const Matrix4x4& viewProjection)
 	{
 		if (!frustumCullingEnabled_)

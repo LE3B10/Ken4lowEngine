@@ -55,42 +55,11 @@ namespace Ken4lowEngine
 		void DrawShadow();
 
 		/// <summary>全InstanceへbaseObjectId + SV_InstanceIDを書き込み、1Drawで個別Pickingします。</summary>
-		void DrawEditorObjectId(uint32_t baseObjectId)
-		{
-			const size_t count = UploadSourceInstancesForEditorPicking();
-			if (count == 0 || baseObjectId == 0) return;
-
-			const Matrix4x4 viewProjection = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
-			perViewData_->viewProjection = viewProjection;
-			ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
-			SRVManager::GetInstance()->PreDraw();
-			ObjectIdPipeline::GetInstance()->BindInstanced(commandList, baseObjectId, true);
-			SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, instanceSrvIndex_);
-			commandList->SetGraphicsRootConstantBufferView(1, perViewResource_->GetGPUVirtualAddress());
-			for (auto& mesh : model_->GetMeshes())
-			{
-				mesh.DrawInstanced(static_cast<UINT>(count));
-			}
-		}
-
+		void DrawEditorObjectId(uint32_t baseObjectId);
+		
 		/// <summary>選択輪郭用に指定Instanceだけを同じObject IDで描画します。</summary>
-		void DrawEditorInstanceObjectId(size_t sourceInstanceIndex, uint32_t objectId)
-		{
-			const size_t count = UploadSourceInstancesForEditorPicking();
-			if (count == 0 || sourceInstanceIndex >= count || objectId == 0) return;
-
-			perViewData_->viewProjection = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
-			ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
-			SRVManager::GetInstance()->PreDraw();
-			ObjectIdPipeline::GetInstance()->BindInstanced(commandList, objectId, false);
-			SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, instanceSrvIndex_);
-			commandList->SetGraphicsRootConstantBufferView(1, perViewResource_->GetGPUVirtualAddress());
-			for (auto& mesh : model_->GetMeshes())
-			{
-				mesh.DrawInstanced(1, static_cast<UINT>(sourceInstanceIndex)); // StructuredBufferの元Indexを維持して1体だけ描く。
-			}
-		}
-
+		void DrawEditorInstanceObjectId(size_t sourceInstanceIndex, uint32_t objectId);
+		
 		size_t GetInstanceCount() const { return sourceInstances_.size(); }
 		size_t GetVisibleInstanceCount() const { return instanceCount_; }
 		size_t GetMaxInstanceCount() const { return maxInstanceCount_; }
@@ -122,14 +91,7 @@ namespace Ken4lowEngine
 			float padding[1];
 		};
 
-		size_t UploadSourceInstancesForEditorPicking()
-		{
-			if (!initialized_ || !dxCommon_ || !model_ || !mappedInstances_ || sourceInstances_.empty()) return 0;
-			const size_t count = std::min(sourceInstances_.size(), maxInstanceCount_);
-			std::copy_n(sourceInstances_.begin(), count, mappedInstances_);
-			instanceCount_ = count;
-			return count; // カリングで順番を詰め替えず、SV_InstanceIDと個別編集Indexを一致させる。
-		}
+		size_t UploadSourceInstancesForEditorPicking();		
 
 		DirectXCommon* dxCommon_ = nullptr;
 		std::shared_ptr<Model> model_;

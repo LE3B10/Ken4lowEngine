@@ -1303,6 +1303,7 @@
     <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelObjectIdRenderer.cpp">
       <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Editor\ActorWorldEditorBridge.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -3187,5 +3188,6 @@
     <None Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelShadow.inl">
       <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
     </None>
+    <None Include="Externals\ImGuizmo\LICENSE" />
   </ItemGroup>
 </Project>

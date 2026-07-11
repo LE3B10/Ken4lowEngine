@@ -7,6 +7,7 @@
 #include "SRVManager.h"
 
 #include <algorithm>
+#include "InstancedObject3DRenderer.h"
 
 namespace Ken4lowEngine
 {
@@ -41,4 +42,40 @@ namespace Ken4lowEngine
 			mesh.DrawInstanced(static_cast<UINT>(shadowInstanceCount));
 		}
 	}
+
+	inline void Ken4lowEngine::InstancedObject3DRenderer::DrawEditorObjectId(uint32_t baseObjectId)
+	{
+		const size_t count = UploadSourceInstancesForEditorPicking();
+		if (count == 0 || baseObjectId == 0) return;
+
+		const Matrix4x4 viewProjection = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
+		perViewData_->viewProjection = viewProjection;
+		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		SRVManager::GetInstance()->PreDraw();
+		ObjectIdPipeline::GetInstance()->BindInstanced(commandList, baseObjectId, true);
+		SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, instanceSrvIndex_);
+		commandList->SetGraphicsRootConstantBufferView(1, perViewResource_->GetGPUVirtualAddress());
+		for (auto& mesh : model_->GetMeshes())
+		{
+			mesh.DrawInstanced(static_cast<UINT>(count));
+		}
+	}
+
+	inline void InstancedObject3DRenderer::DrawEditorInstanceObjectId(size_t sourceInstanceIndex, uint32_t objectId)
+	{
+		const size_t count = UploadSourceInstancesForEditorPicking();
+		if (count == 0 || sourceInstanceIndex >= count || objectId == 0) return;
+
+		perViewData_->viewProjection = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
+		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		SRVManager::GetInstance()->PreDraw();
+		ObjectIdPipeline::GetInstance()->BindInstanced(commandList, objectId, false);
+		SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, instanceSrvIndex_);
+		commandList->SetGraphicsRootConstantBufferView(1, perViewResource_->GetGPUVirtualAddress());
+		for (auto& mesh : model_->GetMeshes())
+		{
+			mesh.DrawInstanced(1, static_cast<UINT>(sourceInstanceIndex)); // StructuredBufferの元Indexを維持して1体だけ描く。
+		}
+	}
+
 }
