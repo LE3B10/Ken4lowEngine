@@ -46,6 +46,7 @@ namespace Ken4lowEngine
 
 		/// <summary>
 		/// PhysicsWorld更新後に呼ばれる後処理
+		/// </summary>
 		virtual void PostPhysicsUpdate([[maybe_unused]] float deltaTime) {}
 
 		/// <summary>
@@ -57,6 +58,9 @@ namespace Ken4lowEngine
 		/// シャドウを描画する処理
 		/// </summary>
 		virtual void DrawShadow() {}
+
+		/// <summary>このComponentがShadow Caster設定を持つか返す。</summary>
+		virtual bool SupportsShadowCasting() const { return false; }
 
 		/// <summary>
 		/// EditorやDebug用のImGui描画処理
@@ -73,6 +77,15 @@ namespace Ken4lowEngine
 			if (ImGui::Checkbox("Active", &active))
 			{
 				SetActive(active); // Componentの有効状態を更新する
+			}
+
+			if (SupportsShadowCasting())
+			{
+				bool castShadow = IsCastShadowEnabled();
+				if (ImGui::Checkbox("影を落とす", &castShadow))
+				{
+					SetCastShadowEnabled(castShadow); // Shadow MapへのCaster登録だけを切り替える。
+				}
 			}
 
 			int updateOrder = GetUpdateOrder();
@@ -130,7 +143,7 @@ namespace Ken4lowEngine
 		/// </summary>
 		const std::string& GetName() const
 		{
-			return name_; // Editor表示やComponent検索に使う名前を返すc 
+			return name_; // Editor表示やComponent検索に使う名前を返す
 		}
 
 	public: /// ---------- 有効状態 ---------- ///
@@ -158,6 +171,12 @@ namespace Ken4lowEngine
 		{
 			return IsActive(); // SceneComponent以外は自分自身のActiveだけを見る
 		}
+
+		/// <summary>Shadow Mapへ影を描くか設定する。</summary>
+		void SetCastShadowEnabled(bool enabled) { castShadow_ = enabled; }
+
+		/// <summary>Shadow Mapへ影を描く設定か取得する。</summary>
+		bool IsCastShadowEnabled() const { return castShadow_; }
 
 	public: /// ---------- 実行順 ---------- ///
 
@@ -208,12 +227,16 @@ namespace Ken4lowEngine
 		/// </summary>
 		virtual void ToJson(nlohmann::json& outJson)const
 		{
-			outJson["Name"] = GetName();			// Component名を保存する
-			outJson["Class"] = GetClassTypeName();  // Componentの種類を保存する
-			outJson["Type"] = "ActorComponent";		// ActorComponent系であることを保存する
-			outJson["Active"] = IsActive();			// Componentの有効状態を保存する
-			outJson["UpdateOrder"] = GetUpdateOrder();	// Updateの実行順を保存する
-			outJson["DrawOrder"] = GetDrawOrder();		// Drawの実行順を保存する
+			outJson["Name"] = GetName();               // Component名を保存する
+			outJson["Class"] = GetClassTypeName();     // Componentの種類を保存する
+			outJson["Type"] = "ActorComponent";       // ActorComponent系であることを保存する
+			outJson["Active"] = IsActive();            // Componentの有効状態を保存する
+			outJson["UpdateOrder"] = GetUpdateOrder(); // Updateの実行順を保存する
+			outJson["DrawOrder"] = GetDrawOrder();     // Drawの実行順を保存する
+			if (SupportsShadowCasting())
+			{
+				outJson["CastShadow"] = IsCastShadowEnabled(); // Shadow Caster対応Componentだけ設定を保存する。
+			}
 		}
 
 		/// <summary>
@@ -237,8 +260,11 @@ namespace Ken4lowEngine
 			{
 				SetDrawOrder(inJson["DrawOrder"].get<int>()); // Drawの実行順を復元する
 			}
+			if (SupportsShadowCasting() && inJson.contains("CastShadow") && inJson["CastShadow"].is_boolean())
+			{
+				SetCastShadowEnabled(inJson["CastShadow"].get<bool>()); // 旧JSONは既定trueを維持し、新JSONだけ設定を復元する。
+			}
 		}
-
 
 	protected: /// ---------- メンバ変数 ---------- ///
 
@@ -251,10 +277,13 @@ namespace Ken4lowEngine
 		// falseの場合はUpdate/Drawなどの実行対象から外す
 		bool isActive_ = true;
 
+		// falseの場合はShadow MapのCaster描画だけを停止する
+		bool castShadow_ = true;
+
 		// Update実行順。小さい値ほど先に更新する
 		int updateOrder_ = 0;
 
 		// Draw実行順。小さい値ほど先に描画する
 		int drawOrder_ = 0;
 	};
-} // namespace Scene
+} // namespace Ken4lowEngine
