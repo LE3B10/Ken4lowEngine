@@ -4,6 +4,8 @@
 #include "Camera.h"
 #include "Object3DPipelineSet.h"
 #include "InstancedObject3DPipelineSet.h"
+#include "ShadowCasterPipelineSet.h"
+#include "Vector4.h"
 #include "Engine/Graphics/Culling/FrustumCullingSystem.h"
 
 namespace Ken4lowEngine
@@ -66,17 +68,26 @@ namespace Ken4lowEngine
 		const PipelineBundle& GetAlphaClipped() const;*/
 
 	private:
+		struct PointShadowPassGPU
+		{
+			Vector4 lightPositionAndFar{};
+		};
 
 		Object3DCommon() = default;
 		~Object3DCommon() = default;
 		Object3DCommon(const Object3DCommon&) = delete;
 		Object3DCommon& operator=(const Object3DCommon&) = delete;
 
+		void UpdatePointShadowPassData();
+
 	private:
 		DirectXCommon* dxCommon_ = nullptr;
 
 		Object3DPipelineSet pipelineSet_{};
 		InstancedObject3DPipelineSet instancedPipelineSet_{};
+		ShadowCasterPipelineSet shadowCasterPipelineSet_{};
+		ComPtr<ID3D12Resource> pointShadowPassResource_{};
+		PointShadowPassGPU* pointShadowPassData_ = nullptr;
 
 		FrustumCullingSystem frustumCullingSystem_{};
 		CullingCameraMode cullingCameraMode_ = CullingCameraMode::MainCamera;
