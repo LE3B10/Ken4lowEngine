@@ -10,118 +10,99 @@ namespace Ken4lowEngine
 {
 	void CameraComponent::Initialize()
 	{
-		// 親子関係を考慮したWorldTransformを初期計算する
 		SceneComponent::Initialize();
-
 		if (!autoRegisterMainCamera_)
 		{
 			camera_ = nullptr;
-			return; // MainCameraへ登録しない場合はCameraを生成しない
+			return;
 		}
-
-		// CameraManagerのMainCameraを取得する
 		camera_ = CameraManager::GetInstance()->GetMainCamera();
-
 		SyncTransformToCamera();
-
-		if (camera_)
-		{
-			camera_->Update(); // MainCameraのViewProjectionを初期計算する
-		}
+		if (camera_) camera_->Update();
 	}
 
 	void CameraComponent::Update(float deltaTime)
 	{
-		// SceneComponent側でWorldTransformを更新する
 		SceneComponent::Update(deltaTime);
-
-		if (!autoRegisterMainCamera_ || !camera_)
-		{
-			return; // MainCameraとして使わない場合は同期しない
-		}
-
+		if (!autoRegisterMainCamera_ || !camera_) return;
 		SyncTransformToCamera();
-		camera_->Update(); // Update時点のCamera行列を更新する
+		camera_->Update();
+	}
+
+	void CameraComponent::UpdateEditor(float deltaTime)
+	{
+		SceneComponent::UpdateEditor(deltaTime);
+		if (!autoRegisterMainCamera_ || !camera_) return;
+		SyncTransformToCamera();
+		camera_->Update(); // Edit中も位置だけは同期し、モデルのScaleをカメラ行列へ混ぜない。
 	}
 
 	void CameraComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
 	{
-		if (!autoRegisterMainCamera_ || !camera_)
-		{
-			return; // MainCameraとして使わない場合は同期しない
-		}
-
-		// Physics補正後の親TransformをCameraへ反映する
-		SyncTransformToCamera(); // CameraのTransformを更新する
-		camera_->Update(); // Update時点のCamera行列を更新する
+		if (!autoRegisterMainCamera_ || !camera_) return;
+		SyncTransformToCamera();
+		camera_->Update();
 	}
 
 	void CameraComponent::DrawImGui()
 	{
-		SceneComponent::DrawImGui(); // CameraComponentのLocal / World Transformを表示する
-
+		SceneComponent::DrawImGui();
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("Camera Component");
-
 		bool autoRegister = autoRegisterMainCamera_;
 		if (ImGui::Checkbox("Auto Register Main Camera", &autoRegister))
 		{
-			SetAutoRegisterMainCamera(autoRegister); // MainCamera登録フラグを更新する
+			SetAutoRegisterMainCamera(autoRegister);
 		}
+		ImGui::Checkbox("Inherit Parent Rotation", &inheritParentRotation_);
+		ImGui::TextDisabled("Camera scale is always fixed to 1,1,1.");
 #endif // USE_IMGUI
 	}
 
 	void CameraComponent::Finalize()
 	{
-		camera_ = nullptr; // CameraComponentが所有しているCameraを破棄する
+		camera_ = nullptr;
 	}
 
 	void CameraComponent::ToJson(nlohmann::json& outJson) const
 	{
-		SceneComponent::ToJson(outJson); // 親クラスの情報をJSONへ保存する
-
-		outJson["Class"] = GetClassTypeName(); // CameraComponentの種類を保存する
-		outJson["AutoRegisterMainCamera"] = autoRegisterMainCamera_; // MainCamera登録フラグを保存する"]
+		SceneComponent::ToJson(outJson);
+		outJson["Class"] = GetClassTypeName();
+		outJson["AutoRegisterMainCamera"] = autoRegisterMainCamera_;
+		outJson["InheritParentRotation"] = inheritParentRotation_;
 	}
 
 	void CameraComponent::FromJson(const nlohmann::json& inJson)
 	{
-		SceneComponent::FromJson(inJson); // 親クラスの情報をJSONから復元する
-
+		SceneComponent::FromJson(inJson);
 		if (inJson.contains("AutoRegisterMainCamera") && inJson["AutoRegisterMainCamera"].is_boolean())
 		{
-			SetAutoRegisterMainCamera(inJson["AutoRegisterMainCamera"].get<bool>()); // MainCamera登録フラグを復元する
+			SetAutoRegisterMainCamera(inJson["AutoRegisterMainCamera"].get<bool>());
+		}
+		if (inJson.contains("InheritParentRotation") && inJson["InheritParentRotation"].is_boolean())
+		{
+			inheritParentRotation_ = inJson["InheritParentRotation"].get<bool>();
 		}
 	}
 
 	void CameraComponent::SetAutoRegisterMainCamera(bool autoRegister)
 	{
 		autoRegisterMainCamera_ = autoRegister;
-
 		if (!autoRegisterMainCamera_)
 		{
-			camera_ = nullptr; // MainCameraへ登録しない場合はCameraを破棄する
+			camera_ = nullptr;
 			return;
 		}
-
-		camera_ = CameraManager::GetInstance()->GetMainCamera(); // MainCameraへ登録する場合はCameraを取得する
-		SyncTransformToCamera(); // CameraのTransformを更新する
-
-		if (camera_)
-		{
-			camera_->Update(); // 再登録時にCamera行列を即更新する
-		}
+		camera_ = CameraManager::GetInstance()->GetMainCamera();
+		SyncTransformToCamera();
+		if (camera_) camera_->Update();
 	}
 
 	void CameraComponent::SyncTransformToCamera()
 	{
-		if (!camera_)
-		{
-			return; // Cameraが無い場合はTransformを同期しない
-		}
-
+		if (!camera_) return;
 		camera_->SetTranslate(GetWorldPosition());
-		camera_->SetRotate(GetWorldRotation());
-		camera_->SetScale(GetWorldScale());
+		camera_->SetRotate(inheritParentRotation_ ? GetWorldRotation() : GetLocalRotation());
+		camera_->SetScale({ 1.0f, 1.0f, 1.0f }); // CameraのView行列へActorやModelのScaleを継承させない。
 	}
-}
+} // namespace Ken4lowEngine
