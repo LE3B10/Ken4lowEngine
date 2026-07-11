@@ -59,10 +59,7 @@ namespace Ken4lowEngine
 		lastActorJsonSaveMessage_ = "Added Component : " + newComponent->GetName();
 
 		const std::string afterState = ActorJsonSerializer::SerializeActor(*targetActor).dump();
-		EditorCommandHistory::GetInstance()->Clear(); // Component再構築で無効になる古いComponentポインタを履歴へ残さない。
-		EditorCommandHistory::GetInstance()->PushExecuted(std::make_unique<EditorStateCommand>(
-			"コンポーネント追加", beforeState, afterState,
-			[this, targetActor](std::string_view stateText)
+		auto applyState = [this, targetActor](const std::string& stateText)
 			{
 				const nlohmann::json state = nlohmann::json::parse(stateText, nullptr, false);
 				if (state.is_discarded()) return;
@@ -73,6 +70,16 @@ namespace Ken4lowEngine
 				selectedComponent_ = nullptr;
 				EditorContext::GetInstance()->GetSelection().Clear();
 				EditorContext::GetInstance()->MarkLevelDirty();
+			};
+
+		EditorCommandHistory::GetInstance()->Clear();
+		EditorCommandHistory::GetInstance()->PushExecuted(std::make_unique<EditorLambdaCommand>(
+			"コンポーネント追加",
+			[applyState, afterState]() { applyState(afterState); },
+			[applyState, beforeState]()
+			{
+				applyState(beforeState);
+				EditorCommandHistory::GetInstance()->DiscardDependentRedoCommands(); // 再生成前のComponentを参照する後続Redoを除去する。
 			}));
 		EditorContext::GetInstance()->MarkLevelDirty();
 	}
@@ -125,10 +132,7 @@ namespace Ken4lowEngine
 		}
 
 		const std::string afterState = ActorJsonSerializer::SerializeActor(*owner).dump();
-		EditorCommandHistory::GetInstance()->Clear();
-		EditorCommandHistory::GetInstance()->PushExecuted(std::make_unique<EditorStateCommand>(
-			"コンポーネント削除", beforeState, afterState,
-			[this, owner](std::string_view stateText)
+		auto applyState = [this, owner](const std::string& stateText)
 			{
 				const nlohmann::json state = nlohmann::json::parse(stateText, nullptr, false);
 				if (state.is_discarded()) return;
@@ -139,6 +143,16 @@ namespace Ken4lowEngine
 				selectedComponent_ = nullptr;
 				EditorContext::GetInstance()->GetSelection().Clear();
 				EditorContext::GetInstance()->MarkLevelDirty();
+			};
+
+		EditorCommandHistory::GetInstance()->Clear();
+		EditorCommandHistory::GetInstance()->PushExecuted(std::make_unique<EditorLambdaCommand>(
+			"コンポーネント削除",
+			[applyState, afterState]() { applyState(afterState); },
+			[applyState, beforeState]()
+			{
+				applyState(beforeState);
+				EditorCommandHistory::GetInstance()->DiscardDependentRedoCommands();
 			}));
 		lastActorJsonSaveMessage_ = "Deleted Component : " + deletedComponentName;
 		EditorContext::GetInstance()->MarkLevelDirty();
@@ -209,10 +223,7 @@ namespace Ken4lowEngine
 		lastActorJsonSaveMessage_ = "Duplicated Component : " + duplicatedComponent->GetName();
 
 		const std::string afterState = ActorJsonSerializer::SerializeActor(*owner).dump();
-		EditorCommandHistory::GetInstance()->Clear();
-		EditorCommandHistory::GetInstance()->PushExecuted(std::make_unique<EditorStateCommand>(
-			"コンポーネント複製", beforeState, afterState,
-			[this, owner](std::string_view stateText)
+		auto applyState = [this, owner](const std::string& stateText)
 			{
 				const nlohmann::json state = nlohmann::json::parse(stateText, nullptr, false);
 				if (state.is_discarded()) return;
@@ -223,6 +234,16 @@ namespace Ken4lowEngine
 				selectedComponent_ = nullptr;
 				EditorContext::GetInstance()->GetSelection().Clear();
 				EditorContext::GetInstance()->MarkLevelDirty();
+			};
+
+		EditorCommandHistory::GetInstance()->Clear();
+		EditorCommandHistory::GetInstance()->PushExecuted(std::make_unique<EditorLambdaCommand>(
+			"コンポーネント複製",
+			[applyState, afterState]() { applyState(afterState); },
+			[applyState, beforeState]()
+			{
+				applyState(beforeState);
+				EditorCommandHistory::GetInstance()->DiscardDependentRedoCommands();
 			}));
 		EditorContext::GetInstance()->MarkLevelDirty();
 	}
