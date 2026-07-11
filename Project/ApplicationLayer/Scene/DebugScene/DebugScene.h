@@ -5,6 +5,7 @@
 #include "AnimationStateController.h"
 
 #include <ActorWorld.h>
+#include <ActorWorldEditorBridge.h>
 #include <LightComponent.h>
 #include <LightManager.h>
 #include <PhysicsWorld.h>
@@ -50,6 +51,14 @@ public: /// ---------- メンバ関数 ---------- ///
 	void Update() override;
 	// Editor停止中もDebugScene専用負荷検証だけは更新する。
 	void UpdateEditor(float deltaTime) override;
+
+	/// <summary>
+	/// ActorWorldが所有するActor / Component階層を統合World Outlinerへ公開する。
+	/// </summary>
+	void CollectEditorObjects(std::vector<K4E::EditorObjectInfo>& outObjects) override
+	{
+		K4E::CollectActorWorldEditorObjects(actorWorld_, outObjects, "DebugScene");
+	}
 
 	// ShadowSystemがCasterを決める前にActorのLightComponentを同期する。
 	void PrepareShadowPass() override
