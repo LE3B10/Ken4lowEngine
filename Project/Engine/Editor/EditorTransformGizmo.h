@@ -1,23 +1,17 @@
 #pragma once
 
 #ifdef USE_IMGUI
+#include "EditorObjectInfo.h"
+
 namespace Ken4lowEngine
 {
-	/// <summary>
-	/// Main Viewport上で選択Objectの移動・回転・拡縮を操作します。
-	/// </summary>
+	/// <summary>Main Viewport上で選択Objectの移動・回転・拡縮を操作します。</summary>
 	class EditorTransformGizmo
 	{
 	public:
 		static EditorTransformGizmo* GetInstance();
-
-		/// <summary>Viewport Toolbar描画後にショートカットとImGuizmoを更新します。</summary>
 		void Draw();
-
-		/// <summary>現在Gizmo本体をドラッグしているか返します。</summary>
 		bool IsUsing() const;
-
-		/// <summary>マウスがGizmoの軸・平面・回転リング上にあるか返します。</summary>
 		bool IsOver() const;
 
 	private:
@@ -25,6 +19,13 @@ namespace Ken4lowEngine
 		~EditorTransformGizmo() = default;
 		EditorTransformGizmo(const EditorTransformGizmo&) = delete;
 		EditorTransformGizmo& operator=(const EditorTransformGizmo&) = delete;
+
+		void BeginTransformCommand(const EditorObjectInfo& target, const EditorTransform& before);
+		void EndTransformCommand();
+
+		bool transformCommandActive_ = false;
+		EditorObjectInfo transformCommandTarget_{};
+		EditorTransform transformCommandBefore_{};
 	};
 } // namespace Ken4lowEngine
 #endif // USE_IMGUI
