@@ -79,7 +79,8 @@ namespace Ken4lowEngine
 		void DrawShadow();
 
 		/// <summary>
-		/// ActorWorldが所有する全ActorのEditor表示を行う
+		/// ActorWorldが所有する全ActorのEditor表示を行う。
+		/// Phase 3以降はWorld Outliner / Detailsへ統合し、既定では旧ウィンドウを表示しない。
 		/// </summary>
 		void DrawImGui();
 
@@ -87,6 +88,26 @@ namespace Ken4lowEngine
 		/// 選択中ActorまたはComponentのDetailsウィンドウを描画する。
 		/// </summary>
 		void DrawDetailsImGui();
+
+		/// <summary>
+		/// 統合Detailsパネル内へ選択中ActorまたはComponentの編集UIだけを描画する。
+		/// </summary>
+		void DrawSelectedInspectorContent();
+
+		/// <summary>
+		/// World Outlinerから選択されたActor / ComponentをActorWorld側へ同期する。
+		/// </summary>
+		void SetSelectedEditorObject(Actor* actor, ActorComponent* component)
+		{
+			selectedActor_ = actor;
+			selectedComponent_ = component;
+		}
+
+		/// <summary>
+		/// 旧Actor World / Actor Detailsウィンドウを互換表示するか設定する。
+		/// </summary>
+		void SetLegacyEditorWindowsEnabled(bool enabled) { legacyEditorWindowsEnabled_ = enabled; }
+		bool IsLegacyEditorWindowsEnabled() const { return legacyEditorWindowsEnabled_; }
 
 		/// <summary>
 		/// ActorWorldが所有する全Actorの終了処理を行う
@@ -293,6 +314,9 @@ namespace Ken4lowEngine
 		// Actor Detailsウィンドウへフォーカスを移す要求
 		bool requestFocusActorDetails_ = false;
 
+		// 旧Actor World / Actor Detailsウィンドウを表示する互換フラグ
+		bool legacyEditorWindowsEnabled_ = false;
+
 		// ActorWorldが所有するPhysicsWorldへの参照
 		PhysicsWorld* physicsWorld_ = nullptr;
 
@@ -316,4 +340,4 @@ namespace Ken4lowEngine
 		// 選択中ActorをPrefabとして保存する際のデフォルトパス
 		std::string actorPrefabSavePath_ = "Resources/ActorPrefabs/NewActorPrefab.json";
 	};
-}
+} // namespace Ken4lowEngine
