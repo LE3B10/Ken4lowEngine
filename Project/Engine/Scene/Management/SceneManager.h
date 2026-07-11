@@ -20,6 +20,7 @@ namespace Ken4lowEngine
 
 		void Initialize();
 		void Update();
+		void PrepareShadowPass();
 		void Draw3DObjects();
 		void DrawShadowObjects();
 		void Draw2DSprites();
