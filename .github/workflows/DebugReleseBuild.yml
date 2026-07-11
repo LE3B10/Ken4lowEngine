@@ -53,4 +53,4 @@ jobs:
           /p:Platform=x64
           /p:Configuration=${{ matrix.configuration }}
           /verbosity:minimal
-          /clp:ErrorsOnly;Summary # Phase 7の検証中はコンパイルエラーを短いログへ集約する。
+          "/clp:ErrorsOnly;Summary" # Phase 7の検証中はコンパイルエラーを短いログへ集約する。
