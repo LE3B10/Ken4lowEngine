@@ -69,17 +69,26 @@ namespace Ken4lowEngine
 
 		void DrawPlaceableCategory(const char* categoryName, const PlaceableEntry* entries, std::size_t count)
 		{
+			// ImGuiの検索入力バッファをnull終端文字列としてstring_viewへ変換する。
+			const std::string_view searchFilter{ placeActorsSearch_.data() };
+
 			bool hasVisibleEntry = false;
+
 			for (std::size_t index = 0; index < count; ++index)
 			{
-				hasVisibleEntry |= ContainsCaseInsensitive(entries[index].label, placeActorsSearch_);
+				hasVisibleEntry |= ContainsCaseInsensitive(
+					entries[index].label,
+					searchFilter);
 			}
+
 			if (!hasVisibleEntry)
 			{
 				return;
 			}
 
-			if (!ImGui::CollapsingHeader(categoryName, ImGuiTreeNodeFlags_DefaultOpen))
+			if (!ImGui::CollapsingHeader(
+				categoryName,
+				ImGuiTreeNodeFlags_DefaultOpen))
 			{
 				return;
 			}
@@ -87,21 +96,28 @@ namespace Ken4lowEngine
 			for (std::size_t index = 0; index < count; ++index)
 			{
 				const PlaceableEntry& entry = entries[index];
-				if (!ContainsCaseInsensitive(entry.label, placeActorsSearch_))
+
+				if (!ContainsCaseInsensitive(entry.label, searchFilter))
 				{
 					continue;
 				}
 
 				ImGui::PushID(static_cast<int>(index));
+
 				if (ImGui::Button(entry.label, ImVec2(-1.0f, 34.0f)))
 				{
-					EditorContext::GetInstance()->QueuePlacement(entry.type, entry.label);
-					// Phase 1では配置対象を選び、実際のViewport生成はPhase 6のDrag＆Dropへ接続する。
+					EditorContext::GetInstance()->QueuePlacement(
+						entry.type,
+						entry.label);
+
+					// Phase 1では配置要求だけを保存し、実際の生成は後続Phaseで接続する。
 				}
+
 				if (ImGui::IsItemHovered())
 				{
 					ImGui::SetTooltip("%s", entry.description);
 				}
+
 				ImGui::PopID();
 			}
 		}
