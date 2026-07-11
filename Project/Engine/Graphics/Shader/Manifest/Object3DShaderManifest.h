@@ -12,6 +12,7 @@ namespace Ken4lowEngine
 	{
 		Object3DVS,
 		Object3DInstancingVS,
+		Object3DInstancingShadowVS,
 		Object3DPS,
 		ShadowMapVS,
 	};
@@ -59,6 +60,18 @@ namespace Ken4lowEngine
 					L"vs_6_0",
 					ShaderStage::Vertex,
 					RootSignatureType::Object3D
+				};
+				return desc;
+			}
+			case Object3DShaderId::Object3DInstancingShadowVS:
+			{
+				static const ShaderDescriptor desc{
+					L"Object3DInstancingShadowVS",
+					L"Resources/Shaders/Object3D/Object3dInstancingShadow.VS.hlsl",
+					L"main",
+					L"vs_6_0",
+					ShaderStage::Vertex,
+					RootSignatureType::ShadowMap
 				};
 				return desc;
 			}
