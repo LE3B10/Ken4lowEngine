@@ -1,12 +1,16 @@
 #pragma once
 
+#include "EditorContext.h"
 #include "EditorObjectInfo.h"
 
 #include <ActorWorld.h>
+#include <InstancedModelComponent.h>
 #include <SceneComponent.h>
 
-#include <cstdint>
+#include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <limits>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -15,9 +19,76 @@
 
 namespace Ken4lowEngine
 {
-	/// <summary>
-	/// Actor / Componentの実体を直接所有せず、World OutlinerとDetails用の軽量情報へ変換します。
-	/// </summary>
+	inline bool BuildInstancedModelInstanceEditorInfo(
+		InstancedModelComponent* component,
+		size_t instanceIndex,
+		uint64_t componentId,
+		std::string_view sceneName,
+		EditorObjectInfo& outInfo)
+	{
+		if (!component || instanceIndex >= component->GetEditableInstanceCount())
+		{
+			return false;
+		}
+
+		const std::string instanceKey = std::to_string(componentId) + "/Instance/" + std::to_string(instanceIndex);
+		outInfo = {};
+		outInfo.id = MakeStableEditorObjectId(instanceKey);
+		outInfo.parentId = componentId;
+		outInfo.sortOrder = static_cast<int>(std::min<size_t>(instanceIndex, static_cast<size_t>(std::numeric_limits<int>::max())));
+		outInfo.displayName = "Instance " + std::to_string(instanceIndex);
+		outInfo.typeName = "InstancedModelInstance";
+		outInfo.sceneName = std::string(sceneName);
+		outInfo.icon = "[I]";
+		outInfo.objectKind = EditorObjectKind::Instance;
+		outInfo.canEditTransform = true;
+		outInfo.inspectorType = EditorInspectorType::Transform;
+		outInfo.inspectorHint = "GPU Instancing内の個別Transform";
+		outInfo.readTransform = [component, instanceIndex](EditorTransform& outTransform)
+			{
+				InstancedModelComponent::InstanceTransform transform{};
+				if (!component->GetInstanceLocalTransform(instanceIndex, transform)) return false;
+				outTransform.position = transform.position;
+				outTransform.rotation = transform.rotation;
+				outTransform.scale = transform.scale;
+				return true;
+			};
+		outInfo.writeTransform = [component, instanceIndex](const EditorTransform& transform)
+			{
+				InstancedModelComponent::InstanceTransform instanceTransform{};
+				if (!component->GetInstanceLocalTransform(instanceIndex, instanceTransform)) return;
+				instanceTransform.position = transform.position;
+				instanceTransform.rotation = transform.rotation;
+				instanceTransform.scale = transform.scale;
+				component->SetInstanceLocalTransform(instanceIndex, instanceTransform);
+			};
+		outInfo.readWorldTransform = [component, instanceIndex](EditorTransform& outTransform)
+			{
+				InstancedModelComponent::InstanceTransform transform{};
+				if (!component->GetInstanceWorldTransform(instanceIndex, transform)) return false;
+				outTransform.position = transform.position;
+				outTransform.rotation = transform.rotation;
+				outTransform.scale = transform.scale;
+				return true;
+			};
+		outInfo.writeWorldTransform = [component, instanceIndex](const EditorTransform& transform)
+			{
+				InstancedModelComponent::InstanceTransform instanceTransform{};
+				if (!component->GetInstanceWorldTransform(instanceIndex, instanceTransform)) return;
+				instanceTransform.position = transform.position;
+				instanceTransform.rotation = transform.rotation;
+				instanceTransform.scale = transform.scale;
+				component->SetInstanceWorldTransform(instanceIndex, instanceTransform);
+			};
+		outInfo.canDrawObjectId = true;
+		outInfo.drawObjectId = [component, instanceIndex](uint32_t objectId)
+			{
+				component->DrawEditorInstanceObjectId(instanceIndex, objectId); // 選択輪郭では該当Instanceだけを描画する。
+			};
+		return true;
+	}
+
+	/// <summary>Actor / ComponentをWorld OutlinerとDetails用の軽量情報へ変換します。</summary>
 	inline void CollectActorWorldEditorObjects(
 		ActorWorld& actorWorld,
 		std::vector<EditorObjectInfo>& outObjects,
@@ -29,10 +100,7 @@ namespace Ken4lowEngine
 		for (const auto& actorOwner : actorWorld.GetActors())
 		{
 			Actor* actor = actorOwner.get();
-			if (!actor || actor->IsPendingDestroy())
-			{
-				continue;
-			}
+			if (!actor || actor->IsPendingDestroy()) continue;
 
 			const std::string actorKey = sceneNameText + "/Actor/" +
 				std::to_string(static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(actor)));
@@ -78,7 +146,7 @@ namespace Ken4lowEngine
 						outTransform.scale = root->GetWorldScale();
 						return true;
 					};
-				actorInfo.writeWorldTransform = actorInfo.writeTransform; // RootはLocalとWorldが一致する。
+				actorInfo.writeWorldTransform = actorInfo.writeTransform;
 			}
 
 			actorInfo.drawInspector = [&actorWorld, actor]()
@@ -93,10 +161,7 @@ namespace Ken4lowEngine
 			for (const auto& componentOwner : actor->GetComponents())
 			{
 				ActorComponent* component = componentOwner.get();
-				if (!component)
-				{
-					continue;
-				}
+				if (!component) continue;
 				const std::string componentKey = actorKey + "/Component/" +
 					std::to_string(static_cast<unsigned long long>(reinterpret_cast<uintptr_t>(component)));
 				componentIds.emplace(component, MakeStableEditorObjectId(componentKey));
@@ -105,10 +170,7 @@ namespace Ken4lowEngine
 			for (const auto& componentOwner : actor->GetComponents())
 			{
 				ActorComponent* component = componentOwner.get();
-				if (!component)
-				{
-					continue;
-				}
+				if (!component) continue;
 
 				EditorObjectInfo componentInfo{};
 				componentInfo.id = componentIds.at(component);
@@ -125,13 +187,11 @@ namespace Ken4lowEngine
 				componentInfo.writeActive = [component](bool active) { component->SetActive(active); };
 				componentInfo.canRename = true;
 				componentInfo.rename = [component](std::string_view name) { component->SetName(name); };
-				componentInfo.inspectorHint = componentInfo.isRootComponent
-					? "Root Component"
-					: "Actor Component";
+				componentInfo.inspectorHint = componentInfo.isRootComponent ? "Root Component" : "Actor Component";
 				componentInfo.canDrawObjectId = actor->IsActive() && component->IsActiveInHierarchy() && component->SupportsEditorObjectId();
 				componentInfo.drawObjectId = [component](uint32_t objectId)
 					{
-						component->DrawEditorObjectId(objectId); // GizmoやWireframeを経由せずComponent本体だけをID Bufferへ描画する。
+						component->DrawEditorObjectId(objectId);
 					};
 
 				if (auto* sceneComponent = dynamic_cast<SceneComponent*>(component))
@@ -139,12 +199,8 @@ namespace Ken4lowEngine
 					if (SceneComponent* parent = sceneComponent->GetParent())
 					{
 						const auto parentId = componentIds.find(parent);
-						if (parentId != componentIds.end())
-						{
-							componentInfo.parentId = parentId->second;
-						}
+						if (parentId != componentIds.end()) componentInfo.parentId = parentId->second;
 					}
-
 					componentInfo.canEditTransform = true;
 					componentInfo.inspectorType = EditorInspectorType::Transform;
 					componentInfo.readTransform = [sceneComponent](EditorTransform& outTransform)
@@ -196,7 +252,54 @@ namespace Ken4lowEngine
 						actorWorld.SetSelectedEditorObject(actor, component);
 						actorWorld.DrawSelectedInspectorContent();
 					};
+
+				InstancedModelComponent* instancedComponent = dynamic_cast<InstancedModelComponent*>(component);
+				if (instancedComponent && componentInfo.canDrawObjectId)
+				{
+					const size_t instanceCount = instancedComponent->GetEditableInstanceCount();
+					componentInfo.objectIdSpan = static_cast<uint32_t>(std::min<size_t>(instanceCount, std::numeric_limits<uint32_t>::max()));
+					const uint64_t componentId = componentInfo.id;
+					componentInfo.buildObjectIdEntry = [instancedComponent, componentId, sceneNameText](uint32_t offset, EditorObjectInfo& outInfo)
+						{
+							return BuildInstancedModelInstanceEditorInfo(instancedComponent, offset, componentId, sceneNameText, outInfo);
+						};
+				}
+
+				const uint64_t componentId = componentInfo.id;
 				outObjects.push_back(std::move(componentInfo));
+
+				if (instancedComponent)
+				{
+					constexpr size_t kOutlinerInstanceLimit = 512;
+					const size_t instanceCount = instancedComponent->GetEditableInstanceCount();
+					const size_t visibleCount = std::min(instanceCount, kOutlinerInstanceLimit);
+					for (size_t instanceIndex = 0; instanceIndex < visibleCount; ++instanceIndex)
+					{
+						EditorObjectInfo instanceInfo{};
+						if (BuildInstancedModelInstanceEditorInfo(instancedComponent, instanceIndex, componentId, sceneNameText, instanceInfo))
+						{
+							outObjects.push_back(std::move(instanceInfo));
+						}
+					}
+
+					const EditorSelection& selection = EditorContext::GetInstance()->GetSelection();
+					if (instanceCount > visibleCount && selection.HasSelection())
+					{
+						const EditorObjectInfo& selected = selection.GetSelected();
+						if (selected.objectKind == EditorObjectKind::Instance && selected.parentId == componentId && selected.sortOrder >= 0)
+						{
+							const size_t selectedIndex = static_cast<size_t>(selected.sortOrder);
+							if (selectedIndex >= visibleCount && selectedIndex < instanceCount)
+							{
+								EditorObjectInfo selectedInfo{};
+								if (BuildInstancedModelInstanceEditorInfo(instancedComponent, selectedIndex, componentId, sceneNameText, selectedInfo))
+								{
+									outObjects.push_back(std::move(selectedInfo)); // 512件超でもViewportで選んだInstanceだけはSelection更新対象へ残す。
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 	}
