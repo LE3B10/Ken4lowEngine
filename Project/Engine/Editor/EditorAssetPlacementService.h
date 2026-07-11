@@ -1,9 +1,11 @@
 #pragma once
 
 #include "EditorAssetDragDrop.h"
+#include "EditorCommandHistory.h"
 #include "EditorContext.h"
 
 #include <Actor.h>
+#include <ActorJsonSerializer.h>
 #include <ActorSpawnOptions.h>
 #include <ActorWorld.h>
 #include <BaseScene.h>
@@ -16,18 +18,17 @@
 #include <Vector3.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace Ken4lowEngine
 {
-	/// <summary>
-	/// Content Browserから配置した通常モデルを、保存時は汎用Actorとして扱うEditor専用Actorです。
-	/// </summary>
 	class EditorPlacedModelActor final : public Actor
 	{
 	public:
@@ -44,10 +45,7 @@ namespace Ken4lowEngine
 			model.AttachTo(&root);
 		}
 
-		std::string GetClassTypeName() const override
-		{
-			return "Actor"; // LevelやPrefabへ保存した際は既存ActorFactoryで復元できる形式を維持する。
-		}
+		std::string GetClassTypeName() const override { return "Actor"; }
 	};
 
 	struct EditorAssetPlacementResult
@@ -57,9 +55,6 @@ namespace Ken4lowEngine
 		bool succeeded = false;
 	};
 
-	/// <summary>
-	/// Content BrowserのPayloadを現在SceneのActorWorldへ配置するEditorサービスです。
-	/// </summary>
 	class EditorAssetPlacementService
 	{
 	public:
@@ -69,31 +64,17 @@ namespace Ken4lowEngine
 			const Vector2& viewportImageSize,
 			Vector3& outPosition)
 		{
-			if (viewportImageSize.x <= 1.0f || viewportImageSize.y <= 1.0f)
-			{
-				return false;
-			}
-
+			if (viewportImageSize.x <= 1.0f || viewportImageSize.y <= 1.0f) return false;
 			const float localX = screenMouse.x - viewportScreenMin.x;
 			const float localY = screenMouse.y - viewportScreenMin.y;
-			if (localX < 0.0f || localY < 0.0f || localX > viewportImageSize.x || localY > viewportImageSize.y)
-			{
-				return false;
-			}
+			if (localX < 0.0f || localY < 0.0f || localX > viewportImageSize.x || localY > viewportImageSize.y) return false;
 
 			const float ndcX = (localX / viewportImageSize.x) * 2.0f - 1.0f;
 			const float ndcY = 1.0f - (localY / viewportImageSize.y) * 2.0f;
 			const Matrix4x4 projection = CameraManager::GetInstance()->GetActiveProjectionMatrix();
-			if (std::abs(projection.m[0][0]) <= 0.00001f || std::abs(projection.m[1][1]) <= 0.00001f)
-			{
-				return false;
-			}
+			if (std::abs(projection.m[0][0]) <= 0.00001f || std::abs(projection.m[1][1]) <= 0.00001f) return false;
 
-			const Vector3 viewDirection{
-				ndcX / projection.m[0][0],
-				ndcY / projection.m[1][1],
-				1.0f
-			};
+			const Vector3 viewDirection{ ndcX / projection.m[0][0], ndcY / projection.m[1][1], 1.0f };
 			const Matrix4x4 inverseView = Matrix4x4::Inverse(CameraManager::GetInstance()->GetActiveViewMatrix());
 			Vector3 worldDirection{
 				viewDirection.x * inverseView.m[0][0] + viewDirection.y * inverseView.m[1][0] + viewDirection.z * inverseView.m[2][0],
@@ -114,23 +95,16 @@ namespace Ken4lowEngine
 				}
 			}
 
-			outPosition = rayOrigin + worldDirection * 10.0f; // 地面と交差しない視線ではドロップ瞬間のワールド位置へ固定する。
+			outPosition = rayOrigin + worldDirection * 10.0f;
 			return true;
 		}
 
-		static EditorAssetPlacementResult PlaceAsset(
-			SceneManager* sceneManager,
-			const EditorAssetDragDropPayload& payload,
-			const Vector3& worldPosition)
+		static EditorAssetPlacementResult PlaceAsset(SceneManager* sceneManager, const EditorAssetDragDropPayload& payload, const Vector3& worldPosition)
 		{
-			BaseScene* scene = sceneManager ? sceneManager->GetCurrentScene() : nullptr;
-			return PlaceAsset(scene, payload, worldPosition);
+			return PlaceAsset(sceneManager ? sceneManager->GetCurrentScene() : nullptr, payload, worldPosition);
 		}
 
-		static EditorAssetPlacementResult PlaceAsset(
-			BaseScene* scene,
-			const EditorAssetDragDropPayload& payload,
-			const Vector3& worldPosition)
+		static EditorAssetPlacementResult PlaceAsset(BaseScene* scene, const EditorAssetDragDropPayload& payload, const Vector3& worldPosition)
 		{
 			EditorAssetPlacementResult result{};
 			if (!scene)
@@ -156,7 +130,6 @@ namespace Ken4lowEngine
 					result.message = "配置できるモデル形式はResources/Models/Sources内のgltf、glb、objです。";
 					return result;
 				}
-
 				EditorPlacedModelActor& actor = actorWorld->SpawnActor<EditorPlacedModelActor>(logicalModelPath, worldPosition);
 				actor.SetName(MakeUniqueActorName(*actorWorld, relativePath.stem().generic_string()));
 				result.spawnedActor = &actor;
@@ -169,14 +142,12 @@ namespace Ken4lowEngine
 				options.applySpawnOffset = false;
 				options.disableAutoRegisterMainCamera = true;
 				const std::string prefabPath = (std::filesystem::path("Resources") / relativePath).generic_string();
-				Actor* actor = actorWorld->SpawnActorFromJson(prefabPath, options);
-				if (!actor)
+				result.spawnedActor = actorWorld->SpawnActorFromJson(prefabPath, options);
+				if (!result.spawnedActor)
 				{
 					result.message = "アクタープリファブの読み込みに失敗しました: " + prefabPath;
 					return result;
 				}
-
-				result.spawnedActor = actor;
 				result.succeeded = true;
 				result.message = "アクタープリファブをビューポートへ配置しました: " + prefabPath;
 			}
@@ -191,56 +162,60 @@ namespace Ken4lowEngine
 				{
 					root->Detach();
 					root->SetLocalPosition(worldPosition);
-					root->RefreshWorldTransform(); // 配置確定時に親を外し、カメラ追従ではなくWorld座標へ固定する。
+					root->RefreshWorldTransform();
 				}
-
 				SelectSpawnedActor(*scene, *result.spawnedActor);
+				RecordPlacementCommand(*scene, *actorWorld, *result.spawnedActor);
 				EditorContext::GetInstance()->MarkLevelDirty();
 			}
 			return result;
 		}
 
 	private:
+		static void RecordPlacementCommand(BaseScene& scene, ActorWorld& actorWorld, Actor& actor)
+		{
+			static std::atomic_uint64_t serial = 0;
+			const std::string snapshotPath = "../Generated/Intermediate/EditorUndo/PlacedActor_" + std::to_string(++serial) + ".json";
+			if (!ActorJsonSerializer::SaveActorToFile(actor, snapshotPath)) return;
+
+			auto actorState = std::make_shared<Actor*>(&actor);
+			EditorCommandHistory::GetInstance()->PushExecuted(std::make_unique<EditorLambdaCommand>(
+				"アセット配置",
+				[&scene, &actorWorld, actorState, snapshotPath]()
+				{
+					*actorState = actorWorld.SpawnActorFromJson(snapshotPath);
+					if (*actorState) SelectSpawnedActor(scene, **actorState);
+					EditorContext::GetInstance()->MarkLevelDirty();
+				},
+				[actorState]()
+				{
+					if (*actorState) (*actorState)->Destroy();
+					*actorState = nullptr;
+					EditorContext::GetInstance()->GetSelection().Clear();
+					EditorContext::GetInstance()->MarkLevelDirty(); // ActorWorldの次回更新で配置Actorを安全に削除する。
+				}));
+		}
+
 		static std::string ResolveModelLogicalPath(const std::filesystem::path& relativePath)
 		{
 			std::string path = relativePath.generic_string();
 			constexpr const char* sourcesPrefix = "Models/Sources/";
-			if (!path.starts_with(sourcesPrefix))
-			{
-				return {};
-			}
-
+			if (!path.starts_with(sourcesPrefix)) return {};
 			path.erase(0, std::char_traits<char>::length(sourcesPrefix));
 			std::string extension = std::filesystem::path(path).extension().generic_string();
-			std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char character)
-				{
-					return static_cast<char>(std::tolower(character));
-				});
-			if (extension != ".gltf" && extension != ".glb" && extension != ".obj")
-			{
-				return {};
-			}
+			std::transform(extension.begin(), extension.end(), extension.begin(), [](unsigned char character) { return static_cast<char>(std::tolower(character)); });
+			if (extension != ".gltf" && extension != ".glb" && extension != ".obj") return {};
 			return path;
 		}
 
 		static std::string MakeUniqueActorName(ActorWorld& actorWorld, std::string baseName)
 		{
-			if (baseName.empty())
-			{
-				baseName = "配置アクタ";
-			}
-			if (!actorWorld.FindActorByName(baseName))
-			{
-				return baseName;
-			}
-
+			if (baseName.empty()) baseName = "配置アクタ";
+			if (!actorWorld.FindActorByName(baseName)) return baseName;
 			for (uint32_t index = 2; index < 100000; ++index)
 			{
 				const std::string candidate = baseName + "_" + std::to_string(index);
-				if (!actorWorld.FindActorByName(candidate))
-				{
-					return candidate;
-				}
+				if (!actorWorld.FindActorByName(candidate)) return candidate;
 			}
 			return baseName + "_Copy";
 		}
@@ -253,10 +228,7 @@ namespace Ken4lowEngine
 				{
 					return object.objectKind == EditorObjectKind::Actor && object.displayName == actor.GetName();
 				});
-			if (found != objects.end())
-			{
-				EditorContext::GetInstance()->GetSelection().Select(*found);
-			}
+			if (found != objects.end()) EditorContext::GetInstance()->GetSelection().Select(*found);
 		}
 	};
 } // namespace Ken4lowEngine
