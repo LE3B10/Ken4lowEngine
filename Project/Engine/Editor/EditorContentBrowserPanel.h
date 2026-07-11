@@ -99,9 +99,9 @@ namespace Ken4lowEngine
 			}
 
 			const EditorViewportRect& viewportRect = EditorWindowManager::GetInstance()->GetMainViewportRect();
-			if (!viewportRect.valid || viewportRect.imageSize.x <= 1.0f || viewportRect.imageSize.y <= 1.0f)
+			if (!viewportRect.valid || !viewportRect.isHovered || viewportRect.imageSize.x <= 1.0f || viewportRect.imageSize.y <= 1.0f)
 			{
-				return;
+				return; // 他のEditorウィンドウに遮られたクリックをMain Viewport Pickingへ流さない。
 			}
 
 			const ImVec2 mouse = ImGui::GetMousePos();

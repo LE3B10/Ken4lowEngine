@@ -1,6 +1,7 @@
 #pragma once
 #include "SceneComponent.h"
 #include "AnimationModel.h"
+#include "AnimationModelObjectIdRenderer.h"
 #include "ComponentProperty.h"
 #include "MaterialBinding.h"
 
@@ -33,7 +34,17 @@ namespace Ken4lowEngine
 			animationModel_->DrawShadow(); // Compute Skinning済みの現在姿勢をShadow Mapへ描画する。
 		}
 		bool SupportsShadowCasting() const override { return true; }
-		// Skinning用Object-ID PipelineはAnimationModel側へ接続するまで対象外にする。
+		bool SupportsEditorObjectId() const override { return true; }
+		void DrawEditorObjectId(uint32_t objectId) override
+		{
+			if (!visible_ || !IsActiveInHierarchy() || !animationModel_ || !hasMesh_)
+			{
+				return;
+			}
+
+			SyncTransformToAnimationModel();
+			DrawAnimationModelObjectId(*animationModel_, objectId); // Skeletal MeshもComponent固有IDとして選択可能にする。
+		}
 
 		void DrawImGui() override;
 		void Finalize() override;
