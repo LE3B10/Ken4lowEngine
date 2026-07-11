@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "Vector2.h"
-#include "EditorSelection.h"
+#include "EditorContext.h"
 #include "EditorAssetBrowser.h"
 #include "EditorAssetBuildService.h"
 #include "EditorOutputLog.h"
@@ -139,7 +139,7 @@ namespace Ken4lowEngine
 		Vector2 mainViewportScreenPosition_ = { 0.0f, 0.0f }; // マウス座標をMain Viewport基準へ変換するための左上座標
 		Vector2 mainViewportSize_ = { 0.0f, 0.0f }; // Main Viewport内でGameRenderTargetを表示しているサイズ
 		EditorInputDebugInfo inputDebugInfo_{}; // Toolbarへゲーム入力ゲートの状態を可視化する
-		EditorSelection selection_{}; // World OutlinerとDetailsで共有する軽量な選択状態
+		EditorSelection& selection_ = EditorContext::GetInstance()->GetSelection(); // 全Editor Panelが同じ選択状態を参照する。
 		EditorOutputLog outputLog_{}; // Content BrowserとBuild結果を表示するエディタ用ログバッファ
 		EditorAssetBrowser assetBrowser_{}; // Resources配下の実ファイル列挙を担当するContent Browserモデル
 		EditorTexturePreviewCache texturePreviewCache_{}; // Content Browserの選択画像だけをSRV化してプレビューするキャッシュ
