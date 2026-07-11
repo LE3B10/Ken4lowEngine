@@ -4,6 +4,11 @@
 #include "Matrix4x4.h"
 #include "Vector4.h"
 #include "Vector3.h"
+#include "CameraManager.h"
+#include "DirectXCommon.h"
+#include "Model.h"
+#include "ObjectIdPipeline.h"
+#include "SRVManager.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -13,9 +18,6 @@
 
 namespace Ken4lowEngine
 {
-	class DirectXCommon;
-	class Model;
-
 	/// <summary>
 	/// CPUでObject3Dを大量生成せず、同じModelをGPUインスタンシングでまとめて描画する専用レンダラーです。
 	/// </summary>
@@ -70,6 +72,33 @@ namespace Ken4lowEngine
 
 		/// <summary>全インスタンスを現在のShadow Sliceへまとめて描画します。</summary>
 		void DrawShadow();
+
+		/// <summary>全Instanceを同じComponent IDでR32_UINT Object-ID Targetへ描画します。</summary>
+		void DrawEditorObjectId(uint32_t objectId)
+		{
+			if (!initialized_ || !dxCommon_ || !model_ || sourceInstances_.empty() || objectId == 0)
+			{
+				return;
+			}
+
+			const Matrix4x4 viewProjection = CameraManager::GetInstance()->GetActiveViewProjectionMatrix();
+			perViewData_->viewProjection = viewProjection;
+			UpdateVisibleInstances(viewProjection);
+			if (instanceCount_ == 0)
+			{
+				return;
+			}
+
+			ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+			SRVManager::GetInstance()->PreDraw();
+			ObjectIdPipeline::GetInstance()->BindInstanced(commandList, objectId);
+			SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(0, instanceSrvIndex_);
+			commandList->SetGraphicsRootConstantBufferView(1, perViewResource_->GetGPUVirtualAddress());
+			for (auto& mesh : model_->GetMeshes())
+			{
+				mesh.DrawInstanced(static_cast<UINT>(instanceCount_)); // Instanceごとの行列を維持したままComponent IDだけを出力する。
+			}
+		}
 
 	public: /// ---------- アクセサ ---------- ///
 
