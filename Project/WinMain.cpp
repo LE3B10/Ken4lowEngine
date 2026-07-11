@@ -7,8 +7,8 @@ using namespace Ken4lowEngine;
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
 {
 #ifdef _DEBUG
-	// 解放し忘れがないか確認するリークチェッカー
-	D3DResourceLeakChecker resourceLeakCheck;
+	// シングルトン群の破棄後に最終報告するため、リークチェッカーを先に生成したstaticへ変更する。
+	static D3DResourceLeakChecker resourceLeakCheck;
 #endif // _DEBUG
 
 	// Frameworkの派生クラスであるGameEngineを使用
