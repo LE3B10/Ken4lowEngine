@@ -15,136 +15,119 @@ namespace Ken4lowEngine
 {
 	namespace
 	{
-		bool IsDifferentVector3(const Vector3& v1, const Vector3& v2)
+		bool IsDifferentVector3(const Vector3& lhs, const Vector3& rhs)
 		{
-			constexpr float kEpsilon = 0.0001f;
-
-			// 小さな誤差で毎フレーム再構築されないようにする
-			return
-				std::abs(v1.x - v2.x) > kEpsilon ||
-				std::abs(v1.y - v2.y) > kEpsilon ||
-				std::abs(v1.z - v2.z) > kEpsilon;
+			constexpr float epsilon = 0.0001f;
+			return std::abs(lhs.x - rhs.x) > epsilon ||
+				std::abs(lhs.y - rhs.y) > epsilon ||
+				std::abs(lhs.z - rhs.z) > epsilon;
 		}
 
-		/// <summary>
-		/// JSONからVector3を読み取る
-		/// </summary>
 		Vector3 ReadVector3FromJson(const nlohmann::json& json, const char* key, const Vector3& defaultValue)
 		{
-			if (!json.contains(key) || !json[key].is_array() || json[key].size() != 3)
-			{
-				return defaultValue; // 配列が存在しない場合はデフォルト値を返す
-			}
+			if (!json.contains(key) || !json[key].is_array() || json[key].size() != 3) return defaultValue;
+			return { json[key][0].get<float>(), json[key][1].get<float>(), json[key][2].get<float>() };
+		}
 
-			return {
-				json[key][0].get<float>(),
-				json[key][1].get<float>(),
-				json[key][2].get<float>()
-			};
+		Vector4 ReadVector4FromJson(const nlohmann::json& json, const char* key, const Vector4& defaultValue)
+		{
+			if (!json.contains(key) || !json[key].is_array() || json[key].size() != 4) return defaultValue;
+			return { json[key][0].get<float>(), json[key][1].get<float>(), json[key][2].get<float>(), json[key][3].get<float>() };
+		}
+
+		float DivideScale(float value, float parentValue)
+		{
+			return std::abs(parentValue) > 0.0001f ? value / parentValue : value;
 		}
 	}
 
 	void InstancedModelComponent::Initialize()
 	{
-		SceneComponent::Initialize(); // 親子関係を考慮したWorldTransformを初期計算する。
+		SceneComponent::Initialize();
 		hasInitialized_ = true;
-
+		EnsureInstanceLayout();
 		RebuildRenderer();
 	}
 
 	void InstancedModelComponent::Update(float deltaTime)
 	{
-		SceneComponent::Update(deltaTime); // SceneComponent側でWorldTransformを更新する。
-		RefreshSharedMaterialBinding(); // MaterialPreset編集による共有Asset差し替えを描画前に反映する。
+		UpdateInstanceRenderData(deltaTime, false);
+	}
 
+	void InstancedModelComponent::UpdateEditor(float deltaTime)
+	{
+		UpdateInstanceRenderData(deltaTime, true); // Edit/Pause中もGizmoで変更したInstanceだけGPU Bufferへ反映する。
+	}
+
+	void InstancedModelComponent::UpdateInstanceRenderData(float deltaTime, bool editorOnly)
+	{
+		if (editorOnly) SceneComponent::UpdateEditor(deltaTime);
+		else SceneComponent::Update(deltaTime);
+
+		RefreshSharedMaterialBinding();
 		const Vector3 currentWorldPosition = GetWorldPosition();
 		const Vector3 currentWorldRotation = GetWorldRotation();
 		const Vector3 currentWorldScale = GetWorldScale();
-
 		if (!hasLastWorldTransform_ ||
 			IsDifferentVector3(currentWorldPosition, lastWorldPosition_) ||
 			IsDifferentVector3(currentWorldRotation, lastWorldRotation_) ||
 			IsDifferentVector3(currentWorldScale, lastWorldScale_))
 		{
-			RequestRebuild(); // 親RootのTransform変更をGPUインスタンス配置へ反映する
+			RequestRebuild();
 			lastWorldPosition_ = currentWorldPosition;
 			lastWorldRotation_ = currentWorldRotation;
 			lastWorldScale_ = currentWorldScale;
 			hasLastWorldTransform_ = true;
 		}
-
-		if (isRebuildRequested_)
-		{
-			RebuildInstances(); // ImGuiや外部設定で変更された配置をGPU用データへ反映する。
-		}
+		if (isRebuildRequested_) RebuildInstances();
 	}
 
 	void InstancedModelComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
 	{
-		RefreshSharedMaterialBinding(); // Physics後更新だけが走る場合も共有Materialの変更を取りこぼさない。
+		RefreshSharedMaterialBinding();
 		const Vector3 currentWorldPosition = GetWorldPosition();
 		const Vector3 currentWorldRotation = GetWorldRotation();
 		const Vector3 currentWorldScale = GetWorldScale();
-
 		if (!hasLastWorldTransform_ ||
 			IsDifferentVector3(currentWorldPosition, lastWorldPosition_) ||
 			IsDifferentVector3(currentWorldRotation, lastWorldRotation_) ||
 			IsDifferentVector3(currentWorldScale, lastWorldScale_))
 		{
-			RequestRebuild(); // 親RootのTransform変更をGPUインスタンス配置へ反映する
+			RequestRebuild();
 			lastWorldPosition_ = currentWorldPosition;
 			lastWorldRotation_ = currentWorldRotation;
 			lastWorldScale_ = currentWorldScale;
 			hasLastWorldTransform_ = true;
 		}
-
-		if (isRebuildRequested_)
-		{
-			RebuildInstances(); // ImGuiや外部設定で変更された配置をGPU用データへ反映する。
-		}
+		if (isRebuildRequested_) RebuildInstances();
 	}
 
 	void InstancedModelComponent::Draw()
 	{
-		if (!visible_ || !renderer_)
-		{
-			return; // Renderer未生成の場合は描画しない。
-		}
-
-		renderer_->Draw(); // GPUインスタンシングでまとめて描画する。
+		if (visible_ && renderer_) renderer_->Draw();
 	}
 
 	void InstancedModelComponent::DrawImGui()
 	{
-		SceneComponent::DrawImGui(); // Component全体の基準Transformを編集できるようにする。
-
+		SceneComponent::DrawImGui();
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("Instanced Model Component");
 		ImGui::Text("現在のモデル: %s", modelPath_.empty() ? "未選択" : modelPath_.c_str());
-
 		std::string selectedModelPath = modelPath_;
 		if (AssetPathSelector::DrawAssetSelector("一覧から選択##InstancedModelComponentModelPath", selectedModelPath, AssetType::Model))
 		{
 			SetModelPath(selectedModelPath);
 		}
-
 		ComponentPropertyUtility::DrawImGui(CreateProperties(false));
 		DrawMaterialBindingImGui();
-
 		ImGui::Text("Renderer: %s", renderer_ ? "Created" : "None");
 		ImGui::Text("Model: %s", rendererStatus_.c_str());
-
+		ImGui::Text("Editable Instances: %zu", instanceTransforms_.size());
 		if (renderer_)
 		{
 			ImGui::Text("Visible: %zu / Total: %zu / Capacity: %zu",
-				renderer_->GetVisibleInstanceCount(),
-				renderer_->GetInstanceCount(),
-				renderer_->GetMaxInstanceCount());
-
-			if (renderer_->WasDrawSkippedByBudget())
-			{
-				ImGui::Text("Draw skipped by index budget.");
-			}
+				renderer_->GetVisibleInstanceCount(), renderer_->GetInstanceCount(), renderer_->GetMaxInstanceCount());
+			if (renderer_->WasDrawSkippedByBudget()) ImGui::Text("Draw skipped by index budget.");
 		}
 #endif // USE_IMGUI
 	}
@@ -153,46 +136,70 @@ namespace Ken4lowEngine
 	{
 		if (renderer_)
 		{
-			renderer_->Finalize(); // GPUリソースを明示的に解放する。
+			renderer_->Finalize();
 			renderer_.reset();
 		}
-
 		isInitializedRenderer_ = false;
 		isRebuildRequested_ = true;
+		isLayoutRebuildRequested_ = true;
 		rendererStatus_ = modelPath_.empty() ? "Empty" : "Finalized";
 		hasInitialized_ = false;
 	}
 
 	void InstancedModelComponent::ToJson(nlohmann::json& outJson) const
 	{
-		SceneComponent::ToJson(outJson); // 親クラスの共通情報を保存する。
-
-		outJson["Class"] = GetClassTypeName(); // InstancedModelComponentとして保存する
-
+		SceneComponent::ToJson(outJson);
+		outJson["Class"] = GetClassTypeName();
 		ComponentPropertyUtility::ToJson(const_cast<InstancedModelComponent*>(this)->CreateProperties(), outJson);
-		if (materialBinding_.HasBinding())
+		if (materialBinding_.HasBinding()) outJson["Material"] = materialBinding_.ToJson();
+
+		nlohmann::json instances = nlohmann::json::array();
+		for (const InstanceTransform& transform : instanceTransforms_)
 		{
-			outJson["Material"] = materialBinding_.ToJson(); // Material未指定の旧Actor JSONには新しい項目を追加しない。
+			instances.push_back({
+				{ "Position", { transform.position.x, transform.position.y, transform.position.z } },
+				{ "Rotation", { transform.rotation.x, transform.rotation.y, transform.rotation.z } },
+				{ "Scale", { transform.scale.x, transform.scale.y, transform.scale.z } },
+				{ "Color", { transform.color.x, transform.color.y, transform.color.z, transform.color.w } }
+				});
 		}
+		outJson["Instances"] = std::move(instances); // 個別Gizmo編集したLocal Transformを保存する。
 	}
 
 	void InstancedModelComponent::FromJson(const nlohmann::json& inJson)
 	{
-		SceneComponent::FromJson(inJson); // 親クラスの共通情報を復元する。
-
+		SceneComponent::FromJson(inJson);
 		ComponentPropertyUtility::FromJson(CreateProperties(), inJson);
 		const auto materialIt = inJson.find("Material");
-		if (materialIt != inJson.end() && materialIt->is_object())
-		{
-			materialBinding_.FromJson(*materialIt); // Phase 1と同じJSON形式を再利用する。
-		}
-		else
-		{
-			materialBinding_ = MaterialBinding{}; // 旧JSONはモデル既定Materialへフォールバックする。
-		}
-		ApplyMaterialBinding();
+		if (materialIt != inJson.end() && materialIt->is_object()) materialBinding_.FromJson(*materialIt);
+		else materialBinding_ = MaterialBinding{};
 
-		RequestRebuild(); // JSON復元後の設定でインスタンス配置を再構築する
+		instanceTransforms_.clear();
+		const auto instancesIt = inJson.find("Instances");
+		if (instancesIt != inJson.end() && instancesIt->is_array())
+		{
+			const size_t count = std::min<size_t>(instancesIt->size(), 30000u);
+			instanceTransforms_.reserve(count);
+			for (size_t i = 0; i < count; ++i)
+			{
+				const nlohmann::json& instanceJson = (*instancesIt)[i];
+				if (!instanceJson.is_object()) continue;
+				InstanceTransform transform{};
+				transform.position = ReadVector3FromJson(instanceJson, "Position", {});
+				transform.rotation = ReadVector3FromJson(instanceJson, "Rotation", {});
+				transform.scale = ReadVector3FromJson(instanceJson, "Scale", { 1.0f, 1.0f, 1.0f });
+				transform.color = ReadVector4FromJson(instanceJson, "Color", { 1.0f, 1.0f, 1.0f, 1.0f });
+				instanceTransforms_.push_back(transform);
+			}
+			if (!instanceTransforms_.empty())
+			{
+				instanceCount_ = static_cast<int>(instanceTransforms_.size());
+				isLayoutRebuildRequested_ = false;
+			}
+		}
+		if (instanceTransforms_.empty()) isLayoutRebuildRequested_ = true;
+		ApplyMaterialBinding();
+		RequestRebuild();
 	}
 
 	void InstancedModelComponent::SetModelPath(std::string_view modelPath)
@@ -205,16 +212,14 @@ namespace Ken4lowEngine
 				RebuildRenderer();
 				RequestRebuild();
 			}
-			return; // 同じモデルパスなら再生成しない
+			return;
 		}
-
-		modelPath_ = newModelPath; // string_viewは保持せず、内部で所有する。
+		modelPath_ = newModelPath;
 		if (renderer_)
 		{
 			renderer_->Finalize();
 			renderer_.reset();
 		}
-
 		isInitializedRenderer_ = false;
 		RebuildRenderer();
 		RequestRebuild();
@@ -222,53 +227,95 @@ namespace Ken4lowEngine
 
 	void InstancedModelComponent::SetInstanceCount(int instanceCount)
 	{
-		instanceCount_ = std::clamp(instanceCount, 1, 30000); // 極端な数でGPU負荷が暴れないよう制限する。
-		RequestRebuild();
+		const int clampedCount = std::clamp(instanceCount, 1, 30000);
+		if (instanceCount_ == clampedCount) return;
+		instanceCount_ = clampedCount;
+		RequestLayoutRebuild();
+		if (renderer_ && static_cast<size_t>(instanceCount_) > renderer_->GetMaxInstanceCount()) RebuildRenderer();
 	}
 
 	void InstancedModelComponent::SetSpacing(float spacing)
 	{
-		spacing_ = std::max(spacing, 0.1f); // 0以下の間隔で重なりすぎないようにする。
-		RequestRebuild();
+		spacing_ = std::max(spacing, 0.1f);
+		RequestLayoutRebuild();
 	}
 
 	void InstancedModelComponent::SetInstanceScale(const Vector3& scale)
 	{
-		instanceScale_ = {
-			std::max(scale.x, 0.01f),
-			std::max(scale.y, 0.01f),
-			std::max(scale.z, 0.01f)
-		};
-		RequestRebuild();
+		instanceScale_ = { std::max(scale.x, 0.01f), std::max(scale.y, 0.01f), std::max(scale.z, 0.01f) };
+		RequestLayoutRebuild();
 	}
 
 	void InstancedModelComponent::SetMaterialAssetId(std::string_view assetId)
 	{
 		materialBinding_.SetAssetId(assetId);
-		ApplyMaterialBinding(); // Editorやゲームコードからの変更を生成済みRendererへ即時反映する。
+		ApplyMaterialBinding();
 	}
 
 	void InstancedModelComponent::SetMaterialOverrideEnabled(bool enabled)
 	{
 		materialBinding_.SetUseOverride(enabled);
-		ApplyMaterialBinding(); // Override切り替え時に共有Assetまたはモデル既定へ安全に戻す。
+		ApplyMaterialBinding();
+	}
+
+	bool InstancedModelComponent::GetInstanceLocalTransform(size_t instanceIndex, InstanceTransform& outTransform) const
+	{
+		if (instanceIndex >= instanceTransforms_.size()) return false;
+		outTransform = instanceTransforms_[instanceIndex];
+		return true;
+	}
+
+	bool InstancedModelComponent::GetInstanceWorldTransform(size_t instanceIndex, InstanceTransform& outTransform) const
+	{
+		if (!GetInstanceLocalTransform(instanceIndex, outTransform)) return false;
+		const Vector3 baseScale = GetWorldScale();
+		outTransform.position += GetWorldPosition();
+		outTransform.rotation += GetWorldRotation();
+		outTransform.scale = {
+			outTransform.scale.x * baseScale.x,
+			outTransform.scale.y * baseScale.y,
+			outTransform.scale.z * baseScale.z
+		};
+		return true;
+	}
+
+	bool InstancedModelComponent::SetInstanceLocalTransform(size_t instanceIndex, const InstanceTransform& transform)
+	{
+		if (instanceIndex >= instanceTransforms_.size()) return false;
+		instanceTransforms_[instanceIndex] = transform;
+		instanceTransforms_[instanceIndex].scale = {
+			std::max(std::abs(transform.scale.x), 0.001f),
+			std::max(std::abs(transform.scale.y), 0.001f),
+			std::max(std::abs(transform.scale.z), 0.001f)
+		};
+		RequestRebuild();
+		return true;
+	}
+
+	bool InstancedModelComponent::SetInstanceWorldTransform(size_t instanceIndex, const InstanceTransform& transform)
+	{
+		InstanceTransform local = transform;
+		local.position -= GetWorldPosition();
+		local.rotation -= GetWorldRotation();
+		const Vector3 baseScale = GetWorldScale();
+		local.scale = {
+			DivideScale(transform.scale.x, baseScale.x),
+			DivideScale(transform.scale.y, baseScale.y),
+			DivideScale(transform.scale.z, baseScale.z)
+		};
+		return SetInstanceLocalTransform(instanceIndex, local);
 	}
 
 	void InstancedModelComponent::ApplyMaterialBinding()
 	{
-		if (!renderer_ || !isInitializedRenderer_)
-		{
-			return;
-		}
-		materialRepositoryRevision_ = MaterialRepository::GetInstance()->GetRevision(); // 今回反映したRepository世代を記録する。
-
+		if (!renderer_ || !isInitializedRenderer_) return;
+		materialRepositoryRevision_ = MaterialRepository::GetInstance()->GetRevision();
 		if (!materialBinding_.HasBinding())
 		{
 			renderer_->ResetMaterialBinding();
 			materialBindingStatus_ = "モデル既定Materialを使用中";
 			return;
 		}
-
 		MaterialDesc resolvedDesc{};
 		if (!materialBinding_.Resolve(resolvedDesc))
 		{
@@ -276,7 +323,6 @@ namespace Ken4lowEngine
 			materialBindingStatus_ = "MaterialAssetが見つからないためモデル既定へフォールバック";
 			return;
 		}
-
 		renderer_->ApplyMaterialDesc(resolvedDesc);
 		materialBindingStatus_ = materialBinding_.IsUsingOverride()
 			? "Component固有Material Overrideを使用中"
@@ -285,69 +331,65 @@ namespace Ken4lowEngine
 
 	void InstancedModelComponent::RefreshSharedMaterialBinding()
 	{
-		if (!renderer_ || materialBinding_.GetAssetId().empty() || materialBinding_.IsUsingOverride())
-		{
-			return; // Renderer未生成・モデル既定・Component固有OverrideはRepository更新の影響を受けない。
-		}
-
+		if (!renderer_ || materialBinding_.GetAssetId().empty() || materialBinding_.IsUsingOverride()) return;
 		const uint64_t currentRevision = MaterialRepository::GetInstance()->GetRevision();
-		if (currentRevision != materialRepositoryRevision_)
-		{
-			ApplyMaterialBinding(); // MaterialPreset編集を全インスタンスへまとめて再反映する。
-		}
+		if (currentRevision != materialRepositoryRevision_) ApplyMaterialBinding();
 	}
 
 	void InstancedModelComponent::DrawMaterialBindingImGui()
 	{
 #ifdef USE_IMGUI
-		if (Ken4lowEngine::DrawMaterialBindingImGui(materialBinding_, "InstancedModelComponent"))
-		{
-			ApplyMaterialBinding(); // 共通Editorの変更を全インスタンス描画へ反映する。
-		}
+		if (Ken4lowEngine::DrawMaterialBindingImGui(materialBinding_, "InstancedModelComponent")) ApplyMaterialBinding();
 		ImGui::TextDisabled("状態: %s", materialBindingStatus_.c_str());
 #endif // USE_IMGUI
 	}
 
-	void InstancedModelComponent::RebuildInstances()
+	void InstancedModelComponent::EnsureInstanceLayout()
 	{
-		if (!renderer_ || !isInitializedRenderer_)
-		{
-			return; // Renderer未生成の場合は再構築できない。
-		}
-
 		const int count = std::clamp(instanceCount_, 1, 30000);
+		if (!isLayoutRebuildRequested_ && instanceTransforms_.size() == static_cast<size_t>(count)) return;
+		instanceTransforms_.clear();
+		instanceTransforms_.reserve(static_cast<size_t>(count));
 		const int columns = static_cast<int>(std::ceil(std::sqrt(static_cast<float>(count))));
-
-		std::vector<InstancedObject3DRenderer::InstanceTransform> transforms;
-		transforms.reserve(static_cast<size_t>(count));
-
-		const Vector3 basePosition = GetWorldPosition();
-		const Vector3 baseRotation = GetWorldRotation();
-		const Vector3 baseScale = GetWorldScale();
-
+		const float centerOffset = static_cast<float>(columns - 1) * 0.5f;
 		for (int i = 0; i < count; ++i)
 		{
 			const int x = i % columns;
 			const int z = i / columns;
-
-			InstancedObject3DRenderer::InstanceTransform transform{};
+			InstanceTransform transform{};
 			transform.position = {
-				basePosition.x + (static_cast<float>(x) - columns * 0.5f) * spacing_,
-				basePosition.y,
-				basePosition.z + (static_cast<float>(z) - columns * 0.5f) * spacing_
+				(static_cast<float>(x) - centerOffset) * spacing_,
+				0.0f,
+				(static_cast<float>(z) - centerOffset) * spacing_
 			};
-			transform.rotation = baseRotation;
-			transform.scale = {
-				baseScale.x * instanceScale_.x,
-				baseScale.y * instanceScale_.y,
-				baseScale.z * instanceScale_.z
-			};
-			transform.color = { 1.0f, 1.0f, 1.0f, 1.0f };
-
-			transforms.push_back(transform);
+			transform.scale = instanceScale_;
+			instanceTransforms_.push_back(transform);
 		}
+		isLayoutRebuildRequested_ = false;
+	}
 
-		renderer_->SetTransforms(transforms); // 構築したTransform配列をGPUインスタンスデータへ転送する。
+	void InstancedModelComponent::RebuildInstances()
+	{
+		if (!renderer_ || !isInitializedRenderer_) return;
+		EnsureInstanceLayout();
+		std::vector<InstanceTransform> worldTransforms;
+		worldTransforms.reserve(instanceTransforms_.size());
+		const Vector3 basePosition = GetWorldPosition();
+		const Vector3 baseRotation = GetWorldRotation();
+		const Vector3 baseScale = GetWorldScale();
+		for (const InstanceTransform& local : instanceTransforms_)
+		{
+			InstanceTransform world = local;
+			world.position += basePosition;
+			world.rotation += baseRotation;
+			world.scale = {
+				local.scale.x * baseScale.x,
+				local.scale.y * baseScale.y,
+				local.scale.z * baseScale.z
+			};
+			worldTransforms.push_back(world);
+		}
+		renderer_->SetTransforms(worldTransforms);
 		isRebuildRequested_ = false;
 	}
 
@@ -358,21 +400,17 @@ namespace Ken4lowEngine
 			renderer_->Finalize();
 			renderer_.reset();
 		}
-
 		isInitializedRenderer_ = false;
-
 		if (modelPath_.empty())
 		{
 			rendererStatus_ = "Empty";
 			return false;
 		}
-
 		if (!hasInitialized_)
 		{
 			rendererStatus_ = "Waiting Initialize";
 			return false;
 		}
-
 		try
 		{
 			renderer_ = std::make_unique<InstancedObject3DRenderer>();
@@ -380,43 +418,48 @@ namespace Ken4lowEngine
 			renderer_->SetDebugIndexBudget(50'000'000ull);
 			isInitializedRenderer_ = true;
 			rendererStatus_ = "Loaded";
-			ApplyMaterialBinding(); // Renderer再生成後もComponentの共有AssetまたはOverrideを復元する。
+			ApplyMaterialBinding();
 			RebuildInstances();
 			return true;
-		} catch (const std::exception& e)
+		}
+		catch (const std::exception& exception)
 		{
 			renderer_.reset();
-			rendererStatus_ = std::string("Failed: ") + e.what();
-		} catch (...)
+			rendererStatus_ = std::string("Failed: ") + exception.what();
+		}
+		catch (...)
 		{
 			renderer_.reset();
 			rendererStatus_ = "Failed";
 		}
-
 		isInitializedRenderer_ = false;
 		return false;
 	}
 
 	void InstancedModelComponent::RequestRebuild()
 	{
-		isRebuildRequested_ = true; // 次回Updateで安全に配置を再構築する。
+		isRebuildRequested_ = true;
+	}
+
+	void InstancedModelComponent::RequestLayoutRebuild()
+	{
+		isLayoutRebuildRequested_ = true;
+		RequestRebuild();
 	}
 
 	std::vector<ComponentProperty> InstancedModelComponent::CreateProperties(bool includeModelPath)
 	{
 		std::vector<ComponentProperty> properties = {
-			{ "Visible", "表示", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return visible_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) { SetVisible(*typedValue); } } },
-			{ "InstanceCount", "インスタンス数", ComponentPropertyType::Int, [this]() -> ComponentPropertyValue { return instanceCount_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<int>(&value)) { SetInstanceCount(*typedValue); } }, 1.0f, 30000.0f, 1.0f, true },
-			{ "Spacing", "間隔", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return spacing_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) { SetSpacing(*typedValue); } }, 0.1f, 50.0f, 0.05f, true },
-			{ "InstanceScale", "インスタンススケール", ComponentPropertyType::Vector3, [this]() -> ComponentPropertyValue { return instanceScale_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector3>(&value)) { SetInstanceScale(*typedValue); } }, 0.01f, 100.0f, 0.05f, true }
+			{ "Visible", "表示", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return visible_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<bool>(&value)) SetVisible(*typedValue); } },
+			{ "InstanceCount", "インスタンス数", ComponentPropertyType::Int, [this]() -> ComponentPropertyValue { return instanceCount_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<int>(&value)) SetInstanceCount(*typedValue); }, 1.0f, 30000.0f, 1.0f, true },
+			{ "Spacing", "間隔", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return spacing_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<float>(&value)) SetSpacing(*typedValue); }, 0.1f, 50.0f, 0.05f, true },
+			{ "InstanceScale", "インスタンススケール", ComponentPropertyType::Vector3, [this]() -> ComponentPropertyValue { return instanceScale_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<Vector3>(&value)) SetInstanceScale(*typedValue); }, 0.01f, 100.0f, 0.05f, true }
 		};
-
 		if (includeModelPath)
 		{
 			properties.insert(properties.begin(),
-				{ "ModelPath", "モデルパス", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return modelPath_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) { SetModelPath(*typedValue); } } });
+				{ "ModelPath", "モデルパス", ComponentPropertyType::String, [this]() -> ComponentPropertyValue { return modelPath_; }, [this](const ComponentPropertyValue& value) { if (const auto* typedValue = std::get_if<std::string>(&value)) SetModelPath(*typedValue); } });
 		}
-
 		return properties;
 	}
-}
+} // namespace Ken4lowEngine
