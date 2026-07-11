@@ -125,6 +125,52 @@ namespace Ken4lowEngine
 			desc.pStaticSamplers = samplers.data();
 			return desc;
 		}
+
+		D3D12_ROOT_SIGNATURE_DESC MakeShadowRootSignatureDesc(
+			D3D12_DESCRIPTOR_RANGE& instanceRange,
+			std::array<D3D12_ROOT_PARAMETER, 2>& parameters)
+		{
+			instanceRange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			instanceRange.NumDescriptors = 1;
+			instanceRange.BaseShaderRegister = 0;
+			instanceRange.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+			parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+			parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+			parameters[0].Descriptor.ShaderRegister = 0;
+
+			parameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+			parameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
+			parameters[1].DescriptorTable.NumDescriptorRanges = 1;
+			parameters[1].DescriptorTable.pDescriptorRanges = &instanceRange;
+
+			D3D12_ROOT_SIGNATURE_DESC desc{};
+			desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+			desc.NumParameters = static_cast<UINT>(parameters.size());
+			desc.pParameters = parameters.data();
+			return desc;
+		}
+
+		GraphicsPipelineDesc MakeShadowPipelineDesc(const D3D12_INPUT_LAYOUT_DESC& inputLayout)
+		{
+			GraphicsPipelineDesc desc{};
+			desc.blendState = PipelineStatePresets::MakeBlendOpaque();
+
+			auto rasterizer = PipelineStatePresets::MakeRasterizerCullBack();
+			rasterizer.DepthBias = 300;
+			rasterizer.SlopeScaledDepthBias = 0.75f;
+			rasterizer.DepthBiasClamp = 0.0f;
+			desc.rasterizerState = rasterizer;
+
+			desc.depthStencilState = PipelineStatePresets::MakeDepthReadWrite();
+			desc.numRenderTargets = 0;
+			desc.dsvFormat = DXGI_FORMAT_D32_FLOAT;
+			desc.primitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+			desc.sampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+			desc.sampleCount = 1;
+			desc.inputLayout = inputLayout;
+			return desc;
+		}
 	}
 
 	void InstancedObject3DPipelineSet::Initialize(PipelineFactory& factory, DXCCompilerManager* dxcManager, DXGI_FORMAT rtvFormat, DXGI_FORMAT dsvFormat)
@@ -135,36 +181,55 @@ namespace Ken4lowEngine
 
 		const ShaderDescriptor& vs = Object3DShaderManifest::Get(Object3DShaderId::Object3DInstancingVS);
 		const ShaderDescriptor& ps = Object3DShaderManifest::Get(Object3DShaderId::Object3DPS);
+		const ShaderDescriptor& shadowVs = Object3DShaderManifest::Get(Object3DShaderId::Object3DInstancingShadowVS);
 		ComPtr<IDxcBlob> vsBlob = ShaderCompiler::CompileShader(vs, dxcManager);
 		ComPtr<IDxcBlob> psBlob = ShaderCompiler::CompileShader(ps, dxcManager);
+		ComPtr<IDxcBlob> shadowVsBlob = ShaderCompiler::CompileShader(shadowVs, dxcManager);
 
-		std::array<D3D12_DESCRIPTOR_RANGE, 12> ranges{};
-		std::array<D3D12_ROOT_PARAMETER, kCount> parameters{};
-		std::array<D3D12_STATIC_SAMPLER_DESC, 3> samplers{};
-		D3D12_ROOT_SIGNATURE_DESC rootDesc = MakeRootSignatureDesc(ranges, parameters, samplers);
+		{
+			std::array<D3D12_DESCRIPTOR_RANGE, 12> ranges{};
+			std::array<D3D12_ROOT_PARAMETER, kCount> parameters{};
+			std::array<D3D12_STATIC_SAMPLER_DESC, 3> samplers{};
+			D3D12_ROOT_SIGNATURE_DESC rootDesc = MakeRootSignatureDesc(ranges, parameters, samplers);
 
-		GraphicsPipelineDesc desc{};
-		desc.blendState = PipelineStatePresets::MakeBlendOpaque();
-		desc.rasterizerState = PipelineStatePresets::MakeRasterizerCullNone();
-		desc.depthStencilState = PipelineStatePresets::MakeDepthReadWrite();
-		desc.numRenderTargets = 1;
-		desc.rtvFormats[0] = rtvFormat;
-		desc.dsvFormat = dsvFormat;
-		desc.primitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-		desc.sampleMask = D3D12_DEFAULT_SAMPLE_MASK;
-		desc.sampleCount = 1;
-		desc.inputLayout = inputLayout;
-		desc.debugName = L"Object3D.Instanced";
-		desc.shaders.vertexShader.blob = vsBlob;
-		desc.shaders.pixelShader.blob = psBlob;
+			GraphicsPipelineDesc desc{};
+			desc.blendState = PipelineStatePresets::MakeBlendOpaque();
+			desc.rasterizerState = PipelineStatePresets::MakeRasterizerCullNone();
+			desc.depthStencilState = PipelineStatePresets::MakeDepthReadWrite();
+			desc.numRenderTargets = 1;
+			desc.rtvFormats[0] = rtvFormat;
+			desc.dsvFormat = dsvFormat;
+			desc.primitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+			desc.sampleMask = D3D12_DEFAULT_SAMPLE_MASK;
+			desc.sampleCount = 1;
+			desc.inputLayout = inputLayout;
+			desc.debugName = L"Object3D.Instanced";
+			desc.shaders.vertexShader.blob = vsBlob;
+			desc.shaders.pixelShader.blob = psBlob;
 
-		defaultPipeline_ = factory.CreateGraphicsPipeline(desc, rootDesc);
-		if (defaultPipeline_.rootSignature) { defaultPipeline_.rootSignature->SetName(L"Object3D.Instanced.RootSignature"); }
-		if (defaultPipeline_.pipelineState) { defaultPipeline_.pipelineState->SetName(L"Object3D.Instanced.PSO"); }
+			defaultPipeline_ = factory.CreateGraphicsPipeline(desc, rootDesc);
+			if (defaultPipeline_.rootSignature) { defaultPipeline_.rootSignature->SetName(L"Object3D.Instanced.RootSignature"); }
+			if (defaultPipeline_.pipelineState) { defaultPipeline_.pipelineState->SetName(L"Object3D.Instanced.PSO"); }
+		}
+
+		{
+			D3D12_DESCRIPTOR_RANGE instanceRange{};
+			std::array<D3D12_ROOT_PARAMETER, 2> parameters{};
+			D3D12_ROOT_SIGNATURE_DESC rootDesc = MakeShadowRootSignatureDesc(instanceRange, parameters);
+
+			GraphicsPipelineDesc desc = MakeShadowPipelineDesc(inputLayout);
+			desc.debugName = L"Object3D.InstancedShadow";
+			desc.shaders.vertexShader.blob = shadowVsBlob;
+
+			shadowPipeline_ = factory.CreateGraphicsPipeline(desc, rootDesc);
+			if (shadowPipeline_.rootSignature) { shadowPipeline_.rootSignature->SetName(L"Object3D.InstancedShadow.RootSignature"); }
+			if (shadowPipeline_.pipelineState) { shadowPipeline_.pipelineState->SetName(L"Object3D.InstancedShadow.PSO"); }
+		}
 	}
 
 	void InstancedObject3DPipelineSet::Finalize()
 	{
+		shadowPipeline_.Reset();
 		defaultPipeline_.Reset();
 	}
 }
