@@ -68,7 +68,6 @@ namespace Ken4lowEngine
 				return;
 			}
 
-			HandlePlayInputRelease();
 			ApplyViewportVisualPolicy();
 			DrawViewportToolbar();
 			EditorTransformGizmo::GetInstance()->Draw(); // Phase 7のSelectionをWorld/Local Transform Gizmoへ接続する。
@@ -94,6 +93,7 @@ namespace Ken4lowEngine
 			Play,
 			Pause,
 			Stop,
+			Build,
 		};
 #endif
 
@@ -141,23 +141,13 @@ namespace Ken4lowEngine
 			Wireframe::GetInstance()->SetDebugDrawEnabled(drawEditorVisuals);
 		}
 
-		void HandlePlayInputRelease()
-		{
-			EditorPlayController* playController = EditorPlayController::GetInstance();
-			Input* input = Input::GetInstance();
-			if (!playController->IsPlaying() || !playController->IsGameCaptured() || !input->TriggerRawKey(DIK_ESCAPE))
-			{
-				return;
-			}
-
-			playController->ReleaseGameInput();
-			input->SetGameInputEnabled(false);
-			input->SetLockCursor(false);
-			input->SetCursorVisible(true); // EscではPlayを止めず、ゲーム入力だけをEditorへ返す。
-		}
-
 		void ReleaseEditorCameraCursor()
 		{
+			if (!cameraLookActive_)
+			{
+				return; // ゲーム入力中のカーソル状態をEditor Camera終了処理で上書きしない。
+			}
+
 			cameraLookActive_ = false;
 			Input::GetInstance()->SetLockCursor(false);
 			Input::GetInstance()->SetCursorVisible(true);
@@ -190,16 +180,15 @@ namespace Ken4lowEngine
 			{
 				cameraLookActive_ = true;
 			}
-			if (!ImGui::IsMouseDown(ImGuiMouseButton_Right))
+			if (cameraLookActive_ && !ImGui::IsMouseDown(ImGuiMouseButton_Right))
 			{
-				cameraLookActive_ = false;
+				ReleaseEditorCameraCursor();
 			}
 
 			const bool middlePan = viewportRect.isHovered && ImGui::IsMouseDown(ImGuiMouseButton_Middle);
 			const bool wheelDolly = viewportRect.isHovered && std::abs(ImGui::GetIO().MouseWheel) > 0.001f;
 			if (!cameraLookActive_ && !middlePan && !wheelDolly)
 			{
-				ReleaseEditorCameraCursor();
 				return;
 			}
 
@@ -272,12 +261,16 @@ namespace Ken4lowEngine
 				drawList->AddTriangleFilled(ImVec2(center.x - 5.0f, center.y - 7.0f), ImVec2(center.x - 5.0f, center.y + 7.0f), ImVec2(center.x + 7.0f, center.y), color);
 				break;
 			case ToolbarGlyph::Pause:
-				// Pauseは文字やギリシャ数字を使わず、縦長の矩形を2本描画する。
+				// Pauseは文字記号を使わず、縦長の矩形を2本描画する。
 				drawList->AddRectFilled(ImVec2(center.x - 6.0f, center.y - 7.0f), ImVec2(center.x - 2.0f, center.y + 7.0f), color, 0.8f);
 				drawList->AddRectFilled(ImVec2(center.x + 2.0f, center.y - 7.0f), ImVec2(center.x + 6.0f, center.y + 7.0f), color, 0.8f);
 				break;
 			case ToolbarGlyph::Stop:
 				drawList->AddRectFilled(ImVec2(center.x - 6.5f, center.y - 6.5f), ImVec2(center.x + 6.5f, center.y + 6.5f), color, 1.0f);
+				break;
+			case ToolbarGlyph::Build:
+				drawList->AddLine(ImVec2(center.x - 6.0f, center.y + 7.0f), ImVec2(center.x + 4.0f, center.y - 3.0f), color, 3.0f);
+				drawList->AddRectFilled(ImVec2(center.x + 1.0f, center.y - 7.0f), ImVec2(center.x + 8.0f, center.y - 1.0f), color, 1.0f);
 				break;
 			}
 
@@ -322,6 +315,13 @@ namespace Ken4lowEngine
 			{
 				playController->Stop();
 				ReleaseEditorCameraCursor();
+			}
+			ImGui::SameLine();
+
+			const bool canBuild = !windowManager->IsAssetBuildRunning();
+			if (DrawToolbarGlyphButton("##BuildAllIcon", ToolbarGlyph::Build, canBuild, canBuild ? "全アセットをビルド" : "アセットをビルド中"))
+			{
+				windowManager->StartAllAssetBuild(); // 旧Toolbarを隠しても従来のBuild操作を失わないようアイコンから実行する。
 			}
 		}
 
