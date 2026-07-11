@@ -1282,6 +1282,7 @@
     <ClCompile Include="Engine\Scene\Management\SceneManager.cpp">
       <Filter>Engine\Scene\Management</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Editor\EditorContentBrowserPanel.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\UISystem\Crosshair\Crosshair.h">
@@ -2626,6 +2627,21 @@
       <Filter>Engine\Editor</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Editor\EditorContext.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\ActorWorldEditorBridge.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorAssetRegistryV2.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorContentBrowserPanel.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorHierarchyPanel.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorViewportController.h">
       <Filter>Engine\Editor</Filter>
     </ClInclude>
   </ItemGroup>
