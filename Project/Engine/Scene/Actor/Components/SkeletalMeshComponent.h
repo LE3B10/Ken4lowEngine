@@ -24,7 +24,7 @@ namespace Ken4lowEngine
 		void Draw() override;
 		void DrawShadow() override
 		{
-			if (!visible_ || !animationModel_ || !hasMesh_)
+			if (!visible_ || !IsCastShadowEnabled() || !animationModel_ || !hasMesh_)
 			{
 				return;
 			}
@@ -32,6 +32,7 @@ namespace Ken4lowEngine
 			SyncTransformToAnimationModel();
 			animationModel_->DrawShadow(); // Compute Skinning済みの現在姿勢をShadow Mapへ描画する。
 		}
+		bool SupportsShadowCasting() const override { return true; }
 		void DrawImGui() override;
 		void Finalize() override;
 
