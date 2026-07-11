@@ -2,6 +2,10 @@
 #include "DirectXCommon.h"
 #include "CameraManager.h"
 #include "DebugCamera.h"
+#include "ResourceManager.h"
+
+#include <algorithm>
+#include <cmath>
 
 #ifdef USE_IMGUI
 #include "ImGuiManager.h"
@@ -22,6 +26,11 @@ namespace Ken4lowEngine
 
 		pipelineSet_.Initialize(dxCommon_->GetPipelineFactory(), dxCommon_->GetDXCCompilerManager(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_D24_UNORM_S8_UINT);
 		instancedPipelineSet_.Initialize(dxCommon_->GetPipelineFactory(), dxCommon_->GetDXCCompilerManager(), DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, DXGI_FORMAT_D24_UNORM_S8_UINT);
+		shadowCasterPipelineSet_.Initialize(dxCommon_->GetPipelineFactory(), dxCommon_->GetDXCCompilerManager());
+
+		pointShadowPassResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(PointShadowPassGPU));
+		pointShadowPassResource_->Map(0, nullptr, reinterpret_cast<void**>(&pointShadowPassData_));
+		pointShadowPassData_->lightPositionAndFar = { 0.0f, 0.0f, 0.0f, 1.0f };
 
 		LightManager::GetInstance()->Initialize(dxCommon_);
 	}
@@ -29,6 +38,13 @@ namespace Ken4lowEngine
 	void Object3DCommon::Finalize()
 	{
 		LightManager::GetInstance()->Finalize();
+		if (pointShadowPassResource_)
+		{
+			pointShadowPassResource_->Unmap(0, nullptr);
+		}
+		pointShadowPassData_ = nullptr;
+		pointShadowPassResource_.Reset();
+		shadowCasterPipelineSet_.Finalize();
 		pipelineSet_.Finalize();
 		instancedPipelineSet_.Finalize();
 		cullingCameraMode_ = CullingCameraMode::MainCamera;
@@ -112,23 +128,60 @@ namespace Ken4lowEngine
 		return frustumCullingSystem_.IsVisible(worldBounds, !objectCullingEnabled, hasBounds, FrustumCullingSystem::CullingUnit::Mesh);
 	}
 
+	void Object3DCommon::UpdatePointShadowPassData()
+	{
+		if (!pointShadowPassData_)
+		{
+			return;
+		}
+
+		int32_t lightIndex = -1;
+		LightManager::PunctualLightGPU light{};
+		LightManager::ShadowCasterType casterType = LightManager::ShadowCasterType::None;
+		if (!LightManager::GetInstance()->TryGetActiveShadowCasterLightInfo(lightIndex, light, casterType) ||
+			casterType != LightManager::ShadowCasterType::Point)
+		{
+			pointShadowPassData_->lightPositionAndFar = { 0.0f, 0.0f, 0.0f, 1.0f };
+			return;
+		}
+
+		const float farZ = std::max({ std::fabs(light.radius), std::fabs(light.distance), 1.0f });
+		pointShadowPassData_->lightPositionAndFar = { light.position.x, light.position.y, light.position.z, farZ };
+	}
+
 	void Object3DCommon::SetShadowMapRenderSetting()
 	{
 		auto* commandList = dxCommon_->GetCommandManager()->GetCommandList();
-		const PipelineBundle& pipeline = pipelineSet_.GetShadow();
+		const bool isPointShadow = LightManager::GetInstance()->GetActiveShadowCasterType() == LightManager::ShadowCasterType::Point;
+		const PipelineBundle& pipeline = isPointShadow
+			? shadowCasterPipelineSet_.GetObjectPoint()
+			: shadowCasterPipelineSet_.GetObjectDepth();
 
 		commandList->SetGraphicsRootSignature(pipeline.rootSignature.Get());
 		commandList->SetPipelineState(pipeline.pipelineState.Get());
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		if (isPointShadow && pointShadowPassResource_)
+		{
+			UpdatePointShadowPassData();
+			commandList->SetGraphicsRootConstantBufferView(1, pointShadowPassResource_->GetGPUVirtualAddress()); // 6面で共通のLight位置とFar距離をPSへ渡す。
+		}
 	}
 
 	void Object3DCommon::SetInstancedShadowMapRenderSetting()
 	{
 		auto* commandList = dxCommon_->GetCommandManager()->GetCommandList();
-		const PipelineBundle& pipeline = instancedPipelineSet_.GetShadow();
+		const bool isPointShadow = LightManager::GetInstance()->GetActiveShadowCasterType() == LightManager::ShadowCasterType::Point;
+		const PipelineBundle& pipeline = isPointShadow
+			? shadowCasterPipelineSet_.GetInstancedPoint()
+			: shadowCasterPipelineSet_.GetInstancedDepth();
 
 		commandList->SetGraphicsRootSignature(pipeline.rootSignature.Get());
 		commandList->SetPipelineState(pipeline.pipelineState.Get());
-		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Shadow Passでも通常描画と同じ三角形トポロジを使用する。
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		if (isPointShadow && pointShadowPassResource_)
+		{
+			UpdatePointShadowPassData();
+			commandList->SetGraphicsRootConstantBufferView(2, pointShadowPassResource_->GetGPUVirtualAddress()); // Instancing用Rootのt0を避けてb1をIndex 2へ束縛する。
+		}
 	}
 }
