@@ -4,6 +4,8 @@
 #include "MaterialBinding.h"
 #include <InstancedObject3DRenderer.h>
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -50,6 +52,31 @@ namespace Ken4lowEngine
 			renderer_->DrawShadow(); // CPUで個別Drawせず、Shadow PassでもGPU Instancingを維持する。
 		}
 		bool SupportsShadowCasting() const override { return true; }
+
+		void CollectEditorPickingSpheres(std::vector<BoundingSphere>& outSpheres) const override
+		{
+			if (!visible_ || !IsActiveInHierarchy() || !renderer_ || instanceCount_ <= 0)
+			{
+				return;
+			}
+
+			const int count = std::max(instanceCount_, 1);
+			const int columns = std::max(1, static_cast<int>(std::ceil(std::sqrt(static_cast<float>(count)))));
+			const int rows = std::max(1, static_cast<int>(std::ceil(static_cast<float>(count) / static_cast<float>(columns))));
+			const float halfWidth = static_cast<float>(columns) * spacing_ * 0.5f;
+			const float halfDepth = static_cast<float>(rows) * spacing_ * 0.5f;
+			const Vector3& worldScale = GetWorldScale();
+			const float maximumScale = std::max({
+				std::abs(worldScale.x * instanceScale_.x),
+				std::abs(worldScale.y * instanceScale_.y),
+				std::abs(worldScale.z * instanceScale_.z),
+				0.5f });
+			Vector3 center = GetWorldPosition();
+			center.x -= spacing_ * 0.5f;
+			center.z -= spacing_ * 0.5f;
+			const float radius = std::sqrt(halfWidth * halfWidth + halfDepth * halfDepth) + maximumScale;
+			outSpheres.push_back({ center, radius }); // GPU Instance群全体を覆うBroad BoundsをActor ID Pickingへ渡す。
+		}
 
 		/// <summary>
 		/// InstancedModelComponentのImGui描画処理
