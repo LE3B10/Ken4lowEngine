@@ -1,50 +1,55 @@
-# ---------- YAMLファイル名 ---------- #
+# ---------- Workflow名 ---------- #
 name: BuildTests
 
 # ---------- トリガー ---------- #
-on: 
+on:
   push:
     branches:
       - master
 
+  pull_request:
+    branches:
+      - master
+
+  workflow_dispatch:
+
 # ---------- 環境変数 ---------- #
 env:
-  # リポジトリのルートディレクトリを基点としたソリューションファイルのパス
+  # リポジトリのルートを基準にしたSolutionファイルのパス
   SOLUTION_FILE_PATH: Project/Ken4lowEngine.sln
 
 # ---------- ジョブ ---------- #
 jobs:
-  # ---------- デバッグビルドジョブ ---------- #
-  debug-build:
-    runs-on: windows-2026
-    env:
-      CONFIGURATION: Debug
+  build:
+    name: Build ${{ matrix.configuration }}
+
+    # Visual Studio 2026とv145 Toolsetが入った公開Repository用Runner
+    runs-on: windows-2025-vs2026
+
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration:
+          - Debug
+          - Release
+
     steps:
-      - name: CheckOut
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v2
-        with: 
+        uses: microsoft/setup-msbuild@v3
+        with:
           msbuild-architecture: x64
 
-      # ---------- デバッグビルド ---------- #
-      - name: Build Debug
-        run: msbuild ${{ env.SOLUTION_FILE_PATH }} /p:Platform=x64 /p:Configuration=${{ env.CONFIGURATION }}
-          
-  # ---------- リリースビルドジョブ ---------- #
-  release-build:
-    runs-on: windows-2026
-    env:
-      CONFIGURATION: Release
-    steps:
-      - name: CheckOut
-        uses: actions/checkout@v4
+      - name: Show MSBuild Version
+        run: msbuild -version
 
-      - name: Add MSBuild to PATH
-        uses: microsoft/setup-msbuild@v2
-        with: 
-          msbuild-architecture: x64
-
-      - name: Build Release
-        run: msbuild ${{ env.SOLUTION_FILE_PATH }} /p:Platform=x64 /p:Configuration=${{ env.CONFIGURATION }}
+      - name: Build ${{ matrix.configuration }}
+        run: >
+          msbuild "${{ env.SOLUTION_FILE_PATH }}"
+          /m
+          /t:Rebuild
+          /p:Platform=x64
+          /p:Configuration=${{ matrix.configuration }}
+          /verbosity:minimal
