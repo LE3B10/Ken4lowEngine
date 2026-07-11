@@ -47,6 +47,11 @@ namespace Ken4lowEngine
 		virtual void Update([[maybe_unused]] float deltaTime) {}
 
 		/// <summary>
+		/// Editor停止中にTransformや描画用バッファだけを更新する処理。
+		/// </summary>
+		virtual void UpdateEditor([[maybe_unused]] float deltaTime) {} // ゲームロジックや物理を進めずEditor表示だけを同期する。
+
+		/// <summary>
 		/// PhysicsWorld更新後に呼ばれる後処理
 		/// </summary>
 		virtual void PostPhysicsUpdate([[maybe_unused]] float deltaTime) {}
