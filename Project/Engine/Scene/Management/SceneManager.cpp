@@ -1,6 +1,8 @@
 #define NOMINMAX
 #include "SceneManager.h"
 
+#include <ActorComponent.h>
+#include <ActorWorld.h>
 #include <SpriteManager.h>
 #include <GameTimer.h>
 
@@ -11,31 +13,84 @@
 
 #include <cassert>
 #include <algorithm>
+#include <vector>
 
 namespace K4E = ::Ken4lowEngine;
 
 namespace Ken4lowEngine
 {
-
 	SceneManager::SceneManager() = default;
-
 	SceneManager::~SceneManager() = default;
 
 	void SceneManager::Initialize()
 	{
-		// 遷移演出はApplicationLayerから注入された場合だけ初期化する。
-		if (sceneTransition_)
-		{
-			sceneTransition_->Initialize();
-		}
-
+		if (sceneTransition_) sceneTransition_->Initialize();
 		isTransitioning_ = false;
 		sceneSwapped_ = false;
 		pendingCrack_ = false;
-
 		coverHoldCounter_ = 0;
 		uncoverDelayCounter_ = 0;
 		unloadRequested_ = false;
+		editorPlaySessionActive_ = false;
+	}
+
+	void SceneManager::UpdateEditorPlaySession()
+	{
+#ifdef USE_IMGUI
+		if (!scene_ || K4E::EditorModeController::GetInstance()->IsGamePreviewMode())
+		{
+			return;
+		}
+
+		K4E::EditorPlayController* playController = K4E::EditorPlayController::GetInstance();
+		if (playController->IsPlaying() && !editorPlaySessionActive_)
+		{
+			scene_->BeginEditorPlay();
+			editorPlaySessionActive_ = true; // Pauseからの再開ではSnapshotを取り直さない。
+		}
+		else if (playController->IsEditing() && editorPlaySessionActive_)
+		{
+			scene_->EndEditorPlay();
+			editorPlaySessionActive_ = false;
+		}
+#endif // USE_IMGUI
+	}
+
+	void SceneManager::RefreshEditorVisualState(float deltaTime)
+	{
+#ifdef USE_IMGUI
+		ActorWorld* actorWorld = scene_ ? scene_->GetEditorActorWorld() : nullptr;
+		if (!actorWorld)
+		{
+			return;
+		}
+
+		for (const auto& actorOwner : actorWorld->GetActors())
+		{
+			Actor* actor = actorOwner.get();
+			if (!actor || !actor->IsActive() || actor->IsPendingDestroy())
+			{
+				continue;
+			}
+
+			std::vector<ActorComponent*> components;
+			for (const auto& componentOwner : actor->GetComponents())
+			{
+				ActorComponent* component = componentOwner.get();
+				if (component && component->IsActiveInHierarchy()) components.push_back(component);
+			}
+			std::sort(components.begin(), components.end(), [](const ActorComponent* lhs, const ActorComponent* rhs)
+				{
+					return lhs->GetUpdateOrder() < rhs->GetUpdateOrder();
+				});
+			for (ActorComponent* component : components)
+			{
+				component->UpdateEditor(deltaTime); // Edit/Pause中はTransformと描画バッファだけを更新する。
+			}
+		}
+#else
+		(void)deltaTime;
+#endif // USE_IMGUI
 	}
 
 	void SceneManager::Update()
@@ -43,16 +98,10 @@ namespace Ken4lowEngine
 		float dtRaw = K4E::GameTimer::GetInstance()->GetDeltaTime();
 		float dtFade = std::min(dtRaw, 1.0f / 30.0f);
 
-		if (sceneTransition_)
-		{
-			sceneTransition_->Update(dtFade);
-		}
+		if (sceneTransition_) sceneTransition_->Update(dtFade);
 
 		if (isTransitioning_)
 		{
-			// ----------------------------
-			// 旧シーンの覆い・段階解放
-			// ----------------------------
 			if (!sceneSwapped_)
 			{
 				if (sceneTransition_ && sceneTransition_->IsFullyCovered() && nextScene_)
@@ -64,49 +113,34 @@ namespace Ken4lowEngine
 							scene_->StartUnload();
 							unloadRequested_ = true;
 						}
-
 						scene_->UpdateUnload();
 					}
 
 					const bool readyToSwap = (!scene_) || scene_->IsReadyToSwapOut();
-
 					if (readyToSwap)
 					{
 						++coverHoldCounter_;
-
 						if (coverHoldCounter_ >= coverHoldFrames_)
 						{
 							ApplyNextScene();
 							sceneSwapped_ = true;
 							pendingCrack_ = true;
-
 							coverHoldCounter_ = 0;
 							uncoverDelayCounter_ = 0;
 							unloadRequested_ = false;
 						}
 					}
-					else
-					{
-						coverHoldCounter_ = 0;
-					}
+					else coverHoldCounter_ = 0;
 				}
-				else
-				{
-					coverHoldCounter_ = 0;
-				}
+				else coverHoldCounter_ = 0;
 			}
 
-			// ----------------------------
-			// 新シーンの段階ロード
-			// ----------------------------
 			if (pendingCrack_ && sceneTransition_ && sceneTransition_->IsFullyCovered() && scene_)
 			{
 				scene_->UpdateLoad();
-
 				if (scene_->IsReadyToStartUncover())
 				{
 					++uncoverDelayCounter_;
-
 					if (uncoverDelayCounter_ >= uncoverDelayFrames_)
 					{
 						sceneTransition_->StartCrack();
@@ -114,15 +148,9 @@ namespace Ken4lowEngine
 						uncoverDelayCounter_ = 0;
 					}
 				}
-				else
-				{
-					uncoverDelayCounter_ = 0;
-				}
+				else uncoverDelayCounter_ = 0;
 			}
 
-			// ----------------------------
-			// 遷移終了
-			// ----------------------------
 			if (sceneTransition_ && !sceneTransition_->IsBusy())
 			{
 				isTransitioning_ = false;
@@ -130,7 +158,6 @@ namespace Ken4lowEngine
 				coverHoldCounter_ = 0;
 				uncoverDelayCounter_ = 0;
 				unloadRequested_ = false;
-
 				if (hasQueuedChange_)
 				{
 					std::string name = queuedSceneName_;
@@ -141,67 +168,35 @@ namespace Ken4lowEngine
 			}
 		}
 
-		// DebugはPlay状態でUpdateを分離し、ReleaseはEditor状態を見ずに通常Updateする。
-		if (scene_)
+		UpdateEditorPlaySession();
+
+		if (scene_ && (!isTransitioning_ || sceneSwapped_))
 		{
-			if (!isTransitioning_ || sceneSwapped_)
-			{
-				bool shouldUpdateGame = true;
+			bool shouldUpdateGame = true;
 #ifdef USE_IMGUI
-				// Debug/EditorではPlay中だけ通常Updateし、Edit/Pause中はEditor更新に分離する。
-				// Game Preview Mode中はEditor UIのPlay状態に依存せず、実ゲーム確認として通常Updateを進める。
-				shouldUpdateGame = K4E::EditorModeController::GetInstance()->IsGamePreviewMode() || K4E::EditorPlayController::GetInstance()->IsPlaying();
-#else
-				// Release/GameではEditorPlayStateを参照せず、常に通常UpdateでTitleSceneを進行させる。
-				shouldUpdateGame = true;
+			shouldUpdateGame = K4E::EditorModeController::GetInstance()->IsGamePreviewMode() || K4E::EditorPlayController::GetInstance()->IsPlaying();
 #endif // USE_IMGUI
-				if (shouldUpdateGame)
-				{
-					scene_->Update();
-				}
-				else
-				{
-					scene_->UpdateEditor(dtRaw);
-				}
+			if (shouldUpdateGame)
+			{
+				scene_->Update();
+			}
+			else
+			{
+				scene_->UpdateEditor(dtRaw);
+				RefreshEditorVisualState(dtRaw);
 			}
 		}
 	}
 
-	void SceneManager::PrepareShadowPass()
-	{
-		if (scene_)
-		{
-			scene_->PrepareShadowPass(); // ShadowSystemがCasterを選ぶ前にEditor上の最新LightComponentを同期する。
-		}
-	}
-
-	void SceneManager::Draw3DObjects()
-	{
-		if (scene_)
-		{
-			scene_->Draw3DObjects();
-		}
-	}
-
-	void SceneManager::DrawShadowObjects()
-	{
-		if (scene_)
-		{
-			scene_->DrawShadowObjects();
-		}
-	}
+	void SceneManager::PrepareShadowPass() { if (scene_) scene_->PrepareShadowPass(); }
+	void SceneManager::Draw3DObjects() { if (scene_) scene_->Draw3DObjects(); }
+	void SceneManager::DrawShadowObjects() { if (scene_) scene_->DrawShadowObjects(); }
 
 	void SceneManager::Draw2DSprites()
 	{
-		if (scene_)
-		{
-			scene_->Draw2DSprites();
-		}
-
-		// シーン遷移演出は最後に描画して最前面にする
+		if (scene_) scene_->Draw2DSprites();
 		if (sceneTransition_)
 		{
-			// UI用の共通描画設定
 			K4E::SpriteManager::GetInstance()->SetRenderSetting_UI();
 			sceneTransition_->Draw2DSprites();
 		}
@@ -209,36 +204,27 @@ namespace Ken4lowEngine
 
 	void SceneManager::DrawImGui()
 	{
-		if (scene_)
-		{
-			scene_->DrawImGui();
-		}
-
-		if (sceneTransition_)
-		{
-			sceneTransition_->DrawImGui();
-		}
+		if (scene_) scene_->DrawImGui();
+		if (sceneTransition_) sceneTransition_->DrawImGui();
 	}
 
 	void SceneManager::Finalize()
 	{
 		if (scene_)
 		{
-			// Scene固有の終了処理だけを行い、所有権の解放はデストラクタへ任せる。
+			if (editorPlaySessionActive_)
+			{
+				scene_->EndEditorPlay();
+				editorPlaySessionActive_ = false;
+			}
 			scene_->Finalize();
 		}
-
-		if (sceneTransition_)
-		{
-			// 遷移演出の終了処理後も、unique_ptrの破棄はSceneManagerの寿命に任せる。
-			sceneTransition_->Finalize();
-		}
+		if (sceneTransition_) sceneTransition_->Finalize();
 	}
 
 	void SceneManager::ChangeScene(const std::string& sceneName)
 	{
 		assert(sceneFactory_);
-
 		if (IsTransitioning())
 		{
 			queuedSceneName_ = sceneName;
@@ -247,7 +233,6 @@ namespace Ken4lowEngine
 		}
 
 		nextScene_ = sceneFactory_->CreateScene(sceneName);
-
 		if (!sceneTransition_)
 		{
 			ApplyNextScene();
@@ -258,7 +243,6 @@ namespace Ken4lowEngine
 		isTransitioning_ = true;
 		sceneSwapped_ = false;
 		pendingCrack_ = false;
-
 		coverHoldCounter_ = 0;
 		uncoverDelayCounter_ = 0;
 		unloadRequested_ = false;
@@ -267,22 +251,22 @@ namespace Ken4lowEngine
 	void SceneManager::ApplyNextScene()
 	{
 		if (!nextScene_) return;
-
-		// 現在のシーンを終了
 		if (scene_)
 		{
+			if (editorPlaySessionActive_)
+			{
+				scene_->EndEditorPlay();
+				editorPlaySessionActive_ = false;
+			}
 			scene_->Finalize();
 		}
 
-		// 差し替え
 		scene_ = std::move(nextScene_);
-
 		if (scene_)
 		{
 			scene_->SetSceneManager(this);
-			scene_->Initialize();   // 軽い初期化だけ
-			scene_->StartLoad();    // 重いロードの開始
+			scene_->Initialize();
+			scene_->StartLoad();
 		}
 	}
-
-}
+} // namespace Ken4lowEngine
