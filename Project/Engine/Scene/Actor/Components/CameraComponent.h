@@ -1,13 +1,8 @@
 #pragma once
 #include "SceneComponent.h"
 
-#include <memory>
-
 namespace Ken4lowEngine
 {
-	/// ---------- 前方宣言 ---------- ///
-
-	// CameraComponentが所有するCameraを描画処理に渡すための参照を返す
 	class Camera;
 
 	/// -------------------------------------------------------------
@@ -15,83 +10,29 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	class CameraComponent : public SceneComponent
 	{
-	public: /// ---------- メンバ関数 ---------- ///
-
-		/// <summary>
-		/// CameraComponentの初期化処理
-		/// </summary>
+	public:
 		void Initialize() override;
-
-		/// <summary>
-		/// CameraComponentの1フレーム更新処理
-		/// </summary>
 		void Update(float deltaTime) override;
-
-		/// <summary>
-		/// PhysicsWorld更新後にCameraのTransformを更新する
-		/// </summary>
+		void UpdateEditor(float deltaTime) override;
 		void PostPhysicsUpdate(float deltaTime) override;
-
-		/// <summary>
-		/// CameraComponentのImGui描画処理
-		/// </summary>
 		void DrawImGui() override;
-
-		/// <summary>
-		/// CameraComponentの終了処理
-		/// </summary>
 		void Finalize() override;
 
-	public: /// ---------- Jsonシリアライズ / デシリアライズ ---------- ///
-
-		/// <summary>
-		/// JSON保存・復元で使用するComponentのクラス種別を取得する。
-		/// </summary>
-		std::string GetClassTypeName() const override
-		{
-			return "CameraComponent"; // CameraComponentとして保存する。
-		}
-
-		/// <summary>
-		/// CameraComponent固有情報をJSONへ保存する。
-		/// </summary>
+		std::string GetClassTypeName() const override { return "CameraComponent"; }
 		void ToJson(nlohmann::json& outJson) const override;
-
-		/// <summary>
-		/// JSONからModelComponent固有情報を復元する
-		/// </summary>
 		void FromJson(const nlohmann::json& inJson) override;
 
-	public: /// ---------- Getter ---------- ///
+		Camera* GetCamera() const { return camera_; }
 
-		/// <summary>
-		/// Componentが所有しているCameraを取得する
-		/// </summary>
-		Camera* GetCamera() const
-		{
-			return camera_; // CameraManagerや描画処理に渡すため、生ポインタで参照だけ返す
-		}
-
-	public: /// ---------- 設定 ---------- ///
-
-		/// <summary>
-		/// このCameraComponentをCameraManagerのMainCameraとして登録するか設定する
-		/// </summary>
 		void SetAutoRegisterMainCamera(bool enabled);
+		void SetInheritParentRotation(bool enabled) { inheritParentRotation_ = enabled; }
+		bool IsInheritParentRotationEnabled() const { return inheritParentRotation_; }
 
-	private: /// ---------- 内部処理 ---------- ///
-
-		/// <summary>
-		/// SceneComponentのWorldTransformをCameraへ反映する
-		/// </summary>
+	private:
 		void SyncTransformToCamera();
 
-	private: /// ---------- メンバ変数 ---------- ///
-
-		// CameraComponentが所有する通常Camera
 		Camera* camera_ = nullptr;
-
-		// trueならInitialize時にMainCameraへ登録する
 		bool autoRegisterMainCamera_ = false;
+		bool inheritParentRotation_ = true; // falseならモデルやRootの回転変更をゲームカメラへ伝播させない。
 	};
-}
+} // namespace Ken4lowEngine
