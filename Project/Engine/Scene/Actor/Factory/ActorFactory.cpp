@@ -29,6 +29,12 @@ namespace Ken4lowEngine
 
 	std::unique_ptr<Actor> Ken4lowEngine::ActorFactory::CreateActor(std::string_view className)
 	{
+		if (className == "Actor")
+		{
+			// EditorがModelComponent構成から生成した汎用Actorは、個別登録なしでJSONから復元する。
+			return std::make_unique<Actor>();
+		}
+
 		const auto& registry = GetActorFactoryRegister();
 
 		const auto it = registry.find(std::string(className));
@@ -42,8 +48,13 @@ namespace Ken4lowEngine
 
 	bool ActorFactory::IsRegistered(std::string_view className)
 	{
+		if (className == "Actor")
+		{
+			return true; // 汎用ActorはFactory組み込み型として常に生成可能にする。
+		}
+
 		const auto& registry = GetActorFactoryRegister();
 		return registry.contains(std::string(className)); // 登録済みかどうかを返す
 	}
 
-}
+} // namespace Ken4lowEngine
