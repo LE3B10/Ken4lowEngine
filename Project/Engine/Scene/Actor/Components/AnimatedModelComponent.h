@@ -22,6 +22,16 @@ namespace Ken4lowEngine
 		void Update(float deltaTime) override;
 		void PostPhysicsUpdate(float deltaTime) override;
 		void Draw() override;
+		void DrawShadow() override
+		{
+			if (!visible_ || !animatedModel_ || !hasMesh_)
+			{
+				return;
+			}
+
+			SyncTransformToAnimatedModel();
+			animatedModel_->DrawShadow(); // 現在のNode Animation姿勢をShadow Mapへ反映する。
+		}
 		void DrawImGui() override;
 		void Finalize() override;
 
