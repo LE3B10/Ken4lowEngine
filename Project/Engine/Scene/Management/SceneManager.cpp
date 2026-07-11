@@ -7,12 +7,14 @@
 #include <GameTimer.h>
 
 #ifdef USE_IMGUI
+#include <Editor/EditorCommandHistory.h>
+#include <Editor/EditorContext.h>
 #include <Editor/EditorModeController.h>
 #include <Editor/EditorPlayController.h>
-#endif // USE_IMGUI
+#endif
 
-#include <cassert>
 #include <algorithm>
+#include <cassert>
 #include <vector>
 
 namespace K4E = ::Ken4lowEngine;
@@ -37,42 +39,30 @@ namespace Ken4lowEngine
 	void SceneManager::UpdateEditorPlaySession()
 	{
 #ifdef USE_IMGUI
-		if (!scene_ || K4E::EditorModeController::GetInstance()->IsGamePreviewMode())
-		{
-			return;
-		}
-
+		if (!scene_ || K4E::EditorModeController::GetInstance()->IsGamePreviewMode()) return;
 		K4E::EditorPlayController* playController = K4E::EditorPlayController::GetInstance();
 		if (playController->IsPlaying() && !editorPlaySessionActive_)
 		{
 			scene_->BeginEditorPlay();
-			editorPlaySessionActive_ = true; // Pauseからの再開ではSnapshotを取り直さない。
+			editorPlaySessionActive_ = true;
 		}
 		else if (playController->IsEditing() && editorPlaySessionActive_)
 		{
 			scene_->EndEditorPlay();
 			editorPlaySessionActive_ = false;
 		}
-#endif // USE_IMGUI
+#endif
 	}
 
 	void SceneManager::RefreshEditorVisualState(float deltaTime)
 	{
 #ifdef USE_IMGUI
 		ActorWorld* actorWorld = scene_ ? scene_->GetEditorActorWorld() : nullptr;
-		if (!actorWorld)
-		{
-			return;
-		}
-
+		if (!actorWorld) return;
 		for (const auto& actorOwner : actorWorld->GetActors())
 		{
 			Actor* actor = actorOwner.get();
-			if (!actor || !actor->IsActive() || actor->IsPendingDestroy())
-			{
-				continue;
-			}
-
+			if (!actor || !actor->IsActive() || actor->IsPendingDestroy()) continue;
 			std::vector<ActorComponent*> components;
 			for (const auto& componentOwner : actor->GetComponents())
 			{
@@ -83,21 +73,17 @@ namespace Ken4lowEngine
 				{
 					return lhs->GetUpdateOrder() < rhs->GetUpdateOrder();
 				});
-			for (ActorComponent* component : components)
-			{
-				component->UpdateEditor(deltaTime); // Edit/Pause中はTransformと描画バッファだけを更新する。
-			}
+			for (ActorComponent* component : components) component->UpdateEditor(deltaTime);
 		}
 #else
 		(void)deltaTime;
-#endif // USE_IMGUI
+#endif
 	}
 
 	void SceneManager::Update()
 	{
 		float dtRaw = K4E::GameTimer::GetInstance()->GetDeltaTime();
 		float dtFade = std::min(dtRaw, 1.0f / 30.0f);
-
 		if (sceneTransition_) sceneTransition_->Update(dtFade);
 
 		if (isTransitioning_)
@@ -115,7 +101,6 @@ namespace Ken4lowEngine
 						}
 						scene_->UpdateUnload();
 					}
-
 					const bool readyToSwap = (!scene_) || scene_->IsReadyToSwapOut();
 					if (readyToSwap)
 					{
@@ -169,17 +154,13 @@ namespace Ken4lowEngine
 		}
 
 		UpdateEditorPlaySession();
-
 		if (scene_ && (!isTransitioning_ || sceneSwapped_))
 		{
 			bool shouldUpdateGame = true;
 #ifdef USE_IMGUI
 			shouldUpdateGame = K4E::EditorModeController::GetInstance()->IsGamePreviewMode() || K4E::EditorPlayController::GetInstance()->IsPlaying();
-#endif // USE_IMGUI
-			if (shouldUpdateGame)
-			{
-				scene_->Update();
-			}
+#endif
+			if (shouldUpdateGame) scene_->Update();
 			else
 			{
 				scene_->UpdateEditor(dtRaw);
@@ -220,6 +201,9 @@ namespace Ken4lowEngine
 			scene_->Finalize();
 		}
 		if (sceneTransition_) sceneTransition_->Finalize();
+#ifdef USE_IMGUI
+		K4E::EditorCommandHistory::GetInstance()->Clear();
+#endif
 	}
 
 	void SceneManager::ChangeScene(const std::string& sceneName)
@@ -231,14 +215,12 @@ namespace Ken4lowEngine
 			hasQueuedChange_ = true;
 			return;
 		}
-
 		nextScene_ = sceneFactory_->CreateScene(sceneName);
 		if (!sceneTransition_)
 		{
 			ApplyNextScene();
 			return;
 		}
-
 		sceneTransition_->StartCover();
 		isTransitioning_ = true;
 		sceneSwapped_ = false;
@@ -251,6 +233,10 @@ namespace Ken4lowEngine
 	void SceneManager::ApplyNextScene()
 	{
 		if (!nextScene_) return;
+#ifdef USE_IMGUI
+		K4E::EditorCommandHistory::GetInstance()->Clear();
+		K4E::EditorContext::GetInstance()->ResetTransientState(); // Scene固有ポインタを持つSelectionとCommandを同時に破棄する。
+#endif
 		if (scene_)
 		{
 			if (editorPlaySessionActive_)
@@ -260,7 +246,6 @@ namespace Ken4lowEngine
 			}
 			scene_->Finalize();
 		}
-
 		scene_ = std::move(nextScene_);
 		if (scene_)
 		{
