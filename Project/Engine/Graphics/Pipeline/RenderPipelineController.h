@@ -20,6 +20,7 @@ namespace Ken4lowEngine
 		/// </summary>
 		struct FrameCallbacks
 		{
+			std::function<void()> prepareShadowPass;
 			std::function<void()> drawShadowObjects;
 			std::function<void()> buildEditorUi;
 			std::function<void()> drawGameWorldToSceneTarget;
