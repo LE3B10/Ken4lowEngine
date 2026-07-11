@@ -121,4 +121,14 @@ namespace Ken4lowEngine
 		commandList->SetPipelineState(pipeline.pipelineState.Get());
 		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	}
+
+	void Object3DCommon::SetInstancedShadowMapRenderSetting()
+	{
+		auto* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		const PipelineBundle& pipeline = instancedPipelineSet_.GetShadow();
+
+		commandList->SetGraphicsRootSignature(pipeline.rootSignature.Get());
+		commandList->SetPipelineState(pipeline.pipelineState.Get());
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Shadow Passでも通常描画と同じ三角形トポロジを使用する。
+	}
 }
