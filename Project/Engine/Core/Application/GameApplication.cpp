@@ -15,6 +15,7 @@
 
 #ifdef USE_IMGUI
 #include <ImGuiManager.h>
+#include "Editor/EditorShell.h"
 #include "Editor/EditorWindowManager.h"
 #include "Editor/EditorModeController.h"
 #endif // USE_IMGUI
@@ -211,6 +212,9 @@ namespace Ken4lowEngine
 
 					// WindowメニューのPost Effect Settings表示フラグをPostEffectManager側の×ボタン状態と共有する
 					PostEffectManager::GetInstance()->ImGuiRender(&editorWindowState.showPostEffectSettings);
+
+					// 他のEditorパネルより後に描き、ビューポートツールバーを最前面へ配置する。
+					EditorShell::GetInstance()->DrawViewportOverlay();
 
 					/// ---------- ImGuiフレーム終了 ---------- ///
 					ImGuiManager::GetInstance()->EndFrame();
