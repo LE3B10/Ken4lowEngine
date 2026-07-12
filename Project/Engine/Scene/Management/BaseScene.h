@@ -53,6 +53,13 @@ namespace Ken4lowEngine
 		virtual EditorInputPolicy GetEditorInputPolicy() const { return EditorInputPolicy::UiMouse; }
 		virtual void CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& /*outObjects*/) {}
 		virtual ActorWorld* GetEditorActorWorld() { return nullptr; }
+
+		/// <summary>SceneDefinitionのLevelを読み込むActorWorldを返します。</summary>
+		virtual ActorWorld* GetSceneActorWorld()
+		{
+			return GetEditorActorWorld(); // 既存のActorWorld対応Sceneは追加実装なしでLevel自動読込へ参加できる。
+		}
+
 		virtual void SetSceneManager(SceneManager* sceneManager) { sceneManager_ = sceneManager; }
 		virtual void StartLoad() {};
 		virtual void UpdateLoad() {};
