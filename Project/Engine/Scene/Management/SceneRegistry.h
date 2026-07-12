@@ -20,11 +20,6 @@ namespace Ken4lowEngine
 	public:
 		static constexpr std::string_view kStartupFormat = "Ken4lowSceneStartup";
 
-		SceneRegistry()
-		{
-			LoadDirectory("Resources/JSON/Scenes"); // SceneManager生成時に標準Scene定義を読み込み、既存ChangeScene呼び出しをそのままデータ駆動化する。
-		}
-
 		bool LoadDirectory(const std::filesystem::path& directory)
 		{
 			definitions_.clear();
@@ -115,7 +110,7 @@ namespace Ken4lowEngine
 				}
 
 				const std::string format = json.value("Format", std::string{});
-				if (format == SceneDefinition::kFormat)
+				if (format == std::string(SceneDefinition::kFormat))
 				{
 					SceneDefinition definition{};
 					std::string parseError;
@@ -133,7 +128,7 @@ namespace Ken4lowEngine
 					return;
 				}
 
-				if (format == kStartupFormat)
+				if (format == std::string(kStartupFormat))
 				{
 					const int version = json.value("Version", 0);
 					if (version != 1)
