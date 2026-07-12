@@ -3,9 +3,13 @@
 #include <BaseScene.h>
 #include "AbstractSceneFactory.h"
 #include "ISceneTransition.h"
+#include "SceneRegistry.h"
 
+#include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace Ken4lowEngine
 {
@@ -28,7 +32,12 @@ namespace Ken4lowEngine
 		void SetNextScene(std::unique_ptr<BaseScene> nextScene) { nextScene_ = std::move(nextScene); }
 		void SetAbstractSceneFactory(std::unique_ptr<AbstractSceneFactory> sceneFactory) { sceneFactory_ = std::move(sceneFactory); }
 		void SetSceneTransition(std::unique_ptr<ISceneTransition> sceneTransition) { sceneTransition_ = std::move(sceneTransition); }
+
+		bool LoadSceneDefinitions(const std::filesystem::path& directory);
+		[[nodiscard]] std::string GetConfiguredStartSceneName(bool debugBuild, std::string_view fallback) const;
 		void ChangeScene(const std::string& sceneName);
+		void ChangeToNextScene();
+		void RestartCurrentScene();
 
 		[[nodiscard]] bool IsTransitioning() const { return isTransitioning_ || (sceneTransition_ && sceneTransition_->IsBusy()); }
 		[[nodiscard]] bool IsPlayInEditorActive() const { return editorPlaySessionActive_; }
@@ -36,15 +45,26 @@ namespace Ken4lowEngine
 		[[nodiscard]] const BaseScene* GetCurrentScene() const { return scene_.get(); }
 		[[nodiscard]] ISceneTransition* GetSceneTransition() { return sceneTransition_.get(); }
 		[[nodiscard]] const ISceneTransition* GetSceneTransition() const { return sceneTransition_.get(); }
+		[[nodiscard]] const SceneDefinition* GetCurrentSceneDefinition() const
+		{
+			return currentSceneDefinition_ ? &*currentSceneDefinition_ : nullptr;
+		}
+		[[nodiscard]] const SceneRegistry& GetSceneRegistry() const { return sceneRegistry_; }
 
 	private:
 		void ApplyNextScene();
 		void RefreshEditorVisualState(float deltaTime);
+		void ApplyTransitionDefinition(const SceneDefinition& definition);
+		void ReportSceneMessage(bool succeeded, const std::string& message) const;
+		[[nodiscard]] SceneDefinition ResolveSceneDefinition(std::string_view sceneName) const;
 
 		std::unique_ptr<BaseScene> scene_;
 		std::unique_ptr<BaseScene> nextScene_;
 		std::unique_ptr<AbstractSceneFactory> sceneFactory_;
 		std::unique_ptr<ISceneTransition> sceneTransition_;
+		SceneRegistry sceneRegistry_;
+		std::optional<SceneDefinition> currentSceneDefinition_;
+		std::optional<SceneDefinition> nextSceneDefinition_;
 
 		bool isTransitioning_ = false;
 		bool sceneSwapped_ = false;
