@@ -40,7 +40,7 @@ namespace Ken4lowEngine
 		editorSingleStepRequested_ = false;
 	}
 
-	void SceneManager::UpdateEditorPlaySession()
+	void SceneManager::ProcessEditorPlayRequests()
 	{
 #ifdef USE_IMGUI
 		if (!scene_) return;
@@ -226,7 +226,6 @@ namespace Ken4lowEngine
 			}
 		}
 
-		UpdateEditorPlaySession(); // Draw開始前の安全地点でEditor WorldとRuntime Worldを差し替える。
 		if (scene_ && (!isTransitioning_ || sceneSwapped_))
 		{
 			bool shouldUpdateGame = true;
