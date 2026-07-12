@@ -1,1 +1,0 @@
-Viewport capture note.
