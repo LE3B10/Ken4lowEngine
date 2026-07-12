@@ -30,6 +30,7 @@ namespace Ken4lowEngine
 		void ChangeScene(const std::string& sceneName);
 
 		[[nodiscard]] bool IsTransitioning() const { return isTransitioning_ || (sceneTransition_ && sceneTransition_->IsBusy()); }
+		[[nodiscard]] bool IsPlayInEditorActive() const { return editorPlaySessionActive_; }
 		[[nodiscard]] BaseScene* GetCurrentScene() { return scene_.get(); }
 		[[nodiscard]] const BaseScene* GetCurrentScene() const { return scene_.get(); }
 		[[nodiscard]] ISceneTransition* GetSceneTransition() { return sceneTransition_.get(); }
@@ -55,6 +56,7 @@ namespace Ken4lowEngine
 		int uncoverDelayFrames_ = 3;
 		int uncoverDelayCounter_ = 0;
 		bool unloadRequested_ = false;
-		bool editorPlaySessionActive_ = false; // Pauseでは維持し、Stop時だけEdit Worldを復元する。
+		bool editorPlaySessionActive_ = false; // Runtime Worldが存在する期間はPause中もtrueを維持する。
+		bool editorSingleStepRequested_ = false; // Pause中の1フレーム実行を通常Playと分離する。
 	};
 } // namespace Ken4lowEngine
