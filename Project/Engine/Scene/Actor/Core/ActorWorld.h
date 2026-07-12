@@ -138,7 +138,7 @@ namespace Ken4lowEngine
 		Actor* SpawnActorFromJson(std::string_view filePath, const ActorSpawnOptions& options = {});
 
 		/// <summary>Level JSON内へ埋め込まれたActor JSONからActorを生成する。</summary>
-		Actor* SpawnActorFromJson(const nlohmann::json& actorJson, const ActorSpawnOptions& options = {})
+		Actor* SpawnActorFromJsonData(const nlohmann::json& actorJson, const ActorSpawnOptions& options = {})
 		{
 			std::unique_ptr<Actor> actor = ActorJsonSerializer::CreateActorFromJson(actorJson, options);
 			if (!actor)
@@ -148,7 +148,7 @@ namespace Ken4lowEngine
 			}
 
 			Actor* spawnedActor = actor.get();
-			spawnedActor->SetName(MakeUniqueActorName(spawnedActor->GetName())); // Level内でもActor名の一意性を既存Spawn規則へ統一する。
+			spawnedActor->SetName(MakeUniqueActorName(spawnedActor->GetName())); // 読み込み済みJSON専用の入口としてファイルパス版と明確に分離する。
 			actors_.push_back(std::move(actor));
 
 			if (isInitialized_)
