@@ -7,7 +7,7 @@
 #include "ParameterManager.h"
 
 #ifdef USE_IMGUI
-#include "EditorWindowManager.h"
+#include "../../../Editor/EditorWindowManager.h"
 #include <imgui.h>
 #endif
 
