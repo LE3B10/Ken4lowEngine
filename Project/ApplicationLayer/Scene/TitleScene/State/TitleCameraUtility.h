@@ -23,7 +23,7 @@ namespace TitleCameraUtility
 	float UpdatePoseTransition(OrbitState& orbitState, Timers& timers, const Pose& poseFrom, const Pose& poseTo, Ken4lowEngine::Camera& camera, float deltaTime)
 	{
 		timers.time += deltaTime;
-		const float progress = std::clamp(timers.time / std::max(timers.duration, 0.0001f), 0.0f, 1.0f);
+		const float progress = std::clamp(timers.time / (std::max)(timers.duration, 0.0001f), 0.0f, 1.0f);
 		const float eased = Ken4lowEngine::EaseInOutCubic(progress);
 		const Ken4lowEngine::Vector3 position{
 			Ken4lowEngine::Lerp(poseFrom.position.x, poseTo.position.x, eased),
