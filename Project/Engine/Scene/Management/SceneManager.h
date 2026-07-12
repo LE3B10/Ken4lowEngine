@@ -68,6 +68,7 @@ namespace Ken4lowEngine
 		bool unloadRequested_ = false;
 		bool editorPlaySessionActive_ = false; // Runtime WorldまたはScene再生成型PIEが存在する期間はPause中もtrueを維持する。
 		bool editorPlayUsesSceneRecreate_ = false; // ActorWorldを公開しない旧SceneはStop時のScene再生成でRuntime変更を破棄する。
+		std::string editorPlayOriginSceneId_; // Runtime中にScene遷移してもStop時はPlay開始元のScene定義へ戻す。
 		bool editorSingleStepRequested_ = false; // Pause中の1フレーム実行を通常Playと分離する。
 	};
 } // namespace Ken4lowEngine
