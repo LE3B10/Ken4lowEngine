@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EditorContext.h"
+#include "EditorLevelDeferredController.h"
 #include "EditorLevelService.h"
 #include "EditorWindowManager.h"
 
@@ -18,9 +19,10 @@ namespace Ken4lowEngine
 	{
 		EditorWindowManager* windowManager = EditorWindowManager::GetInstance();
 		EditorLevelService* levelService = EditorLevelService::GetInstance();
+		EditorLevelDeferredController* deferredController = EditorLevelDeferredController::GetInstance();
 		levelService->SetSceneManager(windowManager->GetSceneManager());
 		levelService->Update(ImGui::GetIO().DeltaTime);
-		levelService->UpdateShortcuts();
+		deferredController->UpdateShortcuts();
 
 		const EditorViewportRect& viewportRect = windowManager->GetMainViewportRect();
 		if (viewportRect.valid)
@@ -47,7 +49,7 @@ namespace Ken4lowEngine
 				if (ImGui::Button("Level", ImVec2(58.0f, 24.0f))) ImGui::OpenPopup("##EditorLevelMenu");
 				if (ImGui::BeginPopup("##EditorLevelMenu"))
 				{
-					levelService->DrawFileMenuItems();
+					deferredController->DrawFileMenuItems();
 					ImGui::EndPopup();
 				}
 
@@ -63,7 +65,7 @@ namespace Ken4lowEngine
 			ImGui::End();
 		}
 
-		levelService->DrawDialogs();
+		deferredController->DrawDialogs(); // New/Openは描画中にActorやGPU Resourceを破棄せず次のUpdateへ予約する。
 
 		std::string statusMessage;
 		bool succeeded = false;
