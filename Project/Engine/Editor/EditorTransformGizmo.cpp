@@ -4,6 +4,7 @@
 #ifdef USE_IMGUI
 #include "EditorCommandHistory.h"
 #include "EditorContext.h"
+#include "EditorLevelOverlay.h"
 #include "EditorModeController.h"
 #include "EditorPlayController.h"
 #include "EditorViewportController.h"
@@ -126,7 +127,15 @@ namespace Ken4lowEngine
 
 	void EditorTransformGizmo::Draw()
 	{
-		if (!EditorModeController::GetInstance()->IsEditorModeEnabled() || EditorPlayController::GetInstance()->IsPlaying())
+		if (!EditorModeController::GetInstance()->IsEditorModeEnabled())
+		{
+			EndTransformCommand();
+			return;
+		}
+
+		DrawEditorLevelOverlay(); // 選択状態に関係なくLevel保存・読込UIとAuto Saveを毎フレーム更新する。
+
+		if (EditorPlayController::GetInstance()->IsPlaying())
 		{
 			EndTransformCommand();
 			return;
