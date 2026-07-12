@@ -74,15 +74,14 @@ namespace Ken4lowEngine
 		// 文字列のシーン名から実際の Scene インスタンスを作れるよう、Factory を SceneManager へ登録する。
 		auto sceneFactory = std::make_unique<SceneFactory>();
 		sceneManager_->SetAbstractSceneFactory(std::move(sceneFactory));
+		sceneManager_->LoadSceneDefinitions("Resources/JSON/Scenes"); // Scene構成と起動SceneをC++直書きではなくJSONから解決する。
 
 #ifdef _DEBUG
-		// Debugビルドでは最初からDebugSceneを起動して、ゲームプレイ中もすぐ切り替えられるようにする。
-		const std::string startSceneName = "DebugScene";
+		const std::string startSceneName = sceneManager_->GetConfiguredStartSceneName(true, "DebugScene");
 #else
-		// Releaseビルドでは最初のシーンをTitleSceneにする。
-		const std::string startSceneName = "TitleScene";
+		const std::string startSceneName = sceneManager_->GetConfiguredStartSceneName(false, "TitleScene");
 #endif
-		// 起動直後に表示するシーンを SceneManager へ依頼する。
+		// JSONが欠けている場合は従来のDebug/TitleをFallbackとして起動する。
 		sceneManager_->ChangeScene(startSceneName);
 	}
 
