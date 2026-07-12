@@ -36,13 +36,22 @@ namespace Ken4lowEngine
 	{
 #ifdef _DEBUG
 		EditorLevelDeferredController::GetInstance()->ProcessSafePoint(); // 前フレームのGPU完了後かつ新しいDraw開始前にLevel破棄・復元を行う。
+		EditorPlayController* playController = EditorPlayController::GetInstance();
 
 		if (input != nullptr && input->TriggerRawKey(DIK_F1))
 		{
-			SetEditorModeEnabled(!editorModeEnabled_); // F1はEditor / Game Preview切り替え専用にする。
+			if (playController->IsRuntimeSessionActive() || playController->GetPendingRequest() == EditorPlayRequest::Start)
+			{
+				EditorWindowManager::GetInstance()->AddOutputLog(
+					EditorLogLevel::Warning,
+					"PIE Runtime Worldを保護するためF1切り替えを無効にしました。先にStopしてください。");
+			}
+			else
+			{
+				SetEditorModeEnabled(!editorModeEnabled_); // PIE外だけEditor / Game Previewを切り替える。
+			}
 		}
 
-		EditorPlayController* playController = EditorPlayController::GetInstance();
 		if (input != nullptr && IsEditorModeEnabled() && playController->IsEditing())
 		{
 			bool allowHistoryShortcut = true;
@@ -94,8 +103,13 @@ namespace Ken4lowEngine
 			return;
 		}
 
+		if (!enabled && EditorPlayController::GetInstance()->IsRuntimeSessionActive())
+		{
+			return; // PIE中にEditor UIだけ消えてStop不能になる状態を防ぐ。
+		}
+
 		editorModeEnabled_ = enabled;
-		if (!editorModeEnabled_) EditorCommandHistory::GetInstance()->Clear(); // Editor対象が無効になる前に古いポインタを持つ履歴を破棄する。
+		if (!editorModeEnabled_) EditorCommandHistory::GetInstance()->Clear();
 		ApplyModeSideEffects();
 		NotifyModeChanged();
 	}
