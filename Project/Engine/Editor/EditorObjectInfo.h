@@ -31,6 +31,7 @@ namespace Ken4lowEngine
 	enum class EditorObjectKind
 	{
 		Generic,
+		Folder,
 		Actor,
 		Component,
 		Instance,
@@ -81,10 +82,12 @@ namespace Ken4lowEngine
 		using DrawInspectorFunc = std::function<void()>;
 		using DrawObjectIdFunc = std::function<void(uint32_t)>;
 		using BuildObjectIdEntryFunc = std::function<bool(uint32_t, EditorObjectInfo&)>;
-		using ReadActiveFunc = std::function<bool()>;
-		using WriteActiveFunc = std::function<void(bool)>;
+		using ReadBoolFunc = std::function<bool()>;
+		using WriteBoolFunc = std::function<void(bool)>;
 		using RenameFunc = std::function<void(std::string_view)>;
 		using RequestActionFunc = std::function<void()>;
+		using ReparentFunc = std::function<void(uint64_t)>;
+		using SetFolderFunc = std::function<void(std::string_view)>;
 		using CaptureStateFunc = std::function<std::string()>;
 		using RestoreStateFunc = std::function<void(std::string_view)>;
 
@@ -99,6 +102,7 @@ namespace Ken4lowEngine
 		std::string typeName;
 		std::string sceneName;
 		std::string icon = "[O]";
+		std::string folderPath;
 		EditorObjectKind objectKind = EditorObjectKind::Generic;
 		bool isRootComponent = false;
 
@@ -113,14 +117,26 @@ namespace Ken4lowEngine
 		WriteTransformFunc writeWorldTransform;
 
 		bool canToggleActive = false;
-		ReadActiveFunc readActive;
-		WriteActiveFunc writeActive;
+		ReadBoolFunc readActive;
+		WriteBoolFunc writeActive;
+		bool canToggleVisibility = false;
+		ReadBoolFunc readVisible;
+		WriteBoolFunc writeVisible;
+		bool canToggleLocked = false;
+		ReadBoolFunc readLocked;
+		WriteBoolFunc writeLocked;
 		bool canRename = false;
 		RenameFunc rename;
 		bool canDuplicate = false;
 		RequestActionFunc requestDuplicate;
 		bool canDelete = false;
 		RequestActionFunc requestDelete;
+		bool canFocus = false;
+		RequestActionFunc requestFocus;
+		bool canReparent = false;
+		ReparentFunc requestReparent;
+		bool canSetFolder = false;
+		SetFolderFunc setFolder;
 
 		bool canCaptureState = false;
 		CaptureStateFunc captureState;
@@ -170,6 +186,30 @@ namespace Ken4lowEngine
 			if (canToggleActive && writeActive) writeActive(active);
 		}
 
+		bool ReadVisible(bool& outVisible) const
+		{
+			if (!canToggleVisibility || !readVisible) return false;
+			outVisible = readVisible();
+			return true;
+		}
+
+		void WriteVisible(bool visible) const
+		{
+			if (canToggleVisibility && writeVisible) writeVisible(visible);
+		}
+
+		bool ReadLocked(bool& outLocked) const
+		{
+			if (!canToggleLocked || !readLocked) return false;
+			outLocked = readLocked();
+			return true;
+		}
+
+		void WriteLocked(bool locked) const
+		{
+			if (canToggleLocked && writeLocked) writeLocked(locked);
+		}
+
 		void Rename(std::string_view name) const
 		{
 			if (canRename && rename && !name.empty()) rename(name);
@@ -183,6 +223,21 @@ namespace Ken4lowEngine
 		void RequestDelete() const
 		{
 			if (canDelete && requestDelete) requestDelete();
+		}
+
+		void RequestFocus() const
+		{
+			if (canFocus && requestFocus) requestFocus();
+		}
+
+		void RequestReparent(uint64_t targetParentId) const
+		{
+			if (canReparent && requestReparent) requestReparent(targetParentId);
+		}
+
+		void SetFolder(std::string_view path) const
+		{
+			if (canSetFolder && setFolder) setFolder(path);
 		}
 
 		std::string CaptureState() const
