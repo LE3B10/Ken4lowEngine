@@ -1,35 +1,38 @@
 #include "SceneFactory.h"
+
 #include "TitleScene.h"
 #include "GamePlayScene.h"
 #include "StageSelectScene.h"
 #include "DebugScene.h"
 
+#include <stdexcept>
+#include <utility>
+
 namespace Ken4lowEngine
 {
-	/// -------------------------------------------------------------
-	///				　		    シーン生成
-	/// -------------------------------------------------------------
-	std::unique_ptr<BaseScene> SceneFactory::CreateScene(const std::string& sceneName)
+	SceneFactory::SceneFactory()
 	{
-		// 次のシーンを生成
-		std::unique_ptr<BaseScene> newScene = nullptr;
-
-		// タイトルシーン
-		if (sceneName == "TitleScene")				return std::make_unique<TitleScene>();
-
-		// ステージセレクトシーン
-		else if (sceneName == "StageSelectScene")	return std::make_unique<StageSelectScene>();
-
-		// ゲームプレイシーン
-		else if (sceneName == "GamePlayScene")		return std::make_unique<GamePlayScene>();
-
+		RegisterSceneClass("TitleScene", []() { return std::make_unique<TitleScene>(); });
+		RegisterSceneClass("StageSelectScene", []() { return std::make_unique<StageSelectScene>(); });
+		RegisterSceneClass("GamePlayScene", []() { return std::make_unique<GamePlayScene>(); });
 #ifdef _DEBUG
-		// デバッグシーン
-		else if (sceneName == "DebugScene")			return std::make_unique<DebugScene>();
-#endif // _DEBUG
-
-		// 不明なシーン名の場合は例外を投げる
-		throw std::runtime_error("Unknown scene name: " + sceneName);
+		RegisterSceneClass("DebugScene", []() { return std::make_unique<DebugScene>(); });
+#endif
 	}
 
-}
+	void SceneFactory::RegisterSceneClass(std::string sceneClassName, SceneCreator creator)
+	{
+		if (sceneClassName.empty() || !creator) return;
+		creators_.insert_or_assign(std::move(sceneClassName), std::move(creator)); // Scene追加時のif/else連鎖を登録表へ置き換える。
+	}
+
+	std::unique_ptr<BaseScene> SceneFactory::CreateScene(const std::string& sceneClassName)
+	{
+		const auto creator = creators_.find(sceneClassName);
+		if (creator == creators_.end())
+		{
+			throw std::runtime_error("Unknown scene class: " + sceneClassName);
+		}
+		return creator->second();
+	}
+} // namespace Ken4lowEngine
