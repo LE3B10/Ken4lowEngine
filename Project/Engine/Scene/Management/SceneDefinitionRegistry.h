@@ -15,6 +15,11 @@ namespace Ken4lowEngine
 	class SceneDefinitionRegistry
 	{
 	public:
+		SceneDefinitionRegistry()
+		{
+			Load("Resources/JSON/Scenes/SceneRegistry.json"); // SceneManager生成時に標準Registryを自動読込して既存ChangeScene呼び出しをデータ化する。
+		}
+
 		bool Load(const std::filesystem::path& registryPath)
 		{
 			Clear();
