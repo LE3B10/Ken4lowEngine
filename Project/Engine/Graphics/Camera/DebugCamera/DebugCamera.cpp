@@ -6,11 +6,37 @@
 #include "Input.h"
 #include "ParameterManager.h"
 
+#ifdef USE_IMGUI
+#include "EditorWindowManager.h"
+#include <imgui.h>
+#endif
+
 #include <algorithm>
 #include <cmath>
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+#ifdef USE_IMGUI
+		void CaptureCursorAtMainViewportCenter()
+		{
+			const EditorViewportRect& viewportRect = EditorWindowManager::GetInstance()->GetMainViewportRect();
+			if (!viewportRect.valid) return;
+
+			const ImVec2 mainViewportPosition = ImGui::GetMainViewport()->Pos;
+			POINT clientCenter{
+				static_cast<LONG>(std::lround((viewportRect.screenMin.x + viewportRect.screenMax.x) * 0.5f - mainViewportPosition.x)),
+				static_cast<LONG>(std::lround((viewportRect.screenMin.y + viewportRect.screenMax.y) * 0.5f - mainViewportPosition.y)),
+			};
+			ClientToScreen(WinApp::GetInstance()->GetHwnd(), &clientCenter);
+			SetCursorPos(clientCenter.x, clientCenter.y);
+			ImGui::SetMouseCursor(ImGuiMouseCursor_None);
+			SetCursor(nullptr); // RMB中はMain Viewport中央へ固定し、ImGuiとWin32の両方でカーソルを隠す。
+		}
+#endif
+	}
+
 	DebugCamera* DebugCamera::GetInstance()
 	{
 		static DebugCamera instance;
@@ -88,10 +114,8 @@ namespace Ken4lowEngine
 			else
 			{
 				const Vector2 rawDelta = input->GetDragDelta();
-				const float rawX = std::abs(rawDelta.x) > 0.0f ? rawDelta.x : (-yawDelta / 0.003f);
-				const float rawY = std::abs(rawDelta.y) > 0.0f ? rawDelta.y : (pitchDelta / 0.003f);
-				pitchDelta = std::clamp(rawY * 0.003f, -0.15f, 0.15f);
-				yawDelta = std::clamp(-rawX * 0.003f, -0.15f, 0.15f); // ゲーム入力抑制を通らないDirectInput相対移動量で連続回転する。
+				pitchDelta = std::clamp(rawDelta.y * 0.003f, -0.15f, 0.15f);
+				yawDelta = std::clamp(-rawDelta.x * 0.003f, -0.15f, 0.15f); // Cursor再配置によるImGui差分を使わずDirectInput相対移動だけで回転する。
 			}
 
 			editorMove.y = 0.0f; // 旧Q/Eの上下移動を無効化し、Space/Ctrlへ操作を統一する。
@@ -101,7 +125,10 @@ namespace Ken4lowEngine
 			if (input->PushRawKey(DIK_SPACE)) editorMove.y += verticalStep;
 			if (input->PushRawKey(DIK_LCONTROL) || input->PushRawKey(DIK_RCONTROL)) editorMove.y -= verticalStep;
 
-			input->SetLockCursor(false); // OSウィンドウ中央への再配置を止め、Main Viewport操作中の点滅を防ぐ。
+			input->SetLockCursor(false); // Input標準のウィンドウ中央固定を無効化し、Editor側でMain Viewport中央へ固定する。
+#ifdef USE_IMGUI
+			CaptureCursorAtMainViewportCenter();
+#endif
 		}
 
 		worldTransform_.rotate_.x = std::clamp(worldTransform_.rotate_.x + pitchDelta, -1.5533f, 1.5533f);
