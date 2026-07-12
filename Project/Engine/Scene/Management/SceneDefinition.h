@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace Ken4lowEngine
@@ -90,7 +91,7 @@ namespace Ken4lowEngine
 				outError = "Scene definition root must be an object: " + sourcePath.generic_string();
 				return false;
 			}
-			if (json.value("Format", std::string{}) != kFormat)
+			if (json.value("Format", std::string{}) != std::string(kFormat))
 			{
 				outError = "Unsupported scene format: " + sourcePath.generic_string();
 				return false;
@@ -155,7 +156,7 @@ namespace Ken4lowEngine
 		[[nodiscard]] nlohmann::json ToJson() const
 		{
 			nlohmann::json json = {
-				{ "Format", kFormat },
+				{ "Format", std::string(kFormat) }, // JSONへは所有権を持つ文字列として明示的に書き出す。
 				{ "Version", kCurrentVersion },
 				{ "SceneName", sceneName },
 				{ "SceneClass", sceneClass },
