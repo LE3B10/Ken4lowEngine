@@ -1,0 +1,6 @@
+{
+    "Format": "Ken4lowSceneStartup",
+    "Version": 1,
+    "Debug": "DebugScene",
+    "Release": "TitleScene"
+}
