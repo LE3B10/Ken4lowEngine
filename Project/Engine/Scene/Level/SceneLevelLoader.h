@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ActorFactory.h>
 #include <ActorJsonSerializer.h>
 #include <ActorWorld.h>
 #include <LightManager.h>
@@ -44,21 +45,21 @@ namespace Ken4lowEngine
 				if (!ValidateLevel(levelJson)) return { false, 0, "Ken4lowLevel形式が不正です: " + levelPath.generic_string() };
 
 				const nlohmann::json& actorsJson = levelJson["Actors"];
-				ActorSpawnOptions spawnOptions{};
-				spawnOptions.applySpawnOffset = false;
-				spawnOptions.disableAutoRegisterMainCamera = false;
-
 				for (const nlohmann::json& entry : actorsJson)
 				{
-					if (!entry.contains("Data") || !ActorJsonSerializer::CreateActorFromJson(entry["Data"], spawnOptions))
+					if (!ValidateActorEntry(entry))
 					{
 						return { false, 0, "Level内Actorの事前検証に失敗しました: " + levelPath.generic_string() };
 					}
 				}
 
+				ActorSpawnOptions spawnOptions{};
+				spawnOptions.applySpawnOffset = false;
+				spawnOptions.disableAutoRegisterMainCamera = false;
+
 				actorWorld.SetSelectedEditorObject(nullptr, nullptr);
 				actorWorld.Finalize();
-				actorWorld.Initialize(); // 検証成功後にだけ既存Worldを空にし、途中失敗で編集状態を失いにくくする。
+				actorWorld.Initialize(); // 構造検証成功後にだけ既存Worldを空にし、Actorを実行中Spawnと同じ経路で復元する。
 
 				std::unordered_map<std::string, Actor*> actorsById;
 				std::vector<std::pair<std::string, std::string>> pendingParents;
@@ -68,7 +69,9 @@ namespace Ken4lowEngine
 					Actor* actor = actorWorld.SpawnActorFromJson(entry["Data"], spawnOptions);
 					if (!actor)
 					{
-						return { false, actorIndex, "Level Actorの生成に失敗しました: " + levelPath.generic_string() };
+						actorWorld.Finalize();
+						actorWorld.Initialize();
+						return { false, actorIndex, "Level Actorの生成に失敗したためWorldを空へ戻しました: " + levelPath.generic_string() };
 					}
 
 					const std::string id = entry.value("Id", "Actor_" + std::to_string(actorIndex));
@@ -107,6 +110,22 @@ namespace Ken4lowEngine
 			if (!levelJson.is_object() || levelJson.value("Format", std::string{}) != "Ken4lowLevel") return false;
 			const int version = levelJson.value("Version", 0);
 			return version == 1 && levelJson.contains("Actors") && levelJson["Actors"].is_array(); // 現在はPhase 10形式Version 1だけを受理する。
+		}
+
+		static bool ValidateActorEntry(const nlohmann::json& entry)
+		{
+			if (!entry.is_object() || !entry.contains("Data") || !entry["Data"].is_object()) return false;
+			const nlohmann::json& actorJson = entry["Data"];
+			if (!actorJson.contains("Class") || !actorJson["Class"].is_string()) return false;
+			if (!actorJson.contains("Components") || !actorJson["Components"].is_array()) return false;
+
+			for (const nlohmann::json& componentJson : actorJson["Components"])
+			{
+				if (!componentJson.is_object() || !componentJson.contains("Class") || !componentJson["Class"].is_string()) return false;
+			}
+
+			const std::string className = actorJson["Class"].get<std::string>();
+			return ActorFactory::CreateActor(className) != nullptr; // GPU Componentを初期化せずActor Class登録だけを安全に検証する。
 		}
 
 		static Vector3 ReadVector3(const nlohmann::json& value, const Vector3& fallback)
