@@ -39,6 +39,7 @@ namespace Ken4lowEngine
 		unloadRequested_ = false;
 		editorPlaySessionActive_ = false;
 		editorPlayUsesSceneRecreate_ = false;
+		editorPlayOriginSceneId_.clear();
 		editorSingleStepRequested_ = false;
 	}
 
@@ -104,6 +105,7 @@ namespace Ken4lowEngine
 					scene_->BeginEditorPlay();
 					editorPlaySessionActive_ = true;
 					editorPlayUsesSceneRecreate_ = false;
+					editorPlayOriginSceneId_.clear();
 					editorSingleStepRequested_ = false;
 					playController->CommitPlayStarted();
 				}
@@ -114,6 +116,9 @@ namespace Ken4lowEngine
 			}
 			else
 			{
+				editorPlayOriginSceneId_ = !currentSceneDefinition_.id.empty()
+					? currentSceneDefinition_.id
+					: currentSceneDefinition_.className;
 				scene_->BeginEditorPlay();
 				editorPlaySessionActive_ = true;
 				editorPlayUsesSceneRecreate_ = true;
@@ -157,11 +162,12 @@ namespace Ken4lowEngine
 
 				if (editorPlayUsesSceneRecreate_)
 				{
-					const std::string reloadSceneId = !currentSceneDefinition_.id.empty()
-						? currentSceneDefinition_.id
-						: currentSceneDefinition_.className;
+					const std::string reloadSceneId = !editorPlayOriginSceneId_.empty()
+						? editorPlayOriginSceneId_
+						: (!currentSceneDefinition_.id.empty() ? currentSceneDefinition_.id : currentSceneDefinition_.className);
 					editorPlaySessionActive_ = false;
 					editorPlayUsesSceneRecreate_ = false;
+					editorPlayOriginSceneId_.clear();
 					editorSingleStepRequested_ = false;
 					playController->CommitStopped();
 
@@ -173,8 +179,8 @@ namespace Ken4lowEngine
 					}
 					windowManager->AddOutputLog(
 						K4E::EditorLogLevel::Info,
-						"PIE互換モードを停止し、Play前のScene定義からSceneを再生成します: " + reloadSceneId);
-					ChangeScene(reloadSceneId); // Data-driven Scene定義から同じSceneを作り直してRuntime状態を編集側へ残さない。
+						"PIE互換モードを停止し、Play開始元のScene定義からSceneを再生成します: " + reloadSceneId);
+					ChangeScene(reloadSceneId); // Runtime中に別Sceneへ遷移していてもPlay開始元のEditor Sceneへ戻す。
 				}
 				else if (sessionManager->EndPlaySession(*scene_, keepChanges))
 				{
@@ -369,6 +375,7 @@ namespace Ken4lowEngine
 				}
 				editorPlaySessionActive_ = false;
 				editorPlayUsesSceneRecreate_ = false;
+				editorPlayOriginSceneId_.clear();
 				K4E::EditorPlayController::GetInstance()->CommitStopped();
 			}
 #endif
@@ -384,12 +391,13 @@ namespace Ken4lowEngine
 	{
 		assert(sceneFactory_);
 #ifdef USE_IMGUI
-		if (editorPlaySessionActive_ || K4E::EditorPlaySessionManager::GetInstance()->IsSessionActive())
+		const bool protectedActorWorldPie = editorPlaySessionActive_ && !editorPlayUsesSceneRecreate_;
+		if (protectedActorWorldPie || K4E::EditorPlaySessionManager::GetInstance()->IsSessionActive())
 		{
 			K4E::EditorWindowManager::GetInstance()->AddOutputLog(
 				K4E::EditorLogLevel::Warning,
-				"PIE中のScene切り替えはEditor Worldを保護するため無効です。Stop後に切り替えてください。");
-			return; // 現段階では元SceneのEditor Worldを確実に復元することを優先する。
+				"ActorWorld Snapshot型PIE中のScene切り替えはEditor Worldを保護するため無効です。Stop後に切り替えてください。");
+			return; // Scene再生成型PIEではRuntimeの通常Scene遷移を許可し、Snapshot型だけを保護する。
 		}
 #endif
 		if (IsTransitioning())
@@ -447,19 +455,22 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		K4E::EditorCommandHistory::GetInstance()->Clear();
 		K4E::EditorContext::GetInstance()->ResetTransientState();
+		const bool continueSceneRecreatePie = editorPlaySessionActive_ && editorPlayUsesSceneRecreate_;
 #endif
 		if (scene_)
 		{
 #ifdef USE_IMGUI
-			if (editorPlaySessionActive_)
+			if (continueSceneRecreatePie)
+			{
+				scene_->EndEditorPlay(); // Runtime Scene遷移前に現在SceneのPIE後処理だけを実行する。
+			}
+			else if (editorPlaySessionActive_)
 			{
 				scene_->EndEditorPlay();
-				if (!editorPlayUsesSceneRecreate_)
-				{
-					K4E::EditorPlaySessionManager::GetInstance()->CancelSessionWithoutRestore();
-				}
+				K4E::EditorPlaySessionManager::GetInstance()->CancelSessionWithoutRestore();
 				editorPlaySessionActive_ = false;
 				editorPlayUsesSceneRecreate_ = false;
+				editorPlayOriginSceneId_.clear();
 				K4E::EditorPlayController::GetInstance()->CommitStopped();
 			}
 #endif
@@ -474,6 +485,10 @@ namespace Ken4lowEngine
 			scene_->Initialize();
 			scene_->StartLoad();
 #ifdef USE_IMGUI
+			if (continueSceneRecreatePie)
+			{
+				scene_->BeginEditorPlay(); // Runtime中に遷移した新Sceneも同じPIE Sessionとして継続する。
+			}
 			K4E::EditorWindowManager::GetInstance()->AddOutputLog(
 				K4E::EditorLogLevel::Info,
 				"Scene開始: " + currentSceneDefinition_.id + " [Class=" + currentSceneDefinition_.className + "]");
