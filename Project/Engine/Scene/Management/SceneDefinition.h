@@ -2,6 +2,7 @@
 
 #include <json.hpp>
 
+#include <exception>
 #include <string>
 
 namespace Ken4lowEngine
