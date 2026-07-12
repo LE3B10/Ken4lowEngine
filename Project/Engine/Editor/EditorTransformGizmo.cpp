@@ -12,9 +12,14 @@
 #include <CameraManager.h>
 #include <DebugCamera.h>
 #include <Matrix4x4.h>
-#include <imgui.h>
-#include <imgui_internal.h>
-#include <Externals/ImGuizmo/ImGuizmo.h>
+
+#ifdef _MSC_VER
+#pragma warning(push, 0)
+#endif
+#include <Externals/ImGuizmo/ImGuizmo.cpp> // ImGuizmo側でMath Operatorを定義してからImGui内部実装を読み込む。
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #include <algorithm>
 #include <cmath>

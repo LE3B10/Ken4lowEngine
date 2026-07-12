@@ -1,6 +1,9 @@
 #pragma once
 
 #ifdef USE_IMGUI
+#if !defined(IMGUI_VERSION) && !defined(IMGUI_DEFINE_MATH_OPERATORS)
+#define IMGUI_DEFINE_MATH_OPERATORS // ImGui未読込の翻訳単位だけMath Operatorを先行定義する。
+#endif
 #include "EditorObjectInfo.h"
 
 namespace Ken4lowEngine

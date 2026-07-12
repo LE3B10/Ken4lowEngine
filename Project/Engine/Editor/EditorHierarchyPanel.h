@@ -26,7 +26,7 @@
 
 namespace Ken4lowEngine
 {
-	/// <summary>World OutlinerとDetailsを同じEditorSelectionへ接続します。</summary>
+	/// <summary>World Outliner V2とDetailsを同じEditorSelectionへ接続します。</summary>
 	class EditorHierarchyPanel
 	{
 	public:
@@ -53,6 +53,8 @@ namespace Ken4lowEngine
 		EditorHierarchyPanel& operator=(const EditorHierarchyPanel&) = delete;
 
 #ifdef USE_IMGUI
+		static constexpr const char* kActorDragPayload = "K4E_OUTLINER_ACTOR";
+
 		static char ToLowerAscii(unsigned char character)
 		{
 			return character >= 'A' && character <= 'Z' ? static_cast<char>(character - 'A' + 'a') : static_cast<char>(character);
@@ -77,9 +79,28 @@ namespace Ken4lowEngine
 			std::stable_sort(objects_.begin(), objects_.end(), [](const EditorObjectInfo& lhs, const EditorObjectInfo& rhs)
 				{
 					if (lhs.parentId != rhs.parentId) return lhs.parentId < rhs.parentId;
+					if (lhs.objectKind != rhs.objectKind) return lhs.objectKind == EditorObjectKind::Folder;
 					if (lhs.sortOrder != rhs.sortOrder) return lhs.sortOrder < rhs.sortOrder;
 					return lhs.displayName < rhs.displayName;
 				});
+		}
+
+		EditorObjectInfo* FindObject(uint64_t objectId)
+		{
+			const auto found = std::find_if(objects_.begin(), objects_.end(), [objectId](const EditorObjectInfo& object)
+				{
+					return object.id == objectId;
+				});
+			return found != objects_.end() ? &*found : nullptr;
+		}
+
+		const EditorObjectInfo* FindObject(uint64_t objectId) const
+		{
+			const auto found = std::find_if(objects_.begin(), objects_.end(), [objectId](const EditorObjectInfo& object)
+				{
+					return object.id == objectId;
+				});
+			return found != objects_.end() ? &*found : nullptr;
 		}
 
 		void RefreshSelection()
@@ -102,7 +123,10 @@ namespace Ken4lowEngine
 		bool MatchesFilter(const EditorObjectInfo& object) const
 		{
 			const std::string_view filter(outlinerSearch_.data());
-			return ContainsCaseInsensitive(object.displayName, filter) || ContainsCaseInsensitive(object.typeName, filter) || ContainsCaseInsensitive(object.sceneName, filter);
+			return ContainsCaseInsensitive(object.displayName, filter) ||
+				ContainsCaseInsensitive(object.typeName, filter) ||
+				ContainsCaseInsensitive(object.sceneName, filter) ||
+				ContainsCaseInsensitive(object.folderPath, filter);
 		}
 
 		bool HasMatchingDescendant(uint64_t objectId) const
@@ -116,13 +140,75 @@ namespace Ken4lowEngine
 
 		bool HasChildren(uint64_t objectId) const
 		{
-			return std::any_of(objects_.begin(), objects_.end(), [objectId](const EditorObjectInfo& object) { return object.parentId == objectId; });
+			return std::any_of(objects_.begin(), objects_.end(), [objectId](const EditorObjectInfo& object)
+				{
+					return object.parentId == objectId;
+				});
 		}
 
 		bool IsSelected(const EditorObjectInfo& object) const
 		{
 			const EditorSelection& selection = EditorContext::GetInstance()->GetSelection();
 			return selection.HasSelection() && selection.GetSelected().id == object.id && selection.GetSelected().sceneName == object.sceneName;
+		}
+
+		void BeginActorDragSource(const EditorObjectInfo& object)
+		{
+			if (object.objectKind != EditorObjectKind::Actor || !object.canReparent) return;
+			if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID))
+			{
+				const uint64_t actorId = object.id;
+				ImGui::SetDragDropPayload(kActorDragPayload, &actorId, sizeof(actorId));
+				ImGui::Text("%s  %s", object.icon.c_str(), object.displayName.c_str());
+				ImGui::TextDisabled("アクタまたはフォルダーへドロップして親子・分類を変更");
+				ImGui::EndDragDropSource();
+			}
+		}
+
+		void ApplyActorDrop(const EditorObjectInfo& target)
+		{
+			if (!ImGui::BeginDragDropTarget()) return;
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(kActorDragPayload))
+			{
+				if (payload->DataSize == sizeof(uint64_t))
+				{
+					const uint64_t draggedId = *static_cast<const uint64_t*>(payload->Data);
+					EditorObjectInfo* dragged = FindObject(draggedId);
+					if (dragged && dragged->objectKind == EditorObjectKind::Actor && dragged->id != target.id)
+					{
+						if (target.objectKind == EditorObjectKind::Actor)
+						{
+							dragged->RequestReparent(target.id);
+						}
+						else if (target.objectKind == EditorObjectKind::Folder)
+						{
+							dragged->RequestReparent(0);
+							dragged->SetFolder(target.folderPath);
+						}
+					}
+				}
+			}
+			ImGui::EndDragDropTarget();
+		}
+
+		void DrawVisibilityButton(const EditorObjectInfo& object)
+		{
+			bool visible = true;
+			if (!object.ReadVisible(visible)) return;
+			const char* label = visible ? "V" : "H";
+			if (ImGui::SmallButton(label)) object.WriteVisible(!visible);
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip(visible ? "Editor Viewportで非表示にする" : "Editor Viewportで表示する");
+			ImGui::SameLine();
+		}
+
+		void DrawLockButton(const EditorObjectInfo& object)
+		{
+			bool locked = false;
+			if (!object.ReadLocked(locked)) return;
+			const char* label = locked ? "L" : "U";
+			if (ImGui::SmallButton(label)) object.WriteLocked(!locked);
+			if (ImGui::IsItemHovered()) ImGui::SetTooltip(locked ? "ロックを解除する" : "Viewport選択とTransform編集をロックする");
+			ImGui::SameLine();
 		}
 
 		void DrawObjectNode(const EditorObjectInfo& object)
@@ -132,6 +218,9 @@ namespace Ken4lowEngine
 			if (filterActive && !MatchesFilter(object) && !HasMatchingDescendant(object.id)) return;
 
 			ImGui::PushID(static_cast<int>(object.id & 0x7fffffff));
+			DrawVisibilityButton(object);
+			DrawLockButton(object);
+
 			bool active = true;
 			if (object.ReadActive(active))
 			{
@@ -144,7 +233,7 @@ namespace Ken4lowEngine
 			ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
 			if (!hasChildren) flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
 			if (IsSelected(object)) flags |= ImGuiTreeNodeFlags_Selected;
-			if (object.objectKind == EditorObjectKind::Actor) flags |= ImGuiTreeNodeFlags_DefaultOpen;
+			if (object.objectKind == EditorObjectKind::Actor || object.objectKind == EditorObjectKind::Folder) flags |= ImGuiTreeNodeFlags_DefaultOpen;
 			if (filterActive && hasChildren) ImGui::SetNextItemOpen(true, ImGuiCond_Always);
 
 			const std::string label = object.icon + "  " + object.displayName + "##OutlinerNode";
@@ -153,17 +242,30 @@ namespace Ken4lowEngine
 			{
 				CommitInspectorTransaction();
 				EditorContext::GetInstance()->GetSelection().Select(object);
+				if (ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) object.RequestFocus();
 			}
+
+			BeginActorDragSource(object);
+			if (object.objectKind == EditorObjectKind::Actor || object.objectKind == EditorObjectKind::Folder) ApplyActorDrop(object);
 
 			if (ImGui::BeginPopupContextItem("##OutlinerContext"))
 			{
 				ImGui::TextDisabled("%s", object.typeName.c_str());
+				if (object.canFocus && ImGui::MenuItem("選択へフォーカス", "F")) object.RequestFocus();
 				if (object.canRename && ImGui::MenuItem("名前を変更"))
 				{
 					renameTargetId_ = object.id;
 					std::snprintf(renameBuffer_.data(), renameBuffer_.size(), "%s", object.displayName.c_str());
 					openRenamePopup_ = true;
 				}
+				if (object.canSetFolder && ImGui::MenuItem("フォルダーを設定..."))
+				{
+					folderTargetId_ = object.id;
+					std::snprintf(folderBuffer_.data(), folderBuffer_.size(), "%s", object.folderPath.c_str());
+					openFolderPopup_ = true;
+				}
+				if (object.canReparent && object.parentId != 0 && ImGui::MenuItem("ルートへ移動")) object.RequestReparent(0);
+				ImGui::Separator();
 				if (object.canDuplicate && ImGui::MenuItem("複製")) object.RequestDuplicate();
 				if (object.canDelete && ImGui::MenuItem("削除")) object.RequestDelete();
 				ImGui::EndPopup();
@@ -171,7 +273,10 @@ namespace Ken4lowEngine
 
 			if (hasChildren && opened)
 			{
-				for (const EditorObjectInfo& child : objects_) if (child.parentId == object.id) DrawObjectNode(child);
+				for (const EditorObjectInfo& child : objects_)
+				{
+					if (child.parentId == object.id) DrawObjectNode(child);
+				}
 				ImGui::TreePop();
 			}
 			ImGui::PopID();
@@ -191,14 +296,62 @@ namespace Ken4lowEngine
 				ImGui::Separator();
 				if (ImGui::Button("変更", ImVec2(120.0f, 0.0f)))
 				{
-					const auto target = std::find_if(objects_.begin(), objects_.end(), [this](const EditorObjectInfo& object) { return object.id == renameTargetId_; });
-					if (target != objects_.end()) target->Rename(renameBuffer_.data());
+					if (EditorObjectInfo* target = FindObject(renameTargetId_)) target->Rename(renameBuffer_.data());
 					ImGui::CloseCurrentPopup();
 				}
 				ImGui::SameLine();
 				if (ImGui::Button("キャンセル", ImVec2(120.0f, 0.0f))) ImGui::CloseCurrentPopup();
 				ImGui::EndPopup();
 			}
+		}
+
+		void DrawFolderPopup()
+		{
+			if (openFolderPopup_)
+			{
+				ImGui::OpenPopup("フォルダーを設定##OutlinerFolder");
+				openFolderPopup_ = false;
+			}
+			if (ImGui::BeginPopupModal("フォルダーを設定##OutlinerFolder", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				ImGui::TextDisabled("例: Environment/Buildings");
+				ImGui::SetNextItemWidth(360.0f);
+				ImGui::InputText("フォルダーパス", folderBuffer_.data(), folderBuffer_.size());
+				ImGui::Separator();
+				if (ImGui::Button("設定", ImVec2(120.0f, 0.0f)))
+				{
+					if (EditorObjectInfo* target = FindObject(folderTargetId_)) target->SetFolder(folderBuffer_.data());
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("ルート", ImVec2(120.0f, 0.0f)))
+				{
+					if (EditorObjectInfo* target = FindObject(folderTargetId_)) target->SetFolder("");
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("キャンセル", ImVec2(120.0f, 0.0f))) ImGui::CloseCurrentPopup();
+				ImGui::EndPopup();
+			}
+		}
+
+		void DrawSceneRootDropTarget()
+		{
+			ImGui::Dummy(ImVec2(ImGui::GetContentRegionAvail().x, 8.0f));
+			if (!ImGui::BeginDragDropTarget()) return;
+			if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(kActorDragPayload))
+			{
+				if (payload->DataSize == sizeof(uint64_t))
+				{
+					const uint64_t draggedId = *static_cast<const uint64_t*>(payload->Data);
+					if (EditorObjectInfo* dragged = FindObject(draggedId))
+					{
+						dragged->RequestReparent(0);
+						dragged->SetFolder("");
+					}
+				}
+			}
+			ImGui::EndDragDropTarget();
 		}
 
 		void DrawWorldOutliner()
@@ -209,8 +362,12 @@ namespace Ken4lowEngine
 			if (ImGui::Begin(EditorPanelIds::WorldOutliner, &windowState.showWorldOutliner, windowFlags))
 			{
 				ImGui::SetNextItemWidth(-1.0f);
-				ImGui::InputTextWithHint("##OutlinerSearch", "アクタやコンポーネントを検索...", outlinerSearch_.data(), outlinerSearch_.size());
-				ImGui::TextDisabled("表示中: %zu", objects_.size());
+				ImGui::InputTextWithHint("##OutlinerSearch", "アクタ、コンポーネント、フォルダーを検索...", outlinerSearch_.data(), outlinerSearch_.size());
+				const size_t actorCount = static_cast<size_t>(std::count_if(objects_.begin(), objects_.end(), [](const EditorObjectInfo& object)
+					{
+						return object.objectKind == EditorObjectKind::Actor;
+					}));
+				ImGui::TextDisabled("Actors: %zu  Objects: %zu", actorCount, objects_.size());
 				ImGui::Separator();
 				if (ImGui::BeginChild("##WorldOutlinerBody", ImVec2(0.0f, 0.0f), false))
 				{
@@ -218,12 +375,17 @@ namespace Ken4lowEngine
 					if (ImGui::TreeNodeEx(sceneLabel, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth))
 					{
 						if (objects_.empty()) ImGui::TextDisabled("表示できるEditorオブジェクトがありません。");
-						for (const EditorObjectInfo& object : objects_) if (object.parentId == 0) DrawObjectNode(object);
+						for (const EditorObjectInfo& object : objects_)
+						{
+							if (object.parentId == 0) DrawObjectNode(object);
+						}
+						DrawSceneRootDropTarget();
 						ImGui::TreePop();
 					}
 				}
 				ImGui::EndChild();
 				DrawRenamePopup();
+				DrawFolderPopup();
 			}
 			ImGui::End();
 		}
@@ -282,7 +444,6 @@ namespace Ken4lowEngine
 
 			const std::string beforeFrame = selected.CaptureState();
 			drawInspector();
-
 			const EditorSelection& selection = EditorContext::GetInstance()->GetSelection();
 			if (!selection.HasSelection() || selection.GetSelected().id != selected.id || selection.GetSelected().sceneName != selected.sceneName)
 			{
@@ -329,6 +490,8 @@ namespace Ken4lowEngine
 						ImGui::Text("%s  %s", selected.icon.c_str(), selected.displayName.c_str());
 						ImGui::TextDisabled("%s", selected.typeName.c_str());
 
+						if (selected.canFocus && ImGui::Button("選択へフォーカス (F)")) selected.RequestFocus();
+
 						if (selected.canRename)
 						{
 							std::array<char, 256> nameBuffer{};
@@ -339,11 +502,24 @@ namespace Ken4lowEngine
 
 						bool active = true;
 						if (selected.ReadActive(active) && ImGui::Checkbox("有効##SelectedObjectActive", &active)) selected.WriteActive(active);
+						bool visible = true;
+						if (selected.ReadVisible(visible) && ImGui::Checkbox("Editorで表示##SelectedObjectVisible", &visible)) selected.WriteVisible(visible);
+						bool locked = false;
+						if (selected.ReadLocked(locked) && ImGui::Checkbox("Editorでロック##SelectedObjectLocked", &locked)) selected.WriteLocked(locked);
+
+						if (selected.canSetFolder)
+						{
+							std::array<char, 256> folderBuffer{};
+							std::snprintf(folderBuffer.data(), folderBuffer.size(), "%s", selected.folderPath.c_str());
+							ImGui::SetNextItemWidth(-1.0f);
+							if (ImGui::InputText("フォルダー##SelectedObjectFolder", folderBuffer.data(), folderBuffer.size(), ImGuiInputTextFlags_EnterReturnsTrue)) selected.SetFolder(folderBuffer.data());
+						}
 
 						if (ImGui::CollapsingHeader("基本情報##SelectedObjectInfo", ImGuiTreeNodeFlags_DefaultOpen))
 						{
 							ImGui::Text("種類: %s", selected.typeName.c_str());
 							ImGui::Text("シーン: %s", selected.sceneName.c_str());
+							if (!selected.folderPath.empty()) ImGui::Text("フォルダー: %s", selected.folderPath.c_str());
 							ImGui::TextDisabled("Editor ID: %llu", static_cast<unsigned long long>(selected.id));
 							if (!selected.inspectorHint.empty()) ImGui::TextDisabled("%s", selected.inspectorHint.c_str());
 						}
@@ -377,8 +553,11 @@ namespace Ken4lowEngine
 		std::vector<EditorObjectInfo> objects_;
 		std::array<char, 128> outlinerSearch_{};
 		std::array<char, 256> renameBuffer_{};
+		std::array<char, 256> folderBuffer_{};
 		uint64_t renameTargetId_ = 0;
+		uint64_t folderTargetId_ = 0;
 		bool openRenamePopup_ = false;
+		bool openFolderPopup_ = false;
 		bool inspectorTransactionActive_ = false;
 		EditorObjectInfo inspectorTarget_{};
 		std::string inspectorBeforeState_;

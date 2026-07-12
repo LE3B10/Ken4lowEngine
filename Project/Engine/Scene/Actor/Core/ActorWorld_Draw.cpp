@@ -13,6 +13,12 @@
 #include "SceneComponent.h"
 #include "SpriteManager.h"
 
+#ifdef USE_IMGUI
+#include <Editor/EditorActorStateRegistry.h>
+#include <Editor/EditorModeController.h>
+#include <Editor/EditorPlayController.h>
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <numbers>
@@ -20,15 +26,30 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		bool IsHiddenByEditorOutliner(const Actor& actor)
+		{
+#ifdef USE_IMGUI
+			const bool isEditorEditing = EditorModeController::GetInstance()->IsEditorModeEnabled() &&
+				EditorPlayController::GetInstance()->IsEditing();
+			return isEditorEditing && !EditorActorStateRegistry::GetInstance()->IsVisible(&actor);
+#else
+			(void)actor;
+			return false;
+#endif
+		}
+	}
+
 	void ActorWorld::Draw()
 	{
 		SyncLightComponentsToLightManager(); // 描画直前のLightComponent設定をLightManagerへ渡す
 
 		for (auto& actor : actors_)
 		{
-			if (!actor || !actor->IsActive())
+			if (!actor || !actor->IsActive() || IsHiddenByEditorOutliner(*actor))
 			{
-				continue; // 無効なActorは通常描画対象から外す
+				continue; // 無効またはEditorで非表示のActorは通常描画対象から外す
 			}
 
 			// 通常描画を持つActorだけが内部Component経由で描画される
@@ -49,9 +70,9 @@ namespace Ken4lowEngine
 
 		for (auto& actor : actors_)
 		{
-			if (!actor || actor->IsPendingDestroy() || !actor->IsActive())
+			if (!actor || actor->IsPendingDestroy() || !actor->IsActive() || IsHiddenByEditorOutliner(*actor))
 			{
-				continue; // 削除予定または無効なActorはUI描画対象から外す
+				continue; // 削除予定、無効、Editor非表示のActorはUI描画対象から外す
 			}
 
 			const auto components = actor->GetComponents<SpriteComponent>();
@@ -194,9 +215,9 @@ namespace Ken4lowEngine
 	{
 		for (auto& actor : actors_)
 		{
-			if (!actor || !actor->IsActive())
+			if (!actor || !actor->IsActive() || IsHiddenByEditorOutliner(*actor))
 			{
-				continue; // 無効なActorはShadow描画対象から外す
+				continue; // 無効またはEditorで非表示のActorはShadow描画対象から外す
 			}
 
 			// 影を落とすActorだけが内部Component経由でShadow描画される
@@ -210,9 +231,9 @@ namespace Ken4lowEngine
 
 		for (const auto& actor : actors_)
 		{
-			if (!actor || actor->IsPendingDestroy() || !actor->IsActive())
+			if (!actor || actor->IsPendingDestroy() || !actor->IsActive() || IsHiddenByEditorOutliner(*actor))
 			{
-				continue; // 削除予定または無効なActorはライト反映対象から外す
+				continue; // 削除予定、無効、Editor非表示のActorはライト反映対象から外す
 			}
 
 			const auto lightComponents = actor->GetComponents<LightComponent>();
@@ -249,4 +270,4 @@ namespace Ken4lowEngine
 		LightManager::GetInstance()->SetLightComponentLights(componentLights);
 	}
 
-}
+} // namespace Ken4lowEngine
