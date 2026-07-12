@@ -17,7 +17,10 @@
 
 #include <algorithm>
 #include <cassert>
+#include <exception>
+#include <iostream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace K4E = ::Ken4lowEngine;
@@ -38,6 +41,56 @@ namespace Ken4lowEngine
 		unloadRequested_ = false;
 		editorPlaySessionActive_ = false;
 		editorSingleStepRequested_ = false;
+		currentSceneDefinition_.reset();
+		nextSceneDefinition_.reset();
+	}
+
+	bool SceneManager::LoadSceneDefinitions(const std::filesystem::path& directory)
+	{
+		const bool loaded = sceneRegistry_.LoadDirectory(directory);
+		for (const std::string& warning : sceneRegistry_.GetWarnings())
+		{
+			ReportSceneMessage(true, "[SceneRegistry][Warning] " + warning);
+		}
+		for (const std::string& error : sceneRegistry_.GetErrors())
+		{
+			ReportSceneMessage(false, "[SceneRegistry] " + error);
+		}
+		if (loaded)
+		{
+			ReportSceneMessage(true, "[SceneRegistry] Loaded " +
+				std::to_string(sceneRegistry_.GetDefinitions().size()) + " scene definitions from " + directory.generic_string());
+		}
+		return loaded;
+	}
+
+	std::string SceneManager::GetConfiguredStartSceneName(bool debugBuild, std::string_view fallback) const
+	{
+		return sceneRegistry_.GetStartupSceneName(debugBuild, fallback);
+	}
+
+	SceneDefinition SceneManager::ResolveSceneDefinition(std::string_view sceneName) const
+	{
+		if (const SceneDefinition* definition = sceneRegistry_.Find(sceneName)) return *definition;
+		return SceneRegistry::MakeLegacyDefinition(sceneName); // 未移行の呼び出しは従来どおりSceneClass名として扱う。
+	}
+
+	void SceneManager::ApplyTransitionDefinition(const SceneDefinition& definition)
+	{
+		coverHoldFrames_ = (std::max)(0, definition.transition.coverHoldFrames);
+		uncoverDelayFrames_ = (std::max)(0, definition.transition.uncoverDelayFrames);
+		// Transitionの具体クラスはGameApplicationから注入し、Scene JSONは切り替えタイミングだけを所有する。
+	}
+
+	void SceneManager::ReportSceneMessage(bool succeeded, const std::string& message) const
+	{
+#ifdef USE_IMGUI
+		K4E::EditorWindowManager::GetInstance()->AddOutputLog(
+			succeeded ? K4E::EditorLogLevel::Info : K4E::EditorLogLevel::Error,
+			message);
+#else
+		std::clog << message << '\n';
+#endif
 	}
 
 	void SceneManager::ProcessEditorPlayRequests()
@@ -292,6 +345,8 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		K4E::EditorCommandHistory::GetInstance()->Clear();
 #endif
+		currentSceneDefinition_.reset();
+		nextSceneDefinition_.reset();
 	}
 
 	void SceneManager::ChangeScene(const std::string& sceneName)
@@ -312,7 +367,30 @@ namespace Ken4lowEngine
 			hasQueuedChange_ = true;
 			return;
 		}
-		nextScene_ = sceneFactory_->CreateScene(sceneName);
+
+		SceneDefinition definition = ResolveSceneDefinition(sceneName);
+		try
+		{
+			nextScene_ = sceneFactory_->CreateScene(definition.sceneClass);
+		}
+		catch (const std::exception& exception)
+		{
+			nextScene_.reset();
+			ReportSceneMessage(false, "[SceneManager] Failed to create " + definition.sceneName +
+				" (" + definition.sceneClass + "): " + exception.what());
+			return;
+		}
+		if (!nextScene_)
+		{
+			ReportSceneMessage(false, "[SceneManager] SceneFactory returned null: " + definition.sceneClass);
+			return;
+		}
+
+		nextSceneDefinition_ = std::move(definition);
+		ApplyTransitionDefinition(*nextSceneDefinition_);
+		ReportSceneMessage(true, "[SceneManager] ChangeScene: " + nextSceneDefinition_->sceneName +
+			" -> " + nextSceneDefinition_->sceneClass);
+
 		if (!sceneTransition_)
 		{
 			ApplyNextScene();
@@ -325,6 +403,29 @@ namespace Ken4lowEngine
 		coverHoldCounter_ = 0;
 		uncoverDelayCounter_ = 0;
 		unloadRequested_ = false;
+	}
+
+	void SceneManager::ChangeToNextScene()
+	{
+		if (!currentSceneDefinition_ || currentSceneDefinition_->nextScene.empty())
+		{
+			ReportSceneMessage(false, "[SceneManager] NextScene is not configured for the current scene.");
+			return;
+		}
+		ChangeScene(currentSceneDefinition_->nextScene);
+	}
+
+	void SceneManager::RestartCurrentScene()
+	{
+		if (!currentSceneDefinition_)
+		{
+			ReportSceneMessage(false, "[SceneManager] Current scene definition is not available.");
+			return;
+		}
+		const std::string target = currentSceneDefinition_->retryScene.empty()
+			? currentSceneDefinition_->sceneName
+			: currentSceneDefinition_->retryScene;
+		ChangeScene(target);
 	}
 
 	void SceneManager::ApplyNextScene()
@@ -347,10 +448,14 @@ namespace Ken4lowEngine
 #endif
 			scene_->Finalize();
 		}
+
 		scene_ = std::move(nextScene_);
+		currentSceneDefinition_ = nextSceneDefinition_.value_or(SceneRegistry::MakeLegacyDefinition("InjectedScene"));
+		nextSceneDefinition_.reset();
 		if (scene_)
 		{
 			scene_->SetSceneManager(this);
+			scene_->SetSceneDefinition(*currentSceneDefinition_);
 			scene_->Initialize();
 			scene_->StartLoad();
 		}
