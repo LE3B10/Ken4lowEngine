@@ -66,7 +66,7 @@ namespace Ken4lowEngine
 				std::size_t actorIndex = 0;
 				for (const nlohmann::json& entry : actorsJson)
 				{
-					Actor* actor = actorWorld.SpawnActorFromJson(entry["Data"], spawnOptions);
+					Actor* actor = actorWorld.SpawnActorFromJsonData(entry["Data"], spawnOptions); // 読み込み済みJSON専用APIを使い、ファイルパス版とのオーバーロード衝突を避ける。
 					if (!actor)
 					{
 						actorWorld.Finalize();
