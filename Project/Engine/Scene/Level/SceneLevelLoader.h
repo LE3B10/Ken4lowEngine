@@ -1,22 +1,25 @@
 #pragma once
 
 #include <ActorFactory.h>
-#include <ActorJsonSerializer.h>
 #include <ActorWorld.h>
+#include <ComponentFactory.h>
 #include <LightManager.h>
 #include <SceneComponent.h>
 #include <ShadowSettings.h>
 #include <json.hpp>
 
 #ifdef USE_IMGUI
+#include <CameraManager.h>
+#include <DebugCamera.h>
 #include <Editor/EditorActorStateRegistry.h>
 #endif
 
 #include <filesystem>
 #include <fstream>
-#include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 #include <vector>
 
@@ -35,6 +38,7 @@ namespace Ken4lowEngine
 
 		static Result Load(const std::filesystem::path& levelPath, ActorWorld& actorWorld)
 		{
+			bool worldResetStarted = false;
 			try
 			{
 				std::ifstream file(levelPath);
@@ -45,12 +49,10 @@ namespace Ken4lowEngine
 				if (!ValidateLevel(levelJson)) return { false, 0, "Ken4lowLevel形式が不正です: " + levelPath.generic_string() };
 
 				const nlohmann::json& actorsJson = levelJson["Actors"];
-				for (const nlohmann::json& entry : actorsJson)
+				std::string validationMessage;
+				if (!ValidateActors(actorsJson, validationMessage))
 				{
-					if (!ValidateActorEntry(entry))
-					{
-						return { false, 0, "Level内Actorの事前検証に失敗しました: " + levelPath.generic_string() };
-					}
+					return { false, 0, validationMessage + ": " + levelPath.generic_string() };
 				}
 
 				ActorSpawnOptions spawnOptions{};
@@ -58,6 +60,7 @@ namespace Ken4lowEngine
 				spawnOptions.disableAutoRegisterMainCamera = false;
 
 				actorWorld.SetSelectedEditorObject(nullptr, nullptr);
+				worldResetStarted = true;
 				actorWorld.Finalize();
 				actorWorld.Initialize(); // 構造検証成功後にだけ既存Worldを空にし、Actorを実行中Spawnと同じ経路で復元する。
 
@@ -95,11 +98,19 @@ namespace Ken4lowEngine
 				}
 
 				if (levelJson.contains("Lighting")) ApplyLighting(levelJson["Lighting"]);
+#ifdef USE_IMGUI
+				if (levelJson.contains("Camera")) ApplyEditorCamera(levelJson["Camera"]);
+#endif
 				actorWorld.SetSelectedEditorObject(nullptr, nullptr);
 				return { true, actorIndex, "Levelを読み込みました: " + levelPath.generic_string() };
 			}
 			catch (const std::exception& exception)
 			{
+				if (worldResetStarted)
+				{
+					actorWorld.Finalize();
+					actorWorld.Initialize(); // 読込途中の例外では不完全なActorを残さず空Worldへ戻す。
+				}
 				return { false, 0, std::string("Level読込中に例外が発生しました: ") + exception.what() };
 			}
 		}
@@ -112,20 +123,181 @@ namespace Ken4lowEngine
 			return version == 1 && levelJson.contains("Actors") && levelJson["Actors"].is_array(); // 現在はPhase 10形式Version 1だけを受理する。
 		}
 
-		static bool ValidateActorEntry(const nlohmann::json& entry)
+		static const ComponentFactory::ComponentTypeInfo* FindRegisteredComponentType(std::string_view className)
 		{
-			if (!entry.is_object() || !entry.contains("Data") || !entry["Data"].is_object()) return false;
-			const nlohmann::json& actorJson = entry["Data"];
-			if (!actorJson.contains("Class") || !actorJson["Class"].is_string()) return false;
-			if (!actorJson.contains("Components") || !actorJson["Components"].is_array()) return false;
-
-			for (const nlohmann::json& componentJson : actorJson["Components"])
+			for (const ComponentFactory::ComponentTypeInfo& typeInfo : ComponentFactory::GetRegisteredComponentTypes())
 			{
-				if (!componentJson.is_object() || !componentJson.contains("Class") || !componentJson["Class"].is_string()) return false;
+				if (typeInfo.className == className) return &typeInfo;
+			}
+			return nullptr;
+		}
+
+		static bool ValidateActors(const nlohmann::json& actorsJson, std::string& outMessage)
+		{
+			std::unordered_set<std::string> actorIds;
+			std::unordered_map<std::string, std::string> parentByActorId;
+			std::size_t actorIndex = 0;
+
+			for (const nlohmann::json& entry : actorsJson)
+			{
+				if (!ValidateActorEntry(entry, outMessage)) return false;
+
+				const std::string id = entry.value("Id", "Actor_" + std::to_string(actorIndex));
+				if (id.empty())
+				{
+					outMessage = "Level内ActorのIdが空です";
+					return false;
+				}
+				if (!actorIds.insert(id).second)
+				{
+					outMessage = "Level内ActorのIdが重複しています: " + id;
+					return false;
+				}
+				parentByActorId[id] = entry.value("ParentId", std::string{});
+				++actorIndex;
 			}
 
-			const std::string className = actorJson["Class"].get<std::string>();
-			return ActorFactory::CreateActor(className) != nullptr; // GPU Componentを初期化せずActor Class登録だけを安全に検証する。
+			for (const auto& [actorId, parentId] : parentByActorId)
+			{
+				if (parentId.empty()) continue;
+				if (parentId == actorId)
+				{
+					outMessage = "Actorが自分自身をParentIdに指定しています: " + actorId;
+					return false;
+				}
+				if (!actorIds.contains(parentId))
+				{
+					outMessage = "存在しないParentIdが指定されています: " + parentId;
+					return false;
+				}
+			}
+
+			for (const auto& [actorId, unusedParentId] : parentByActorId)
+			{
+				(void)unusedParentId;
+				std::unordered_set<std::string> ancestry;
+				std::string currentId = actorId;
+				while (!currentId.empty())
+				{
+					if (!ancestry.insert(currentId).second)
+					{
+						outMessage = "Actor間の親子関係が循環しています: " + actorId;
+						return false;
+					}
+					const auto parentIt = parentByActorId.find(currentId);
+					currentId = parentIt != parentByActorId.end() ? parentIt->second : std::string{};
+				}
+			}
+			return true;
+		}
+
+		static bool ValidateActorEntry(const nlohmann::json& entry, std::string& outMessage)
+		{
+			if (!entry.is_object() || !entry.contains("Data") || !entry["Data"].is_object())
+			{
+				outMessage = "Level内ActorのDataが不正です";
+				return false;
+			}
+
+			const nlohmann::json& actorJson = entry["Data"];
+			if (!actorJson.contains("Class") || !actorJson["Class"].is_string())
+			{
+				outMessage = "Level内ActorのClassが不正です";
+				return false;
+			}
+			if (!actorJson.contains("Components") || !actorJson["Components"].is_array())
+			{
+				outMessage = "Level内ActorのComponentsが不正です";
+				return false;
+			}
+
+			const std::string actorClassName = actorJson["Class"].get<std::string>();
+			if (!ActorFactory::IsRegistered(actorClassName))
+			{
+				outMessage = "未登録のActor Classです: " + actorClassName;
+				return false;
+			}
+
+			std::unordered_map<std::string, std::string> parentBySceneComponentName;
+			std::size_t rootComponentCount = 0;
+			for (const nlohmann::json& componentJson : actorJson["Components"])
+			{
+				if (!componentJson.is_object() || !componentJson.contains("Class") || !componentJson["Class"].is_string())
+				{
+					outMessage = "Level内ComponentのClassが不正です: " + actorClassName;
+					return false;
+				}
+
+				const std::string componentClassName = componentJson["Class"].get<std::string>();
+				const ComponentFactory::ComponentTypeInfo* typeInfo = FindRegisteredComponentType(componentClassName);
+				if (!typeInfo)
+				{
+					outMessage = "未登録のComponent Classです: " + componentClassName;
+					return false;
+				}
+
+				const std::string componentType = componentJson.value("Type", std::string("ActorComponent"));
+				const bool isSceneComponent = componentType == "SceneComponent";
+				if (isSceneComponent != typeInfo->canBeRoot)
+				{
+					outMessage = "ComponentのTypeとClassが一致していません: " + componentClassName;
+					return false;
+				}
+				if (!isSceneComponent) continue;
+
+				const std::string componentName = componentJson.value("Name", std::string{});
+				const std::string parentName = componentJson.value("Parent", std::string{});
+				if (componentName.empty())
+				{
+					outMessage = "SceneComponentのNameが空です: " + componentClassName;
+					return false;
+				}
+				if (!parentBySceneComponentName.emplace(componentName, parentName).second)
+				{
+					outMessage = "SceneComponentのNameが重複しています: " + componentName;
+					return false;
+				}
+				if (parentName.empty()) ++rootComponentCount;
+			}
+
+			if (!parentBySceneComponentName.empty() && rootComponentCount != 1)
+			{
+				outMessage = "ActorにはRoot SceneComponentが1つ必要です: " + actorClassName;
+				return false;
+			}
+
+			for (const auto& [componentName, parentName] : parentBySceneComponentName)
+			{
+				if (parentName.empty()) continue;
+				if (parentName == componentName)
+				{
+					outMessage = "SceneComponentが自分自身をParentに指定しています: " + componentName;
+					return false;
+				}
+				if (!parentBySceneComponentName.contains(parentName))
+				{
+					outMessage = "存在しないSceneComponent Parentが指定されています: " + parentName;
+					return false;
+				}
+			}
+
+			for (const auto& [componentName, unusedParentName] : parentBySceneComponentName)
+			{
+				(void)unusedParentName;
+				std::unordered_set<std::string> ancestry;
+				std::string currentName = componentName;
+				while (!currentName.empty())
+				{
+					if (!ancestry.insert(currentName).second)
+					{
+						outMessage = "SceneComponent階層が循環しています: " + componentName;
+						return false;
+					}
+					const auto parentIt = parentBySceneComponentName.find(currentName);
+					currentName = parentIt != parentBySceneComponentName.end() ? parentIt->second : std::string{};
+				}
+			}
+			return true;
 		}
 
 		static Vector3 ReadVector3(const nlohmann::json& value, const Vector3& fallback)
@@ -150,6 +322,19 @@ namespace Ken4lowEngine
 			state.locked = editor.value("Locked", false);
 			state.folderPath = editor.value("Folder", std::string{});
 			EditorActorStateRegistry::GetInstance()->SetState(actor, state); // Editor起動時はOutliner固有状態もLevelと同時に復元する。
+		}
+
+		static void ApplyEditorCamera(const nlohmann::json& cameraJson)
+		{
+			if (!cameraJson.is_object()) return;
+			DebugCamera* camera = CameraManager::GetInstance()->GetDebugCamera();
+			if (!camera) return;
+			if (cameraJson.contains("Position")) camera->SetTranslate(ReadVector3(cameraJson["Position"], camera->GetTranslate()));
+			if (cameraJson.contains("Rotation")) camera->SetRotate(ReadVector3(cameraJson["Rotation"], camera->GetRotate()));
+			camera->SetFovY(cameraJson.value("FovY", camera->GetFovY()));
+			camera->SetNearClip(cameraJson.value("NearClip", camera->GetNearClip()));
+			camera->SetFarClip(cameraJson.value("FarClip", camera->GetFarClip()));
+			camera->RefreshViewProjection(); // SceneDefinition経由のLevel読込でもPhase 10保存時のEditor Cameraを復元する。
 		}
 #endif
 
