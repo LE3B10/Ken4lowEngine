@@ -1,9 +1,11 @@
 #pragma once
 
 #include "SceneDefinition.h"
+#include <SceneLevelLoader.h>
 
 #include <Editor/EditorObjectInfo.h>
 
+#include <string>
 #include <vector>
 
 namespace Ken4lowEngine
@@ -61,7 +63,33 @@ namespace Ken4lowEngine
 		}
 
 		virtual void SetSceneManager(SceneManager* sceneManager) { sceneManager_ = sceneManager; }
-		virtual void StartLoad() {};
+
+		/// <summary>Scene固有ロード開始時にSceneDefinitionのLevelを自動適用します。</summary>
+		virtual void StartLoad()
+		{
+			lastLevelLoadAttempted_ = false;
+			lastLevelLoadSucceeded_ = true;
+			lastLevelLoadMessage_.clear();
+			if (sceneDefinition_.levelPath.empty()) return;
+
+			lastLevelLoadAttempted_ = true;
+			ActorWorld* actorWorld = GetSceneActorWorld();
+			if (!actorWorld)
+			{
+				lastLevelLoadSucceeded_ = false;
+				lastLevelLoadMessage_ = "SceneはLevel読込用ActorWorldを公開していません: " + sceneDefinition_.id;
+				return;
+			}
+
+			const SceneLevelLoader::Result result = SceneLevelLoader::Load(sceneDefinition_.levelPath, *actorWorld);
+			lastLevelLoadSucceeded_ = result.succeeded;
+			lastLevelLoadMessage_ = result.message; // SceneManagerやDebug UIが同じ結果を参照できるようSceneへ保持する。
+		}
+
+		[[nodiscard]] bool WasLevelLoadAttempted() const { return lastLevelLoadAttempted_; }
+		[[nodiscard]] bool DidLevelLoadSucceed() const { return lastLevelLoadSucceeded_; }
+		[[nodiscard]] const std::string& GetLastLevelLoadMessage() const { return lastLevelLoadMessage_; }
+
 		virtual void UpdateLoad() {};
 		virtual void StartUnload() {};
 		virtual void UpdateUnload() {};
@@ -71,5 +99,8 @@ namespace Ken4lowEngine
 	protected:
 		SceneManager* sceneManager_ = nullptr;
 		SceneDefinition sceneDefinition_{};
+		bool lastLevelLoadAttempted_ = false;
+		bool lastLevelLoadSucceeded_ = true;
+		std::string lastLevelLoadMessage_;
 	};
 } // namespace Ken4lowEngine
