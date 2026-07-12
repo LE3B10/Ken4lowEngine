@@ -38,6 +38,7 @@ namespace Ken4lowEngine
 		uncoverDelayCounter_ = 0;
 		unloadRequested_ = false;
 		editorPlaySessionActive_ = false;
+		editorPlayUsesSceneRecreate_ = false;
 		editorSingleStepRequested_ = false;
 	}
 
@@ -84,21 +85,43 @@ namespace Ken4lowEngine
 
 		K4E::EditorPlayController* playController = K4E::EditorPlayController::GetInstance();
 		K4E::EditorPlaySessionManager* sessionManager = K4E::EditorPlaySessionManager::GetInstance();
+		K4E::EditorWindowManager* windowManager = K4E::EditorWindowManager::GetInstance();
 		const K4E::EditorPlayRequest request = playController->ConsumePendingRequest();
 
 		switch (request)
 		{
 		case K4E::EditorPlayRequest::Start:
-			if (!editorPlaySessionActive_ && sessionManager->BeginPlaySession(*scene_))
+			if (editorPlaySessionActive_)
 			{
-				scene_->BeginEditorPlay();
-				editorPlaySessionActive_ = true;
-				editorSingleStepRequested_ = false;
-				playController->CommitPlayStarted();
+				playController->CommitPlayResumed();
+				break;
+			}
+
+			if (scene_->GetEditorActorWorld())
+			{
+				if (sessionManager->BeginPlaySession(*scene_))
+				{
+					scene_->BeginEditorPlay();
+					editorPlaySessionActive_ = true;
+					editorPlayUsesSceneRecreate_ = false;
+					editorSingleStepRequested_ = false;
+					playController->CommitPlayStarted();
+				}
+				else
+				{
+					playController->CommitStopped();
+				}
 			}
 			else
 			{
-				playController->CommitStopped();
+				scene_->BeginEditorPlay();
+				editorPlaySessionActive_ = true;
+				editorPlayUsesSceneRecreate_ = true;
+				editorSingleStepRequested_ = false;
+				playController->CommitPlayStarted();
+				windowManager->AddOutputLog(
+					K4E::EditorLogLevel::Info,
+					"このSceneはEditor ActorWorldを公開していないため、Stop時にSceneを再生成するPIE互換モードで開始しました。"); // 旧Sceneも再生可能にしつつRuntime変更はStop時の再生成で破棄する。
 			}
 			break;
 
@@ -131,7 +154,29 @@ namespace Ken4lowEngine
 			{
 				scene_->EndEditorPlay();
 				const bool keepChanges = request == K4E::EditorPlayRequest::KeepChangesAndStop;
-				if (sessionManager->EndPlaySession(*scene_, keepChanges))
+
+				if (editorPlayUsesSceneRecreate_)
+				{
+					const std::string reloadSceneId = !currentSceneDefinition_.id.empty()
+						? currentSceneDefinition_.id
+						: currentSceneDefinition_.className;
+					editorPlaySessionActive_ = false;
+					editorPlayUsesSceneRecreate_ = false;
+					editorSingleStepRequested_ = false;
+					playController->CommitStopped();
+
+					if (keepChanges)
+					{
+						windowManager->AddOutputLog(
+							K4E::EditorLogLevel::Warning,
+							"Editor ActorWorldを公開しないSceneではRuntime変更の保持に対応していないため、通常Stopとして再生成します。");
+					}
+					windowManager->AddOutputLog(
+						K4E::EditorLogLevel::Info,
+						"PIE互換モードを停止し、Play前のScene定義からSceneを再生成します: " + reloadSceneId);
+					ChangeScene(reloadSceneId); // Data-driven Scene定義から同じSceneを作り直してRuntime状態を編集側へ残さない。
+				}
+				else if (sessionManager->EndPlaySession(*scene_, keepChanges))
 				{
 					editorPlaySessionActive_ = false;
 					editorSingleStepRequested_ = false;
@@ -157,7 +202,7 @@ namespace Ken4lowEngine
 		bool statusSucceeded = false;
 		if (sessionManager->ConsumeStatus(statusMessage, statusSucceeded))
 		{
-			K4E::EditorWindowManager::GetInstance()->AddOutputLog(
+			windowManager->AddOutputLog(
 				statusSucceeded ? K4E::EditorLogLevel::Info : K4E::EditorLogLevel::Error,
 				statusMessage);
 		}
@@ -318,8 +363,12 @@ namespace Ken4lowEngine
 			if (editorPlaySessionActive_)
 			{
 				scene_->EndEditorPlay();
-				K4E::EditorPlaySessionManager::GetInstance()->CancelSessionWithoutRestore();
+				if (!editorPlayUsesSceneRecreate_)
+				{
+					K4E::EditorPlaySessionManager::GetInstance()->CancelSessionWithoutRestore();
+				}
 				editorPlaySessionActive_ = false;
+				editorPlayUsesSceneRecreate_ = false;
 				K4E::EditorPlayController::GetInstance()->CommitStopped();
 			}
 #endif
@@ -405,8 +454,12 @@ namespace Ken4lowEngine
 			if (editorPlaySessionActive_)
 			{
 				scene_->EndEditorPlay();
-				K4E::EditorPlaySessionManager::GetInstance()->CancelSessionWithoutRestore();
+				if (!editorPlayUsesSceneRecreate_)
+				{
+					K4E::EditorPlaySessionManager::GetInstance()->CancelSessionWithoutRestore();
+				}
 				editorPlaySessionActive_ = false;
+				editorPlayUsesSceneRecreate_ = false;
 				K4E::EditorPlayController::GetInstance()->CommitStopped();
 			}
 #endif
