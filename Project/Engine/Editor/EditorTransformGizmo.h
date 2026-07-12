@@ -1,6 +1,9 @@
 #pragma once
 
 #ifdef USE_IMGUI
+#ifndef IMGUI_DEFINE_MATH_OPERATORS
+#define IMGUI_DEFINE_MATH_OPERATORS // ImGuizmo実装より先にImGuiのMath Operatorを有効化する。
+#endif
 #include "EditorObjectInfo.h"
 
 namespace Ken4lowEngine
