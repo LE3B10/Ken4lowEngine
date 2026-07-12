@@ -22,7 +22,7 @@ namespace Ken4lowEngine
 		bool showContentBrowser = true;
 		bool showWorldOutliner = true;
 		bool showDetails = true;
-		bool showOutputLog = true;
+		bool showOutputLog = false; // Phase 12のDiagnosticsへLog / Profiler / Errorを統合したため旧Panelは既定で隠す。
 		bool showScene = true;
 
 		bool showParameters = true;
