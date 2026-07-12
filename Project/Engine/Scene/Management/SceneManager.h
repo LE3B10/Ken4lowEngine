@@ -66,7 +66,8 @@ namespace Ken4lowEngine
 		int uncoverDelayFrames_ = 3;
 		int uncoverDelayCounter_ = 0;
 		bool unloadRequested_ = false;
-		bool editorPlaySessionActive_ = false; // Runtime Worldが存在する期間はPause中もtrueを維持する。
+		bool editorPlaySessionActive_ = false; // Runtime WorldまたはScene再生成型PIEが存在する期間はPause中もtrueを維持する。
+		bool editorPlayUsesSceneRecreate_ = false; // ActorWorldを公開しない旧SceneはStop時のScene再生成でRuntime変更を破棄する。
 		bool editorSingleStepRequested_ = false; // Pause中の1フレーム実行を通常Playと分離する。
 	};
 } // namespace Ken4lowEngine
