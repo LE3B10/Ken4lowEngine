@@ -34,10 +34,10 @@ namespace Ken4lowEngine
 		const EditorViewportRect& viewportRect = windowManager->GetMainViewportRect();
 		if (viewportRect.valid)
 		{
-			const float width = sessionManager->IsSessionActive() ? 440.0f : 330.0f;
+			const float width = sessionManager->IsSessionActive() ? 400.0f : 240.0f;
 			ImGui::SetNextWindowPos(
-				ImVec2(viewportRect.screenMax.x - width - 8.0f, viewportRect.screenMin.y + 8.0f),
-				ImGuiCond_Always);
+				ImVec2(viewportRect.screenMax.x - width - 8.0f, viewportRect.screenMin.y + 54.0f),
+				ImGuiCond_Always); // メインToolbarと別段へ配置し、背面へ隠れて操作不能になる重なりを避ける。
 			ImGui::SetNextWindowSize(ImVec2(width, 42.0f), ImGuiCond_Always);
 			ImGui::SetNextWindowBgAlpha(0.94f);
 
