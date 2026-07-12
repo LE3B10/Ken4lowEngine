@@ -2691,6 +2691,21 @@
     <ClInclude Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelObjectIdRenderer.h">
       <Filter>Engine\Graphics\Renderer\Animation\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorActorStateRegistry.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorCommandHistory.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorLevelDeferredController.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorLevelOverlay.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Editor\EditorLevelService.h">
+      <Filter>Engine\Editor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

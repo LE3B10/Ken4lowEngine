@@ -65,7 +65,7 @@ namespace Ken4lowEngine
 				return;
 			}
 
-			autoSaveElapsed_ += std::max(0.0f, deltaTime);
+			autoSaveElapsed_ += (std::max)(0.0f, deltaTime);
 			if (autoSaveElapsed_ < autoSaveIntervalSeconds_) return;
 			autoSaveElapsed_ = 0.0f;
 
