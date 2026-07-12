@@ -99,7 +99,8 @@ namespace Ken4lowEngine
 		outJson["LocalRotation"] = { GetLocalRotation().x, GetLocalRotation().y, GetLocalRotation().z };
 		outJson["LocalScale"] = { GetLocalScale().x, GetLocalScale().y, GetLocalScale().z };
 		const SceneComponent* parent = GetParent();
-		outJson["Parent"] = parent ? parent->GetName() : "";
+		const bool isInternalParent = parent && parent->GetOwner() == GetOwner();
+		outJson["Parent"] = isInternalParent ? parent->GetName() : ""; // Actorを跨ぐ親子関係はPrefabではなくLevel側のParentIdへ保存する。
 	}
 
 	void SceneComponent::FromJson(const nlohmann::json& inJson)
