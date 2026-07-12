@@ -2,10 +2,12 @@
 #include "DebugCamera.h"
 #include "WinApp.h"
 #include "GameViewportConstants.h"
+#include "GameTimer.h"
 #include "Input.h"
 #include "ParameterManager.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace Ken4lowEngine
 {
@@ -55,10 +57,10 @@ namespace Ken4lowEngine
 
 	void DebugCamera::Update()
 	{
-		Input* input = Input::GetInstance();
-		if (!input || !input->GetLockCursor())
+		const bool rightMouseDown = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+		if (!rightMouseDown)
 		{
-			editorLookCaptureInitialized_ = false; // RMB解除後は次回クリックの初回差分を再び無効化する。
+			editorLookCaptureInitialized_ = false; // Cursor Lockではなく物理RMBの解放をEditor Look終了条件にする。
 		}
 		Move();
 		UpdateViewProjection();
@@ -72,28 +74,41 @@ namespace Ken4lowEngine
 	void DebugCamera::ApplyEditorNavigation(const Vector3& localMove, float pitchDelta, float yawDelta)
 	{
 		Input* input = Input::GetInstance();
-		if (input && input->GetLockCursor())
+		const bool rightMouseDown = (GetAsyncKeyState(VK_RBUTTON) & 0x8000) != 0;
+		Vector3 editorMove = localMove;
+
+		if (input && rightMouseDown)
 		{
 			if (!editorLookCaptureInitialized_)
 			{
 				pitchDelta = 0.0f;
 				yawDelta = 0.0f;
-				editorLookCaptureInitialized_ = true; // 右クリック開始位置から中央へ飛ぶ差分は回転へ使わない。
+				editorLookCaptureInitialized_ = true; // RMBを押した瞬間の不連続な差分だけを1フレーム捨てる。
 			}
 			else
 			{
-				const float rawX = static_cast<float>(input->GetMouseMoveX());
-				const float rawY = static_cast<float>(input->GetMouseMoveY());
+				const Vector2 rawDelta = input->GetDragDelta();
+				const float rawX = std::abs(rawDelta.x) > 0.0f ? rawDelta.x : (-yawDelta / 0.003f);
+				const float rawY = std::abs(rawDelta.y) > 0.0f ? rawDelta.y : (pitchDelta / 0.003f);
 				pitchDelta = std::clamp(rawY * 0.003f, -0.15f, 0.15f);
-				yawDelta = std::clamp(-rawX * 0.003f, -0.15f, 0.15f); // カーソル絶対位置ではなくDirectInputの相対移動量だけを使う。
+				yawDelta = std::clamp(-rawX * 0.003f, -0.15f, 0.15f); // ゲーム入力抑制を通らないDirectInput相対移動量で連続回転する。
 			}
+
+			editorMove.y = 0.0f; // 旧Q/Eの上下移動を無効化し、Space/Ctrlへ操作を統一する。
+			const float deltaTime = std::clamp(GameTimer::GetInstance()->GetDeltaTime(), 1.0f / 240.0f, 1.0f / 15.0f);
+			const float moveSpeed = input->PushRawKey(DIK_LSHIFT) ? 24.0f : 8.0f;
+			const float verticalStep = moveSpeed * deltaTime;
+			if (input->PushRawKey(DIK_SPACE)) editorMove.y += verticalStep;
+			if (input->PushRawKey(DIK_LCONTROL) || input->PushRawKey(DIK_RCONTROL)) editorMove.y -= verticalStep;
+
+			input->SetLockCursor(false); // OSウィンドウ中央への再配置を止め、Main Viewport操作中の点滅を防ぐ。
 		}
 
 		worldTransform_.rotate_.x = std::clamp(worldTransform_.rotate_.x + pitchDelta, -1.5533f, 1.5533f);
 		worldTransform_.rotate_.y += yawDelta;
 
 		const Matrix4x4 cameraRotation = Matrix4x4::MakeRotateMatrix(worldTransform_.rotate_);
-		worldTransform_.translate_ += Vector3::Transform(localMove, cameraRotation);
+		worldTransform_.translate_ += Vector3::Transform(editorMove, cameraRotation);
 		UpdateViewProjection();
 	}
 
@@ -105,7 +120,7 @@ namespace Ken4lowEngine
 		if (Input::GetInstance()->PushKey(DIK_A)) { move.x -= 0.2f; }
 		if (Input::GetInstance()->PushKey(DIK_D)) { move.x += 0.2f; }
 		if (Input::GetInstance()->PushKey(DIK_SPACE)) { move.y += 0.2f; }
-		if (Input::GetInstance()->PushKey(DIK_LSHIFT)) { move.y -= 0.2f; }
+		if (Input::GetInstance()->PushKey(DIK_LCONTROL) || Input::GetInstance()->PushKey(DIK_RCONTROL)) { move.y -= 0.2f; }
 		if (Input::GetInstance()->PushKey(DIK_UP)) { worldTransform_.rotate_.x -= 0.02f; }
 		if (Input::GetInstance()->PushKey(DIK_DOWN)) { worldTransform_.rotate_.x += 0.02f; }
 		if (Input::GetInstance()->PushKey(DIK_LEFT)) { worldTransform_.rotate_.y += 0.02f; }
