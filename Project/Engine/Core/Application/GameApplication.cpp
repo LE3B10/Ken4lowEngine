@@ -103,6 +103,8 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		// F1でEditor Mode / Game Preview Modeを切り替え、Preview中はゲーム入力を優先する。
 		EditorModeController::GetInstance()->Update(Input::GetInstance());
+		// FrameworkがCameraやParticleのGPU処理を積む前に、予約されたPIE Worldの生成・破棄を完了する。
+		sceneManager_->ProcessEditorPlayRequests();
 #endif // USE_IMGUI
 
 		// FPSカメラを使っていない場面でも、メインカメラの行列を最新状態にしておく。
