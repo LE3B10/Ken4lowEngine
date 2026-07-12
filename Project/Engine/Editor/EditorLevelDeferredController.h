@@ -170,7 +170,7 @@ namespace Ken4lowEngine
 				requestUnsavedDialog_ = true;
 				return;
 			}
-			executeAtSafePoint_ = true;
+			executeAtSafePoint_ = true; // ImGuiフレーム中は予約だけ立て、ActorWorldの破棄は行わない。
 		}
 
 		void CancelPendingAction()
