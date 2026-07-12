@@ -8,8 +8,22 @@
 - Actor間の親子関係
 - Lighting / Shadow / Global Punctual Lights
 - Debug EditorではOutlinerの表示・ロック・Folder
+- Debug Editor Camera
 
 既存Sceneで `StartLoad()` をoverrideしている場合は、override内の先頭で `BaseScene::StartLoad()` を呼び出します。Levelを持たない既存Sceneは従来の初期化結果を維持します。
+
+## Validation
+
+Levelで既存Worldを置き換える前に、次の項目を検証します。
+
+- Actor ClassとComponent ClassがFactoryへ登録済みであること
+- Actor IDとSceneComponent名が重複していないこと
+- ParentIdとSceneComponent Parentが存在すること
+- Actor間およびSceneComponent間の親子関係が循環していないこと
+- SceneComponentを持つActorにRootが1つだけ存在すること
+- Componentの`Type`と登録Classの種別が一致すること
+
+検証に失敗した場合は既存Worldを破棄しません。読込処理中に例外が発生した場合は、不完全なActorを残さず空Worldへ戻します。
 
 ## Validation scene
 
