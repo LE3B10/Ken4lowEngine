@@ -10,13 +10,11 @@
 #include <LightManager.h>
 #include <PhysicsWorld.h>
 #include <PhysicsDebugDraw.h>
-#include <RigidbodyComponent.h>
-#include <SceneComponent.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdint>
-#include <array>
 #include <memory>
 #include <numbers>
 #include <string>
@@ -48,44 +46,12 @@ public:
 
 	void BeginEditorPlay() override
 	{
-		editorActorSnapshots_.clear();
-		for (const auto& actorOwner : actorWorld_.GetActors())
-		{
-			K4E::Actor* actor = actorOwner.get();
-			K4E::SceneComponent* root = actor ? actor->GetRootComponent() : nullptr;
-			if (!actor || !root || actor->IsPendingDestroy())
-			{
-				continue;
-			}
-			editorActorSnapshots_.push_back({ actor, root->GetLocalPosition(), root->GetLocalRotation(), root->GetLocalScale() });
-		}
-		// Play開始時点のEdit Worldだけを保存し、Pause再開では取り直さない。
+		// ActorWorldの複製とEditor状態退避はEditorPlaySessionManagerへ一元化する。
 	}
 
 	void EndEditorPlay() override
 	{
-		for (const EditorActorTransformSnapshot& snapshot : editorActorSnapshots_)
-		{
-			const bool actorExists = std::any_of(actorWorld_.GetActors().begin(), actorWorld_.GetActors().end(),
-				[&snapshot](const std::unique_ptr<K4E::Actor>& actor) { return actor.get() == snapshot.actor; });
-			if (!actorExists || !snapshot.actor)
-			{
-				continue;
-			}
-
-			if (K4E::SceneComponent* root = snapshot.actor->GetRootComponent())
-			{
-				root->SetLocalPosition(snapshot.position);
-				root->SetLocalRotation(snapshot.rotation);
-				root->SetLocalScale(snapshot.scale);
-				root->RefreshWorldTransform();
-			}
-			for (K4E::RigidbodyComponent* rigidbody : snapshot.actor->GetComponents<K4E::RigidbodyComponent>())
-			{
-				if (rigidbody) rigidbody->SetVelocity({ 0.0f, 0.0f, 0.0f });
-			}
-		}
-		editorActorSnapshots_.clear(); // Stop後はPlay中の物理変化を残さず編集状態へ戻す。
+		// Runtime World固有の後処理だけをScene Hookへ残し、Editor World復元はManagerへ任せる。
 	}
 
 	void CollectEditorObjects(std::vector<K4E::EditorObjectInfo>& outObjects) override
@@ -134,14 +100,6 @@ public:
 	void DrawImGui() override;
 
 private:
-	struct EditorActorTransformSnapshot
-	{
-		K4E::Actor* actor = nullptr;
-		K4E::Vector3 position{};
-		K4E::Vector3 rotation{};
-		K4E::Vector3 scale{ 1.0f, 1.0f, 1.0f };
-	};
-
 	void UpdateDebug();
 	void RebuildInstancingTest();
 	void ReloadAnimationModelTest();
@@ -215,5 +173,4 @@ private:
 	K4E::ActorWorld actorWorld_;
 	K4E::PhysicsWorld actorPhysicsWorld_;
 	K4E::PhysicsDebugDraw actorPhysicsDebugDraw_;
-	std::vector<EditorActorTransformSnapshot> editorActorSnapshots_;
 };
