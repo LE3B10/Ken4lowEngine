@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <exception>
 #include <string>
 #include <vector>
 
@@ -38,6 +39,42 @@ namespace Ken4lowEngine
 		unloadRequested_ = false;
 		editorPlaySessionActive_ = false;
 		editorSingleStepRequested_ = false;
+	}
+
+	bool SceneManager::LoadSceneDefinitions(const std::string& registryPath)
+	{
+		const bool loaded = sceneDefinitionRegistry_.Load(registryPath);
+#ifdef USE_IMGUI
+		K4E::EditorWindowManager::GetInstance()->AddOutputLog(
+			loaded ? K4E::EditorLogLevel::Info : K4E::EditorLogLevel::Warning,
+			loaded
+				? "Scene Registryを読み込みました: " + registryPath
+				: "Scene Registryの一部または全部を読み込めなかったためFallback定義を使用します: " + sceneDefinitionRegistry_.GetLastError());
+#endif
+		return loaded; // 読込失敗時もRegistry内部のFallback定義で従来Scene名を維持する。
+	}
+
+	std::string SceneManager::GetStartupSceneName(bool debugBuild) const
+	{
+		return sceneDefinitionRegistry_.GetStartupScene(debugBuild);
+	}
+
+	const SceneDefinition* SceneManager::FindSceneDefinition(const std::string& sceneId) const
+	{
+		return sceneDefinitionRegistry_.Find(sceneId);
+	}
+
+	SceneDefinition SceneManager::ResolveSceneDefinition(const std::string& sceneId) const
+	{
+		if (const SceneDefinition* definition = sceneDefinitionRegistry_.Find(sceneId))
+		{
+			return *definition;
+		}
+
+		SceneDefinition fallback{};
+		fallback.id = sceneId;
+		fallback.className = sceneId; // 未登録名は従来互換としてC++ Scene Class名と同一扱いにする。
+		return fallback;
 	}
 
 	void SceneManager::ProcessEditorPlayRequests()
@@ -294,7 +331,7 @@ namespace Ken4lowEngine
 #endif
 	}
 
-	void SceneManager::ChangeScene(const std::string& sceneName)
+	void SceneManager::ChangeScene(const std::string& sceneId)
 	{
 		assert(sceneFactory_);
 #ifdef USE_IMGUI
@@ -308,11 +345,39 @@ namespace Ken4lowEngine
 #endif
 		if (IsTransitioning())
 		{
-			queuedSceneName_ = sceneName;
+			queuedSceneName_ = sceneId;
 			hasQueuedChange_ = true;
 			return;
 		}
-		nextScene_ = sceneFactory_->CreateScene(sceneName);
+
+		const SceneDefinition definition = ResolveSceneDefinition(sceneId);
+#ifndef _DEBUG
+		if (definition.editorOnly)
+		{
+#ifdef USE_IMGUI
+			K4E::EditorWindowManager::GetInstance()->AddOutputLog(K4E::EditorLogLevel::Error, "ReleaseではEditorOnly Sceneへ遷移できません: " + sceneId);
+#endif
+			return;
+		}
+#endif
+
+		try
+		{
+			nextScene_ = sceneFactory_->CreateScene(definition.className);
+		}
+		catch (const std::exception& exception)
+		{
+#ifdef USE_IMGUI
+			K4E::EditorWindowManager::GetInstance()->AddOutputLog(
+				K4E::EditorLogLevel::Error,
+				"Scene生成に失敗しました: " + sceneId + " / " + exception.what());
+#endif
+			return;
+		}
+		if (!nextScene_) return;
+
+		nextSceneDefinition_ = definition;
+		nextScene_->ApplySceneDefinition(nextSceneDefinition_); // Initializeより前にLevel、BGM、遷移先などの定義を渡す。
 		if (!sceneTransition_)
 		{
 			ApplyNextScene();
@@ -348,11 +413,18 @@ namespace Ken4lowEngine
 			scene_->Finalize();
 		}
 		scene_ = std::move(nextScene_);
+		currentSceneDefinition_ = std::move(nextSceneDefinition_);
+		nextSceneDefinition_ = {};
 		if (scene_)
 		{
 			scene_->SetSceneManager(this);
 			scene_->Initialize();
 			scene_->StartLoad();
+#ifdef USE_IMGUI
+			K4E::EditorWindowManager::GetInstance()->AddOutputLog(
+				K4E::EditorLogLevel::Info,
+				"Scene開始: " + currentSceneDefinition_.id + " [Class=" + currentSceneDefinition_.className + "]");
+#endif
 		}
 	}
 } // namespace Ken4lowEngine
