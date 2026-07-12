@@ -15,6 +15,7 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <Externals/ImGuizmo/ImGuizmo.h>
+#include <Externals/ImGuizmo/ImGuizmo.cpp> // Debug構成でもImGuizmo実装をこの翻訳単位へ確実に組み込む。
 
 #include <algorithm>
 #include <cmath>
