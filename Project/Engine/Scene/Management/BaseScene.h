@@ -1,7 +1,10 @@
 #pragma once
 
+#include "SceneDefinition.h"
+
 #include <Editor/EditorObjectInfo.h>
 
+#include <utility>
 #include <vector>
 
 namespace Ken4lowEngine
@@ -51,7 +54,16 @@ namespace Ken4lowEngine
 		virtual bool IsReadyToStartUncover() const { return true; }
 		virtual bool IsReadyToSwapOut() const { return true; }
 
+		void SetSceneDefinition(SceneDefinition definition)
+		{
+			sceneDefinition_ = std::move(definition); // Initializeより前にScene構成値を渡して固有初期化から参照できるようにする。
+		}
+
+		[[nodiscard]] const SceneDefinition& GetSceneDefinition() const { return sceneDefinition_; }
+		[[nodiscard]] const nlohmann::json& GetSceneParameters() const { return sceneDefinition_.parameters; }
+
 	protected:
 		SceneManager* sceneManager_ = nullptr;
+		SceneDefinition sceneDefinition_{};
 	};
 } // namespace Ken4lowEngine
