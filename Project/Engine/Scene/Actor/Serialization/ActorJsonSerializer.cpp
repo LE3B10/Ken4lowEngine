@@ -8,19 +8,75 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <string_view>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace Ken4lowEngine
 {
 	namespace
 	{
+		const ComponentFactory::ComponentTypeInfo* FindRegisteredComponentType(std::string_view className)
+		{
+			for (const ComponentFactory::ComponentTypeInfo& typeInfo : ComponentFactory::GetRegisteredComponentTypes())
+			{
+				if (typeInfo.className == className) return &typeInfo;
+			}
+			return nullptr;
+		}
+
 		bool ValidateActorJson(const nlohmann::json& actorJson)
 		{
 			if (!actorJson.is_object() || !actorJson.contains("Components") || !actorJson["Components"].is_array()) return false;
+
+			std::unordered_map<std::string, std::size_t> componentClassCounts;
+			std::unordered_map<std::string, std::string> parentBySceneComponentName;
+			std::size_t rootComponentCount = 0;
+
 			for (const auto& componentJson : actorJson["Components"])
 			{
 				if (!componentJson.is_object() || !componentJson.contains("Class") || !componentJson["Class"].is_string()) return false;
+
+				const std::string className = componentJson["Class"].get<std::string>();
+				const ComponentFactory::ComponentTypeInfo* typeInfo = FindRegisteredComponentType(className);
+				if (!typeInfo) return false;
+
+				const std::size_t classCount = ++componentClassCounts[className];
+				if (!typeInfo->allowMultiple && classCount > 1) return false; // UI制限だけでなくJSON読込時も単一Component制約を保証する。
+
+				if (componentJson.contains("Type") && componentJson["Type"].is_string())
+				{
+					const bool declaredSceneComponent = componentJson["Type"].get<std::string>() == "SceneComponent";
+					if (declaredSceneComponent != typeInfo->canBeRoot) return false;
+				}
+
+				if (!typeInfo->canBeRoot) continue;
+
+				const std::string componentName = componentJson.value("Name", std::string{});
+				const std::string parentName = componentJson.value("Parent", std::string{});
+				if (componentName.empty() || !parentBySceneComponentName.emplace(componentName, parentName).second) return false;
+				if (parentName.empty()) ++rootComponentCount;
+			}
+
+			if (!parentBySceneComponentName.empty() && rootComponentCount != 1) return false;
+			for (const auto& [componentName, parentName] : parentBySceneComponentName)
+			{
+				if (parentName.empty()) continue;
+				if (parentName == componentName || !parentBySceneComponentName.contains(parentName)) return false;
+			}
+
+			for (const auto& [componentName, unusedParentName] : parentBySceneComponentName)
+			{
+				(void)unusedParentName;
+				std::unordered_set<std::string> ancestry;
+				std::string currentName = componentName;
+				while (!currentName.empty())
+				{
+					if (!ancestry.insert(currentName).second) return false;
+					const auto parentIt = parentBySceneComponentName.find(currentName);
+					currentName = parentIt != parentBySceneComponentName.end() ? parentIt->second : std::string{};
+				}
 			}
 			return true;
 		}
@@ -67,11 +123,11 @@ namespace Ken4lowEngine
 		for (const auto& componentJson : actorJson["Components"])
 		{
 			const std::string className = componentJson["Class"].get<std::string>();
-			const std::string componentType = componentJson.value("Type", std::string("ActorComponent"));
+			const ComponentFactory::ComponentTypeInfo* typeInfo = FindRegisteredComponentType(className);
 			const std::string parentName = componentJson.value("Parent", std::string{});
 
 			ActorComponent* createdComponent = nullptr;
-			if (componentType == "SceneComponent" && parentName.empty())
+			if (typeInfo && typeInfo->canBeRoot && parentName.empty())
 			{
 				createdComponent = ComponentFactory::CreateRootSceneComponent(&actor, className);
 			}
@@ -79,12 +135,12 @@ namespace Ken4lowEngine
 			{
 				createdComponent = ComponentFactory::CreateComponent(&actor, className);
 			}
-			if (!createdComponent) continue;
+			if (!createdComponent) return false;
 
 			createdComponent->FromJson(componentJson);
 			if (SceneComponent* sceneComponent = dynamic_cast<SceneComponent*>(createdComponent))
 			{
-				sceneComponentsByName[sceneComponent->GetName()] = sceneComponent;
+				sceneComponentsByName.emplace(sceneComponent->GetName(), sceneComponent);
 				if (!parentName.empty()) pendingAttachments.emplace_back(sceneComponent, parentName);
 				else if (!actor.GetRootComponent()) actor.SetRootComponent(sceneComponent);
 			}
@@ -93,7 +149,8 @@ namespace Ken4lowEngine
 		for (const auto& [child, parentName] : pendingAttachments)
 		{
 			const auto parentIt = sceneComponentsByName.find(parentName);
-			if (child && parentIt != sceneComponentsByName.end()) child->AttachTo(parentIt->second);
+			if (!child || parentIt == sceneComponentsByName.end()) return false;
+			child->AttachTo(parentIt->second);
 		}
 
 		actor.InitializeComponents();
