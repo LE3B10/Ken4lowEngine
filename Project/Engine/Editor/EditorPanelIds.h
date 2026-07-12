@@ -9,7 +9,7 @@ namespace Ken4lowEngine::EditorPanelIds
 	inline constexpr const char* WorldOutliner = "アウトライナー###World Outliner";
 	inline constexpr const char* Details = "詳細###Details";
 	inline constexpr const char* ContentBrowser = "Content Browser";
-	inline constexpr const char* OutputLog = "Output Log";
+	inline constexpr const char* OutputLog = "診断###Diagnostics"; // Phase 12では旧Output LogのDock位置を統合Diagnosticsへ引き継ぐ。
 	inline constexpr const char* Scene = "Scene";
 
 	inline constexpr const char* Parameters = "Parameters";
