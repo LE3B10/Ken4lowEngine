@@ -22,6 +22,9 @@ Levelで既存Worldを置き換える前に、次の項目を検証します。
 - Actor間およびSceneComponent間の親子関係が循環していないこと
 - SceneComponentを持つActorにRootが1つだけ存在すること
 - Componentの`Type`と登録Classの種別が一致すること
+- `allowMultiple=false`のComponentが重複していないこと
+
+Actor JSON共通Serializerでも同じComponent登録・重複・階層制約を確認するため、Level、Prefab、Undo／Redo Snapshot、Actor再読込で不正な構成を成功扱いしません。
 
 検証に失敗した場合は既存Worldを破棄しません。読込処理中に例外が発生した場合は、不完全なActorを残さず空Worldへ戻します。
 
