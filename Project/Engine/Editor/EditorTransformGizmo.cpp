@@ -25,7 +25,6 @@
 #include <algorithm>
 #include <cmath>
 #include <memory>
-#include <numbers>
 
 namespace Ken4lowEngine
 {
@@ -181,12 +180,12 @@ namespace Ken4lowEngine
 		ImGuizmo::Enable(true);
 		ImGuizmo::AllowAxisFlip(false);
 		ImGuizmo::SetOrthographic(false);
-		ImGuizmo::SetGizmoSizeClipSpace(0.13f);
+		ImGuizmo::SetGizmoSizeClipSpace(0.16f);
 		ImGuizmo::Style& gizmoStyle = ImGuizmo::GetStyle();
 		gizmoStyle.TranslationLineThickness = 4.0f;
 		gizmoStyle.TranslationLineArrowSize = 8.0f;
-		gizmoStyle.RotationLineThickness = 3.0f;
-		gizmoStyle.RotationOuterLineThickness = 3.0f;
+		gizmoStyle.RotationLineThickness = 5.0f;
+		gizmoStyle.RotationOuterLineThickness = 4.0f; // Yを含む回転Ringの選択幅を広げて軸クリックを安定させる。
 		gizmoStyle.ScaleLineThickness = 4.0f;
 		gizmoStyle.ScaleLineCircleSize = 7.0f;
 		gizmoStyle.CenterCircleSize = 6.0f;
@@ -229,16 +228,19 @@ namespace Ken4lowEngine
 
 		if (changed)
 		{
-			float translation[3] = {};
-			float rotationDegrees[3] = {};
-			float scale[3] = {};
-			ImGuizmo::DecomposeMatrixToComponents(&transformMatrix.m[0][0], translation, rotationDegrees, scale);
+			Vector3 scale{};
+			Vector3 rotation{};
+			Vector3 translation{};
+			Matrix4x4::Decompose(transformMatrix, scale, rotation, translation); // EngineのXYZ回転順で分解し、Y軸回転をImGuizmo固有Euler変換から切り離す。
 
-			constexpr float toRadians = std::numbers::pi_v<float> / 180.0f;
 			EditorTransform editedWorldTransform{};
-			editedWorldTransform.position = { translation[0], translation[1], translation[2] };
-			editedWorldTransform.rotation = { rotationDegrees[0] * toRadians, rotationDegrees[1] * toRadians, rotationDegrees[2] * toRadians };
-			editedWorldTransform.scale = { KeepScaleInvertible(scale[0]), KeepScaleInvertible(scale[1]), KeepScaleInvertible(scale[2]) };
+			editedWorldTransform.position = translation;
+			editedWorldTransform.rotation = rotation;
+			editedWorldTransform.scale = {
+				KeepScaleInvertible(scale.x),
+				KeepScaleInvertible(scale.y),
+				KeepScaleInvertible(scale.z),
+			};
 			selected.WriteWorldTransform(editedWorldTransform);
 			EditorContext::GetInstance()->MarkLevelDirty();
 		}
