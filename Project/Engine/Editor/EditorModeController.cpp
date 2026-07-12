@@ -2,6 +2,7 @@
 
 #include "EditorCommandHistory.h"
 #include "EditorContext.h"
+#include "EditorLevelDeferredController.h"
 #include "EditorPlayController.h"
 #include "EditorWindowManager.h"
 #include <Input.h>
@@ -34,6 +35,8 @@ namespace Ken4lowEngine
 	void EditorModeController::Update(Input* input)
 	{
 #ifdef _DEBUG
+		EditorLevelDeferredController::GetInstance()->ProcessSafePoint(); // 前フレームのGPU完了後かつ新しいDraw開始前にLevel破棄・復元を行う。
+
 		if (input != nullptr && input->TriggerRawKey(DIK_F1))
 		{
 			SetEditorModeEnabled(!editorModeEnabled_); // F1はEditor / Game Preview切り替え専用にする。
