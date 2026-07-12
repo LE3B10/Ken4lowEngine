@@ -54,23 +54,35 @@ namespace Ken4lowEngine
 			return errors_.empty();
 		}
 
-		[[nodiscard]] const SceneDefinition* Find(std::string_view sceneNameOrClass) const
+		[[nodiscard]] const SceneDefinition* FindByName(std::string_view sceneName) const
 		{
-			const auto direct = definitions_.find(std::string(sceneNameOrClass));
-			if (direct != definitions_.end()) return &direct->second;
+			const auto found = definitions_.find(std::string(sceneName));
+			return found != definitions_.end() ? &found->second : nullptr;
+		}
 
+		[[nodiscard]] const SceneDefinition* FindUniqueByClass(std::string_view sceneClass) const
+		{
+			const SceneDefinition* result = nullptr;
 			for (const auto& [name, definition] : definitions_)
 			{
 				(void)name;
-				if (definition.sceneClass == sceneNameOrClass) return &definition;
+				if (definition.sceneClass != sceneClass) continue;
+				if (result) return nullptr; // 同じC++ SceneClassを複数SceneNameで使う場合は名前指定を必須にする。
+				result = &definition;
 			}
-			return nullptr;
+			return result;
+		}
+
+		[[nodiscard]] const SceneDefinition* Find(std::string_view sceneNameOrClass) const
+		{
+			if (const SceneDefinition* byName = FindByName(sceneNameOrClass)) return byName;
+			return FindUniqueByClass(sceneNameOrClass);
 		}
 
 		[[nodiscard]] std::string GetStartupSceneName(bool debugBuild, std::string_view fallback) const
 		{
 			const std::string& configured = debugBuild ? debugStartScene_ : releaseStartScene_;
-			if (!configured.empty() && Find(configured)) return configured;
+			if (!configured.empty() && FindByName(configured)) return configured;
 			return std::string(fallback);
 		}
 
@@ -153,21 +165,21 @@ namespace Ken4lowEngine
 		{
 			for (const auto& [name, definition] : definitions_)
 			{
-				if (!definition.nextScene.empty() && !Find(definition.nextScene))
+				if (!definition.nextScene.empty() && !FindByName(definition.nextScene))
 				{
 					warnings_.push_back("NextScene was not found: " + name + " -> " + definition.nextScene);
 				}
-				if (!definition.retryScene.empty() && !Find(definition.retryScene))
+				if (!definition.retryScene.empty() && !FindByName(definition.retryScene))
 				{
 					warnings_.push_back("RetryScene was not found: " + name + " -> " + definition.retryScene);
 				}
 			}
 
-			if (!debugStartScene_.empty() && !Find(debugStartScene_))
+			if (!debugStartScene_.empty() && !FindByName(debugStartScene_))
 			{
 				warnings_.push_back("Debug startup scene was not found: " + debugStartScene_);
 			}
-			if (!releaseStartScene_.empty() && !Find(releaseStartScene_))
+			if (!releaseStartScene_.empty() && !FindByName(releaseStartScene_))
 			{
 				warnings_.push_back("Release startup scene was not found: " + releaseStartScene_);
 			}
