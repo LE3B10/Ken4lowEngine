@@ -16,6 +16,7 @@ namespace Ken4lowEngine
 		~SceneManager();
 
 		void Initialize();
+		void ProcessEditorPlayRequests();
 		void Update();
 		void PrepareShadowPass();
 		void Draw3DObjects();
@@ -38,7 +39,6 @@ namespace Ken4lowEngine
 
 	private:
 		void ApplyNextScene();
-		void UpdateEditorPlaySession();
 		void RefreshEditorVisualState(float deltaTime);
 
 		std::unique_ptr<BaseScene> scene_;
