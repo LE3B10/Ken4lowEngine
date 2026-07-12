@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SceneDefinition.h"
+
 #include <Editor/EditorObjectInfo.h>
 
 #include <vector>
@@ -24,6 +26,14 @@ namespace Ken4lowEngine
 		virtual ~BaseScene() = default;
 		virtual void Initialize() = 0;
 		virtual void Update() = 0;
+
+		/// <summary>SceneManagerがJSON定義をInitialize前に適用します。</summary>
+		virtual void ApplySceneDefinition(const SceneDefinition& definition)
+		{
+			sceneDefinition_ = definition; // C++ Scene固有処理を残しつつ、使用Levelや遷移先をデータから参照できるようにする。
+		}
+
+		[[nodiscard]] const SceneDefinition& GetSceneDefinition() const { return sceneDefinition_; }
 
 		/// <summary>Editor Mode中にゲーム進行を止めたまま確認用更新だけ行う。</summary>
 		virtual void UpdateEditor(float /*deltaTime*/) {}
@@ -53,5 +63,6 @@ namespace Ken4lowEngine
 
 	protected:
 		SceneManager* sceneManager_ = nullptr;
+		SceneDefinition sceneDefinition_{};
 	};
 } // namespace Ken4lowEngine
