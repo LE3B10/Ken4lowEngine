@@ -11,10 +11,13 @@
 #include <Editor/EditorContext.h>
 #include <Editor/EditorModeController.h>
 #include <Editor/EditorPlayController.h>
+#include <Editor/EditorPlaySessionManager.h>
+#include <Editor/EditorWindowManager.h>
 #endif
 
 #include <algorithm>
 #include <cassert>
+#include <string>
 #include <vector>
 
 namespace K4E = ::Ken4lowEngine;
@@ -34,22 +37,92 @@ namespace Ken4lowEngine
 		uncoverDelayCounter_ = 0;
 		unloadRequested_ = false;
 		editorPlaySessionActive_ = false;
+		editorSingleStepRequested_ = false;
 	}
 
 	void SceneManager::UpdateEditorPlaySession()
 	{
 #ifdef USE_IMGUI
-		if (!scene_ || K4E::EditorModeController::GetInstance()->IsGamePreviewMode()) return;
+		if (!scene_) return;
+
 		K4E::EditorPlayController* playController = K4E::EditorPlayController::GetInstance();
-		if (playController->IsPlaying() && !editorPlaySessionActive_)
+		K4E::EditorPlaySessionManager* sessionManager = K4E::EditorPlaySessionManager::GetInstance();
+		const K4E::EditorPlayRequest request = playController->ConsumePendingRequest();
+
+		switch (request)
 		{
-			scene_->BeginEditorPlay();
-			editorPlaySessionActive_ = true;
+		case K4E::EditorPlayRequest::Start:
+			if (!editorPlaySessionActive_ && sessionManager->BeginPlaySession(*scene_))
+			{
+				scene_->BeginEditorPlay();
+				editorPlaySessionActive_ = true;
+				editorSingleStepRequested_ = false;
+				playController->CommitPlayStarted();
+			}
+			else
+			{
+				playController->CommitStopped();
+			}
+			break;
+
+		case K4E::EditorPlayRequest::Resume:
+			if (editorPlaySessionActive_)
+			{
+				playController->CommitPlayResumed();
+			}
+			else
+			{
+				playController->CommitStopped();
+			}
+			break;
+
+		case K4E::EditorPlayRequest::Pause:
+			if (editorPlaySessionActive_) playController->CommitPaused();
+			break;
+
+		case K4E::EditorPlayRequest::Step:
+			if (editorPlaySessionActive_)
+			{
+				playController->CommitPaused();
+				editorSingleStepRequested_ = true; // Pause状態を保ったままこのUpdateだけRuntime Tickを許可する。
+			}
+			break;
+
+		case K4E::EditorPlayRequest::Stop:
+		case K4E::EditorPlayRequest::KeepChangesAndStop:
+			if (editorPlaySessionActive_)
+			{
+				scene_->EndEditorPlay();
+				const bool keepChanges = request == K4E::EditorPlayRequest::KeepChangesAndStop;
+				if (sessionManager->EndPlaySession(*scene_, keepChanges))
+				{
+					editorPlaySessionActive_ = false;
+					editorSingleStepRequested_ = false;
+					playController->CommitStopped();
+				}
+				else
+				{
+					playController->CommitPaused(); // 復元失敗時はRuntimeを進めず再操作できる状態で止める。
+				}
+			}
+			else
+			{
+				playController->CommitStopped();
+			}
+			break;
+
+		case K4E::EditorPlayRequest::None:
+		default:
+			break;
 		}
-		else if (playController->IsEditing() && editorPlaySessionActive_)
+
+		std::string statusMessage;
+		bool statusSucceeded = false;
+		if (sessionManager->ConsumeStatus(statusMessage, statusSucceeded))
 		{
-			scene_->EndEditorPlay();
-			editorPlaySessionActive_ = false;
+			K4E::EditorWindowManager::GetInstance()->AddOutputLog(
+				statusSucceeded ? K4E::EditorLogLevel::Info : K4E::EditorLogLevel::Error,
+				statusMessage);
 		}
 #endif
 	}
@@ -83,7 +156,7 @@ namespace Ken4lowEngine
 	void SceneManager::Update()
 	{
 		float dtRaw = K4E::GameTimer::GetInstance()->GetDeltaTime();
-		float dtFade = std::min(dtRaw, 1.0f / 30.0f);
+		float dtFade = (std::min)(dtRaw, 1.0f / 30.0f);
 		if (sceneTransition_) sceneTransition_->Update(dtFade);
 
 		if (isTransitioning_)
@@ -153,20 +226,32 @@ namespace Ken4lowEngine
 			}
 		}
 
-		UpdateEditorPlaySession();
+		UpdateEditorPlaySession(); // Draw開始前の安全地点でEditor WorldとRuntime Worldを差し替える。
 		if (scene_ && (!isTransitioning_ || sceneSwapped_))
 		{
 			bool shouldUpdateGame = true;
 #ifdef USE_IMGUI
-			shouldUpdateGame = K4E::EditorModeController::GetInstance()->IsGamePreviewMode() || K4E::EditorPlayController::GetInstance()->IsPlaying();
+			K4E::EditorPlayController* playController = K4E::EditorPlayController::GetInstance();
+			shouldUpdateGame = K4E::EditorModeController::GetInstance()->IsGamePreviewMode() ||
+				playController->IsPlaying() || editorSingleStepRequested_;
 #endif
-			if (shouldUpdateGame) scene_->Update();
+			if (shouldUpdateGame)
+			{
+				scene_->Update();
+#ifdef USE_IMGUI
+				if (editorPlaySessionActive_)
+				{
+					K4E::EditorPlaySessionManager::GetInstance()->NotifyRuntimeTick(dtRaw, *scene_);
+				}
+#endif
+			}
 			else
 			{
 				scene_->UpdateEditor(dtRaw);
 				RefreshEditorVisualState(dtRaw);
 			}
 		}
+		editorSingleStepRequested_ = false;
 	}
 
 	void SceneManager::PrepareShadowPass() { if (scene_) scene_->PrepareShadowPass(); }
@@ -193,11 +278,15 @@ namespace Ken4lowEngine
 	{
 		if (scene_)
 		{
+#ifdef USE_IMGUI
 			if (editorPlaySessionActive_)
 			{
 				scene_->EndEditorPlay();
+				K4E::EditorPlaySessionManager::GetInstance()->CancelSessionWithoutRestore();
 				editorPlaySessionActive_ = false;
+				K4E::EditorPlayController::GetInstance()->CommitStopped();
 			}
+#endif
 			scene_->Finalize();
 		}
 		if (sceneTransition_) sceneTransition_->Finalize();
@@ -209,6 +298,15 @@ namespace Ken4lowEngine
 	void SceneManager::ChangeScene(const std::string& sceneName)
 	{
 		assert(sceneFactory_);
+#ifdef USE_IMGUI
+		if (editorPlaySessionActive_ || K4E::EditorPlaySessionManager::GetInstance()->IsSessionActive())
+		{
+			K4E::EditorWindowManager::GetInstance()->AddOutputLog(
+				K4E::EditorLogLevel::Warning,
+				"PIE中のScene切り替えはEditor Worldを保護するため無効です。Stop後に切り替えてください。");
+			return; // 現段階では元SceneのEditor Worldを確実に復元することを優先する。
+		}
+#endif
 		if (IsTransitioning())
 		{
 			queuedSceneName_ = sceneName;
@@ -235,15 +333,19 @@ namespace Ken4lowEngine
 		if (!nextScene_) return;
 #ifdef USE_IMGUI
 		K4E::EditorCommandHistory::GetInstance()->Clear();
-		K4E::EditorContext::GetInstance()->ResetTransientState(); // Scene固有ポインタを持つSelectionとCommandを同時に破棄する。
+		K4E::EditorContext::GetInstance()->ResetTransientState();
 #endif
 		if (scene_)
 		{
+#ifdef USE_IMGUI
 			if (editorPlaySessionActive_)
 			{
 				scene_->EndEditorPlay();
+				K4E::EditorPlaySessionManager::GetInstance()->CancelSessionWithoutRestore();
 				editorPlaySessionActive_ = false;
+				K4E::EditorPlayController::GetInstance()->CommitStopped();
 			}
+#endif
 			scene_->Finalize();
 		}
 		scene_ = std::move(nextScene_);
