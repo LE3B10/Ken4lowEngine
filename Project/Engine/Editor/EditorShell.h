@@ -151,6 +151,7 @@ namespace Ken4lowEngine
 			cameraLookActive_ = false;
 			Input::GetInstance()->SetLockCursor(false);
 			Input::GetInstance()->SetCursorVisible(true);
+			ImGui::SetMouseCursor(ImGuiMouseCursor_Arrow); // RMB終了時にImGui側のカーソル表示も通常状態へ戻す。
 		}
 
 		void UpdateEditorCameraNavigation()
@@ -203,6 +204,7 @@ namespace Ken4lowEngine
 				input->SetGameInputEnabled(false);
 				input->SetLockCursor(true);
 				input->SetCursorVisible(false);
+				ImGui::SetMouseCursor(ImGuiMouseCursor_None); // RMB中はImGuiがOSカーソルを再表示して点滅させないようにする。
 
 				const float deltaTime = std::clamp(io.DeltaTime, 1.0f / 240.0f, 1.0f / 15.0f);
 				const float moveSpeed = input->PushRawKey(DIK_LSHIFT) ? 24.0f : 8.0f;
@@ -211,8 +213,6 @@ namespace Ken4lowEngine
 				if (input->PushRawKey(DIK_S)) localMove.z -= moveStep;
 				if (input->PushRawKey(DIK_A)) localMove.x -= moveStep;
 				if (input->PushRawKey(DIK_D)) localMove.x += moveStep;
-				if (input->PushRawKey(DIK_Q)) localMove.y -= moveStep;
-				if (input->PushRawKey(DIK_E)) localMove.y += moveStep;
 
 				pitchDelta = io.MouseDelta.y * 0.003f;
 				yawDelta = -io.MouseDelta.x * 0.003f;
@@ -231,7 +231,7 @@ namespace Ken4lowEngine
 			DebugCamera* debugCamera = cameraManager->GetDebugCamera();
 			if (debugCamera)
 			{
-				debugCamera->ApplyEditorNavigation(localMove, pitchDelta, yawDelta); // UE風のRMB視点操作とWASD/QE移動をDebug Cameraへ集約する。
+				debugCamera->ApplyEditorNavigation(localMove, pitchDelta, yawDelta); // RMB視点操作とWASD移動をDebug Cameraへ集約する。
 			}
 		}
 
