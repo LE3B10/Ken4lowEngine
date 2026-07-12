@@ -3,6 +3,7 @@
 
 #include "Model.h"
 #include "ModelManager.h"
+#include "BlockPlacementImGui.h"
 
 #include <algorithm>
 #include <cmath>
@@ -25,42 +26,18 @@ void ModelReconstructionEffect::PlayFromModel(const std::string& modelPath, cons
 	auto model = K4E::ModelManager::GetInstance()->LoadModel(modelPath);
 	if (!model) { return; }
 
-	ReconstructionEmitter::Settings settings{};
-	settings.blockCount = parameters_.blockCount;
-	settings.blockSize = parameters_.blockSize;
-	settings.startScatterRadius = parameters_.startScatterRadius;
-	settings.startHeight = parameters_.startHeight;
-	settings.startDelayRange = parameters_.startDelayRange;
-	settings.rotationRandomness = parameters_.rotationRandomness;
-	settings.placementMode = parameters_.placementMode;
-	settings.useRandomScale = parameters_.useRandomScale;
-	settings.scaleVariation = parameters_.scaleVariation;
-	settings.useRandomRotation = parameters_.useRandomRotation;
-	settings.placementSeed = parameters_.placementSeed;
-	settings.placementSpacing = parameters_.placementSpacing;
-	settings.voxelSpacing = parameters_.voxelSpacing;
-	settings.maxVoxelBlockCount = parameters_.maxVoxelBlockCount;
-	settings.voxelSurfaceThickness = parameters_.voxelSurfaceThickness;
-	settings.useVoxelInsideTest = parameters_.useVoxelInsideTest;
-	settings.useVoxelSurfaceNearTest = parameters_.useVoxelSurfaceNearTest;
-	settings.alignVoxelGridToCenter = parameters_.alignVoxelGridToCenter;
-	settings.surfaceSampling = parameters_.surfaceSampling;
-	settings.useSurfaceInset = parameters_.useSurfaceInset;
-	settings.surfaceInset = parameters_.surfaceInset;
-	settings.autoSurfaceInsetFromBlockSize = parameters_.autoSurfaceInsetFromBlockSize;
-	settings.color = parameters_.color;
-	settings.colorVariation = parameters_.colorVariation;
-	ApplyFadeInSettings(settings);
-
-	blocks_ = emitter_.EmitFromModel(model->GetModelData(), worldMatrix, settings);
-	isActive_ = !blocks_.empty();
-	isComplete_ = false;
-	elapsedTime_ = 0.0f;
-	globalAlpha_ = 1.0f;
+	blocks_ = emitter_.EmitFromModel(model->GetModelData(), worldMatrix, BuildEmitterSettings());
+	ResetPlaybackState();
 }
 
 
 void ModelReconstructionEffect::PlayFromSamples(const std::vector<DisintegrationSamplePoint>& samples, const K4E::Matrix4x4& worldMatrix)
+{
+	blocks_ = emitter_.EmitFromSamples(samples, worldMatrix.GetTranslation(), BuildEmitterSettings());
+	ResetPlaybackState();
+}
+
+ReconstructionEmitter::Settings ModelReconstructionEffect::BuildEmitterSettings() const
 {
 	ReconstructionEmitter::Settings settings{};
 	settings.blockCount = parameters_.blockCount;
@@ -88,8 +65,12 @@ void ModelReconstructionEffect::PlayFromSamples(const std::vector<Disintegration
 	settings.color = parameters_.color;
 	settings.colorVariation = parameters_.colorVariation;
 	ApplyFadeInSettings(settings);
+	return settings;
+}
 
-	blocks_ = emitter_.EmitFromSamples(samples, worldMatrix.GetTranslation(), settings);
+void ModelReconstructionEffect::ResetPlaybackState()
+{
+	// モデルと共有サンプルのどちらから生成しても、再生状態を同じ条件で初期化する。
 	isActive_ = !blocks_.empty();
 	isComplete_ = false;
 	elapsedTime_ = 0.0f;
@@ -197,44 +178,8 @@ void ModelReconstructionEffect::DrawImGui()
 	ImGui::SliderFloat("回転ばらつき", &parameters_.rotationRandomness, 0.0f, 12.0f);
 	ImGui::Checkbox("ランダムサイズを使う", &parameters_.useRandomScale);
 	ImGui::SliderFloat("サイズばらつき", &parameters_.scaleVariation, 0.0f, 0.75f);
-	const char* placementModeLabels[] = { "ランダム表面配置", "均一表面配置", "整列表面配置", "ボクセル敷き詰め配置" };
-	int placementModeIndex = parameters_.placementMode == DisintegrationPlacementMode::VoxelFill ? 3 : (parameters_.placementMode == DisintegrationPlacementMode::AlignedSurfaceGrid ? 2 : (parameters_.placementMode == DisintegrationPlacementMode::UniformSurface ? 1 : 0));
-	if (ImGui::Combo("配置モード", &placementModeIndex, placementModeLabels, IM_ARRAYSIZE(placementModeLabels)))
-	{
-		parameters_.placementMode = placementModeIndex == 3 ? DisintegrationPlacementMode::VoxelFill : (placementModeIndex == 2 ? DisintegrationPlacementMode::AlignedSurfaceGrid : (placementModeIndex == 1 ? DisintegrationPlacementMode::UniformSurface : DisintegrationPlacementMode::RandomSurface));
-		if (parameters_.placementMode == DisintegrationPlacementMode::VoxelFill)
-		{
-			parameters_.useRandomScale = false;
-			parameters_.useRandomRotation = false;
-			parameters_.surfaceSampling = false;
-			parameters_.useSurfaceInset = false;
-			parameters_.voxelSpacing = parameters_.blockSize;
-			parameters_.placementSpacing = parameters_.voxelSpacing;
-			parameters_.voxelSurfaceThickness = parameters_.blockSize * 1.5f;
-			parameters_.maxVoxelBlockCount = std::max(parameters_.maxVoxelBlockCount, 10000);
-		}
-		else if (parameters_.placementMode != DisintegrationPlacementMode::RandomSurface)
-		{
-			parameters_.useRandomScale = false;
-			parameters_.useRandomRotation = false;
-			parameters_.useSurfaceInset = true;
-		}
-	}
-	int placementSeed = static_cast<int>(parameters_.placementSeed);
-	if (ImGui::InputInt("配置シード", &placementSeed))
-	{
-		parameters_.placementSeed = static_cast<uint32_t>(std::max(placementSeed, 0));
-	}
-	ImGui::SliderFloat("配置間隔", &parameters_.placementSpacing, 0.0f, 0.5f);
-	if (parameters_.placementMode == DisintegrationPlacementMode::VoxelFill)
-	{
-		ImGui::SliderFloat("ボクセル間隔", &parameters_.voxelSpacing, 0.005f, 0.50f);
-		ImGui::SliderInt("最大ブロック数", &parameters_.maxVoxelBlockCount, 128, 30000);
-		ImGui::SliderFloat("表面厚み", &parameters_.voxelSurfaceThickness, 0.0f, 1.0f);
-		ImGui::Checkbox("内外判定を使う", &parameters_.useVoxelInsideTest);
-		ImGui::Checkbox("表面近傍判定を使う", &parameters_.useVoxelSurfaceNearTest);
-		ImGui::Checkbox("グリッド原点を中央に揃える", &parameters_.alignVoxelGridToCenter);
-	}
+	BlockPlacementImGui::DrawPlacementMode(parameters_);
+	BlockPlacementImGui::DrawSeedAndVoxelSettings(parameters_);
 	ImGui::SliderFloat("イージング強度", &parameters_.easePower, 1.0f, 8.0f);
 	ImGui::ColorEdit4("色", &parameters_.color.x);
 	ImGui::SliderFloat("色のばらつき", &parameters_.colorVariation, 0.0f, 0.8f);
@@ -250,18 +195,7 @@ void ModelReconstructionEffect::DrawImGui()
 	ImGui::SliderFloat("完了後の保持時間", &parameters_.holdTime, 0.0f, 5.0f);
 	ImGui::Checkbox("完了後にモデル表示", &parameters_.showFinalModel);
 	ImGui::Checkbox("完了後にブロック自動非表示", &parameters_.autoHideBlocksAfterComplete);
-	ImGui::Checkbox("表面サンプリング", &parameters_.surfaceSampling);
-	ImGui::Checkbox("表面内側オフセットを使う", &parameters_.useSurfaceInset);
-	ImGui::Checkbox("ブロックサイズから自動計算", &parameters_.autoSurfaceInsetFromBlockSize);
-	if (!parameters_.autoSurfaceInsetFromBlockSize)
-	{
-		ImGui::SliderFloat("表面内側オフセット量", &parameters_.surfaceInset, 0.0f, 0.30f);
-	}
-	else
-	{
-		const float effectiveSurfaceInset = parameters_.blockSize * 0.5f;
-		ImGui::Text("表面内側オフセット量: %.3f", effectiveSurfaceInset);
-	}
+	BlockPlacementImGui::DrawSurfaceSettings(parameters_);
 	ImGui::End();
 #endif
 }

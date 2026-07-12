@@ -113,6 +113,17 @@ public:
 	void MarkRecentBulletHit(uint32_t id);
 
 private:
+	DamageFeedback ApplyDamageAndHandleDeath(
+		Player& player,
+		float damage,
+		PlayerViewComponent& view,
+		PlayerWeaponController& weaponController,
+		PlayerDeathComponent& death,
+		InputSnapshot& inputSnap,
+		bool& runCarry,
+		const std::function<void()>& onHitSE,
+		const std::function<void()>& onDeathSE);
+
 	void StartDeath(
 		Player& player,
 		PlayerViewComponent& view,

@@ -4,25 +4,13 @@
 #include "TitleAttractState.h"
 #include "TitleLobbyToTitleState.h"
 #include "TitleLoadState.h"
+#include "TitleCameraUtility.h"
 #include "SceneManager.h"
 #include "Input.h"
 #include <LinearInterpolation.h>
 #include <algorithm>
 
 using namespace Ken4lowEngine;
-
-/// -------------------------------------------------------------
-///				　			　補助関数
-/// -------------------------------------------------------------
-static inline void YawPitchLookAt(const Vector3& from, const Vector3& to, float& outYaw, float& outPitch)
-{
-	const float dx = to.x - from.x; // Xは横方向
-	const float dy = to.y - from.y; // Yは高さ
-	const float dz = to.z - from.z;	// Zは奥行き
-	outYaw = std::atan2(dx, dz);                    // 水平角（Y軸まわり）
-	const float distXZ = std::sqrt(dx * dx + dz * dz); // XZ平面距離
-	outPitch = std::atan2(dy, distXZ);                // 上下角（X軸まわり）
-}
 
 void TitleLobbyState::Enter(TitleScene* scene)
 {
@@ -169,7 +157,7 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 		timers.idle = 0.0f;
 	}
 
-	// カメラ更新など（省略：元のままでOK）
+	// ロビーでは注視点を保ったまま小さく左右へ揺らし、待機中の画面に動きを付ける。
 	if (camera)
 	{
 		lobbySwing.phase += deltaTime * lobbySwing.speed;
@@ -186,7 +174,7 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 		orbitState.lastYaw = yaw; orbitState.lastPitch = lobbySwing.basePitch;
 	}
 
-	// 規定時間無操作なら戻る（元のままでOK）
+	// 一定時間入力がなければ、現在姿勢を始点としてタイトル表示へ滑らかに戻す。
 	if (timers.idle >= timers.returnSeconds && camera)
 	{
 		Vector3 orbitPos{
@@ -195,7 +183,7 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 			orbitState.center.z + orbitState.radius * std::cos(orbitState.angle)
 		};
 		float toYaw = 0.0f, toPitch = 0.0f;
-		YawPitchLookAt(orbitPos, orbitState.center, toYaw, toPitch);
+		TitleCameraUtility::CalculateLookAtAngles(orbitPos, orbitState.center, toYaw, toPitch);
 
 		poseFrom = { camera->GetTranslate(), orbitState.lastYaw, orbitState.lastPitch };
 		poseTo = { orbitPos, toYaw, toPitch };
@@ -211,6 +199,5 @@ void TitleLobbyState::Update(TitleScene* scene, float deltaTime)
 }
 void TitleLobbyState::Exit(TitleScene* scene)
 {
-	// 特に何もしない
-	(void)scene; // 未使用引数対策
+	(void)scene;
 }

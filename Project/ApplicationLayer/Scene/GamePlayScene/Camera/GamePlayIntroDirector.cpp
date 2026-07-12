@@ -263,6 +263,21 @@ namespace
 		const K4E::Vector3 lookPos = EvaluateIntroTarget(points, lookPoints, segmentIndex, t);
 		return LookAtToEulerRad(camPos, lookPos);
 	}
+
+	void ApplyCameraPoint(
+		const GamePlayIntroDirector::IntroCameraPointInfo& point,
+		const std::vector<GamePlayIntroDirector::IntroLookAtPointInfo>& lookPoints,
+		K4E::Camera& camera)
+	{
+		const K4E::Vector3 rotation = point.aimMode == "Euler"
+			? DegToRadVec(point.rotation)
+			: LookAtToEulerRad(point.position, FindLookAtPosition(
+				lookPoints, point.targetName, point.position + K4E::Vector3{ 0.0f, 0.0f, 1.0f }));
+		camera.SetTranslate(point.position);
+		camera.SetRotate(rotation);
+		camera.SetFovY(point.fov * kDegToRad);
+		camera.Update();
+	}
 }
 
 void GamePlayIntroDirector::Reset(const GamePlayStageContext& stageContext, float introDuration)
@@ -316,26 +331,7 @@ void GamePlayIntroDirector::Update(
 	{
 		// Space入力時は最終カメラ位置へ合わせてからイントロを終了する。
 		const auto& p = cameraPoints_.back();
-
-		K4E::Vector3 camRot{};
-		if (p.aimMode == "Euler")
-		{
-			camRot = DegToRadVec(p.rotation);
-		}
-		else
-		{
-			const K4E::Vector3 target = FindLookAtPosition(
-				lookAtPoints_,
-				p.targetName,
-				p.position + K4E::Vector3{ 0.0f, 0.0f, 1.0f });
-
-			camRot = LookAtToEulerRad(p.position, target);
-		}
-
-		camera->SetTranslate(p.position);
-		camera->SetRotate(camRot);
-		camera->SetFovY(p.fov * kDegToRad);
-		camera->Update();
+		ApplyCameraPoint(p, lookAtPoints_, *camera);
 
 		BeginGamePlayFromIntro(flow, stageContext, world, input, isDebugCamera);
 		return;
@@ -344,26 +340,7 @@ void GamePlayIntroDirector::Update(
 	if (cameraPoints_.size() == 1)
 	{
 		const auto& p = cameraPoints_[0];
-
-		K4E::Vector3 camRot{};
-		if (p.aimMode == "Euler")
-		{
-			camRot = DegToRadVec(p.rotation);
-		}
-		else
-		{
-			const K4E::Vector3 target = FindLookAtPosition(
-				lookAtPoints_,
-				p.targetName,
-				p.position + K4E::Vector3{ 0.0f, 0.0f, 1.0f });
-
-			camRot = LookAtToEulerRad(p.position, target);
-		}
-
-		camera->SetTranslate(p.position);
-		camera->SetRotate(camRot);
-		camera->SetFovY(p.fov * kDegToRad);
-		camera->Update();
+		ApplyCameraPoint(p, lookAtPoints_, *camera);
 
 		introTimer_ -= deltaTime;
 		if (introTimer_ <= 0.0f)

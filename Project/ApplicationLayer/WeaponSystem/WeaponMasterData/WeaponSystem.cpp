@@ -2,6 +2,7 @@
 #include "WeaponSystem.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <filesystem>
 
 #include "WeaponMasterData.h"
@@ -80,19 +81,8 @@ bool WeaponSystem::RebuildEquippedFromDatabase(std::string* outError)
 
 bool WeaponSystem::EquipFirst(std::string* outError)
 {
-	if (!db_.IsLoaded() || db_.Size() == 0)
-	{
-		if (outError) *outError = "WeaponSystem: database is not loaded or empty.";
-		return false;
-	}
-
-	const auto ids = db_.GetSortedIDList();
-	if (ids.empty())
-	{
-		if (outError) *outError = "WeaponSystem: ID list is empty.";
-		return false;
-	}
-
+	std::vector<int32_t> ids;
+	if (!TryGetSortedWeaponIds(ids, outError)) { return false; }
 	return EquipById(ids.front(), outError);
 }
 
@@ -132,74 +122,47 @@ bool WeaponSystem::EquipById(int32_t weaponId, std::string* outError)
 
 bool WeaponSystem::EquipNext(std::string* outError)
 {
-	if (!db_.IsLoaded() || db_.Size() == 0)
-	{
-		if (outError) *outError = "WeaponSystem: database is not loaded or empty.";
-		return false;
-	}
-
-	const auto ids = db_.GetSortedIDList();
-	if (ids.empty())
-	{
-		if (outError) *outError = "WeaponSystem: ID list is empty.";
-		return false;
-	}
-
-	// 現在未装備なら先頭を装備
-	if (equippedWeaponId_ <= 0)
-	{
-		return EquipById(ids.front(), outError);
-	}
-
-	auto it = std::find(ids.begin(), ids.end(), equippedWeaponId_);
-	if (it == ids.end())
-	{
-		return EquipById(ids.front(), outError);
-	}
-
-	++it;
-	if (it == ids.end())
-	{
-		it = ids.begin(); // 末尾まで進んだら先頭へ戻し、武器切替を循環させる
-	}
-
-	return EquipById(*it, outError);
+	return EquipRelative(1, outError);
 }
 
 bool WeaponSystem::EquipPrev(std::string* outError)
 {
-	if (!db_.IsLoaded() || db_.Size() == 0)
-	{
-		if (outError) *outError = "WeaponSystem: database is not loaded or empty.";
-		return false;
-	}
+	return EquipRelative(-1, outError);
+}
 
-	const auto ids = db_.GetSortedIDList();
-	if (ids.empty())
-	{
-		if (outError) *outError = "WeaponSystem: ID list is empty.";
-		return false;
-	}
-
-	// 現在未装備なら末尾を装備
-	if (equippedWeaponId_ <= 0)
-	{
-		return EquipById(ids.back(), outError);
-	}
+bool WeaponSystem::EquipRelative(int direction, std::string* outError)
+{
+	std::vector<int32_t> ids;
+	if (!TryGetSortedWeaponIds(ids, outError)) { return false; }
 
 	auto it = std::find(ids.begin(), ids.end(), equippedWeaponId_);
-	if (it == ids.end())
+	if (it == ids.end() || equippedWeaponId_ <= 0)
 	{
-		return EquipById(ids.back(), outError);
+		return EquipById(direction > 0 ? ids.front() : ids.back(), outError);
 	}
 
-	if (it == ids.begin())
-	{
-		it = ids.end();
-	}
-	--it;
+	// 武器一覧の端を越えた場合は反対側へ循環させる。
+	const auto currentIndex = static_cast<std::ptrdiff_t>(std::distance(ids.begin(), it));
+	const auto count = static_cast<std::ptrdiff_t>(ids.size());
+	const auto nextIndex = (currentIndex + direction + count) % count;
+	return EquipById(ids[static_cast<size_t>(nextIndex)], outError);
+}
 
-	return EquipById(*it, outError);
+bool WeaponSystem::TryGetSortedWeaponIds(std::vector<int32_t>& ids, std::string* outError) const
+{
+	if (!db_.IsLoaded() || db_.Size() == 0)
+	{
+		if (outError) { *outError = "WeaponSystem: database is not loaded or empty."; }
+		return false;
+	}
+
+	ids = db_.GetSortedIDList();
+	if (ids.empty())
+	{
+		if (outError) { *outError = "WeaponSystem: ID list is empty."; }
+		return false;
+	}
+	return true;
 }
 
 WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
@@ -248,12 +211,12 @@ WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 	p.spreadRecoveryRate = std::max(0.0f, md.handling.spreadRecoveryRate);
 	p.maxSpreadDeg = std::max(0.0f, md.handling.maxSpread);
 
-	// ADS
+	// エイム中の画角、移行速度、移動速度倍率を操作パラメータへ反映する。
 	p.adsZoomFov = md.handling.adsZoomFov;
 	p.adsTransitionSpeed = md.handling.adsTransitionSpeed;
 	p.adsMoveSpeedMultiplier = std::clamp(md.handling.adsMoveSpeedMultiplier, 0.0f, 2.0f);
 
-	// Projectile
+	// 投射物方式の武器だけ、弾速や寿命、爆発範囲などの追加情報を反映する。
 	if (md.projectileData.has_value())
 	{
 		p.isProjectile = md.projectileData->bIsProjectile;
@@ -270,14 +233,14 @@ WeaponParams WeaponSystem::BuildParams(const FWeaponMasterData& md)
 			p.muzzleForwardOffset = md.projectileData->spawnForwardOffset;
 	}
 
-	// Burst
+	// バースト射撃は2発以上に設定された場合だけ有効化する。
 	if (md.burstSettings.has_value() && md.burstSettings->count >= 2)
 	{
 		p.burstCount = md.burstSettings->count;
 		p.burstIntervalSec = std::max(0.0f, md.burstSettings->interval);
 	}
 
-	// Charge
+	// チャージ設定がある武器だけ最大チャージ時間を使用する。
 	if (md.chargeSettings.has_value())
 	{
 		p.maxChargeTime = std::max(0.0f, md.chargeSettings->maxChargeTime);

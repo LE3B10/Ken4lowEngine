@@ -165,25 +165,11 @@ int GridStageSelector::HitTestCardIndex(const K4E::Vector2& mousePosition) const
 	int n = (int)thumbs_.size();
 	if (n == 0) return -1;
 
-	float total = layout_.gapX * n;
-	auto wrap = [&](float x) {
-		if (!scroll_.loop) return x;
-		x = std::fmod(x, total);
-		if (x < 0) x += total;
-		return x;
-		};
-	float sx = scroll_.loop ? wrap(scroll_.scrollX) : scroll_.scrollX;
+	const float sx = GetWrappedScrollX(n);
 
 	for (int i = 0; i < n; ++i)
 	{
-		float base = i * layout_.gapX;
-		float dx = base - sx;
-		if (scroll_.loop)
-		{
-			float half = total * 0.5f;
-			if (dx > half) dx -= total;
-			if (dx < -half) dx += total;
-		}
+		const float dx = GetCardOffsetX(i, n, sx);
 		float cx = layout_.center.x + dx;
 		float cy = layout_.center.y;
 		float dist = std::fabs(cx - layout_.center.x);
@@ -196,6 +182,25 @@ int GridStageSelector::HitTestCardIndex(const K4E::Vector2& mousePosition) const
 		}
 	}
 	return -1;
+}
+
+float GridStageSelector::GetWrappedScrollX(int cardCount) const
+{
+	if (!scroll_.loop || cardCount <= 0) { return scroll_.scrollX; }
+	const float totalWidth = layout_.gapX * cardCount;
+	float wrapped = std::fmod(scroll_.scrollX, totalWidth);
+	return wrapped < 0.0f ? wrapped + totalWidth : wrapped;
+}
+
+float GridStageSelector::GetCardOffsetX(int index, int cardCount, float wrappedScrollX) const
+{
+	float offset = index * layout_.gapX - wrappedScrollX;
+	if (!scroll_.loop || cardCount <= 0) { return offset; }
+	const float totalWidth = layout_.gapX * cardCount;
+	const float halfWidth = totalWidth * 0.5f;
+	if (offset > halfWidth) { offset -= totalWidth; }
+	if (offset < -halfWidth) { offset += totalWidth; }
+	return offset;
 }
 
 
@@ -233,46 +238,6 @@ void GridStageSelector::StartTweenToIndex(int index, float duration)
 
 
 /// -------------------------------------------------------------
-///	   マウス位置からヒットしているカードのインデックスを取得
-/// -------------------------------------------------------------
-int GridStageSelector::GetSelectedIndex(K4E::Vector2& mousePosition) const
-{
-	int n = (int)thumbs_.size();
-	if (n == 0) return -1;
-
-	float total = layout_.gapX * n;
-	auto wrap = [&](float x) {
-		if (!scroll_.loop) return x;
-		x = std::fmod(x, total);
-		if (x < 0) x += total;
-		return x;
-		};
-	float sx = scroll_.loop ? wrap(scroll_.scrollX) : scroll_.scrollX;
-
-	for (int i = 0; i < n; ++i) {
-		float base = i * layout_.gapX;
-		float dx = base - sx;
-		if (scroll_.loop) {
-			float half = total * 0.5f;
-			if (dx > half) dx -= total;
-			if (dx < -half) dx += total;
-		}
-		float cx = layout_.center.x + dx;
-		float cy = layout_.center.y;
-		float dist = std::fabs(cx - layout_.center.x);
-		float scale = 1.0f + std::max(0.0f, 1.0f - dist / layout_.gapX) * layout_.focusScale;
-		float w = layout_.baseW * scale, h = layout_.baseH * scale;
-
-		if (mousePosition.x >= cx - w * 0.5f && mousePosition.x <= cx + w * 0.5f &&
-			mousePosition.y >= cy - h * 0.5f && mousePosition.y <= cy + h * 0.5f) {
-			return i;
-		}
-	}
-	return -1;
-}
-
-
-/// -------------------------------------------------------------
 ///				中央に最も近いインデックスを取得
 /// -------------------------------------------------------------
 int GridStageSelector::GetCenterIndex() const
@@ -280,23 +245,11 @@ int GridStageSelector::GetCenterIndex() const
 	int n = (int)thumbs_.size();
 	if (n == 0) return 0;
 
-	float total = layout_.gapX * n;
-	auto wrap = [&](float x) {
-		if (!scroll_.loop) return x;
-		x = std::fmod(x, total);
-		if (x < 0) x += total;
-		return x;
-		};
-	float sx = scroll_.loop ? wrap(scroll_.scrollX) : scroll_.scrollX;
+	const float sx = GetWrappedScrollX(n);
 
 	int selected = 0; float best = 1e9f;
 	for (int i = 0; i < n; ++i) {
-		float dx = (i * layout_.gapX) - sx;
-		if (scroll_.loop) {
-			float half = total * 0.5f;
-			if (dx > half) dx -= total;
-			if (dx < -half) dx += total;
-		}
+		const float dx = GetCardOffsetX(i, n, sx);
 		float dist = std::fabs(dx);
 		if (dist < best) { best = dist; selected = i; }
 	}
@@ -481,10 +434,8 @@ void GridStageSelector::UpdateRelease(K4E::Input* input, K4E::Vector2& mp)
 				// 中央クリック：ロックなら遷移しない
 				if ((*stages_)[centerIdx].locked)
 				{
-					// TODO: 効果音/点滅など
+					// ロック中であることを効果音と横揺れで即座に伝える。
 					K4E::AudioManager::GetInstance()->PlaySE("negative02.mp3", 0.5f, 0.7f);
-
-					// シェイク
 					TriggerLockedShake();
 				}
 				else
@@ -575,15 +526,7 @@ void GridStageSelector::UpdateLayout()
 	// レイアウト更新
 	if (n > 0)
 	{
-		float total = layout_.gapX * n;
-		// scroll_.scrollX を 0..total に正規化（視点側の基準）
-		auto wrap = [&](float x) {
-			if (!scroll_.loop) return x;
-			x = std::fmod(x, total);
-			if (x < 0) x += total;
-			return x;
-			};
-		float sx = scroll_.loop ? wrap(scroll_.scrollX) : scroll_.scrollX;
+		const float sx = GetWrappedScrollX(n);
 
 		// 選択カード（最も center に近い）
 		int selected = 0;
@@ -591,13 +534,7 @@ void GridStageSelector::UpdateLayout()
 			float best = 1e9f;
 			for (int i = 0; i < n; ++i)
 			{
-				float dx = (i * layout_.gapX) - sx;
-				if (scroll_.loop)
-				{
-					float half = total * 0.5f;
-					if (dx > half) dx -= total;
-					if (dx < -half) dx += total;
-				}
+				const float dx = GetCardOffsetX(i, n, sx);
 				float dist = std::fabs(dx);
 				if (dist < best) { best = dist; selected = i; }
 			}
@@ -606,18 +543,7 @@ void GridStageSelector::UpdateLayout()
 		for (int i = 0; i < n; ++i)
 		{
 			// i 番目カードの“視差”を [-total/2, total/2] に折り返して配置
-			float base = i * layout_.gapX;
-			float dx = base - sx;
-			if (scroll_.loop)
-			{
-				float half = total * 0.5f;
-				if (dx > half) dx -= total;
-				if (dx < -half) dx += total;
-			}
-			else
-			{
-				// 非ループ時は端の外に出たらそのまま
-			}
+			const float dx = GetCardOffsetX(i, n, sx);
 			float cx = layout_.center.x + dx;
 			float cy = layout_.center.y;
 

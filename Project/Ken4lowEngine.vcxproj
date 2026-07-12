@@ -163,6 +163,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossAttackComponent.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Core\BossBase.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossMovementComponent.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossMeleeAttackUtility.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\GuardianShockwaveAttack.cpp" />
@@ -235,6 +236,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Effects\BulletDecalManager.cpp" />
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\BlockEffectRenderer.cpp" />
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationEmitter.cpp" />
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationRenderer.cpp" />
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\ModelBlockEffectSequence.cpp" />
@@ -1094,6 +1096,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\BlockEffectRenderer.h" />
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\BlockPlacementImGui.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationEmitter.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationParticle.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationRenderer.h" />
@@ -1104,6 +1108,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionEmitter.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionBlock.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelSurfaceSampler.h" />
+    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossMeleeAttackUtility.h" />
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleCameraUtility.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\ModelParticle.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>

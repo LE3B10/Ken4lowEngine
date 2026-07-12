@@ -28,7 +28,6 @@ private: /// ---------- 構造体 ---------- ///
 	{
 		K4E::Vector2 center = { 640.0f, 360.0f }; // グリッド中心位置
 		float gapX = 360.0f;				 // 横間隔
-		float gapY = 220.0f;                 // （今後縦グリッドにするとき用）
 		float baseW = 300.0f;                // カード基本幅
 		float baseH = 180.0f;                // カード基本高さ
 		float focusScale = 0.08f;            // フォーカス時の拡大率
@@ -46,7 +45,6 @@ private: /// ---------- 構造体 ---------- ///
 		std::optional<int> pressIndex;	 // 押下開始インデックス
 		bool clickStartedOnCard = false; // クリックがカード上で始まったかどうか
 		float lastDxPerSec = 0.0f;		 // 慣性用の速度
-		float friction = 0.92f;			 // 今は未使用だが慣性調整用
 		bool  loop = true;				 // ループの有無
 	};
 
@@ -56,7 +54,6 @@ private: /// ---------- 構造体 ---------- ///
 		float maxVel = 2000.0f;		  // 慣性の最大速度
 		float maxDxPerFrame = 100.0f; // 1フレームの最大移動量
 		float overdragFactor = 0.5f;  // 端でのオーバードラッグ係数
-		float springK = 800.0f;		  // ばね定数（今は未使用）
 		float snapK = 8.0f;			  // 中心カードへの吸着強さ
 	};
 
@@ -151,10 +148,10 @@ private: /// ---------- メンバ関数 ---------- ///
 
 	// ユーティリティ
 	int HitTestCardIndex(const K4E::Vector2& mousePosition) const; // -1 ならヒットなし
+	float GetWrappedScrollX(int cardCount) const;
+	float GetCardOffsetX(int index, int cardCount, float wrappedScrollX) const;
 	void StartTweenToIndex(int index, float duration = 0.3f); // 指定インデックスへトゥイーン開始
 	void CancelTween() { tween_.active = false; tween_.timer = 0.0f; } // トゥイーンキャンセル
-
-	int GetSelectedIndex(K4E::Vector2& mousePosition) const;
 
 	int GetCenterIndex() const;   // 中央に最も近いインデックス
 
@@ -197,4 +194,3 @@ private: /// ---------- メンバ変数 ---------- ///
 	// アンロック演出状態
 	UnlockAnimState unlockAnim_{};
 };
-

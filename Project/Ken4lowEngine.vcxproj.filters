@@ -265,6 +265,9 @@
     <ClCompile Include="ApplicationLayer\EffectLayer\ModelParticle.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\BlockEffectRenderer.cpp">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationEmitter.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
@@ -489,6 +492,9 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Boss\Core\BossStateMachine.cpp">
       <Filter>ApplicationLayer\Character\Boss\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossMeleeAttackUtility.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.cpp">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
@@ -1371,6 +1377,12 @@
     <ClInclude Include="ApplicationLayer\EffectLayer\ModelParticle.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\BlockEffectRenderer.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\BlockPlacementImGui.h">
+      <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\DisintegrationEmitter.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
@@ -1400,6 +1412,12 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelReconstructionEffect.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossMeleeAttackUtility.h">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleCameraUtility.h">
+      <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\State\IStageSelectSceneState.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene\State</Filter>

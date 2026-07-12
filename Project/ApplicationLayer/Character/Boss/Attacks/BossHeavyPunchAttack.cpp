@@ -2,6 +2,7 @@
 #include "BossHeavyPunchAttack.h"
 #include "BossBase.h"
 #include "BossAttackEffects.h"
+#include "BossMeleeAttackUtility.h"
 #include "GpuParticleType.h"
 
 #include <algorithm>
@@ -300,52 +301,12 @@ void BossHeavyPunchAttack::TryHitPlayer()
 {
 	if (owner_ == nullptr) return;
 
-	// 攻撃判定は攻撃開始距離とは別に、ParameterManager由来のリーチ・半径・前方オフセット・扇形角度で計算する。
-	const K4E::Vector3 bossCenter = owner_->GetCenterPosition();
-	K4E::Vector3 forward = hasLockedDirection_ ? lockedForward_ : K4E::Vector3{ std::sin(owner_->GetYaw()), 0.0f, std::cos(owner_->GetYaw()) };
-
-	const float clampedForwardOffset = std::max(0.0f, hitForwardOffset_);
-	const float clampedHitRange = std::max(clampedForwardOffset, hitRange_);
-	const float clampedHitRadius = std::max(0.0f, hitRadius_);
-	const float clampedHitAngleDeg = std::clamp(hitAngleDeg_, 0.0f, 360.0f);
-
-	K4E::Vector3 attackCenter = bossCenter;
-	attackCenter.x += forward.x * clampedForwardOffset;
-	attackCenter.y += 0.30f;
-	attackCenter.z += forward.z * clampedForwardOffset;
-
-	const K4E::Vector3 targetCenter = owner_->GetTargetPosition();
-
-	const float toTargetX = targetCenter.x - bossCenter.x;
-	const float toTargetZ = targetCenter.z - bossCenter.z;
-	const float horizontalDistanceSq = toTargetX * toTargetX + toTargetZ * toTargetZ;
-	const float horizontalDistance = std::sqrt(horizontalDistanceSq);
-	const float forwardDistance = toTargetX * forward.x + toTargetZ * forward.z;
-	const float closestForwardDistance = std::clamp(forwardDistance, clampedForwardOffset, clampedHitRange);
-
-	K4E::Vector3 closestPoint = bossCenter;
-	closestPoint.x += forward.x * closestForwardDistance;
-	closestPoint.y = attackCenter.y;
-	closestPoint.z += forward.z * closestForwardDistance;
-
-	const float dx = targetCenter.x - closestPoint.x;
-	const float dy = targetCenter.y - closestPoint.y;
-	const float dz = targetCenter.z - closestPoint.z;
-
-	const float distanceSq = dx * dx + dy * dy + dz * dz;
-	const float sumRadius = clampedHitRadius + targetRadius_;
-	const bool isInsideCapsule = distanceSq <= (sumRadius * sumRadius);
-
-	constexpr float kDegToRad = 3.14159265358979323846f / 180.0f;
-	const float directionDot = (horizontalDistance > 0.0001f) ? (forwardDistance / horizontalDistance) : 1.0f;
-	const float angleCos = std::cos(clampedHitAngleDeg * 0.5f * kDegToRad);
-	const bool isInsideHitAngle = (clampedHitAngleDeg >= 360.0f) || (directionDot >= angleCos);
-	const bool isInsideHitRange = horizontalDistance <= (clampedHitRange + targetRadius_);
-	const bool isInsideHitHeight = std::abs(targetCenter.y - attackCenter.y) <= sumRadius;
-	const bool isInsideFan = isInsideHitRange && isInsideHitAngle && isInsideHitHeight;
-
-	// 細い前方カプセルに加えて扇形条件を許可し、斜め前のプレイヤーにも自然に当たるようにする。
-	if (isInsideCapsule || isInsideFan)
+	const K4E::Vector3 forward = hasLockedDirection_
+		? lockedForward_
+		: K4E::Vector3{ std::sin(owner_->GetYaw()), 0.0f, std::cos(owner_->GetYaw()) };
+	const BossMeleeHitSettings settings{ hitRange_, hitRadius_, hitForwardOffset_, hitAngleDeg_, targetRadius_, 0.30f };
+	K4E::Vector3 attackCenter{};
+	if (BossMeleeAttackUtility::TryCalculateHitCenter(*owner_, forward, settings, attackCenter))
 	{
 #ifdef _DEBUG
 		Log("[BossHeavyPunchAttack] Heavy hit success.\n");
@@ -369,16 +330,7 @@ void BossHeavyPunchAttack::TryHitPlayer()
 
 void BossHeavyPunchAttack::LockAttackDirection()
 {
-	if (owner_ == nullptr)
-	{
-		hasLockedDirection_ = false;
-		return;
-	}
-
-	const K4E::Vector3 origin = owner_->GetCenterPosition();
-	lockedForward_ = owner_->GetDirectionToTargetXZOrForward(origin);
-	owner_->FaceDirectionXZImmediate(lockedForward_); // 攻撃開始時だけ共通処理でプレイヤー方向へ向け、判定方向を固定する。
-	hasLockedDirection_ = true;
+	hasLockedDirection_ = BossMeleeAttackUtility::LockDirection(owner_, lockedForward_);
 }
 
 /// ---------------------------------------------------------------
@@ -386,14 +338,7 @@ void BossHeavyPunchAttack::LockAttackDirection()
 /// ---------------------------------------------------------------
 bool BossHeavyPunchAttack::IsTargetInValidRange() const
 {
-	// 所有者がいないときは射程外とみなす
-	if (owner_ == nullptr) return false;
-
-	// ターゲットとの水平距離を計算して、射程内かどうかを判断する
-	const float distance = owner_->GetDistanceToTargetXZ();
-
-	// 射程内かどうかを判断
-	return (distance >= minRange_ && distance <= maxRange_);
+	return BossMeleeAttackUtility::IsTargetInRange(owner_, minRange_, maxRange_);
 }
 
 /// ---------------------------------------------------------------
@@ -416,8 +361,9 @@ const char* BossHeavyPunchAttack::GetPhaseName() const
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::SetValidRange(float minRange, float maxRange)
 {
-	minRange_ = std::max(0.0f, minRange);
-	maxRange_ = std::max(minRange_, maxRange);
+	minRange_ = minRange;
+	maxRange_ = maxRange;
+	BossMeleeAttackUtility::NormalizeValidRange(minRange_, maxRange_);
 }
 
 /// ---------------------------------------------------------------
@@ -425,18 +371,20 @@ void BossHeavyPunchAttack::SetValidRange(float minRange, float maxRange)
 /// ---------------------------------------------------------------
 void BossHeavyPunchAttack::SetHitParameters(float hitRange, float hitRadius, float hitForwardOffset, float hitAngleDeg)
 {
-	// ParameterManagerの反映ボタンから、攻撃判定の届く距離・太さ・前方オフセット・扇形角度を実行中攻撃へ差し替える。
-	hitRange_ = std::max(0.0f, hitRange);
-	hitRadius_ = std::max(0.0f, hitRadius);
-	hitForwardOffset_ = std::max(0.0f, hitForwardOffset);
-	hitAngleDeg_ = std::clamp(hitAngleDeg, 0.0f, 360.0f);
+	BossMeleeHitSettings settings{ hitRange, hitRadius, hitForwardOffset, hitAngleDeg };
+	BossMeleeAttackUtility::NormalizeHitSettings(settings);
+	hitRange_ = settings.range;
+	hitRadius_ = settings.radius;
+	hitForwardOffset_ = settings.forwardOffset;
+	hitAngleDeg_ = settings.angleDeg;
 }
 
 void BossHeavyPunchAttack::SetImpactParticleParameters(uint32_t spawnCount, float spawnRadius, float lifetimeScale, float initialSpeedScale)
 {
-	// ParameterManagerのヒット演出値を、次回命中時のGPUパーティクルへ反映する。
-	particleSpawnCount_ = spawnCount;
-	particleSpawnRadius_ = std::max(0.0f, spawnRadius);
-	particleLifetimeScale_ = std::max(0.01f, lifetimeScale);
-	particleInitialSpeedScale_ = std::max(0.0f, initialSpeedScale);
+	BossImpactParticleSettings settings{ spawnCount, spawnRadius, lifetimeScale, initialSpeedScale };
+	BossMeleeAttackUtility::NormalizeParticleSettings(settings);
+	particleSpawnCount_ = settings.spawnCount;
+	particleSpawnRadius_ = settings.spawnRadius;
+	particleLifetimeScale_ = settings.lifetimeScale;
+	particleInitialSpeedScale_ = settings.initialSpeedScale;
 }

@@ -633,9 +633,13 @@ void TitleScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInf
 		sprite->SetSize({ transform.scale.x, transform.scale.y });
 		sprite->Update();
 	};
-	const auto addLogoSpriteObject = [&outObjects, this, fillSpriteTransform, applySpriteTransform](uint64_t id, const char* displayName, const char* typeName)
+	const auto addSpriteObject = [&outObjects, fillSpriteTransform, applySpriteTransform](
+		uint64_t id,
+		const char* displayName,
+		const char* typeName,
+		K4E::Sprite* sprite,
+		auto onTransformApplied)
 	{
-		K4E::Sprite* sprite = logoSprite_.get();
 		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "TitleScene" };
 		object.inspectorType = Ken4lowEngine::EditorInspectorType::Transform;
 		if (sprite)
@@ -645,35 +649,10 @@ void TitleScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInf
 			{
 				return fillSpriteTransform(sprite, transform);
 			};
-			object.writeTransform = [this, sprite, applySpriteTransform](const Ken4lowEngine::EditorTransform& transform)
+			object.writeTransform = [sprite, applySpriteTransform, onTransformApplied](const Ken4lowEngine::EditorTransform& transform)
 			{
 				applySpriteTransform(sprite, transform);
-				logoUI_.baseSize = { transform.scale.x, transform.scale.y };
-			};
-		}
-		outObjects.push_back(std::move(object));
-	};
-	const auto addClickSpriteObject = [&outObjects, this, fillSpriteTransform, applySpriteTransform](uint64_t id, const char* displayName, const char* typeName)
-	{
-		K4E::Sprite* sprite = clickHintUI_.hintSprite.get();
-		Ken4lowEngine::EditorObjectInfo object{ id, displayName, typeName, "TitleScene" };
-		object.inspectorType = Ken4lowEngine::EditorInspectorType::Transform;
-		if (sprite)
-		{
-			object.canEditTransform = true;
-			object.readTransform = [sprite, fillSpriteTransform](Ken4lowEngine::EditorTransform& transform)
-			{
-				return fillSpriteTransform(sprite, transform);
-			};
-			object.writeTransform = [this, sprite, applySpriteTransform](const Ken4lowEngine::EditorTransform& transform)
-			{
-				applySpriteTransform(sprite, transform);
-				clickHintUI_.baseSize = { transform.scale.x, transform.scale.y };
-				if (logoSprite_)
-				{
-					const K4E::Vector2& logoPosition = logoSprite_->GetPosition();
-					clickHintUI_.offset = { transform.position.x - logoPosition.x, transform.position.y - logoPosition.y };
-				}
+				onTransformApplied(transform);
 			};
 		}
 		outObjects.push_back(std::move(object));
@@ -683,8 +662,29 @@ void TitleScene::CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInf
 	addObject(Ken4lowEngine::MakeStableEditorObjectId("TitleScene.Root"), "Title Root", "Scene Root");
 	addCameraObject(Ken4lowEngine::MakeStableEditorObjectId("TitleScene.Camera"), "Camera", camera_ ? "Camera" : "Camera (pending)", camera_);
 	addLightObject(Ken4lowEngine::MakeStableEditorObjectId("TitleScene.PunctualLights"), "Punctual Lights", "Light Manager / Punctual Lights");
-	addLogoSpriteObject(Ken4lowEngine::MakeStableEditorObjectId("TitleScene.UIRoot"), "UI Root", logoSprite_ ? "Sprite UI" : "Sprite UI (pending)");
-	addClickSpriteObject(Ken4lowEngine::MakeStableEditorObjectId("TitleScene.ClickText"), "Click Text / Click Sprite", clickHintUI_.hintSprite ? "Sprite UI" : "Sprite UI (pending)");
+	addSpriteObject(
+		Ken4lowEngine::MakeStableEditorObjectId("TitleScene.UIRoot"),
+		"UI Root",
+		logoSprite_ ? "Sprite UI" : "Sprite UI (pending)",
+		logoSprite_.get(),
+		[this](const Ken4lowEngine::EditorTransform& transform)
+		{
+			logoUI_.baseSize = { transform.scale.x, transform.scale.y };
+		});
+	addSpriteObject(
+		Ken4lowEngine::MakeStableEditorObjectId("TitleScene.ClickText"),
+		"Click Text / Click Sprite",
+		clickHintUI_.hintSprite ? "Sprite UI" : "Sprite UI (pending)",
+		clickHintUI_.hintSprite.get(),
+		[this](const Ken4lowEngine::EditorTransform& transform)
+		{
+			clickHintUI_.baseSize = { transform.scale.x, transform.scale.y };
+			if (logoSprite_)
+			{
+				const K4E::Vector2& logoPosition = logoSprite_->GetPosition();
+				clickHintUI_.offset = { transform.position.x - logoPosition.x, transform.position.y - logoPosition.y };
+			}
+		});
 	{
 		Ken4lowEngine::EditorObjectInfo fadeObject{ Ken4lowEngine::MakeStableEditorObjectId("TitleScene.FadeManager"), "FadeManager", "Fade Manager", "TitleScene" };
 		fadeObject.inspectorType = Ken4lowEngine::EditorInspectorType::FadeManager;

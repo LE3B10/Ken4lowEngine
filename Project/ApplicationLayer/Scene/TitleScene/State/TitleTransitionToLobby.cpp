@@ -2,6 +2,7 @@
 #include "TitleTransitionToLobby.h"
 #include "TitleScene.h"
 #include "TitleLobbyState.h"
+#include "TitleCameraUtility.h"
 #include <LinearInterpolation.h>
 
 using namespace Ken4lowEngine;
@@ -26,24 +27,7 @@ void TitleTransitionToLobby::Update(TitleScene* scene, float deltaTime)
 	auto& poseTo = scene->GetPoseTo();
 	Camera* camera = scene->GetCamera();
 
-	timers.time += deltaTime;
-	float t = std::clamp(timers.time / timers.duration, 0.0f, 1.0f);
-	float te = EaseInOutCubic(t);                // ← “滑らか”補間（お好みで変更可）
-
-	Vector3 p;
-
-	// 位置・向き補間
-	p.x = Lerp(poseFrom.position.x, poseTo.position.x, te);
-	p.y = Lerp(poseFrom.position.y, poseTo.position.y, te);
-	p.z = Lerp(poseFrom.position.z, poseTo.position.z, te);
-	const float yaw = LerpAngle(poseFrom.yaw, poseTo.yaw, te);
-	const float pitch = Lerp(poseFrom.pitch, poseTo.pitch, te);
-
-	// カメラ更新
-	camera->SetTranslate(p);
-	camera->SetRotate({ pitch, yaw, 0.0f });
-	camera->Update();
-	orbitState.lastYaw = yaw; orbitState.lastPitch = pitch;
+	const float t = TitleCameraUtility::UpdatePoseTransition(orbitState, timers, poseFrom, poseTo, *camera, deltaTime);
 
 	if (t >= 1.0f)
 	{
@@ -77,5 +61,5 @@ void TitleTransitionToLobby::Update(TitleScene* scene, float deltaTime)
 
 void TitleTransitionToLobby::Exit(TitleScene* scene)
 {
-	(void)scene; // 未使用引数対策
+	(void)scene;
 }

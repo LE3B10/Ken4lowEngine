@@ -103,6 +103,8 @@ private:
 	void UpdateParticlePhysics(DisintegrationParticle& particle, float deltaTime);
 	void StopIfFinished();
 	void BuildParticlesFromSamples(const std::vector<DisintegrationSamplePoint>& samples, const K4E::Matrix4x4& worldMatrix);
+	DisintegrationEmitter::Settings BuildEmitterSettings() const;
+	void ResetPlaybackState(bool started);
 
 	Parameters parameters_{};
 	DisintegrationEmitter emitter_{};

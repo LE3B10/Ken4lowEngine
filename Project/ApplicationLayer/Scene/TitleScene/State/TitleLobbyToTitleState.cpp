@@ -2,6 +2,7 @@
 #include "TitleScene.h"
 #include <LinearInterpolation.h>
 #include "TitleAttractState.h"
+#include "TitleCameraUtility.h"
 
 using namespace Ken4lowEngine;
 
@@ -25,22 +26,7 @@ void TitleLobbyToTitleState::Update(TitleScene* scene, float deltaTime)
 
 	Camera* camera = scene->GetCamera();
 
-	timers.time += deltaTime;
-	float t = std::clamp(timers.time / timers.duration, 0.0f, 1.0f);
-	float te = EaseInOutCubic(t); // 好みでカーブ変更可
-
-	// 位置・角度を補間（角度は最短回転で）
-	Vector3 p;
-	p.x = Lerp(poseFrom.position.x, poseTo.position.x, te);
-	p.y = Lerp(poseFrom.position.y, poseTo.position.y, te);
-	p.z = Lerp(poseFrom.position.z, poseTo.position.z, te);
-	float yaw = LerpAngle(poseFrom.yaw, poseTo.yaw, te);
-	float pitch = Lerp(poseFrom.pitch, poseTo.pitch, te);
-
-	camera->SetTranslate(p);
-	camera->SetRotate({ pitch, yaw, 0.0f });
-	camera->Update();
-	orbitState.lastYaw = yaw; orbitState.lastPitch = pitch;
+	const float t = TitleCameraUtility::UpdatePoseTransition(orbitState, timers, poseFrom, poseTo, *camera, deltaTime);
 
 	// 補間完了→タイトルのオービットへ
 	if (t >= 1.0f)
@@ -61,6 +47,5 @@ void TitleLobbyToTitleState::Update(TitleScene* scene, float deltaTime)
 
 void TitleLobbyToTitleState::Exit(TitleScene* scene)
 {
-	// 特に無し
-	(void)scene; // 未使用パラメータ回避
+	(void)scene;
 }

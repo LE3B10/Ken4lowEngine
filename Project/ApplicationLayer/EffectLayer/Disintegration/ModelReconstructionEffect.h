@@ -77,6 +77,8 @@ private:
 	float EaseOut(float value) const;
 	void ApplyFadeInSettings(ReconstructionEmitter::Settings& settings) const;
 	void UpdateBlockFade(ReconstructionBlock& block) const;
+	ReconstructionEmitter::Settings BuildEmitterSettings() const;
+	void ResetPlaybackState();
 
 	Parameters parameters_{};
 	ReconstructionEmitter emitter_{};

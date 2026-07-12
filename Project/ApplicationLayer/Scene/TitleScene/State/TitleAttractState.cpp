@@ -7,35 +7,20 @@
 #include <PostEffectManager.h>
 #include "GameViewportConstants.h"
 #include "TitleTransitionToLobby.h"
+#include "TitleCameraUtility.h"
 
 using namespace Ken4lowEngine;
 
-/// -------------------------------------------------------------
-///				　			　補助関数
-/// -------------------------------------------------------------
-static inline void YawPitchLookAt(const Vector3& from, const Vector3& to, float& outYaw, float& outPitch)
-{
-	const float dx = to.x - from.x; // Xは横方向
-	const float dy = to.y - from.y; // Yは高さ
-	const float dz = to.z - from.z;	// Zは奥行き
-	outYaw = std::atan2(dx, dz);                    // 水平角（Y軸まわり）
-	const float distXZ = std::sqrt(dx * dx + dz * dz); // XZ平面距離
-	outPitch = std::atan2(dy, distXZ);                // 上下角（X軸まわり）
-}
-
 void TitleAttractState::Enter(TitleScene* scene)
 {
-	// 念のため状態を初期化しておく
 	scene->SetState(TitleScene::State::TitleAttract);
 }
 
 void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 {
-	// 今のシーン状態を取得
 	using State = TitleScene::State;
 	State state = scene->GetState();
 
-	// TitleScene 内部状態への参照／ポインタを取得
 	auto& orbitState = scene->GetOrbitState();
 	auto& logoUI = scene->GetLogoUI();
 	auto& clickHintUI = scene->GetClickHintUI();
@@ -59,7 +44,7 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 		camera->SetTranslate({ x, orbitState.center.y, z });
 
 		// 中心を見る
-		YawPitchLookAt({ x, orbitState.center.y, z }, orbitState.center, orbitState.lastYaw, orbitState.lastPitch);
+		TitleCameraUtility::CalculateLookAtAngles({ x, orbitState.center.y, z }, orbitState.center, orbitState.lastYaw, orbitState.lastPitch);
 		camera->SetRotate({ orbitState.lastPitch, orbitState.lastYaw, 0.0f });
 		camera->Update();
 	}
@@ -171,7 +156,7 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 		// 現在姿勢 -> ロビーの姿勢 へのスナップショットを取得
 		poseFrom = { cam->GetTranslate(), orbitState.lastYaw, orbitState.lastPitch };
 		float toYaw = 0.0f, toPitch = 0.0f;
-		YawPitchLookAt(lobbySwing.cameraPosition, lobbySwing.lookAt, toYaw, toPitch);
+		TitleCameraUtility::CalculateLookAtAngles(lobbySwing.cameraPosition, lobbySwing.lookAt, toYaw, toPitch);
 		poseTo = { lobbySwing.cameraPosition, toYaw, toPitch };
 		
 		timers.time = 0.0f; // 遷移時間リセット
@@ -193,6 +178,5 @@ void TitleAttractState::Update(TitleScene* scene, float deltaTime)
 
 void TitleAttractState::Exit(TitleScene* scene)
 {
-	// 特に何もしない
-	(void)scene; // 未使用引数対策
+	(void)scene;
 }

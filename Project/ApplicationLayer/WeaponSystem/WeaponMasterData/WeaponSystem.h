@@ -69,6 +69,8 @@ public:
 private:
 	static WeaponParams BuildParams(const FWeaponMasterData& md);
 	static std::filesystem::path ResolveWeaponsRoot(const std::filesystem::path& inputPath);
+	bool TryGetSortedWeaponIds(std::vector<int32_t>& ids, std::string* outError) const;
+	bool EquipRelative(int direction, std::string* outError);
 
 private:
 	WeaponMasterDataDatabase db_{};

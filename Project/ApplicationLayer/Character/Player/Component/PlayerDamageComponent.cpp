@@ -158,55 +158,8 @@ PlayerDamageComponent::DamageFeedback PlayerDamageComponent::OnHitByEnemyBullet(
 	}
 
 	const float dmg = static_cast<float>(baseDmg) * mul;
-	const bool wasAlive = (state_.hp > 0.0f);
-
-	state_.hp -= dmg;
-	if (state_.hp < 0.0f)
-	{
-		state_.hp = 0.0f;
-	}
-
-	fb.tookDamage = true;
-	fb.hpChanged = true;
-	fb.notifyPlayerHit = true;
-	fb.damage = dmg;
-	fb.hpAfter = state_.hp;
-	fb.maxHp = state_.maxHp;
-	fb.hitStrength01 = CalcHitStrength01(dmg);
-
-	if (onHitSE)
-	{
-		onHitSE();
-	}
-
-	if (wasAlive && state_.hp <= 0.0f)
-	{
-		if (onDeathSE)
-		{
-			onDeathSE();
-		}
-
-		K4E::Vector3 launchDir = { 0.0f, 0.0f, -1.0f };
-
-		if (auto* cam = view.GetCamera())
-		{
-			launchDir = -cam->GetForward();
-			launchDir.y = 0.0f;
-
-			if (K4E::Vector3::Length(launchDir) > 0.0001f)
-			{
-				launchDir = K4E::Vector3::Normalize(launchDir);
-			}
-			else
-			{
-				launchDir = { 0.0f, 0.0f, -1.0f };
-			}
-		}
-
-		StartDeath(player, view, weaponController, death, inputSnap, runCarry, launchDir);
-		fb.startedDeath = true;
-		return fb;
-	}
+	fb = ApplyDamageAndHandleDeath(player, dmg, view, weaponController, death, inputSnap, runCarry, onHitSE, onDeathSE);
+	if (fb.startedDeath) { return fb; }
 
 	ApplyDamageKnockback(player, view, &attackerPosition, fb.hitStrength01);
 
@@ -247,47 +200,8 @@ PlayerDamageComponent::DamageFeedback PlayerDamageComponent::ApplyFallDamage(
 
 	if (tr->translate_.y > settings.startY) return fb;
 
-	const bool wasAlive = (state_.hp > 0.0f);
-
 	const float dmg = settings.damagePerSecond * deltaTime;
-	state_.hp -= dmg;
-	if (state_.hp < 0.0f)
-	{
-		state_.hp = 0.0f;
-	}
-
-	fb.tookDamage = true;
-	fb.hpChanged = true;
-	fb.notifyPlayerHit = true;
-	fb.damage = dmg;
-	fb.hpAfter = state_.hp;
-	fb.maxHp = state_.maxHp;
-	fb.hitStrength01 = CalcHitStrength01(dmg);
-
-	if (wasAlive && state_.hp <= 0.0f)
-	{
-		if (onDeathSE)
-		{
-			onDeathSE();
-		}
-
-		K4E::Vector3 launchDir = { 0.0f, 0.0f, -1.0f };
-		if (auto* cam = view.GetCamera())
-		{
-			launchDir = -cam->GetForward();
-			launchDir.y = 0.0f;
-
-			if (K4E::Vector3::Length(launchDir) > 0.0001f)
-			{
-				launchDir = K4E::Vector3::Normalize(launchDir);
-			}
-		}
-
-		StartDeath(player, view, weaponController, death, inputSnap, runCarry, launchDir);
-		fb.startedDeath = true;
-	}
-
-	return fb;
+	return ApplyDamageAndHandleDeath(player, dmg, view, weaponController, death, inputSnap, runCarry, {}, onDeathSE);
 }
 
 
@@ -311,52 +225,46 @@ PlayerDamageComponent::DamageFeedback PlayerDamageComponent::ApplyDamage(
 		return fb;
 	}
 
-	const bool wasAlive = (state_.hp > 0.0f);
-	state_.hp -= damage;
-	if (state_.hp < 0.0f)
-	{
-		state_.hp = 0.0f;
-	}
-
-	fb.tookDamage = true;
-	fb.hpChanged = true;
-	fb.notifyPlayerHit = true;
-	fb.damage = damage;
-	fb.hpAfter = state_.hp;
-	fb.maxHp = state_.maxHp;
-	fb.hitStrength01 = CalcHitStrength01(damage);
-
-	if (onHitSE)
-	{
-		onHitSE();
-	}
-
-	if (wasAlive && state_.hp <= 0.0f)
-	{
-		if (onDeathSE)
-		{
-			onDeathSE();
-		}
-
-		K4E::Vector3 launchDir = { 0.0f, 0.0f, -1.0f };
-		if (auto* cam = view.GetCamera())
-		{
-			launchDir = -cam->GetForward();
-			launchDir.y = 0.0f;
-			if (K4E::Vector3::Length(launchDir) > 0.0001f)
-			{
-				launchDir = K4E::Vector3::Normalize(launchDir);
-			}
-		}
-
-		StartDeath(player, view, weaponController, death, inputSnap, runCarry, launchDir);
-		fb.startedDeath = true;
-		return fb;
-	}
+	fb = ApplyDamageAndHandleDeath(player, damage, view, weaponController, death, inputSnap, runCarry, onHitSE, onDeathSE);
+	if (fb.startedDeath) { return fb; }
 
 	ApplyDamageKnockback(player, view, nullptr, fb.hitStrength01);
 
 	return fb;
+}
+
+PlayerDamageComponent::DamageFeedback PlayerDamageComponent::ApplyDamageAndHandleDeath(
+	Player& player,
+	float damage,
+	PlayerViewComponent& view,
+	PlayerWeaponController& weaponController,
+	PlayerDeathComponent& death,
+	InputSnapshot& inputSnap,
+	bool& runCarry,
+	const std::function<void()>& onHitSE,
+	const std::function<void()>& onDeathSE)
+{
+	DamageFeedback feedback{};
+	feedback.hpAfter = state_.hp;
+	feedback.maxHp = state_.maxHp;
+	if (death.IsActive() || damage <= 0.0f || state_.hp <= 0.0f) { return feedback; }
+
+	state_.hp = std::max(0.0f, state_.hp - damage);
+	feedback.tookDamage = true;
+	feedback.hpChanged = true;
+	feedback.notifyPlayerHit = true;
+	feedback.damage = damage;
+	feedback.hpAfter = state_.hp;
+	feedback.hitStrength01 = CalcHitStrength01(damage);
+	if (onHitSE) { onHitSE(); }
+
+	if (state_.hp <= 0.0f)
+	{
+		if (onDeathSE) { onDeathSE(); }
+		StartDeath(player, view, weaponController, death, inputSnap, runCarry, MakeCameraBackDirection(view));
+		feedback.startedDeath = true;
+	}
+	return feedback;
 }
 
 void PlayerDamageComponent::StartDeath(
