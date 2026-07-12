@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EditorActorStateRegistry.h"
 #include "EditorSelection.h"
 
 #include <cstdint>
@@ -85,7 +86,7 @@ namespace Ken4lowEngine
 		{
 			selection_.Clear();
 			ClearPlacementRequest();
-			// Scene切り替え時は寿命の短いEditor状態だけを破棄し、Level名とDirty状態は呼び出し側で決める。
+			EditorActorStateRegistry::GetInstance()->Clear(); // Scene切り替え時に古いActorポインタへ紐づくOutliner状態を破棄する。
 		}
 
 	private:
