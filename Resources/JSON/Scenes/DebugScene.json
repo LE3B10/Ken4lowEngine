@@ -1,0 +1,26 @@
+{
+    "Format": "Ken4lowScene",
+    "Version": 1,
+    "SceneName": "DebugScene",
+    "SceneClass": "DebugScene",
+    "LevelPath": "",
+    "GameMode": "DebugGameMode",
+    "PlayerActor": "",
+    "BGM": {
+        "Path": "",
+        "Loop": true,
+        "Volume": 1.0
+    },
+    "UI": [],
+    "Transition": {
+        "Type": "Fade",
+        "CoverHoldFrames": 4,
+        "UncoverDelayFrames": 3,
+        "Duration": 1.0
+    },
+    "NextScene": "TitleScene",
+    "RetryScene": "DebugScene",
+    "Parameters": {
+        "UseLegacyInitialize": true
+    }
+}
