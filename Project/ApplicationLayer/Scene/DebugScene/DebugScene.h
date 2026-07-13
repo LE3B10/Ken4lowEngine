@@ -1,8 +1,5 @@
 #pragma once
 #include "BaseScene.h"
-#include "CollisionManager.h"
-#include "GpuParticleEffectDesc.h"
-#include "AnimationStateController.h"
 
 #include <ActorWorld.h>
 #include <Editor/ActorWorldEditorBridge.h>
@@ -12,24 +9,15 @@
 #include <PhysicsDebugDraw.h>
 
 #include <algorithm>
-#include <array>
 #include <cmath>
-#include <cstdint>
 #include <memory>
 #include <numbers>
-#include <string>
 #include <vector>
-
-class PhysicsDebugController;
-class AnimationModelBatchTest;
-class GpuParticlePreviewController;
 
 namespace Ken4lowEngine
 {
 	class Actor;
-	class AnimationModel;
 	class Input;
-	class InstancedObject3DRenderer;
 }
 
 namespace K4E = ::Ken4lowEngine;
@@ -42,7 +30,6 @@ public:
 
 	void Initialize() override;
 	void Update() override;
-	void UpdateEditor(float deltaTime) override;
 
 	void BeginEditorPlay() override
 	{
@@ -101,74 +88,11 @@ public:
 
 private:
 	void UpdateDebug();
-	void RebuildInstancingTest();
-	void ReloadAnimationModelTest();
-	void DrawAnimationModelTestImGui();
-	void UpdateAnimationModelInputTest(float deltaTime);
+
+private:
 
 	K4E::Input* input_ = nullptr;
 	bool isDebugCamera_ = false;
-	std::unique_ptr<CollisionManager> collisionManager_;
-	std::unique_ptr<PhysicsDebugController> physicsDebugController_;
-	std::unique_ptr<AnimationModelBatchTest> animationModelBatchTest_;
-	std::unique_ptr<K4E::AnimationModel> animationModelTest_;
-	std::unique_ptr<K4E::InstancedObject3DRenderer> instancingTestRenderer_;
-	bool isInstancingTestEnabled_ = false;
-	int instancingTestCount_ = 30000;
-	float instancingTestSpacing_ = 2.0f;
-	int instancingSafeCount_ = 30000;
-	uint64_t instancingIndexBudget_ = 50'000'000ull;
-	bool instancingAutoClamp_ = true;
-	bool instancingRandomScale_ = false;
-	bool instancingRandomRotation_ = false;
-	bool instancingRandomColor_ = false;
-	bool instancingFrustumCulling_ = false;
-
-	K4E::GpuParticleEffectDesc editingGpuParticleEffect_;
-	int selectedGpuParticleEmitterIndex_ = -1;
-	bool showGpuParticleEditor_ = true;
-	std::string gpuParticleEffectJsonPath_ = "Resources/JSON/GpuParticles/DebugEffect.json";
-	std::string gpuParticleEditorStatus_ = "GPU Particle Editor ready.";
-	bool gpuParticleEditorLastOperationSucceeded_ = true;
-	std::unique_ptr<GpuParticlePreviewController> gpuParticlePreviewController_;
-	bool gpuParticlePreviewAutoPlay_ = false;
-	bool gpuParticlePreviewSelectedOnly_ = true;
-	K4E::Vector3 gpuParticlePreviewPosition_{ 0.0f, 1.0f, 0.0f };
-	uint32_t gpuParticlePreviewEmitCount_ = 32;
-
-	std::string animationModelTestPath_ = "Animation/SampleHumanAnim.gltf";
-	std::array<std::string, 3> animationModelTestLodPaths_{ "", "", "" };
-	std::array<char, 260> animationModelTestPathBuffer_{};
-	std::array<std::array<char, 260>, 3> animationModelTestLodPathBuffers_{};
-	std::string animationModelTestStatus_ = "AnimationModel Test ready.";
-	bool animationModelTestLoaded_ = false;
-	bool animationModelTestLastOperationSucceeded_ = true;
-	bool animationModelTestUseLods_ = false;
-	bool animationModelTestForceLod_ = false;
-	int animationModelTestForcedLodIndex_ = 0;
-	float animationModelTestSpeed_ = 1.0f;
-	bool animationModelTestLoop_ = true;
-	bool animationModelTestShowDetailedDebugView_ = false;
-	bool animationModelInputTestEnabled_ = false;
-	bool animationStateControllerEnabled_ = false;
-	bool animationModelUseCrossFadeForCombo_ = true;
-	float animationModelCrossFadeDuration_ = 0.2f;
-	float animationModelWalkSpeed_ = 2.0f;
-	float animationModelRunSpeed_ = 5.0f;
-	std::string animationModelRequestedAnimationName_;
-	std::string animationModelIdleAnimationName_ = "Idle";
-	std::string animationModelWalkAnimationName_ = "Walk";
-	std::string animationModelRunAnimationName_ = "Run";
-	std::string animationModelAttackAnimationName_ = "Attack";
-	std::string animationModelDamageAnimationName_ = "Damage";
-	std::string animationModelDeathAnimationName_ = "Death";
-	std::array<char, 64> animationModelIdleNameBuffer_{};
-	std::array<char, 64> animationModelWalkNameBuffer_{};
-	std::array<char, 64> animationModelRunNameBuffer_{};
-	std::array<char, 64> animationModelAttackNameBuffer_{};
-	std::array<char, 64> animationModelDamageNameBuffer_{};
-	std::array<char, 64> animationModelDeathNameBuffer_{};
-	K4E::AnimationStateController animationStateController_{};
 
 	K4E::ActorWorld actorWorld_;
 	K4E::PhysicsWorld actorPhysicsWorld_;

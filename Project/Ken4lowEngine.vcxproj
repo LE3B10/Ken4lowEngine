@@ -174,7 +174,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBar.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarManager.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\AmmoRecoveryItemSpawner.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\BossBattleController.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalHpBarController.cpp" />
@@ -211,9 +210,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </ClCompile>
     <ClCompile Include="ApplicationLayer\DebugTools\EnemyScalability\EnemyScalabilitySystem.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\DebugScene\AnimationModelBatchTest.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\DebugScene\DisintegrationDebugController.cpp" />
-    <ClCompile Include="ApplicationLayer\Scene\DebugScene\PhysicsDebugController.cpp" />
     <ClCompile Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
@@ -844,7 +840,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\Character\CharacterWorld\BulletEnemySoABridge.h" />
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\BulletEnemySoABenchmarkPanel.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.h" />
     <ClInclude Include="ApplicationLayer\UISystem\UiSpriteFactory.h" />
     <ClInclude Include="Engine\Editor\ActorWorldEditorBridge.h" />
@@ -918,7 +913,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBar.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarManager.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.h" />
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\AmmoRecoveryItemSpawner.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\BossBattleController.h" />
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\CrystalHpBarController.h" />
@@ -959,9 +953,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </ClInclude>
     <ClInclude Include="ApplicationLayer\DebugTools\EnemyScalability\EnemyScalabilitySystem.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h" />
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\AnimationModelBatchTest.h" />
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\DisintegrationDebugController.h" />
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\PhysicsDebugController.h" />
     <ClInclude Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>

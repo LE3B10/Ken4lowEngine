@@ -310,15 +310,6 @@
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\DebugScene\AnimationModelBatchTest.cpp">
-      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\DebugScene\DisintegrationDebugController.cpp">
-      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\DebugScene\PhysicsDebugController.cpp">
-      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\SceneManagement\FadeManager\FadeManager.cpp">
       <Filter>ApplicationLayer\SceneManager\FadeManager</Filter>
     </ClCompile>
@@ -1165,9 +1156,6 @@
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\AmmoRecoveryItemSpawner.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.cpp">
-      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActor.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
     </ClCompile>
@@ -1441,15 +1429,6 @@
       <Filter>ApplicationLayer\DebugTools</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h">
-      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\AnimationModelBatchTest.h">
-      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\DisintegrationDebugController.h">
-      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\PhysicsDebugController.h">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\SceneManagement\FadeManager\FadeManager.h">
@@ -2499,9 +2478,6 @@
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\AmmoRecoveryItemSpawner.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\GpuParticlePreviewController.h">
-      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestActor.h">
       <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
     </ClInclude>
@@ -2636,9 +2612,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\UISystem\UiSpriteFactory.h">
       <Filter>ApplicationLayer\UISystem</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\BulletEnemySoABenchmarkPanel.h">
-      <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.h">
       <Filter>Engine\Physics\Specialized</Filter>
