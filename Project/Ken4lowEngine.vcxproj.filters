@@ -2867,12 +2867,6 @@
     <Filter Include="ApplicationLayer\Character\Boss\Core">
       <UniqueIdentifier>{6c715102-1e04-49ad-a580-e54c603a9e54}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Character\Boss\Data">
-      <UniqueIdentifier>{229d56fb-48b8-498e-9911-03fc9cd6c9d5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\Boss\DebugTools">
-      <UniqueIdentifier>{f4dd3edc-af5c-462b-a11b-0c4b243b579b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\Character\Boss\Derived">
       <UniqueIdentifier>{18fe000a-2c8a-49d3-a448-6a9db9fcf513}</UniqueIdentifier>
     </Filter>
