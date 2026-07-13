@@ -1195,6 +1195,12 @@
     <ClCompile Include="Engine\Scene\Actor\Character\CharacterMovementComponent.cpp">
       <Filter>Engine\Scene\Actor\Character</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Character\HumanoidDefinition.cpp">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Character\HumanoidVisualComponent.cpp">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld.cpp">
       <Filter>Engine\Scene\Actor\Core</Filter>
     </ClCompile>
@@ -2563,6 +2569,12 @@
       <Filter>Engine\Scene\Actor\Character</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Character\CharacterTargetComponent.h">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Character\HumanoidDefinition.h">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Character\HumanoidVisualComponent.h">
       <Filter>Engine\Scene\Actor\Character</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Core\ActorComponent.h">

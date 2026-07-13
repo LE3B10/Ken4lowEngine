@@ -133,6 +133,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Scene\Actor\Character\CharacterColliderComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Character\CharacterHealthComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Character\CharacterMovementComponent.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Character\HumanoidDefinition.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Character\HumanoidVisualComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_ComponentEdit.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_Draw.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_ImGui.cpp" />
@@ -880,6 +882,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Scene\Actor\Character\CharacterHealthComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Character\CharacterMovementComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Character\CharacterTargetComponent.h" />
+    <ClInclude Include="Engine\Scene\Actor\Character\HumanoidDefinition.h" />
+    <ClInclude Include="Engine\Scene\Actor\Character\HumanoidVisualComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Factory\ActorFactory.h" />
     <ClInclude Include="Engine\Scene\Actor\Core\ActorSpawnOptions.h" />
     <ClInclude Include="Engine\Scene\Actor\Serialization\ComponentFactory.h" />
