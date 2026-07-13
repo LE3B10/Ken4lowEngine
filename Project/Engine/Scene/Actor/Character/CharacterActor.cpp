@@ -5,6 +5,7 @@
 #include "CharacterTargetComponent.h"
 #include "CharacterColliderComponent.h"
 #include "CharacterAnimationComponent.h"
+#include "AttackComponent.h"
 #include "SceneComponent.h"
 
 #include <algorithm>
@@ -158,6 +159,16 @@ namespace Ken4lowEngine
 	const CharacterAnimationComponent* CharacterActor::GetAnimationComponent() const
 	{
 		return GetCharacterComponent<CharacterAnimationComponent>();
+	}
+
+	AttackComponent* CharacterActor::GetAttackComponent()
+	{
+		return GetCharacterComponent<AttackComponent>(); // 通常敵と将来のBossActorが同じ取得APIを利用する。
+	}
+
+	const AttackComponent* CharacterActor::GetAttackComponent() const
+	{
+		return GetCharacterComponent<AttackComponent>();
 	}
 
 	CharacterActor::DeathListenerId CharacterActor::AddDeathListener(DeathListener listener)

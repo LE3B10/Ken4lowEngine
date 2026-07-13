@@ -34,6 +34,12 @@ namespace Ken4lowEngine
 		/// 指定アニメーションを先頭から再生する。
 		void Play(std::string_view animationName, float duration, bool loop);
 
+		/// AttackComponentから攻撃モーション名と尺を受け取り、通常再生より優先して開始する。
+		void RequestAttack(std::string_view animationName, float duration);
+
+		/// 指定攻撃モーションが終了した場合だけ要求を解除し、移動またはIdleへ戻す。
+		void FinishAttack(std::string_view animationName);
+
 		/// 現在位置を維持したまま再生を一時停止する。
 		void Pause() { isPlaying_ = false; }
 
@@ -77,6 +83,12 @@ namespace Ken4lowEngine
 		/// 外部入力された再生設定を安全な範囲へ補正する。
 		void SanitizePlaybackState();
 
+		/// 攻撃要求が無い間はMovement速度からIdleとWalkを選択する。
+		void UpdateLocomotionAnimation();
+
+		/// 現在の名前と正規化時間をHumanoidVisualComponentの部位ポーズへ反映する。
+		void ApplyHumanoidPose();
+
 	private:
 		std::string animationName_ = "Idle";
 		float duration_ = 1.0f;
@@ -84,5 +96,6 @@ namespace Ken4lowEngine
 		float playbackSpeed_ = 1.0f;
 		bool loop_ = true;
 		bool isPlaying_ = true;
+		bool attackRequestActive_ = false;
 	};
 } // namespace Ken4lowEngine

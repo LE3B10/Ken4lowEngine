@@ -2,10 +2,11 @@
 
 #include "EnemyAIComponent.h"
 
+#include <Scene/Actor/Character/AttackBehaviors.h>
 #include <Scene/Actor/Character/CharacterActor.h>
 
 #include <algorithm>
-#include <cmath>
+#include <utility>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -15,64 +16,89 @@ namespace Ken4lowEngine
 {
 	void EnemyAttackComponent::Initialize()
 	{
-		ResetAttackState();
+		EnsureDefaultMeleeAttack();
+		AttackComponent::Initialize(); // タイマー、イベント、攻撃Phaseは共通基盤だけで初期化する。
 	}
 
 	void EnemyAttackComponent::Update(float deltaTime)
 	{
-		if (!std::isfinite(deltaTime) || deltaTime <= 0.0f) return;
-		elapsedSinceAcceptedHit_ += deltaTime;
-		cooldownRemaining_ = std::max(0.0f, cooldownRemaining_ - deltaTime);
-
 		auto* owner = dynamic_cast<CharacterActor*>(GetOwner());
 		const auto* ai = owner ? owner->GetCharacterComponent<EnemyAIComponent>() : nullptr;
-		if (!owner || owner->IsDead() || !attackEnabled_ || !targetActor_ || targetActor_->IsDead() || !ai) return;
-		if (ai->GetDistanceToTarget() > ai->GetAttackStartRange() || cooldownRemaining_ > 0.0f) return;
-
-		const CharacterDamageResult result = targetActor_->ApplyDamage(attackDamage_);
-		cooldownRemaining_ = GetExpectedHitInterval(); // 旧Scratchの予備・有効・復帰・Cooldownを含む実命中間隔を維持する。
-		if (!result.accepted) return;
-
-		lastMeasuredInterval_ = acceptedHitCount_ > 0 ? elapsedSinceAcceptedHit_ : 0.0f;
-		elapsedSinceAcceptedHit_ = 0.0f;
-		++acceptedHitCount_;
+		if (owner && !owner->IsDead() && ai && GetTargetActor() && !GetTargetActor()->IsDead()
+			&& ai->GetDistanceToTarget() <= ai->GetAttackStartRange())
+		{
+			StartAttack("Melee"); // Adapterは開始判断だけを行い、Damageや腕Transformを直接処理しない。
+		}
+		AttackComponent::Update(deltaTime);
 	}
 
 	void EnemyAttackComponent::DrawImGui()
 	{
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("通常敵攻撃");
-		ImGui::Text("Damage: %.1f / Cooldown: %.2f / 命中間隔: %.2f", attackDamage_, attackCooldown_, GetExpectedHitInterval());
-		ImGui::Text("命中回数: %d / 実測間隔: %.3f", acceptedHitCount_, lastMeasuredInterval_);
+		ImGui::Text("Damage: %.1f / Cooldown: %.2f / 命中間隔: %.2f", GetAttackDamage(), GetAttackCooldown(), GetExpectedHitInterval());
+		ImGui::Text("命中回数: %d / 実測間隔: %.3f", GetAcceptedHitCount(), GetLastMeasuredInterval());
 #endif
 	}
 
 	void EnemyAttackComponent::ToJson(nlohmann::json& outJson) const
 	{
-		ActorComponent::ToJson(outJson);
-		outJson["AttackCooldown"] = attackCooldown_;
-		outJson["AttackDamage"] = attackDamage_;
-		outJson["AttackStartDelay"] = attackStartDelay_;
-		outJson["AttackActiveTime"] = attackActiveTime_;
-		outJson["AttackRecoveryTime"] = attackRecoveryTime_;
+		AttackComponent::ToJson(outJson);
+		const AttackData* melee = FindAttackData("Melee");
+		if (!melee) return;
+		outJson["AttackCooldown"] = melee->cooldown;
+		outJson["AttackDamage"] = melee->damage;
+		outJson["AttackStartDelay"] = melee->windupTime;
+		outJson["AttackActiveTime"] = melee->activeTime;
+		outJson["AttackRecoveryTime"] = melee->recoveryTime; // Phase 7のJSONキーも残し、既存Actorデータを読み戻せるようにする。
 	}
 
 	void EnemyAttackComponent::FromJson(const nlohmann::json& inJson)
 	{
-		ActorComponent::FromJson(inJson);
-		attackCooldown_ = std::max(0.05f, inJson.value("AttackCooldown", attackCooldown_));
-		attackDamage_ = std::max(0.0f, inJson.value("AttackDamage", attackDamage_));
-		attackStartDelay_ = std::max(0.0f, inJson.value("AttackStartDelay", attackStartDelay_));
-		attackActiveTime_ = std::max(0.0f, inJson.value("AttackActiveTime", attackActiveTime_));
-		attackRecoveryTime_ = std::max(0.0f, inJson.value("AttackRecoveryTime", attackRecoveryTime_));
+		AttackComponent::FromJson(inJson);
+		EnsureDefaultMeleeAttack();
+		const AttackData* restored = FindAttackData("Melee");
+		if (!restored) return;
+		AttackData melee = *restored;
+		melee.cooldown = std::max(0.05f, inJson.value("AttackCooldown", melee.cooldown));
+		melee.damage = std::max(0.0f, inJson.value("AttackDamage", melee.damage));
+		melee.windupTime = std::max(0.0f, inJson.value("AttackStartDelay", melee.windupTime));
+		melee.activeTime = std::max(0.0f, inJson.value("AttackActiveTime", melee.activeTime));
+		melee.recoveryTime = std::max(0.0f, inJson.value("AttackRecoveryTime", melee.recoveryTime));
+		ConfigureAttack("Melee", melee);
 	}
 
-	void EnemyAttackComponent::ResetAttackState()
+	float EnemyAttackComponent::GetAttackCooldown() const
 	{
-		attackEnabled_ = true;
-		cooldownRemaining_ = attackStartDelay_; // 旧Scratch同様、範囲へ入った瞬間ではなく予備時間後に初回命中させる。
-		elapsedSinceAcceptedHit_ = 0.0f;
-		lastMeasuredInterval_ = 0.0f;
-		acceptedHitCount_ = 0;
+		const AttackData* melee = FindAttackData("Melee");
+		return melee ? melee->cooldown : 0.0f;
+	}
+
+	float EnemyAttackComponent::GetExpectedHitInterval() const
+	{
+		const AttackData* melee = FindAttackData("Melee");
+		return melee ? melee->windupTime + melee->activeTime + melee->recoveryTime + melee->cooldown : 0.0f;
+	}
+
+	float EnemyAttackComponent::GetAttackDamage() const
+	{
+		const AttackData* melee = FindAttackData("Melee");
+		return melee ? melee->damage : 0.0f;
+	}
+
+	void EnemyAttackComponent::EnsureDefaultMeleeAttack()
+	{
+		if (FindAttackData("Melee")) return;
+		AttackData melee{};
+		melee.id = "Melee";
+		melee.behaviorType = "Melee";
+		melee.animationName = "Attack.Melee";
+		melee.damage = 8.0f;
+		melee.cooldown = 0.55f;
+		melee.windupTime = 0.12f;
+		melee.activeTime = 0.10f;
+		melee.recoveryTime = 0.35f;
+		melee.maxRange = 2.4f;
+		RegisterAttack(std::move(melee), std::make_unique<MeleeAttackBehavior>()); // 通常敵固有値だけをAdapterで登録し、実行ロジックは共通クラスを使う。
 	}
 } // namespace Ken4lowEngine

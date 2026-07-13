@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ActorComponent.h>
+#include <Scene/Actor/Character/AttackComponent.h>
 
 #include <string>
 
@@ -9,14 +9,14 @@ namespace Ken4lowEngine
 	class CharacterActor;
 	class EnemyAIComponent;
 
-	/// 通常敵の攻撃間隔、ダメージ適用、命中回数をAI判断や表示から分離するComponent。
-	class EnemyAttackComponent final : public ActorComponent
+	/// 旧通常敵APIを保ちながら攻撃本体を共通AttackComponentへ委譲する移行Adapter。
+	class EnemyAttackComponent final : public AttackComponent
 	{
 	public:
 		/// 攻撃タイマーを比較開始状態へ初期化する。
 		void Initialize() override;
 
-		/// AIが攻撃範囲内のときだけ、設定間隔ごとにTargetへダメージを適用する。
+		/// AIが攻撃範囲内のときだけ、登録済みMelee攻撃の開始を共通基盤へ要求する。
 		void Update(float deltaTime) override;
 
 		/// 攻撃調整値と実測回数をDebug表示する。
@@ -31,41 +31,26 @@ namespace Ken4lowEngine
 		/// Actor JSONから攻撃調整値を安全に復元する。
 		void FromJson(const nlohmann::json& inJson) override;
 
-		/// ダメージ適用先のCharacterActorを設定する。所有権は移さない。
-		void SetTargetActor(CharacterActor* targetActor) { targetActor_ = targetActor; }
+		/// ダメージ適用先のCharacterActorを共通AttackComponentへ設定する。
+		void SetTargetActor(CharacterActor* targetActor) { AttackComponent::SetTargetActor(targetActor); }
 
 		/// 死亡中などに攻撃処理を停止する。
-		void StopAttacking() { attackEnabled_ = false; }
+		void StopAttacking() { SetAttackEnabled(false); }
 
 		/// 比較再実行用に攻撃タイマーと計測値をリセットする。
-		void ResetAttackState();
+		using AttackComponent::ResetAttackState;
 
 		/// 旧Scratch設定と比較する攻撃クールダウンを返す。
-		float GetAttackCooldown() const { return attackCooldown_; }
+		float GetAttackCooldown() const;
 
 		/// Scratchの予備・有効・復帰・Cooldownを含む命中間隔を返す。
-		float GetExpectedHitInterval() const { return attackStartDelay_ + attackActiveTime_ + attackRecoveryTime_ + attackCooldown_; }
+		float GetExpectedHitInterval() const;
 
 		/// 旧Scratch設定と比較する1回のダメージを返す。
-		float GetAttackDamage() const { return attackDamage_; }
-
-		/// 実際にTargetへ受理された攻撃回数を返す。
-		int GetAcceptedHitCount() const { return acceptedHitCount_; }
-
-		/// 最後に攻撃が受理された時刻からの経過時間を返す。
-		float GetLastMeasuredInterval() const { return lastMeasuredInterval_; }
+		float GetAttackDamage() const;
 
 	private:
-		CharacterActor* targetActor_ = nullptr;
-		float attackCooldown_ = 0.55f;
-		float attackDamage_ = 8.0f;
-		float attackStartDelay_ = 0.12f;
-		float attackActiveTime_ = 0.10f;
-		float attackRecoveryTime_ = 0.35f;
-		float cooldownRemaining_ = 0.0f;
-		float elapsedSinceAcceptedHit_ = 0.0f;
-		float lastMeasuredInterval_ = 0.0f;
-		int acceptedHitCount_ = 0;
-		bool attackEnabled_ = true;
+		/// JSON復元前後のどちらでも通常敵用Melee攻撃が1件だけ存在するよう補完する。
+		void EnsureDefaultMeleeAttack();
 	};
 } // namespace Ken4lowEngine

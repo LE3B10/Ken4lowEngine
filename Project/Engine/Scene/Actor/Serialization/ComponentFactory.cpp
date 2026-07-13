@@ -6,6 +6,7 @@
 #include "BillboardComponent.h"
 #include "CameraComponent.h"
 #include "../Character/CharacterAnimationComponent.h"
+#include "../Character/AttackComponent.h"
 #include "../Character/CharacterColliderComponent.h"
 #include "../Character/CharacterHealthComponent.h"
 #include "../Character/CharacterMovementComponent.h"
@@ -91,6 +92,8 @@ namespace Ken4lowEngine
 			MakeComponentTypeInfo<CharacterColliderComponent>("CharacterColliderComponent", false, "キャラクター当たり判定", "キャラクター", "CharacterのTransformへ追従する共通の当たり判定を管理します。"),
 
 			MakeComponentTypeInfo<CharacterAnimationComponent>("CharacterAnimationComponent", false, "キャラクターアニメーション", "キャラクター", "描画方式に依存しないアニメーション名、再生時間、ループ状態を管理します。"),
+
+			MakeComponentTypeInfo<AttackComponent>("AttackComponent", false, "共通攻撃", "キャラクター", "攻撃データ、Cooldown、発動Phase、個別攻撃登録、攻撃イベントを共通管理します。"),
 
 			// 既存Characterへ自動接続せず、EditorとJSONから選択して追加できる共通人型表示を登録する。
 			MakeComponentTypeInfo<HumanoidVisualComponent>("HumanoidVisualComponent", false, "人型表示", "キャラクター", "人型部位の生成、親子Transform、表示、Material、JSONを共通管理します。"),

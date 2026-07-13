@@ -11,6 +11,7 @@
 #include <Collider.h>
 #include <SceneComponent.h>
 #include <Scene/Actor/Character/CharacterColliderComponent.h>
+#include <Scene/Actor/Character/CharacterAnimationComponent.h>
 #include <Scene/Actor/Character/CharacterHealthComponent.h>
 #include <Scene/Actor/Character/HumanoidVisualComponent.h>
 
@@ -124,6 +125,7 @@ void EnemyMigrationValidation::DrawImGui()
 	const K4E::HumanoidVisualComponent* visual = componentEnemy_ ? componentEnemy_->GetHumanoidVisualComponent() : nullptr;
 	const K4E::CharacterColliderComponent* collider = componentEnemy_ ? componentEnemy_->GetColliderComponent() : nullptr;
 	const K4E::CharacterHealthComponent* health = componentEnemy_ ? componentEnemy_->GetHealthComponent() : nullptr;
+	const K4E::CharacterAnimationComponent* animation = componentEnemy_ ? componentEnemy_->GetAnimationComponent() : nullptr;
 
 	ImGui::TextUnformatted("左: 旧MeleeEnemy / 右: EnemyActor + Component");
 	ImGui::TextUnformatted("同じNavigator・移動速度・Scratch攻撃値を使用し、各個体は片方の経路だけで動作します。");
@@ -165,6 +167,12 @@ void EnemyMigrationValidation::DrawImGui()
 		ImGui::TableSetColumnIndex(1); ImGui::Text("%d", legacyDamage);
 		ImGui::TableSetColumnIndex(2); ImGui::Text("%.0f", attack ? attack->GetAttackDamage() : 0.0f);
 		ImGui::TableSetColumnIndex(3); DrawComparisonResult(attack && NearlyEqual(static_cast<float>(legacyDamage), attack->GetAttackDamage()));
+
+		nextRow("Animation要求");
+		const auto* rightArm = visual ? visual->FindPart("RightArm") : nullptr;
+		ImGui::TableSetColumnIndex(1); ImGui::TextUnformatted("旧Enemy内ポーズ");
+		ImGui::TableSetColumnIndex(2); ImGui::Text("%s / RightArm X %.2f", animation ? animation->GetAnimationName().c_str() : "None", rightArm ? rightArm->transform.rotate_.x : 0.0f);
+		ImGui::TableSetColumnIndex(3); DrawComparisonResult(animation && rightArm); // 攻撃ComponentからAnimationを経由して部位へ届く経路を画面上で確認する。
 
 		nextRow("HP / 死亡処理");
 		ImGui::TableSetColumnIndex(1); ImGui::Text("%d/%d / %s", legacyEnemy_ ? legacyEnemy_->GetHp() : 0, legacyEnemy_ ? legacyEnemy_->GetMaxHp() : 0, legacyEnemy_ && legacyEnemy_->IsDead() ? "死亡" : "生存");

@@ -1198,6 +1198,12 @@
     <ClCompile Include="Engine\Scene\Actor\Character\CharacterActor.cpp">
       <Filter>Engine\Scene\Actor\Character</Filter>
     </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Character\AttackBehaviors.cpp">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Character\AttackComponent.cpp">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Character\CharacterAnimationComponent.cpp">
       <Filter>Engine\Scene\Actor\Character</Filter>
     </ClCompile>
@@ -2581,6 +2587,12 @@
       <Filter>Engine\Scene\Actor\Core</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Character\CharacterActor.h">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Character\AttackBehaviors.h">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Character\AttackComponent.h">
       <Filter>Engine\Scene\Actor\Character</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Character\CharacterAnimationComponent.h">

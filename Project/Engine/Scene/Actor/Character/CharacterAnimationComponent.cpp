@@ -1,5 +1,9 @@
 #include "CharacterAnimationComponent.h"
 
+#include "Actor.h"
+#include "CharacterMovementComponent.h"
+#include <Scene/Actor/Character/HumanoidVisualComponent.h>
+
 #include <algorithm>
 #include <cmath>
 
@@ -16,12 +20,19 @@ namespace Ken4lowEngine
 
 	void CharacterAnimationComponent::Update(float deltaTime)
 	{
-		if (!isPlaying_ || !std::isfinite(deltaTime) || deltaTime <= 0.0f) return;
+		if (!std::isfinite(deltaTime) || deltaTime <= 0.0f) return;
+		if (!attackRequestActive_) UpdateLocomotionAnimation();
+		if (!isPlaying_)
+		{
+			ApplyHumanoidPose();
+			return;
+		}
 
 		playbackTime_ += deltaTime * playbackSpeed_;
 		if (loop_)
 		{
 			playbackTime_ = std::fmod(playbackTime_, duration_);
+			ApplyHumanoidPose();
 			return;
 		}
 
@@ -30,6 +41,7 @@ namespace Ken4lowEngine
 			playbackTime_ = duration_;
 			isPlaying_ = false;
 		}
+		ApplyHumanoidPose(); // Animationだけが人型部位を操作し、攻撃処理からTransform依存を除く。
 	}
 
 	void CharacterAnimationComponent::DrawImGui()
@@ -63,10 +75,24 @@ namespace Ken4lowEngine
 		isPlaying_ = true;
 	}
 
+	void CharacterAnimationComponent::RequestAttack(std::string_view animationName, float duration)
+	{
+		attackRequestActive_ = true;
+		Play(animationName.empty() ? "Attack.Melee" : animationName, duration, false); // 攻撃要求は必ず先頭から1回だけ再生する。
+	}
+
+	void CharacterAnimationComponent::FinishAttack(std::string_view animationName)
+	{
+		if (!attackRequestActive_ || animationName_ != animationName) return;
+		attackRequestActive_ = false;
+		Play("Idle", 1.5f, true); // 次UpdateでMovement速度に応じてWalkへ切り替えられる待機状態へ戻す。
+	}
+
 	void CharacterAnimationComponent::Stop()
 	{
 		playbackTime_ = 0.0f;
 		isPlaying_ = false;
+		attackRequestActive_ = false;
 	}
 
 	void CharacterAnimationComponent::Restart()
@@ -108,5 +134,86 @@ namespace Ken4lowEngine
 		duration_ = std::isfinite(duration_) ? std::max(duration_, 0.001f) : 1.0f;
 		SetPlaybackSpeed(playbackSpeed_);
 		SetPlaybackTime(playbackTime_);
+	}
+
+	void CharacterAnimationComponent::UpdateLocomotionAnimation()
+	{
+		if (animationName_ != "Idle" && animationName_ != "Walk") return; // Editorや外部システムが指定した固有名は自動遷移で上書きしない。
+		Actor* owner = GetOwner();
+		const auto* movement = owner ? owner->GetComponent<CharacterMovementComponent>() : nullptr;
+		const Vector3 velocity = movement ? movement->GetVelocity() : Vector3{};
+		const bool moving = Vector3::LengthXZ(velocity) > 0.01f;
+		const std::string_view desired = moving ? std::string_view("Walk") : std::string_view("Idle");
+		if (animationName_ == desired) return;
+		Play(desired, moving ? 0.8f : 1.5f, true);
+	}
+
+	void CharacterAnimationComponent::ApplyHumanoidPose()
+	{
+		Actor* owner = GetOwner();
+		auto* visual = owner ? owner->GetComponent<HumanoidVisualComponent>() : nullptr;
+		if (!visual) return;
+
+		auto setRotationOffset = [visual](std::string_view partId, const Vector3& offset)
+		{
+			HumanoidVisualComponent::BodyPart* part = visual->FindPart(partId);
+			if (!part) return;
+			const HumanoidPartDefinition* definition = visual->GetDefinition().FindPart(partId);
+			const Vector3 base = definition ? definition->localRotation : Vector3{};
+			part->transform.useQuaternionRotation_ = false;
+			part->transform.rotate_ = base + offset; // 毎フレーム定義姿勢から作り直し、別モーションの回転を累積させない。
+		};
+
+		setRotationOffset("Body", {});
+		setRotationOffset("Head", {});
+		setRotationOffset("LeftArm", {});
+		setRotationOffset("RightArm", {});
+		setRotationOffset("LeftLeg", {});
+		setRotationOffset("RightLeg", {});
+
+		const float t = std::clamp(GetNormalizedTime(), 0.0f, 1.0f);
+		constexpr float kTwoPi = 6.28318530718f;
+		if (animationName_ == "Walk")
+		{
+			const float swing = std::sin(t * kTwoPi) * 0.55f;
+			setRotationOffset("LeftArm", { -swing, 0.0f, 0.0f });
+			setRotationOffset("RightArm", { swing, 0.0f, 0.0f });
+			setRotationOffset("LeftLeg", { swing, 0.0f, 0.0f });
+			setRotationOffset("RightLeg", { -swing, 0.0f, 0.0f });
+			setRotationOffset("Body", { 0.03f + std::abs(std::sin(t * kTwoPi)) * 0.03f, 0.0f, 0.0f });
+			return;
+		}
+
+		auto threeStageSwing = [t](float windup, float strike)
+		{
+			if (t < 0.30f) return windup * (t / 0.30f);
+			if (t < 0.58f) return windup + (strike - windup) * ((t - 0.30f) / 0.28f);
+			return strike * (1.0f - (t - 0.58f) / 0.42f);
+		};
+
+		if (animationName_ == "Attack.Melee")
+		{
+			setRotationOffset("RightArm", { threeStageSwing(-1.15f, 1.25f), 0.0f, -0.12f });
+			setRotationOffset("LeftArm", { threeStageSwing(-0.25f, 0.35f), 0.0f, 0.08f });
+			setRotationOffset("Body", { 0.0f, threeStageSwing(-0.18f, 0.22f), 0.0f });
+		}
+		else if (animationName_ == "Attack.Projectile")
+		{
+			const float recoil = std::sin(t * 3.14159265359f) * 0.25f;
+			setRotationOffset("LeftArm", { -1.15f + recoil, 0.0f, 0.10f });
+			setRotationOffset("RightArm", { -1.15f + recoil, 0.0f, -0.10f });
+		}
+		else if (animationName_ == "Attack.Charge")
+		{
+			setRotationOffset("Body", { 0.45f * std::sin(t * 3.14159265359f), 0.0f, 0.0f });
+			setRotationOffset("LeftArm", { 0.75f * std::sin(t * 3.14159265359f), 0.0f, 0.0f });
+			setRotationOffset("RightArm", { 0.75f * std::sin(t * 3.14159265359f), 0.0f, 0.0f });
+		}
+		else if (animationName_ == "Attack.Shockwave")
+		{
+			const float slam = threeStageSwing(-1.65f, 1.35f);
+			setRotationOffset("LeftArm", { slam, 0.0f, 0.15f });
+			setRotationOffset("RightArm", { slam, 0.0f, -0.15f });
+		}
 	}
 } // namespace Ken4lowEngine

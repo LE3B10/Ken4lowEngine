@@ -133,6 +133,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Editor\EditorTransformGizmo.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelObjectIdRenderer.cpp" />
     <ClCompile Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Character\AttackBehaviors.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Character\AttackComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Character\CharacterActor.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Character\CharacterAnimationComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Character\CharacterColliderComponent.cpp" />
@@ -873,6 +875,8 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Editor\EditorHierarchyPanel.h" />
     <ClInclude Include="Engine\Editor\EditorLevelDeferredController.h" />
     <ClInclude Include="Engine\Editor\EditorLevelOverlay.h" />
+    <ClInclude Include="Engine\Scene\Actor\Character\AttackBehaviors.h" />
+    <ClInclude Include="Engine\Scene\Actor\Character\AttackComponent.h" />
     <ClInclude Include="Engine\Editor\EditorLevelService.h" />
     <ClInclude Include="Engine\Editor\EditorPanelIds.h" />
     <ClInclude Include="Engine\Editor\EditorShell.h" />
