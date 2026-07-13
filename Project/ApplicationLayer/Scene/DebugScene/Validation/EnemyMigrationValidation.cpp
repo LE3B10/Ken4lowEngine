@@ -43,6 +43,7 @@ namespace
 #endif
 }
 
+EnemyMigrationValidation::EnemyMigrationValidation() = default;
 EnemyMigrationValidation::~EnemyMigrationValidation() = default;
 
 void EnemyMigrationValidation::Initialize(K4E::ActorWorld& actorWorld)

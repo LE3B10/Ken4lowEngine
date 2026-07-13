@@ -22,6 +22,9 @@ namespace K4E = ::Ken4lowEngine;
 class EnemyMigrationValidation
 {
 public:
+	/// 前方宣言したunique_ptr所有型の初期化処理を完全型が見える実装側で生成する。
+	EnemyMigrationValidation();
+
 	/// 前方宣言した所有型を実装側で安全に破棄する。
 	~EnemyMigrationValidation();
 
