@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "EnemyEffectComponent.h"
 
 #include <Actor.h>
