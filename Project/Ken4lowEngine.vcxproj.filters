@@ -178,6 +178,9 @@
     <Filter Include="ApplicationLayer\Scene\DebugScene\ActorTest">
       <UniqueIdentifier>{5f0a625e-95e3-4ac6-8640-d74509b72f62}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ApplicationLayer\Scene\DebugScene\Validation">
+      <UniqueIdentifier>{f65d4fa4-a6c8-4f10-8ac6-3dfa1897a0d5}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Engine\Physics\Collision\Mangaer">
       <UniqueIdentifier>{98e12449-ae4a-4ccf-8b6b-901fff886013}</UniqueIdentifier>
     </Filter>
@@ -204,6 +207,9 @@
     </Filter>
     <Filter Include="Engine\Scene\Actor\Factory">
       <UniqueIdentifier>{3e270e79-8ae9-45d4-ad78-e24f9c83cbdc}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Engine\Scene\Actor\Character">
+      <UniqueIdentifier>{d3a14114-ef9b-4f4c-879a-a90e74bc6a42}</UniqueIdentifier>
     </Filter>
     <Filter Include="Engine\Physics\Specialized">
       <UniqueIdentifier>{6b6053ce-8214-4c99-bdfa-8f6bc3b01268}</UniqueIdentifier>
@@ -1168,8 +1174,20 @@
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestGroundActor.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\Validation\CharacterActorPhase2Validation.cpp">
+      <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Core\Actor.cpp">
       <Filter>Engine\Scene\Actor\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Character\CharacterActor.cpp">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Character\CharacterHealthComponent.cpp">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Character\CharacterMovementComponent.cpp">
+      <Filter>Engine\Scene\Actor\Character</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld.cpp">
       <Filter>Engine\Scene\Actor\Core</Filter>
@@ -2511,11 +2529,29 @@
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestGroundActor.h">
       <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\CharacterActorPhase2Validation.h">
+      <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Physics\Collision\Core\PhysicsCollisionLayer.h">
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Core\Actor.h">
       <Filter>Engine\Scene\Actor\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Character\CharacterActor.h">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Character\CharacterDamage.h">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Character\CharacterHealthComponent.h">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Character\CharacterMovementComponent.h">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Character\CharacterTargetComponent.h">
+      <Filter>Engine\Scene\Actor\Character</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Core\ActorComponent.h">
       <Filter>Engine\Scene\Actor\Core</Filter>

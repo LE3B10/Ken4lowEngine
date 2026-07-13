@@ -48,6 +48,7 @@ void DebugScene::Initialize()
 	phase1Ground.SetName("Phase1Ground");
 	phase1Ground.SetLayer("DebugValidation");
 	actorWorld_.Initialize();
+	characterActorPhase2Validation_.Initialize(actorWorld_);
 }
 
 /// -------------------------------------------------------------
@@ -61,6 +62,7 @@ void DebugScene::Update()
 
 	const float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
 	ProcessActorWorldPhase1Requests();
+	characterActorPhase2Validation_.ProcessRequests();
 
 	actorWorld_.Update(deltaTime);
 
@@ -75,6 +77,7 @@ void DebugScene::UpdateEditor(float deltaTime)
 {
 	(void)deltaTime;
 	ProcessActorWorldPhase1Requests(); // Edit/Pause中の操作要求も次のActorWorld::UpdateEditor前に処理する。
+	characterActorPhase2Validation_.ProcessRequests();
 }
 
 /// -------------------------------------------------------------
@@ -133,6 +136,7 @@ void DebugScene::Finalize()
 	input_->SetCursorVisible(true);
 
 	// Actorの外部登録を解除し、所有メンバ自体の破棄はDebugSceneのデストラクタへ任せる。
+	characterActorPhase2Validation_.Finalize();
 	actorWorld_.Finalize();
 	input_ = nullptr;
 }
@@ -146,6 +150,7 @@ void DebugScene::DrawImGui()
 
 	actorWorld_.DrawImGui();
 	DrawActorWorldPhase1ValidationImGui();
+	characterActorPhase2Validation_.DrawImGui();
 
 	actorPhysicsDebugDraw_.GetSettings().drawPhysicsDebug = true;
 	actorPhysicsDebugDraw_.GetSettings().drawColliders = true;

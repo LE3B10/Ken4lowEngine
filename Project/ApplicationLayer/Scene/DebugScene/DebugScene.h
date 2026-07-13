@@ -1,5 +1,6 @@
 #pragma once
 #include "BaseScene.h"
+#include "Validation/CharacterActorPhase2Validation.h"
 
 #include <ActorWorld.h>
 #include <Editor/ActorWorldEditorBridge.h>
@@ -87,4 +88,6 @@ private:
 		bool requestValidation = true;
 		bool pendingDestroyCheck = false;
 	} actorWorldPhase1Validation_;
+
+	CharacterActorPhase2Validation characterActorPhase2Validation_;
 };

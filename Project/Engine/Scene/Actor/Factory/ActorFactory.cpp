@@ -1,4 +1,5 @@
 #include "ActorFactory.h"
+#include "../Character/CharacterActor.h"
 
 #include <string>
 #include <unordered_map>
@@ -34,6 +35,10 @@ namespace Ken4lowEngine
 			// EditorがModelComponent構成から生成した汎用Actorは、個別登録なしでJSONから復元する。
 			return std::make_unique<Actor>();
 		}
+		if (className == "CharacterActor")
+		{
+			return std::make_unique<CharacterActor>(); // Character共通基底はFactory組み込み型としてJSON復元を保証する。
+		}
 
 		const auto& registry = GetActorFactoryRegister();
 
@@ -48,9 +53,9 @@ namespace Ken4lowEngine
 
 	bool ActorFactory::IsRegistered(std::string_view className)
 	{
-		if (className == "Actor")
+		if (className == "Actor" || className == "CharacterActor")
 		{
-			return true; // 汎用ActorはFactory組み込み型として常に生成可能にする。
+			return true; // Engine組み込みActorは個別登録なしで常に生成可能にする。
 		}
 
 		const auto& registry = GetActorFactoryRegister();

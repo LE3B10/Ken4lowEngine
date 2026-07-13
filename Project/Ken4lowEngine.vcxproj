@@ -120,6 +120,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   <ItemGroup>
     <ClCompile Include="ApplicationLayer\Character\CharacterWorld\BulletEnemySoABridge.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\Validation\CharacterActorPhase2Validation.cpp" />
     <ClCompile Include="Engine\Editor\ActorWorldEditorBridge.cpp" />
     <ClCompile Include="Engine\Editor\EditorContentBrowserPanel.cpp" />
     <ClCompile Include="Engine\Editor\EditorGpuPickingManager.cpp" />
@@ -127,6 +128,9 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="Engine\Editor\EditorTransformGizmo.cpp" />
     <ClCompile Include="Engine\Graphics\Renderer\Animation\Core\AnimationModelObjectIdRenderer.cpp" />
     <ClCompile Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Character\CharacterActor.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Character\CharacterHealthComponent.cpp" />
+    <ClCompile Include="Engine\Scene\Actor\Character\CharacterMovementComponent.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_ComponentEdit.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_Draw.cpp" />
     <ClCompile Include="Engine\Scene\Actor\Core\ActorWorld_ImGui.cpp" />
@@ -848,6 +852,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Editor\EditorAssetPlacementService.h" />
     <ClInclude Include="Engine\Editor\EditorAssetRegistryV2.h" />
     <ClInclude Include="Engine\Editor\EditorCommandHistory.h" />
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\CharacterActorPhase2Validation.h" />
     <ClInclude Include="Engine\Editor\EditorContentBrowserPanel.h" />
     <ClInclude Include="Engine\Editor\EditorContext.h" />
     <ClInclude Include="Engine\Editor\EditorGpuPickingManager.h" />
@@ -866,6 +871,11 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Graphics\Renderer\Object3D\ShadowCasterPipelineSet.h" />
     <ClInclude Include="Engine\Math\MathUtil.h" />
     <ClInclude Include="Engine\Physics\Collision\Specialized\BulletEnemyCollisionSoA.h" />
+    <ClInclude Include="Engine\Scene\Actor\Character\CharacterActor.h" />
+    <ClInclude Include="Engine\Scene\Actor\Character\CharacterDamage.h" />
+    <ClInclude Include="Engine\Scene\Actor\Character\CharacterHealthComponent.h" />
+    <ClInclude Include="Engine\Scene\Actor\Character\CharacterMovementComponent.h" />
+    <ClInclude Include="Engine\Scene\Actor\Character\CharacterTargetComponent.h" />
     <ClInclude Include="Engine\Scene\Actor\Factory\ActorFactory.h" />
     <ClInclude Include="Engine\Scene\Actor\Core\ActorSpawnOptions.h" />
     <ClInclude Include="Engine\Scene\Actor\Serialization\ComponentFactory.h" />

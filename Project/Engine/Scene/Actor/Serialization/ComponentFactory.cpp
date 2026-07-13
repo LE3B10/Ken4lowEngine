@@ -5,6 +5,9 @@
 #include "AudioComponent.h"
 #include "BillboardComponent.h"
 #include "CameraComponent.h"
+#include "../Character/CharacterHealthComponent.h"
+#include "../Character/CharacterMovementComponent.h"
+#include "../Character/CharacterTargetComponent.h"
 #include "ColliderComponent.h"
 #include "GaugeComponent.h"
 #include "GpuParticleComponent.h"
@@ -71,6 +74,12 @@ namespace Ken4lowEngine
 		const std::vector<ComponentFactory::ComponentTypeInfo> kRegisteredComponentTypes =
 		{
 			MakeComponentTypeInfo<SceneComponent>("SceneComponent", true, "シーンコンポーネント", "基本", "Actorに位置・回転・スケールと親子関係を持たせる基本Componentです。"),
+
+			MakeComponentTypeInfo<CharacterHealthComponent>("CharacterHealthComponent", false, "キャラクターHP", "キャラクター", "HP計算、生存判定、無敵状態をCharacterActorから分離して管理します。"),
+
+			MakeComponentTypeInfo<CharacterMovementComponent>("CharacterMovementComponent", false, "キャラクター移動", "キャラクター", "CharacterActorから移動計算を分離し、Root Transformへ速度を反映します。"),
+
+			MakeComponentTypeInfo<CharacterTargetComponent>("CharacterTargetComponent", false, "キャラクターターゲット", "キャラクター", "攻撃、照準、追跡から参照するCharacterの代表位置を管理します。"),
 
 			MakeComponentTypeInfo<ModelComponent>("ModelComponent", true, "モデルコンポーネント", "描画", "Actorに3Dモデルの描画機能を追加します。"),
 
