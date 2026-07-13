@@ -19,24 +19,6 @@ public: /// ---------- BossBase override ---------- ///
 	void BuildBossParts() override;
 
 	/// <summary>
-	/// 攻撃設定
-	/// 基底では特別な攻撃登録はしない
-	/// </summary>
-	void SetupAttacks() override {}
-
-	/// <summary>
-	/// フェーズ設定
-	/// 基底では何もしない
-	/// </summary>
-	void SetupPhaseData() override {}
-
-	/// <summary>
-	/// 弱点設定
-	/// 基底では何もしない
-	/// </summary>
-	void SetupWeakPoints() override {}
-
-	/// <summary>
 	/// 共通初期設定
 	/// 人型ボスとして最低限の初期化だけ行う
 	/// 実際の行動開始状態などは派生側で上書きしてよい
@@ -44,41 +26,9 @@ public: /// ---------- BossBase override ---------- ///
 	void SetupBoss() override;
 
 	/// <summary>
-	/// 衝突処理
-	/// 現段階では簡易空実装
-	/// </summary>
-	void OnCollision(K4E::Collider* other) override;
-
-	/// <summary>
 	/// デバッグ表示
 	/// </summary>
 	void DrawImGui() override;
-
-protected: /// ---------- BossBase 共通更新差し込み ---------- ///
-
-	/// <summary>
-	/// 人型基底では状態更新を持たない
-	/// 派生ボス側で管理する
-	/// </summary>
-	void UpdateState(float deltaTime) override;
-
-	/// <summary>
-	/// 人型基底では移動更新を持たない
-	/// 派生ボスまたは MovementComponent 側で管理する
-	/// </summary>
-	void UpdateMovement(float deltaTime) override;
-
-	/// <summary>
-	/// 人型基底では攻撃更新を持たない
-	/// 派生ボスまたは AttackComponent 側で管理する
-	/// </summary>
-	void UpdateAttack(float deltaTime) override;
-
-	/// <summary>
-	/// 死亡チェック
-	/// 基底では BossBase 側の共通死亡処理を使う
-	/// </summary>
-	void CheckDeath() override;
 
 protected: /// ---------- 共通補助 ---------- ///
 

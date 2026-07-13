@@ -9,24 +9,20 @@
 /// -------------------------------------------------------------
 class BTActionNode : public IBTNode
 {
-public: /// ---------- 基本構造 ---------- ///
+public:
 
-	// アクション関数の型
+	/// ノードが実行する処理の型を表す。
 	using ActionFunc = std::function<BehaviorStatus(float)>;
 
-	// アクション関数を受け取るコンストラクタ
+	/// 実行する処理を受け取ってアクションノードを構築する。
 	explicit BTActionNode(ActionFunc func) : func_(std::move(func)) {}
 
-	// ビヘイビアツリーの更新
+	/// 登録された処理を実行し、その状態を親ノードへ返す。
 	BehaviorStatus Tick(float dt) override
 	{
-		// アクション関数を呼び出して、その結果を返す
 		return func_(dt);
 	}
 
-private: /// ---------- メンバ変数 ---------- ///
-
-	// アクション関数
+private:
 	ActionFunc func_;
 };
-

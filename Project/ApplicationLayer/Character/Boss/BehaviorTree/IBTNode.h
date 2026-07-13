@@ -1,16 +1,15 @@
 #pragma once
-#include <BehaviorStatus.h>
+#include "BehaviorStatus.h"
 
 /// -------------------------------------------------------------
 ///			ビヘイビアツリーのノードインターフェース
 /// -------------------------------------------------------------
 class IBTNode
 {
-public: /// ---------- 基本構造 ---------- ///
+public:
 
-	// デストラクタは仮想関数にしておく
-    virtual ~IBTNode() = default;
+	virtual ~IBTNode() = default;
 
-	// ビヘイビアツリーの更新
-    virtual BehaviorStatus Tick(float deltaTime) = 0;
+	/// ノードを1回評価し、成功・失敗・実行中のいずれかを返す。
+	virtual BehaviorStatus Tick(float deltaTime) = 0;
 };

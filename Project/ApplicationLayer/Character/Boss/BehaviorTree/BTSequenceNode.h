@@ -9,39 +9,34 @@
 /// -------------------------------------------------------------
 class BTSequenceNode : public IBTNode
 {
-public: /// ---------- 基本構造 ---------- ///
+public:
 
-	// デストラクタは仮想関数にしておく
 	~BTSequenceNode() override = default;
 
-	// 子ノードを追加
+	/// 実行順の末尾へ有効な子ノードを追加する。
 	void AddChild(std::unique_ptr<IBTNode> child)
 	{
-		children_.push_back(std::move(child));
+		if (child)
+		{
+			children_.push_back(std::move(child));
+		}
 	}
 
-	// ビヘイビアツリーの更新
+	/// 子を順番に実行し、失敗または実行中ならその時点の結果を返す。
 	BehaviorStatus Tick(float deltaTime) override
 	{
-		// 子ノードを順番に更新
 		for (auto& child : children_)
 		{
-			// 子ノードの更新結果を取得
 			const BehaviorStatus result = child->Tick(deltaTime);
-
-			// 子ノードが失敗したらシーケンス全体も失敗
 			if (result != BehaviorStatus::Success)
 			{
 				return result;
 			}
 		}
 
-		// 全ての子ノードが成功したらシーケンス全体も成功
 		return BehaviorStatus::Success;
 	}
 
-private: /// ---------- メンバ変数 ---------- ///
-
-	// 子ノードのリスト
+private:
 	std::vector<std::unique_ptr<IBTNode>> children_;
 };

@@ -437,14 +437,14 @@ public: /// ---------- 派生クラスが決めるもの ---------- ///
 	virtual void SetupAttacks() = 0;
 
 	/// <summary>
-	/// フェーズ設定
+	/// フェーズ設定が必要なボスだけ上書きする任意フック
 	/// </summary>
-	virtual void SetupPhaseData() = 0;
+	virtual void SetupPhaseData() {}
 
 	/// <summary>
-	/// 弱点設定
+	/// 弱点設定が必要なボスだけ上書きする任意フック
 	/// </summary>
-	virtual void SetupWeakPoints() = 0;
+	virtual void SetupWeakPoints() {}
 
 	/// <summary>
 	/// ボス固有初期化

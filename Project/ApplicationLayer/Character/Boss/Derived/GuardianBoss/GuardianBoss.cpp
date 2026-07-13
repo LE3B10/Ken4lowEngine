@@ -182,7 +182,6 @@ namespace
 		parameters->AddItem(kGuardianBossGroup, "attackDuration", 0.85f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "attackCooldown", 1.20f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "staggerDuration", 0.30f, 0.0f, 30.0f);
-		parameters->AddItem(kGuardianBossGroup, "heavyPunchReuseDelay", 1.0f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "animationWalkSpeed", 6.0f, 0.0f, 30.0f);
 		parameters->AddItem(kGuardianBossGroup, "animationWalkAmplitude", 0.55f, 0.0f, 5.0f);
 		parameters->AddItem(kGuardianBossGroup, "NavigationEnabled", true);
@@ -275,7 +274,6 @@ namespace
 		parameters->SetDisplayName(kGuardianBossGroup, "attackDuration", "攻撃時間");
 		parameters->SetDisplayName(kGuardianBossGroup, "attackCooldown", "攻撃クールタイム");
 		parameters->SetDisplayName(kGuardianBossGroup, "staggerDuration", "ひるみ時間");
-		parameters->SetDisplayName(kGuardianBossGroup, "heavyPunchReuseDelay", "強攻撃再使用間隔");
 		parameters->SetDisplayName(kGuardianBossGroup, "animationWalkSpeed", "歩行アニメ速度");
 		parameters->SetDisplayName(kGuardianBossGroup, "animationWalkAmplitude", "歩行アニメ振幅");
 		parameters->SetDisplayName(kGuardianBossGroup, "bodyModelPath", "胴体モデルパス");
@@ -389,7 +387,6 @@ void GuardianBoss::ApplyParameters()
 	animationTuning_.attackDuration = GetGuardianParameterOrDefault("attackDuration", animationTuning_.attackDuration);
 	animationTuning_.attackCooldown = GetGuardianParameterOrDefault("attackCooldown", animationTuning_.attackCooldown);
 	animationTuning_.staggerDuration = GetGuardianParameterOrDefault("staggerDuration", animationTuning_.staggerDuration);
-	attackSelectState_.heavyPunchReuseDelay = GetGuardianParameterOrDefault("heavyPunchReuseDelay", attackSelectState_.heavyPunchReuseDelay);
 	animationTuning_.walkSpeed = GetGuardianParameterOrDefault("animationWalkSpeed", animationTuning_.walkSpeed);
 	animationTuning_.walkAmplitude = GetGuardianParameterOrDefault("animationWalkAmplitude", animationTuning_.walkAmplitude);
 	navigationTuning_.enabled = ParameterManager::GetInstance()->GetValue<bool>(kGuardianBossGroup, "NavigationEnabled");
@@ -905,7 +902,6 @@ void GuardianBoss::SetupBoss()
 	animationTuning_.attackDuration = GetGuardianParameterOrDefault("attackDuration", animationTuning_.attackDuration); // Guardianの攻撃時間をJSON調整値から復元する
 	animationTuning_.attackCooldown = GetGuardianParameterOrDefault("attackCooldown", animationTuning_.attackCooldown); // Guardianの攻撃後クールタイムをJSON調整値から復元する
 	animationTuning_.staggerDuration = GetGuardianParameterOrDefault("staggerDuration", animationTuning_.staggerDuration); // Guardianのひるみ時間をJSON調整値から復元する
-	attackSelectState_.heavyPunchReuseDelay = GetGuardianParameterOrDefault("heavyPunchReuseDelay", attackSelectState_.heavyPunchReuseDelay); // HeavyPunch再使用間隔をJSON調整値から復元する
 	animationTuning_.walkSpeed = GetGuardianParameterOrDefault("animationWalkSpeed", animationTuning_.walkSpeed); // 歩行アニメ速度をJSON調整値から復元する
 	animationTuning_.walkAmplitude = GetGuardianParameterOrDefault("animationWalkAmplitude", animationTuning_.walkAmplitude); // 歩行アニメ振幅をJSON調整値から復元する
 
@@ -930,9 +926,7 @@ void GuardianBoss::SetupBoss()
 	runtimeState_.phasePresentationPending = false;
 	runtimeState_.presentationPhase = BossPhase::Phase1;
 
-	// HeavyPunch 連打抑制初期化
 	attackSelectState_.lastSelectedAttack = "None";
-	attackSelectState_.heavyPunchReuseTimer = 0.0f;
 
 	// ---------------------------------------------------------
 	// 初期状態は Idle
@@ -1080,11 +1074,6 @@ void GuardianBoss::UpdateState(float deltaTime)
 	runtimeState_.stateTimer += deltaTime;
 	runtimeState_.attackCooldownTimer = std::max(0.0f, runtimeState_.attackCooldownTimer - deltaTime);
 
-	// ---------------------------------------------------------
-	// HeavyPunch の連打抑制タイマー
-	// ---------------------------------------------------------
-	attackSelectState_.heavyPunchReuseTimer = std::max(0.0f, attackSelectState_.heavyPunchReuseTimer - deltaTime);
-
 	CheckDeath();
 	if (GetState() == BossState::Dead)
 	{
@@ -1102,53 +1091,13 @@ void GuardianBoss::UpdateState(float deltaTime)
 
 	case BossState::Idle:
 		{
-			const float distance = GetDistanceToTargetXZ();
-
-			// ---------------------------------------------------------
-			// クールタイム中は完全停止
-			// ・移動しない
-			// ・向き直りもしない
-			// ・攻撃もしない
-			// ---------------------------------------------------------
-			if (runtimeState_.attackCooldownTimer > 0.0f)
-			{
-				break;
-			}
-
-			FaceTarget(deltaTime);
-
-			const bool hasStartableAttack = GetAttackComponent() && !GetAttackComponent()->CollectStartableAttacks().empty();
-
-			// 実際に開始可能な攻撃がある時だけAttackへ入り、候補なしAttackで歩行アニメが止まる状態を避ける。
-			if (hasStartableAttack)
-			{
-				BeginAttackState();
-			}
-			// 遠ければ移動へ
-			else if (distance > movementTuning_.moveStartDistance)
-			{
-				BeginMoveState();
-			}
+			UpdateLocomotionDecision(deltaTime);
 			break;
 		}
 
 	case BossState::Move:
 		{
-			FaceTarget(deltaTime);
-
-			const float distance = GetDistanceToTargetXZ();
-			const bool hasStartableAttack = GetAttackComponent() && !GetAttackComponent()->CollectStartableAttacks().empty();
-
-			// 移動中も開始可能な攻撃だけをAttackへ渡し、歩行と攻撃選択の責務を分ける。
-			if (runtimeState_.attackCooldownTimer <= 0.0f && hasStartableAttack)
-			{
-				BeginAttackState();
-			}
-			// 十分近づいたら待機
-			else if (distance <= movementTuning_.moveStopDistance)
-			{
-				BeginIdleState();
-			}
+			UpdateLocomotionDecision(deltaTime);
 			break;
 		}
 
@@ -1335,24 +1284,32 @@ void GuardianBoss::SetupAttacks()
 {
 	RegisterAttack(std::make_unique<BossPunchAttack>());
 	RegisterAttack(std::make_unique<BossHeavyPunchAttack>());
-	RegisterAttack(std::make_unique<GuardianShockwaveAttack>()); // 中距離にも圧をかけるGuardian専用衝撃波を登録する。
-	RegisterAttack(std::make_unique<BossChargeAttack>()); // 遠距離では開始方向固定の突進で距離を詰める。
-}
+	RegisterAttack(std::make_unique<GuardianShockwaveAttack>());
+	RegisterAttack(std::make_unique<BossChargeAttack>());
 
-/// -------------------------------------------------------------
-/// フェーズ設定
-/// 今は空でOK
-/// -------------------------------------------------------------
-void GuardianBoss::SetupPhaseData()
-{
-}
+	if (!GetBrain())
+	{
+		return;
+	}
 
-/// -------------------------------------------------------------
-/// 弱点設定
-/// 今は空でOK
-/// -------------------------------------------------------------
-void GuardianBoss::SetupWeakPoints()
-{
+	// 攻撃追加時に選択処理を編集せずに済むよう、AI設定を攻撃名ごとの表として登録する。
+	GetBrain()->ClearAttackRules();
+	GetBrain()->RegisterAttackRule({ "Punch", false, 0.35f, {} });
+	GetBrain()->RegisterAttackRule({ "HeavyPunch", false, 0.35f, {} });
+	GetBrain()->RegisterAttackRule({ "GuardianShockwave", true, 0.35f,
+		[](float distance)
+		{
+			if (distance >= 9.0f) return 55.0f;
+			if (distance >= 5.0f) return 35.0f;
+			return -35.0f;
+		} });
+	GetBrain()->RegisterAttackRule({ "ChargeAttack", true, 0.35f,
+		[](float distance)
+		{
+			if (distance <= 6.0f) return 60.0f;
+			if (distance <= 12.0f) return 45.0f;
+			return 20.0f;
+		} });
 }
 
 /// -------------------------------------------------------------
@@ -1419,7 +1376,7 @@ void GuardianBoss::ChangeBossState(BossState newState)
 /// -------------------------------------------------------------
 /// Attack 開始時共通処理
 /// -------------------------------------------------------------
-void GuardianBoss::BeginAttackState()
+void GuardianBoss::BeginAttackState(const char* selectedAttackName)
 {
 	ChangeBossState(BossState::Attack);
 	runtimeState_.stateTimer = 0.0f;
@@ -1436,7 +1393,52 @@ void GuardianBoss::BeginAttackState()
 	// ---------------------------------------------------------
 	if (!attackSelectState_.useManualAttackDebug)
 	{
-		TryStartBestAttack();
+		if (selectedAttackName && selectedAttackName[0] != '\0')
+		{
+			if (StartAttackByNameSafe(selectedAttackName))
+			{
+				attackSelectState_.lastSelectedAttack = selectedAttackName;
+			}
+		}
+		else
+		{
+			TryStartBestAttack();
+		}
+	}
+}
+
+void GuardianBoss::UpdateLocomotionDecision(float deltaTime)
+{
+	const bool isMoving = GetState() == BossState::Move;
+	if (!isMoving && runtimeState_.attackCooldownTimer > 0.0f)
+	{
+		return;
+	}
+
+	FaceTarget(deltaTime);
+	if (!GetBrain())
+	{
+		return;
+	}
+
+	BossDecisionContext context{};
+	context.canAttack = runtimeState_.attackCooldownTimer <= 0.0f && !attackSelectState_.useManualAttackDebug;
+	context.isMoving = isMoving;
+	context.moveStartDistance = movementTuning_.moveStartDistance;
+	context.moveStopDistance = movementTuning_.moveStopDistance;
+
+	const BossDecision decision = GetBrain()->TickDecision(context, deltaTime);
+	if (decision == BossDecision::Attack)
+	{
+		BeginAttackState(GetBrain()->GetLastBestAttackName().c_str());
+	}
+	else if (decision == BossDecision::Move && !isMoving)
+	{
+		BeginMoveState();
+	}
+	else if (decision == BossDecision::Idle && isMoving)
+	{
+		BeginIdleState();
 	}
 }
 
@@ -1479,16 +1481,6 @@ void GuardianBoss::BeginStaggerState()
 {
 	ChangeBossState(BossState::Stagger);
 	runtimeState_.stateTimer = 0.0f;
-}
-
-/// -------------------------------------------------------------
-/// 攻撃ヒットタイミング
-/// 今は将来拡張用に残す
-/// 現段階では BossPunchAttack 側に判定を寄せる方針
-/// -------------------------------------------------------------
-void GuardianBoss::TryAttackHit()
-{
-	// 今は未使用
 }
 
 void GuardianBoss::BeginPhaseTransition(BossPhase newPhase)
@@ -1790,12 +1782,6 @@ bool GuardianBoss::TryStartBestAttack()
 
 	attackSelectState_.lastSelectedAttack = selectedAttack;
 
-	// HeavyPunch だけ軽い再使用待ちを残す
-	if (selectedAttack == "HeavyPunch")
-	{
-		attackSelectState_.heavyPunchReuseTimer = attackSelectState_.heavyPunchReuseDelay;
-	}
-
 	return true;
 }
 
@@ -1955,7 +1941,6 @@ void GuardianBoss::DrawImGui()
 	ImGui::Text("Guardian Attack Context");
 
 	ImGui::Text("LastSelectedAttack : %s", attackSelectState_.lastSelectedAttack.c_str());
-	ImGui::Text("HeavyReuseTimer    : %.2f", attackSelectState_.heavyPunchReuseTimer);
 
 	// ---------------------------------------------------------
 	// Brain の判断確認
@@ -2032,7 +2017,6 @@ void GuardianBoss::DrawImGui()
 				if (StartAttackByNameSafe("HeavyPunch"))
 				{
 					attackSelectState_.lastSelectedAttack = "HeavyPunch";
-					attackSelectState_.heavyPunchReuseTimer = attackSelectState_.heavyPunchReuseDelay;
 				}
 			}
 			else if (attackSelectState_.manualAttackIndex == 2)
@@ -2090,7 +2074,6 @@ void GuardianBoss::DrawImGui()
 
 		ImGui::Text("LastSelectedAttack : %s", attackSelectState_.lastSelectedAttack.c_str());
 		ImGui::Text("Punch/HeavyPunch AI : Disabled");
-		ImGui::Text("HeavyReuseTimer    : %.2f", attackSelectState_.heavyPunchReuseTimer);
 		ImGui::Text("DistanceToTargetXZ : %.2f", GetDistanceToTargetXZ());
 		ImGui::Text("AttackHitRange    : %.2f", attackHitTuning_.hitRange);
 		ImGui::Text("AttackHitRadius   : %.2f", attackHitTuning_.hitRadius);
@@ -2125,10 +2108,7 @@ void GuardianBoss::DrawImGui()
 			ImGui::Text("CooldownRemaining  : %.2f", heavy->GetCooldownRemaining());
 			ImGui::Text("Range              : %.2f - %.2f", heavy->GetMinRange(), heavy->GetMaxRange());
 
-			// HeavyPunch が Guardian 側で落ちる理由
-			ImGui::Text("HeavyDistanceOK    : %s", (GetDistanceToTargetXZ() <= 2.8f) ? "true" : "false");
-			ImGui::Text("HeavyReuseOK       : %s", (attackSelectState_.heavyPunchReuseTimer <= 0.0f) ? "true" : "false");
-			ImGui::Text("HeavyLastAttackOK  : %s", (attackSelectState_.lastSelectedAttack != "HeavyPunch") ? "true" : "false");
+			ImGui::Text("Automatic AI       : Disabled");
 		}
 		else
 		{

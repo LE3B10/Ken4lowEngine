@@ -51,7 +51,6 @@
         "attackRange": 5.75,
         "bodyModelPath": "Characters/body.gltf",
         "headModelPath": "Characters/head.gltf",
-        "heavyPunchReuseDelay": 1.0,
         "leftArmModelPath": "Characters/left_arm.gltf",
         "leftLegModelPath": "Characters/left_leg.gltf",
         "moveSpeed": 5.0,

@@ -9,24 +9,20 @@
 /// -------------------------------------------------------------
 class BTConditionNode : public IBTNode
 {
-public: /// ---------- 基本構造 ---------- ///
+public:
 
-	// 条件関数の型
+	/// ノードが評価する条件の型を表す。
 	using ConditionFunc = std::function<bool()>;
 
-	// 条件関数を受け取るコンストラクタ
+	/// 評価する条件を受け取って条件ノードを構築する。
 	explicit BTConditionNode(ConditionFunc func) : func_(std::move(func)) {}
 
-	// ビヘイビアツリーの更新
+	/// 条件の真偽をビヘイビアツリーの実行結果へ変換する。
 	BehaviorStatus Tick(float) override
 	{
-		// 条件関数を呼び出して、成功なら Success、失敗なら Failure を返す
 		return func_() ? BehaviorStatus::Success : BehaviorStatus::Failure;
 	}
 
-private: /// ---------- メンバ変数 ---------- ///
-
-	// 条件関数
+private:
 	ConditionFunc func_;
 };
-

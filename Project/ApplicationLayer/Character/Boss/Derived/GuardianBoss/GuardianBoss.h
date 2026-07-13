@@ -56,8 +56,6 @@ protected: /// ---------- BossBase override ---------- ///
 	void OnTargetPlayerDamaged(float damage) override;
 
 	void SetupAttacks() override;
-	void SetupPhaseData() override;
-	void SetupWeakPoints() override;
 
 protected: /// ---------- Guardian専用補助 ---------- ///
 
@@ -80,7 +78,10 @@ protected: /// ---------- Guardian専用補助 ---------- ///
 	/// <summary>
 	/// 攻撃開始時の共通処理
 	/// </summary>
-	void BeginAttackState();
+	void BeginAttackState(const char* selectedAttackName = nullptr);
+
+	/// 待機と移動に共通する行動判断をBossBrainのビヘイビアツリーへ委譲する。
+	void UpdateLocomotionDecision(float deltaTime);
 
 	/// <summary>
 	/// Move 開始時の共通処理
@@ -96,12 +97,6 @@ protected: /// ---------- Guardian専用補助 ---------- ///
 	/// Stagger 開始時の共通処理
 	/// </summary>
 	void BeginStaggerState();
-
-	/// <summary>
-	/// 攻撃ヒットタイミング
-	/// 後で本物の近接判定に差し替える
-	/// </summary>
-	void TryAttackHit();
 
 	/// <summary>
 	/// 現在の状況で最適な攻撃を開始する
@@ -305,11 +300,9 @@ protected: /// ---------- Guardian固有パラメータ ---------- ///
 
 	struct AttackSelectState
 	{
-		std::string lastSelectedAttack = "None"; // HeavyPunch 連打抑制にも使う
-		float heavyPunchReuseDelay = 1.0f;       // HeavyPunch を再使用できるまでの待ち時間
-		float heavyPunchReuseTimer = 0.0f;       // HeavyPunch 連打防止タイマー
+		std::string lastSelectedAttack = "None"; // デバッグ表示用に直近の攻撃名を保持する
 		bool useManualAttackDebug = false;       // true の間は自動攻撃選択を止める
-		int manualAttackIndex = 0;               // 0: Punch / 1: HeavyPunch / 2: GuardianShockwave
+		int manualAttackIndex = 0;               // 手動実行する攻撃の一覧インデックス
 	};
 
 	struct NavigationTuning
