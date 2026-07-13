@@ -44,6 +44,12 @@ namespace Ken4lowEngine
 		velocity_.z = std::isfinite(velocity.z) ? velocity.z : 0.0f;
 	}
 
+	Vector3 CharacterMovementComponent::CalculateDisplacement(float deltaTime) const
+	{
+		if (!movementEnabled_ || !std::isfinite(deltaTime) || deltaTime <= 0.0f) return {};
+		return velocity_ * deltaTime; // Actor経路と旧Boss Adapterで同じ積分規則を共有する。
+	}
+
 	void CharacterMovementComponent::ApplyMovement(float deltaTime)
 	{
 		Actor* owner = GetOwner();
@@ -51,10 +57,11 @@ namespace Ken4lowEngine
 		if (!root) return;
 
 		const Vector3& position = root->GetLocalPosition();
+		const Vector3 displacement = CalculateDisplacement(deltaTime);
 		root->SetLocalPosition({
-			position.x + velocity_.x * deltaTime,
-			position.y + velocity_.y * deltaTime,
-			position.z + velocity_.z * deltaTime
+			position.x + displacement.x,
+			position.y + displacement.y,
+			position.z + displacement.z
 			});
 		root->RefreshWorldTransform(); // Movement適用後の子Component位置を同じフレームで確定する。
 	}

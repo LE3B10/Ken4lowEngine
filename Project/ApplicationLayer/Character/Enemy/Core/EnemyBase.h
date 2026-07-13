@@ -12,6 +12,7 @@
 
 #include "AABB.h"
 #include "WorldCollisionResolver.h"
+#include <Scene/Actor/Character/CharacterHealthComponent.h>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -44,8 +45,8 @@ public:
 	};
 
 public:
-	EnemyBase() = default;
-	virtual ~EnemyBase() = default;
+	EnemyBase();
+	virtual ~EnemyBase();
 
 	virtual void Initialize();
 	virtual void Update(float deltaTime);
@@ -57,14 +58,14 @@ public:
 
 public:
 	// HP
-	void SetMaxHp(int v) { maxHp_ = v; hp_ = v; }
+	void SetMaxHp(int value);
 	// 現在HPを安全な範囲へ補正して設定する
 	void SetCurrentHp(int v);
 	// 現在HPを返す
-	int GetHp() const { return hp_; }
+	int GetHp() const;
 
 	// 最大HPを返す
-	int GetMaxHp() const { return maxHp_; }
+	int GetMaxHp() const;
 
 	// 死亡しているかどうか
 	bool IsDead() const { return isDead_; }
@@ -84,11 +85,13 @@ public:
 		return pos;
 	}
 
-	float GetHpRate() const
-	{
-		if (maxHp_ <= 0) { return 0.0f; }
-		return static_cast<float>(hp_) / static_cast<float>(maxHp_);
-	}
+	float GetHpRate() const;
+
+	/// 移行後のHP計算を担当する共通Componentを返す。
+	K4E::CharacterHealthComponent* GetCharacterHealthComponent() { return healthComponent_.get(); }
+
+	/// 移行後のHP計算を担当する共通Componentを返すconst版。
+	const K4E::CharacterHealthComponent* GetCharacterHealthComponent() const { return healthComponent_.get(); }
 
 	bool IsHpBarVisibleTarget() const { return !isDead_; }
 
@@ -219,6 +222,7 @@ protected:
 	// HP
 	int maxHp_ = 240;
 	int hp_ = 240;
+	std::unique_ptr<K4E::CharacterHealthComponent> healthComponent_; // 旧int APIを維持して共通HP処理へ委譲するAdapter先。
 
 	bool isDead_ = false;
 	bool removable_ = false;

@@ -559,6 +559,7 @@ void BossBase::Finalize()
 		brain_.reset();
 	}
 
+	if (auto* visual = GetHumanoidVisualComponent()) visual->FinalizeForWorld(); // 部位所有権を解放する前にAdapterの借用参照を外す。
 	GetBodyParts().clear();
 	GetBody().object.reset();
 }

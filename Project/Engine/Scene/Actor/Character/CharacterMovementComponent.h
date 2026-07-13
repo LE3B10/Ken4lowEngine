@@ -33,6 +33,9 @@ namespace Ken4lowEngine
 		/// 現在速度を0へ戻す。
 		virtual void Stop() { velocity_ = {}; }
 
+		/// Actorを持たない移行Adapterでも同じ速度積分を使えるよう、1フレームの移動量を返す。
+		Vector3 CalculateDisplacement(float deltaTime) const;
+
 		/// Root Transformへ反映する現在速度を返す。
 		virtual const Vector3& GetVelocity() const { return velocity_; }
 
