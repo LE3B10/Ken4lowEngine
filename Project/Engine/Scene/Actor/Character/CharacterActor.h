@@ -13,6 +13,8 @@ namespace Ken4lowEngine
 	class CharacterHealthComponent;
 	class CharacterMovementComponent;
 	class CharacterTargetComponent;
+	class CharacterColliderComponent;
+	class CharacterAnimationComponent;
 
 	/// Player、通常Enemy、Bossが共有するCharacter用Actorの最小基底クラス。
 	class CharacterActor : public Actor
@@ -63,6 +65,18 @@ namespace Ken4lowEngine
 
 		/// Characterの移動処理を担当するComponentを返す。
 		const CharacterMovementComponent* GetMovementComponent() const;
+
+		/// Characterの当たり判定を担当するComponentを返す。
+		CharacterColliderComponent* GetColliderComponent();
+
+		/// Characterの当たり判定を担当するComponentを返す。
+		const CharacterColliderComponent* GetColliderComponent() const;
+
+		/// Characterのアニメーション再生状態を担当するComponentを返す。
+		CharacterAnimationComponent* GetAnimationComponent();
+
+		/// Characterのアニメーション再生状態を担当するComponentを返す。
+		const CharacterAnimationComponent* GetAnimationComponent() const;
 
 		/// Characterが所有する指定型Componentへ統一した入口からアクセスする。
 		template<class T>

@@ -1,6 +1,6 @@
 #pragma once
 #include "BaseScene.h"
-#include "Validation/CharacterActorPhase2Validation.h"
+#include "Validation/CharacterValidation.h"
 
 #include <ActorWorld.h>
 #include <Editor/ActorWorldEditorBridge.h>
@@ -59,10 +59,10 @@ public:
 
 private:
 	void UpdateDebug();
-	void ProcessActorWorldPhase1Requests();
-	void RunActorWorldPhase1Validation();
-	void DrawActorWorldPhase1ValidationImGui();
-	K4E::Actor* FindActorWorldPhase1Target() const;
+	void ProcessActorWorldValidationRequests();
+	void RunActorWorldValidation();
+	void DrawActorWorldValidationImGui();
+	K4E::Actor* FindActorWorldValidationTarget() const;
 
 private:
 
@@ -73,10 +73,10 @@ private:
 	K4E::PhysicsWorld actorPhysicsWorld_;
 	K4E::PhysicsDebugDraw actorPhysicsDebugDraw_;
 
-	struct ActorWorldPhase1ValidationState
+	struct ActorWorldValidationState
 	{
-		std::string targetActorName = "Phase1CharacterCandidate";
-		std::string jsonPath = "../Generated/Intermediate/ActorWorldPhase1Validation.json";
+		std::string targetActorName = "ActorWorldCandidate";
+		std::string jsonPath = "../Generated/Intermediate/ActorWorldValidation.json";
 		std::string lastMessage = "未検証";
 		bool lastSucceeded = false;
 		bool requestSpawn = false;
@@ -87,7 +87,7 @@ private:
 		bool requestDestroy = false;
 		bool requestValidation = true;
 		bool pendingDestroyCheck = false;
-	} actorWorldPhase1Validation_;
+	} actorWorldValidation_;
 
-	CharacterActorPhase2Validation characterActorPhase2Validation_;
+	CharacterValidation characterValidation_;
 };

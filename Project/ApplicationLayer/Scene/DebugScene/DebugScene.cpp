@@ -40,15 +40,15 @@ void DebugScene::Initialize()
 
 	actorWorld_.SetPhysicsWorld(&actorPhysicsWorld_);
 	actorPhysicsWorld_.SetUseFixedStep(false);
-	TestActor& phase1Actor = actorWorld_.SpawnActor<TestActor>();
-	phase1Actor.SetName(actorWorldPhase1Validation_.targetActorName);
-	phase1Actor.SetLayer("DebugValidation");
-	phase1Actor.AddTag("ActorWorldPhase1");
-	TestGroundActor& phase1Ground = actorWorld_.SpawnActor<TestGroundActor>();
-	phase1Ground.SetName("Phase1Ground");
-	phase1Ground.SetLayer("DebugValidation");
+	TestActor& validationActor = actorWorld_.SpawnActor<TestActor>();
+	validationActor.SetName(actorWorldValidation_.targetActorName);
+	validationActor.SetLayer("DebugValidation");
+	validationActor.AddTag("ActorWorldValidation");
+	TestGroundActor& validationGround = actorWorld_.SpawnActor<TestGroundActor>();
+	validationGround.SetName("ValidationGround");
+	validationGround.SetLayer("DebugValidation");
 	actorWorld_.Initialize();
-	characterActorPhase2Validation_.Initialize(actorWorld_);
+	characterValidation_.Initialize(actorWorld_);
 }
 
 /// -------------------------------------------------------------
@@ -61,8 +61,8 @@ void DebugScene::Update()
 #endif // _DEBUG
 
 	const float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
-	ProcessActorWorldPhase1Requests();
-	characterActorPhase2Validation_.ProcessRequests();
+	ProcessActorWorldValidationRequests();
+	characterValidation_.ProcessRequests();
 
 	actorWorld_.Update(deltaTime);
 
@@ -76,8 +76,8 @@ void DebugScene::Update()
 void DebugScene::UpdateEditor(float deltaTime)
 {
 	(void)deltaTime;
-	ProcessActorWorldPhase1Requests(); // Edit/Pause中の操作要求も次のActorWorld::UpdateEditor前に処理する。
-	characterActorPhase2Validation_.ProcessRequests();
+	ProcessActorWorldValidationRequests(); // Edit/Pause中の操作要求も次のActorWorld::UpdateEditor前に処理する。
+	characterValidation_.ProcessRequests();
 }
 
 /// -------------------------------------------------------------
@@ -136,7 +136,7 @@ void DebugScene::Finalize()
 	input_->SetCursorVisible(true);
 
 	// Actorの外部登録を解除し、所有メンバ自体の破棄はDebugSceneのデストラクタへ任せる。
-	characterActorPhase2Validation_.Finalize();
+	characterValidation_.Finalize();
 	actorWorld_.Finalize();
 	input_ = nullptr;
 }
@@ -149,8 +149,8 @@ void DebugScene::DrawImGui()
 #ifdef USE_IMGUI
 
 	actorWorld_.DrawImGui();
-	DrawActorWorldPhase1ValidationImGui();
-	characterActorPhase2Validation_.DrawImGui();
+	DrawActorWorldValidationImGui();
+	characterValidation_.DrawImGui();
 
 	actorPhysicsDebugDraw_.GetSettings().drawPhysicsDebug = true;
 	actorPhysicsDebugDraw_.GetSettings().drawColliders = true;
@@ -159,19 +159,19 @@ void DebugScene::DrawImGui()
 #endif // USE_IMGUI
 }
 
-K4E::Actor* DebugScene::FindActorWorldPhase1Target() const
+K4E::Actor* DebugScene::FindActorWorldValidationTarget() const
 {
 	for (const auto& actor : actorWorld_.GetActors())
 	{
-		if (actor && actor->GetName() == actorWorldPhase1Validation_.targetActorName) return actor.get();
+		if (actor && actor->GetName() == actorWorldValidation_.targetActorName) return actor.get();
 	}
 	return nullptr;
 }
 
-void DebugScene::ProcessActorWorldPhase1Requests()
+void DebugScene::ProcessActorWorldValidationRequests()
 {
-	auto& validation = actorWorldPhase1Validation_;
-	K4E::Actor* target = FindActorWorldPhase1Target();
+	auto& validation = actorWorldValidation_;
+	K4E::Actor* target = FindActorWorldValidationTarget();
 
 	if (validation.requestSpawn)
 	{
@@ -181,7 +181,7 @@ void DebugScene::ProcessActorWorldPhase1Requests()
 			TestActor& actor = actorWorld_.SpawnActor<TestActor>();
 			actor.SetName(validation.targetActorName);
 			actor.SetLayer("DebugValidation");
-			actor.AddTag("ActorWorldPhase1");
+			actor.AddTag("ActorWorldValidation");
 			validation.lastMessage = "検証ActorをActorWorld経由で生成しました。";
 			validation.lastSucceeded = true;
 			target = &actor;
@@ -237,10 +237,10 @@ void DebugScene::ProcessActorWorldPhase1Requests()
 	}
 }
 
-void DebugScene::RunActorWorldPhase1Validation()
+void DebugScene::RunActorWorldValidation()
 {
-	auto& validation = actorWorldPhase1Validation_;
-	K4E::Actor* target = FindActorWorldPhase1Target();
+	auto& validation = actorWorldValidation_;
+	K4E::Actor* target = FindActorWorldValidationTarget();
 	if (!target)
 	{
 		validation.lastSucceeded = false;
@@ -286,7 +286,7 @@ void DebugScene::RunActorWorldPhase1Validation()
 	succeeded = succeeded && actorPhysicsWorld_.GetRigidbodies().size() == expectedRigidbodyCount;
 
 	std::ostringstream message;
-	message << (succeeded ? "Phase 1自動検証に成功しました。" : "Phase 1自動検証で不整合を検出しました。")
+	message << (succeeded ? "ActorWorldの自動検証に成功しました。" : "ActorWorldの自動検証で不整合を検出しました。")
 		<< " Actor=" << actorWorld_.GetActors().size()
 		<< " Collider=" << actorPhysicsWorld_.GetColliderCount()
 		<< " Rigidbody=" << actorPhysicsWorld_.GetRigidbodies().size();
@@ -294,14 +294,14 @@ void DebugScene::RunActorWorldPhase1Validation()
 	validation.lastMessage = message.str();
 }
 
-void DebugScene::DrawActorWorldPhase1ValidationImGui()
+void DebugScene::DrawActorWorldValidationImGui()
 {
 #ifdef USE_IMGUI
-	auto& validation = actorWorldPhase1Validation_;
+	auto& validation = actorWorldValidation_;
 	if (validation.pendingDestroyCheck)
 	{
 		validation.pendingDestroyCheck = false;
-		validation.lastSucceeded = FindActorWorldPhase1Target() == nullptr;
+		validation.lastSucceeded = FindActorWorldValidationTarget() == nullptr;
 		validation.lastMessage = validation.lastSucceeded
 			? "遅延削除、Physics解除、内部参照解除を確認しました。"
 			: "削除予約したActorがまだ残っています。";
@@ -309,16 +309,16 @@ void DebugScene::DrawActorWorldPhase1ValidationImGui()
 	if (validation.requestValidation)
 	{
 		validation.requestValidation = false;
-		RunActorWorldPhase1Validation();
+		RunActorWorldValidation();
 	}
 
-	if (!ImGui::Begin("ActorWorld Phase 1 検証"))
+	if (!ImGui::Begin("ActorWorld 検証"))
 	{
 		ImGui::End();
 		return;
 	}
 
-	K4E::Actor* target = FindActorWorldPhase1Target();
+	K4E::Actor* target = FindActorWorldValidationTarget();
 	ImGui::Text("実行状態: %s / %s",
 		K4E::EditorPlayController::GetInstance()->GetPlayStateText(),
 		K4E::EditorPlaySessionManager::GetInstance()->GetWorldDomainText());

@@ -1174,13 +1174,19 @@
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestGroundActor.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Scene\DebugScene\Validation\CharacterActorPhase2Validation.cpp">
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\Validation\CharacterValidation.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Core\Actor.cpp">
       <Filter>Engine\Scene\Actor\Core</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Character\CharacterActor.cpp">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Character\CharacterAnimationComponent.cpp">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Engine\Scene\Actor\Character\CharacterColliderComponent.cpp">
       <Filter>Engine\Scene\Actor\Character</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Character\CharacterHealthComponent.cpp">
@@ -2529,7 +2535,7 @@
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\ActorTest\TestGroundActor.h">
       <Filter>ApplicationLayer\Scene\DebugScene\ActorTest</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\CharacterActorPhase2Validation.h">
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\CharacterValidation.h">
       <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Physics\Collision\Core\PhysicsCollisionLayer.h">
@@ -2539,6 +2545,12 @@
       <Filter>Engine\Scene\Actor\Core</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Character\CharacterActor.h">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Character\CharacterAnimationComponent.h">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Character\CharacterColliderComponent.h">
       <Filter>Engine\Scene\Actor\Character</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Scene\Actor\Character\CharacterDamage.h">

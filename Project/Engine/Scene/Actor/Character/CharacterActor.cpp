@@ -3,6 +3,8 @@
 #include "CharacterHealthComponent.h"
 #include "CharacterMovementComponent.h"
 #include "CharacterTargetComponent.h"
+#include "CharacterColliderComponent.h"
+#include "CharacterAnimationComponent.h"
 #include "SceneComponent.h"
 
 #include <algorithm>
@@ -42,6 +44,21 @@ namespace Ken4lowEngine
 			target.SetLocalPosition({ 0.0f, 1.0f, 0.0f });
 			target.SetUpdateOrder(-80);
 			target.AttachTo(root);
+		}
+
+		if (!GetAnimationComponent())
+		{
+			CharacterAnimationComponent& animation = AddComponent<CharacterAnimationComponent>();
+			animation.SetName("Character Animation");
+			animation.SetUpdateOrder(-70);
+		}
+
+		if (!GetColliderComponent())
+		{
+			CharacterColliderComponent& collider = AddComponent<CharacterColliderComponent>();
+			collider.SetName("Character Collider");
+			collider.SetUpdateOrder(-60);
+			collider.AttachTo(root);
 		}
 
 		Actor::Initialize();
@@ -121,6 +138,26 @@ namespace Ken4lowEngine
 	const CharacterMovementComponent* CharacterActor::GetMovementComponent() const
 	{
 		return GetCharacterComponent<CharacterMovementComponent>();
+	}
+
+	CharacterColliderComponent* CharacterActor::GetColliderComponent()
+	{
+		return GetCharacterComponent<CharacterColliderComponent>();
+	}
+
+	const CharacterColliderComponent* CharacterActor::GetColliderComponent() const
+	{
+		return GetCharacterComponent<CharacterColliderComponent>();
+	}
+
+	CharacterAnimationComponent* CharacterActor::GetAnimationComponent()
+	{
+		return GetCharacterComponent<CharacterAnimationComponent>();
+	}
+
+	const CharacterAnimationComponent* CharacterActor::GetAnimationComponent() const
+	{
+		return GetCharacterComponent<CharacterAnimationComponent>();
 	}
 
 	CharacterActor::DeathListenerId CharacterActor::AddDeathListener(DeathListener listener)

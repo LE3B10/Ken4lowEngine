@@ -5,6 +5,8 @@
 #include "AudioComponent.h"
 #include "BillboardComponent.h"
 #include "CameraComponent.h"
+#include "../Character/CharacterAnimationComponent.h"
+#include "../Character/CharacterColliderComponent.h"
 #include "../Character/CharacterHealthComponent.h"
 #include "../Character/CharacterMovementComponent.h"
 #include "../Character/CharacterTargetComponent.h"
@@ -80,6 +82,10 @@ namespace Ken4lowEngine
 			MakeComponentTypeInfo<CharacterMovementComponent>("CharacterMovementComponent", false, "キャラクター移動", "キャラクター", "CharacterActorから移動計算を分離し、Root Transformへ速度を反映します。"),
 
 			MakeComponentTypeInfo<CharacterTargetComponent>("CharacterTargetComponent", false, "キャラクターターゲット", "キャラクター", "攻撃、照準、追跡から参照するCharacterの代表位置を管理します。"),
+
+			MakeComponentTypeInfo<CharacterColliderComponent>("CharacterColliderComponent", false, "キャラクター当たり判定", "キャラクター", "CharacterのTransformへ追従する共通の当たり判定を管理します。"),
+
+			MakeComponentTypeInfo<CharacterAnimationComponent>("CharacterAnimationComponent", false, "キャラクターアニメーション", "キャラクター", "描画方式に依存しないアニメーション名、再生時間、ループ状態を管理します。"),
 
 			MakeComponentTypeInfo<ModelComponent>("ModelComponent", true, "モデルコンポーネント", "描画", "Actorに3Dモデルの描画機能を追加します。"),
 
