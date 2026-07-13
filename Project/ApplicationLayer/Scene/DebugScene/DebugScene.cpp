@@ -49,6 +49,7 @@ void DebugScene::Initialize()
 	validationGround.SetLayer("DebugValidation");
 	actorWorld_.Initialize();
 	characterValidation_.Initialize(actorWorld_);
+	enemyMigrationValidation_.Initialize(actorWorld_); // 旧通常敵とComponent通常敵を同じDebugSceneへ並べて比較する。
 }
 
 /// -------------------------------------------------------------
@@ -63,6 +64,7 @@ void DebugScene::Update()
 	const float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
 	ProcessActorWorldValidationRequests();
 	characterValidation_.ProcessRequests();
+	enemyMigrationValidation_.Update(deltaTime);
 
 	actorWorld_.Update(deltaTime);
 
@@ -78,6 +80,7 @@ void DebugScene::UpdateEditor(float deltaTime)
 	(void)deltaTime;
 	ProcessActorWorldValidationRequests(); // Edit/Pause中の操作要求も次のActorWorld::UpdateEditor前に処理する。
 	characterValidation_.ProcessRequests();
+	enemyMigrationValidation_.UpdateEditor();
 }
 
 /// -------------------------------------------------------------
@@ -86,6 +89,7 @@ void DebugScene::UpdateEditor(float deltaTime)
 void DebugScene::Draw3DObjects()
 {
 	actorWorld_.Draw();
+	enemyMigrationValidation_.DrawLegacy(); // 新通常敵はActorWorld、旧通常敵は検証器からそれぞれ一度だけ描画する。
 
 	// ActorComponent由来のColliderをWireframe表示する
 	actorPhysicsDebugDraw_.Draw(actorPhysicsWorld_);
@@ -103,6 +107,7 @@ void DebugScene::Draw3DObjects()
 void DebugScene::DrawShadowObjects()
 {
 	actorWorld_.DrawShadow();
+	enemyMigrationValidation_.DrawLegacyShadow();
 }
 
 /// -------------------------------------------------------------
@@ -137,6 +142,7 @@ void DebugScene::Finalize()
 
 	// Actorの外部登録を解除し、所有メンバ自体の破棄はDebugSceneのデストラクタへ任せる。
 	characterValidation_.Finalize();
+	enemyMigrationValidation_.Finalize();
 	actorWorld_.Finalize();
 	input_ = nullptr;
 }
@@ -151,6 +157,7 @@ void DebugScene::DrawImGui()
 	actorWorld_.DrawImGui();
 	DrawActorWorldValidationImGui();
 	characterValidation_.DrawImGui();
+	enemyMigrationValidation_.DrawImGui();
 
 	actorPhysicsDebugDraw_.GetSettings().drawPhysicsDebug = true;
 	actorPhysicsDebugDraw_.GetSettings().drawColliders = true;

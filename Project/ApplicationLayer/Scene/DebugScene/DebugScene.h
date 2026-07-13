@@ -1,6 +1,7 @@
 #pragma once
 #include "BaseScene.h"
 #include "Validation/CharacterValidation.h"
+#include "Validation/EnemyMigrationValidation.h"
 
 #include <ActorWorld.h>
 #include <Editor/ActorWorldEditorBridge.h>
@@ -90,4 +91,5 @@ private:
 	} actorWorldValidation_;
 
 	CharacterValidation characterValidation_;
+	EnemyMigrationValidation enemyMigrationValidation_;
 };

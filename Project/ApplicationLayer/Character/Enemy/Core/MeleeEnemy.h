@@ -569,6 +569,38 @@ public: /// ---------- アクセッサ ---------- ///
 	// 現在の攻撃の名前を取得（デバッグ用）
 	const char* GetCurrentAttackName() const { return attackController_.GetCurrentAttackName(); }
 
+	/// Component移行前後で条件を変えずに比較するため、旧通常敵の基本移動速度を返す。
+	float GetComparisonMoveSpeed() const { return move_.moveSpeed; }
+
+	/// Component移行前後で条件を変えずに比較するため、旧Scratchの攻撃間隔を返す。
+	float GetComparisonAttackCooldown() const
+	{
+		const MeleeAttackPattern* pattern = attackController_.FindPattern(MeleeAttackType::Scratch);
+		return pattern ? pattern->cooldown : 0.0f;
+	}
+
+	/// 旧Scratchの予備・有効・復帰・Cooldownを合計し、実際の命中間隔を返す。
+	float GetComparisonAttackInterval() const
+	{
+		const MeleeAttackPattern* pattern = attackController_.FindPattern(MeleeAttackType::Scratch);
+		if (!pattern || pattern->steps.empty()) return 0.0f;
+		const MeleeAttackStep& step = pattern->steps.front();
+		return step.startTime + step.activeTime + pattern->recoveryTime + pattern->cooldown;
+	}
+
+	/// Component移行前後で条件を変えずに比較するため、旧Scratchの先頭Stepダメージを返す。
+	int GetComparisonAttackDamage() const
+	{
+		const MeleeAttackPattern* pattern = attackController_.FindPattern(MeleeAttackType::Scratch);
+		return pattern && !pattern->steps.empty() ? pattern->steps.front().damage : 0;
+	}
+
+	/// DebugSceneの比較表示用に、旧A*経路が現在生成されているか返す。
+	bool HasComparisonPath() const { return pathState_.found || !navigator_.GetCurrentPath().empty(); }
+
+	/// DebugSceneの比較表示用に、旧A*経路の現在ノード数を返す。
+	size_t GetComparisonPathNodeCount() const { return navigator_.GetCurrentPath().size(); }
+
 private: /// ---------- 内部処理 ---------- ///
 
 	// ターゲットの検知と攻撃の判定

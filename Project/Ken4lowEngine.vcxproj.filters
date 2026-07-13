@@ -538,6 +538,18 @@
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Actor\EnemyActor.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Actor\EnemyAIComponent.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Actor\EnemyAttackComponent.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Actor\EnemyEffectComponent.cpp">
+      <Filter>ApplicationLayer\Character\Enemy\Actor</Filter>
+    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.cpp">
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClCompile>
@@ -1177,6 +1189,9 @@
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\Validation\CharacterValidation.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\Validation\EnemyMigrationValidation.cpp">
+      <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Core\Actor.cpp">
       <Filter>Engine\Scene\Actor\Core</Filter>
     </ClCompile>
@@ -1721,6 +1736,18 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.h">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\EnemyActor.h">
+      <Filter>ApplicationLayer\Character\Enemy\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\EnemyAIComponent.h">
+      <Filter>ApplicationLayer\Character\Enemy\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\EnemyAttackComponent.h">
+      <Filter>ApplicationLayer\Character\Enemy\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\EnemyEffectComponent.h">
+      <Filter>ApplicationLayer\Character\Enemy\Actor</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.h">
       <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
@@ -2544,6 +2571,9 @@
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\CharacterValidation.h">
       <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\EnemyMigrationValidation.h">
+      <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Physics\Collision\Core\PhysicsCollisionLayer.h">
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClInclude>
@@ -2908,6 +2938,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\Character\Enemy\Core">
       <UniqueIdentifier>{18d937e2-c886-482e-acee-e0326534f8e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Enemy\Actor">
+      <UniqueIdentifier>{b1c76ca8-832d-4d0f-98e7-b03af11df623}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Character\Enemy\Effects">
       <UniqueIdentifier>{b1c34b28-c141-4210-b1db-da47c466359f}</UniqueIdentifier>

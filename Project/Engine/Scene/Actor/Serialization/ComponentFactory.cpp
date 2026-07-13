@@ -26,6 +26,7 @@
 #include "WorldSpriteComponent.h"
 #include "WorldTextComponent.h"
 
+#include <algorithm>
 #include <type_traits>
 #include <utility>
 
@@ -74,8 +75,11 @@ namespace Ken4lowEngine
 			return typeInfo;
 		}
 
-		const std::vector<ComponentFactory::ComponentTypeInfo> kRegisteredComponentTypes =
+		/// Engine組み込み型とApplicationLayerの実行時登録型を同じ一覧で管理する。
+		std::vector<ComponentFactory::ComponentTypeInfo>& GetMutableRegisteredComponentTypes()
 		{
+			static std::vector<ComponentFactory::ComponentTypeInfo> registeredComponentTypes =
+			{
 			MakeComponentTypeInfo<SceneComponent>("SceneComponent", true, "シーンコンポーネント", "基本", "Actorに位置・回転・スケールと親子関係を持たせる基本Componentです。"),
 
 			MakeComponentTypeInfo<CharacterHealthComponent>("CharacterHealthComponent", false, "キャラクターHP", "キャラクター", "HP計算、生存判定、無敵状態をCharacterActorから分離して管理します。"),
@@ -126,7 +130,9 @@ namespace Ken4lowEngine
 			MakeComponentTypeInfo<WorldAudioComponent>("WorldAudioComponent", true, "ワールドオーディオコンポーネント", "オーディオ", "Actorの3D位置に基づいて距離減衰する音声を再生するためのComponentです。"),
 
 			MakeComponentTypeInfo<GpuParticleComponent>("GpuParticleComponent", true, "GPUパーティクルコンポーネント", "演出", "ActorにGPUパーティクル演出を持たせるためのComponentです。"),
-		};
+			};
+			return registeredComponentTypes;
+		}
 	}
 
 	ActorComponent* ComponentFactory::CreateComponent(Actor* owner, std::string_view className)
@@ -166,7 +172,21 @@ namespace Ken4lowEngine
 	const std::vector<ComponentFactory::ComponentTypeInfo>& ComponentFactory::GetRegisteredComponentTypes()
 	{
 		// Add Component UIとFactory生成対象を同じ一覧に揃える
-		return kRegisteredComponentTypes;
+		return GetMutableRegisteredComponentTypes();
+	}
+
+	void ComponentFactory::RegisterComponentType(ComponentTypeInfo typeInfo)
+	{
+		if (typeInfo.className.empty() || !typeInfo.createFunc) return;
+		auto& registeredTypes = GetMutableRegisteredComponentTypes();
+		const auto existing = std::find_if(registeredTypes.begin(), registeredTypes.end(),
+			[&typeInfo](const ComponentTypeInfo& candidate) { return candidate.className == typeInfo.className; });
+		if (existing != registeredTypes.end())
+		{
+			*existing = std::move(typeInfo); // Scene再初期化時は同名登録を増やさず最新情報へ置き換える。
+			return;
+		}
+		registeredTypes.push_back(std::move(typeInfo));
 	}
 
 	bool ComponentFactory::IsAllowMultiple(std::string_view className)
@@ -183,7 +203,7 @@ namespace Ken4lowEngine
 
 	const ComponentFactory::ComponentTypeInfo* ComponentFactory::FindComponentType(std::string_view className)
 	{
-		for (const ComponentFactory::ComponentTypeInfo& typeInfo : kRegisteredComponentTypes)
+		for (const ComponentFactory::ComponentTypeInfo& typeInfo : GetMutableRegisteredComponentTypes())
 		{
 			if (typeInfo.className == className)
 			{
