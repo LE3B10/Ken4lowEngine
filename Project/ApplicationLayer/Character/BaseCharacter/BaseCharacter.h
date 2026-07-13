@@ -25,6 +25,15 @@ public: /// ---------- 構造体 ---------- ///
 		bool active = true;					   // 描画/非描画
 	};
 
+	/// モデル、ローカル姿勢、スケールをまとめた部位生成用の定義。
+	struct BodyPartDefinition
+	{
+		std::string modelPath;
+		K4E::Vector3 localPosition{};
+		K4E::Vector3 localRotation{};
+		K4E::Vector3 scale{ 1.0f, 1.0f, 1.0f };
+	};
+
 	/// ---------- 各部位のインデックス ---------- ///
 	struct PartIndices
 	{
@@ -104,6 +113,10 @@ public: /// ---------- スキン適用 ---------- ///
 	// 全部位にスキンを適用する静的関数
 	static void ApplySkinTo(K4E::Object3D* obj, const std::string& texPath);
 
+protected:
+	/// 胴体と子部位を同じ生成経路で構築し、子部位を胴体Transformへ接続する。
+	void BuildBodyHierarchy(const BodyPartDefinition& bodyDefinition, const std::vector<BodyPartDefinition>& partDefinitions);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	// 階層更新
@@ -120,4 +133,3 @@ protected: /// ---------- メンバ変数 ---------- ///
 	// 各部位のインデックス
 	PartIndices partIndices_ = {};
 };
-

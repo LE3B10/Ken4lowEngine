@@ -1,29 +1,30 @@
 #include "BossPunchAttackAnimation.h"
-#include "BossAnimationComponent.h"
-#include "BossPunchAttack.h"
-#include "BossBase.h"
 
-/// -------------------------------------------------------------
-///				　		　 判定処理
-/// -------------------------------------------------------------
+#include "BossAnimationComponent.h"
+#include "BossBase.h"
+#include "BossHeavyPunchAttack.h"
+#include "BossPunchAttack.h"
+
 bool BossPunchAttackAnimation::CanHandle(const IBossAttack* attack) const
 {
-	// 現在攻撃が BossPunchAttack ならこのクラスが担当する
+	if (type_ == Type::Heavy)
+	{
+		return dynamic_cast<const BossHeavyPunchAttack*>(attack) != nullptr;
+	}
 	return dynamic_cast<const BossPunchAttack*>(attack) != nullptr;
 }
 
-/// -------------------------------------------------------------
-///				　		アニメ更新処理
-/// -------------------------------------------------------------
-void BossPunchAttackAnimation::UpdatePose(BossAnimationComponent& animationComponent, BossBase& boss, IBossAttack* attack, float deltaTime)
+void BossPunchAttackAnimation::UpdatePose(
+	BossAnimationComponent& animationComponent,
+	BossBase& boss,
+	IBossAttack* attack,
+	float deltaTime)
 {
-	// attack はこのアニメーションが担当する攻撃であることが保証されているので、BossPunchAttack にキャストしても安全
-	const auto punchAttack = dynamic_cast<const BossPunchAttack*>(attack);
-	(void)punchAttack;
+	if (!CanHandle(attack)) { return; }
 
-	// Punch 用ポーズを組み立てて反映
-	auto pose = animationComponent.BuildPunchPose();
-
-	// Punch は振りかぶる感じで、腕を下げる
+	// 攻撃タイプによる差はポーズ生成だけに限定し、検証と反映の手順は一つにまとめる。
+	const auto pose = type_ == Type::Heavy
+		? animationComponent.BuildHeavyPunchPose()
+		: animationComponent.BuildPunchPose();
 	animationComponent.ApplyPose(boss, pose, deltaTime);
 }

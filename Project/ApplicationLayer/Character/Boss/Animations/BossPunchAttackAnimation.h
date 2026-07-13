@@ -1,19 +1,21 @@
 #pragma once
+
 #include "IBossAttackAnimation.h"
 
-/// ---------- 前方宣言 ---------- ///
-class BossPunchAttack;
-
-/// -------------------------------------------------------------
-///				Punch 専用攻撃アニメーション
-/// -------------------------------------------------------------
+/// 同じ更新経路で通常パンチと強パンチのポーズを切り替える攻撃アニメーション。
 class BossPunchAttackAnimation : public IBossAttackAnimation
 {
-public: /// ---------- 基本構造 ---------- ///
+public:
+	enum class Type
+	{
+		Normal,
+		Heavy,
+	};
 
-	// このアニメーションが Punch を扱えるか判定
+	explicit BossPunchAttackAnimation(Type type) : type_(type) {}
 	bool CanHandle(const IBossAttack* attack) const override;
-
-	// Punch の見た目ポーズを更新
 	void UpdatePose(BossAnimationComponent& animationComponent, BossBase& boss, IBossAttack* attack, float deltaTime) override;
+
+private:
+	Type type_ = Type::Normal;
 };

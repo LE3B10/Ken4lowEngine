@@ -164,13 +164,13 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Boss\Core\BossBase.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossMovementComponent.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossMeleeAttackUtility.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossMeleePhaseAttackBase.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\GuardianShockwaveAttack.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossChargeAttack.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossAttackEffects.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossHeavyPunchAttackAnimation.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBar.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarManager.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.cpp" />
@@ -915,7 +915,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossChargeAttack.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossAttackEffects.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.h" />
-    <ClInclude Include="ApplicationLayer\Character\Boss\Animations\BossHeavyPunchAttackAnimation.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBar.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarManager.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBarProjector.h" />
@@ -1109,6 +1108,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ReconstructionBlock.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelSurfaceSampler.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossMeleeAttackUtility.h" />
+    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossMeleePhaseAttackBase.h" />
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleCameraUtility.h" />
     <ClInclude Include="ApplicationLayer\EffectLayer\ModelParticle.h">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>

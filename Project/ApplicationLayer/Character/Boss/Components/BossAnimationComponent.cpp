@@ -3,7 +3,6 @@
 #include "BossBase.h"
 #include "BossAttackComponent.h"
 #include "BossPunchAttackAnimation.h"
-#include "BossHeavyPunchAttackAnimation.h"
 
 #include "BossPunchAttack.h"
 #include "BossHeavyPunchAttack.h"
@@ -33,9 +32,9 @@ void BossAnimationComponent::Initialize(BossBase* owner)
 	// 以前の登録を消しておく
 	attackAnimations_.clear();
 
-	// 攻撃アニメーションを登録
-	RegisterAttackAnimation(std::make_unique<BossPunchAttackAnimation>());
-	RegisterAttackAnimation(std::make_unique<BossHeavyPunchAttackAnimation>());
+	// パンチ系は共通クラスへ種別だけを渡し、登録後の更新経路を統一する。
+	RegisterAttackAnimation(std::make_unique<BossPunchAttackAnimation>(BossPunchAttackAnimation::Type::Normal));
+	RegisterAttackAnimation(std::make_unique<BossPunchAttackAnimation>(BossPunchAttackAnimation::Type::Heavy));
 }
 
 /// -------------------------------------------------------------

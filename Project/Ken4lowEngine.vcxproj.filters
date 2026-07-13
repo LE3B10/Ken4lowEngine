@@ -496,11 +496,11 @@
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossMeleeAttackUtility.cpp">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.cpp">
+    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossMeleePhaseAttackBase.cpp">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossHeavyPunchAttackAnimation.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Animations</Filter>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.cpp">
       <Filter>ApplicationLayer\Character\Boss\Animations</Filter>
@@ -1416,6 +1416,9 @@
     <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossMeleeAttackUtility.h">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossMeleePhaseAttackBase.h">
+      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
+    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleCameraUtility.h">
       <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
     </ClInclude>
@@ -1664,9 +1667,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossTypes.h">
       <Filter>ApplicationLayer\Character\Boss\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Animations\BossHeavyPunchAttackAnimation.h">
-      <Filter>ApplicationLayer\Character\Boss\Animations</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.h">
       <Filter>ApplicationLayer\Character\Boss\Animations</Filter>

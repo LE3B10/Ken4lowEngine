@@ -10,32 +10,47 @@ using namespace Ken4lowEngine;
 /// -------------------------------------------------------------
 void BaseCharacter::Initialize()
 {
-	// 体幹部位の初期化
-	body_.object = std::make_unique<Object3D>();	// オブジェクト生成
-	body_.object->Initialize("Characters/body.gltf");	// モデル読み込み
-	body_.transform.translate_ = { 0.0f, 2.25f, 0.0f };	// 初期位置
+	BuildBodyHierarchy(
+		{ "Characters/body.gltf", { 0.0f, 2.25f, 0.0f }, {}, { 1.0f, 1.0f, 1.0f } },
+		{
+			{ "Characters/head.gltf", { 0.0f, 0.75f, 0.0f } },
+			{ "Characters/left_arm.gltf", { -0.75f, 0.75f, 0.0f } },
+			{ "Characters/right_arm.gltf", { 0.75f, 0.75f, 0.0f } },
+			{ "Characters/left_leg.gltf", { -0.25f, -0.75f, 0.0f } },
+			{ "Characters/right_leg.gltf", { 0.25f, -0.75f, 0.0f } },
+		});
+}
 
-	// 子オブジェクト（頭、腕、脚）をリストに追加
-	std::vector<std::pair<std::string, Vector3>> partData =
-	{
-		{ "Characters/head.gltf", { 0.0f, 0.75f, 0.0f } },		  // 頭   : 0
-		{ "Characters/left_arm.gltf", { -0.75f, 0.75f, 0.0f } },  // 左腕 : 1
-		{ "Characters/right_arm.gltf", { 0.75f, 0.75f, 0.0f } },  // 右腕 : 2
-		{ "Characters/left_leg.gltf", { -0.25f, -0.75f, 0.0f } }, // 左脚 : 3
-		{ "Characters/right_leg.gltf", { 0.25f, -0.75f, 0.0f } }  // 右脚 : 4
-	};
+void BaseCharacter::BuildBodyHierarchy(
+	const BodyPartDefinition& bodyDefinition,
+	const std::vector<BodyPartDefinition>& partDefinitions)
+{
+	parts_.clear();
+	body_.object = std::make_unique<Object3D>();
+	body_.object->Initialize(bodyDefinition.modelPath);
+	body_.transform = {};
+	body_.transform.translate_ = bodyDefinition.localPosition;
+	body_.transform.rotate_ = bodyDefinition.localRotation;
+	body_.transform.scale_ = bodyDefinition.scale;
+	body_.active = true;
+	body_.object->SetTranslate(bodyDefinition.localPosition);
+	body_.object->SetRotate(bodyDefinition.localRotation);
+	body_.object->SetScale(bodyDefinition.scale);
 
-	// 部位データをもとに部位オブジェクトを生成
-	for (const auto& [modelPath, position] : partData)
+	parts_.reserve(partDefinitions.size());
+	for (const auto& definition : partDefinitions)
 	{
-		// ローカル変数で部位データを作成
-		BodyPart part = {};
-		part.object = std::make_unique<Object3D>();			  // オブジェクト生成
-		part.object->Initialize(modelPath); 				  // モデル読み込み
-		part.transform.translate_ = position;				  // 位置設定
-		part.object->SetTranslate(part.transform.translate_); // オブジェクトにも位置設定
-		part.transform.parent_ = &body_.transform;			  // 親を設定
-		parts_.push_back(std::move(part));					  // リストに追加
+		BodyPart part{};
+		part.object = std::make_unique<Object3D>();
+		part.object->Initialize(definition.modelPath);
+		part.transform.translate_ = definition.localPosition;
+		part.transform.rotate_ = definition.localRotation;
+		part.transform.scale_ = definition.scale;
+		part.transform.parent_ = &body_.transform;
+		part.object->SetTranslate(definition.localPosition);
+		part.object->SetRotate(definition.localRotation);
+		part.object->SetScale(definition.scale);
+		parts_.push_back(std::move(part));
 	}
 }
 

@@ -79,46 +79,15 @@ void HumanoidBossBase::BuildBossParts()
 {
 	EnsureHumanoidModelParameters();
 
-	// ボディと部位の初期化
-	GetBody().object.reset();
-	GetBodyParts().clear();
-
-	// 胴体
-	auto& body = GetBody();
-	body.object = std::make_unique<Object3D>();
-	body.object->Initialize(GetBodyModelPath());
-
-	body.transform.translate_ = GetInitialBodyPosition();
-	body.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
-
-	body.object->SetTranslate(body.transform.translate_);
-	body.object->SetRotate(body.transform.rotate_);
-	body.object->SetScale(GetInitialBodyScale());
-
-	// 子部位追加ラムダ
-	auto AddPart = [this](const std::string& modelPath, const Vector3& localOffset, const Vector3& scale) {
-		BaseCharacter::BodyPart part{};
-
-		part.object = std::make_unique<Object3D>();
-		part.object->Initialize(modelPath);
-
-		part.transform.translate_ = localOffset;
-		part.transform.rotate_ = { 0.0f, 0.0f, 0.0f };
-		part.transform.parent_ = &GetBody().transform;
-
-		part.object->SetTranslate(localOffset);
-		part.object->SetRotate(part.transform.rotate_);
-		part.object->SetScale(scale);
-
-		GetBodyParts().push_back(std::move(part));
-		};
-
-	// 頭と四肢を追加
-	AddPart(GetHeadModelPath(), GetHeadLocalOffset(), GetHeadScale());		  // 頭
-	AddPart(GetLeftArmModelPath(), GetLeftArmLocalOffset(), GetArmScale());	  // 左腕
-	AddPart(GetRightArmModelPath(), GetRightArmLocalOffset(), GetArmScale()); // 右腕
-	AddPart(GetLeftLegModelPath(), GetLeftLegLocalOffset(), GetLegScale());	  // 左脚
-	AddPart(GetRightLegModelPath(), GetRightLegLocalOffset(), GetLegScale()); // 右脚
+	BuildBodyHierarchy(
+		{ GetBodyModelPath(), GetInitialBodyPosition(), {}, GetInitialBodyScale() },
+		{
+			{ GetHeadModelPath(), GetHeadLocalOffset(), {}, GetHeadScale() },
+			{ GetLeftArmModelPath(), GetLeftArmLocalOffset(), {}, GetArmScale() },
+			{ GetRightArmModelPath(), GetRightArmLocalOffset(), {}, GetArmScale() },
+			{ GetLeftLegModelPath(), GetLeftLegLocalOffset(), {}, GetLegScale() },
+			{ GetRightLegModelPath(), GetRightLegLocalOffset(), {}, GetLegScale() },
+		});
 }
 
 std::string HumanoidBossBase::GetBodyModelPath() const
