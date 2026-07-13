@@ -67,7 +67,7 @@ void EnemyMigrationValidation::Initialize(K4E::ActorWorld& actorWorld)
 	legacyEnemy_->SetParticleEffectSystem(legacyEffectSystem_.get());
 
 	componentTarget_ = &actorWorld_->SpawnActor<K4E::CharacterActor>();
-	componentTarget_->SetName("ComponentEnemyTarget");
+	componentTarget_->SetName(componentTargetName_);
 	componentTarget_->SetLayer("EnemyComparison");
 	if (K4E::SceneComponent* targetRoot = componentTarget_->GetRootComponent())
 	{
@@ -77,22 +77,25 @@ void EnemyMigrationValidation::Initialize(K4E::ActorWorld& actorWorld)
 	if (K4E::CharacterHealthComponent* health = componentTarget_->GetHealthComponent()) health->ResetHealth(10000.0f);
 
 	componentEnemy_ = &actorWorld_->SpawnActor<K4E::EnemyActor>();
-	componentEnemy_->SetName("ComponentEnemy");
+	componentEnemy_->SetName(componentEnemyName_);
 	componentEnemy_->SetLayer("EnemyComparison");
 	componentEnemy_->AddTag("NormalEnemy");
 	componentEnemy_->SetTargetActor(componentTarget_);
 	componentEnemy_->SetNavigationObstacles(&navigationObstacles_);
 	componentEnemy_->ResetForComparison(kComponentEnemyPosition);
+	RefreshActorReferencesAndBindings();
 }
 
 void EnemyMigrationValidation::Update(float deltaTime)
 {
+	RefreshActorReferencesAndBindings(); // Play開始時に複製されたRuntime Actorへ参照を切り替えてからAIを更新する。
 	ProcessRequests();
 	if (legacyEnemy_) legacyEnemy_->Update(deltaTime); // 旧個体だけ手動更新し、新個体はActorWorld側で一度だけ更新する。
 }
 
 void EnemyMigrationValidation::UpdateEditor()
 {
+	RefreshActorReferencesAndBindings(); // Stop後に復元されたEditor Actorへ参照を戻す。
 	ProcessRequests(); // Editor停止中は攻撃AIや移動積分を進めない。
 }
 
@@ -228,6 +231,23 @@ void EnemyMigrationValidation::ProcessRequests()
 		requestLethalDamage_ = false;
 		ApplyDamageToBoth(10000);
 	}
+}
+
+void EnemyMigrationValidation::RefreshActorReferencesAndBindings()
+{
+	if (!actorWorld_)
+	{
+		componentEnemy_ = nullptr;
+		componentTarget_ = nullptr;
+		return;
+	}
+
+	componentEnemy_ = dynamic_cast<K4E::EnemyActor*>(actorWorld_->FindActorByName(componentEnemyName_));
+	componentTarget_ = dynamic_cast<K4E::CharacterActor*>(actorWorld_->FindActorByName(componentTargetName_));
+	if (!componentEnemy_) return;
+
+	componentEnemy_->SetTargetActor(componentTarget_); // Actor間参照はJSON外なので、PIE複製ごとに現在Worldの実体へ張り直す。
+	componentEnemy_->SetNavigationObstacles(&navigationObstacles_);
 }
 
 void EnemyMigrationValidation::ApplyDamageToBoth(int amount)

@@ -3,6 +3,7 @@
 #include <AABB.h>
 
 #include <memory>
+#include <string>
 #include <vector>
 
 class EnemyParticleEffectSystem;
@@ -53,6 +54,9 @@ private:
 	/// UIから予約されたダメージ操作を描画開始前の更新フェーズで処理する。
 	void ProcessRequests();
 
+	/// PIEのActorWorld複製後に現在のEnemyとTargetを名前で再取得し、非保存参照を接続し直す。
+	void RefreshActorReferencesAndBindings();
+
 	/// 同じ被弾条件を旧HP経路と共通Health経路へ一度ずつ適用する。
 	void ApplyDamageToBoth(int amount);
 
@@ -64,6 +68,8 @@ private:
 	std::unique_ptr<K4E::Collider> legacyTarget_;
 	std::unique_ptr<EnemyParticleEffectSystem> legacyEffectSystem_;
 	std::vector<K4E::AABB> navigationObstacles_;
+	std::string componentEnemyName_ = "ComponentEnemy";
+	std::string componentTargetName_ = "ComponentEnemyTarget";
 	int legacyHitEffectCount_ = 0;
 	int legacyDeathEffectCount_ = 0;
 	bool requestDamage_ = false;

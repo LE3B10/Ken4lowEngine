@@ -106,6 +106,7 @@ namespace Ken4lowEngine
 
 	void EnemyAIComponent::SetNavigationObstacles(const std::vector<AABB>* obstacles)
 	{
+		if (navigationObstacles_ == obstacles) return; // PIE中の参照再接続で毎フレーム経路を破棄しない。
 		navigationObstacles_ = obstacles;
 		navigator_.SetWorldAABBs(obstacles);
 		navigator_.Reset(); // 障害物集合が変わった場合は旧経路を次フレームへ持ち越さない。
