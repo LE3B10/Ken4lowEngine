@@ -119,8 +119,13 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ApplicationLayer\Character\CharacterWorld\BulletEnemySoABridge.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Actor\EnemyActor.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Actor\EnemyAIComponent.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Actor\EnemyAttackComponent.cpp" />
+    <ClCompile Include="ApplicationLayer\Character\Enemy\Actor\EnemyEffectComponent.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.cpp" />
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\Validation\CharacterValidation.cpp" />
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\Validation\EnemyMigrationValidation.cpp" />
     <ClCompile Include="Engine\Editor\ActorWorldEditorBridge.cpp" />
     <ClCompile Include="Engine\Editor\EditorContentBrowserPanel.cpp" />
     <ClCompile Include="Engine\Editor\EditorGpuPickingManager.cpp" />
@@ -848,6 +853,10 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ApplicationLayer\Character\CharacterWorld\BulletEnemySoABridge.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\EnemyActor.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\EnemyAIComponent.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\EnemyAttackComponent.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\EnemyEffectComponent.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.h" />
     <ClInclude Include="ApplicationLayer\UISystem\UiSpriteFactory.h" />
     <ClInclude Include="Engine\Editor\ActorWorldEditorBridge.h" />
@@ -857,6 +866,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="Engine\Editor\EditorAssetRegistryV2.h" />
     <ClInclude Include="Engine\Editor\EditorCommandHistory.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\CharacterValidation.h" />
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\EnemyMigrationValidation.h" />
     <ClInclude Include="Engine\Editor\EditorContentBrowserPanel.h" />
     <ClInclude Include="Engine\Editor\EditorContext.h" />
     <ClInclude Include="Engine\Editor\EditorGpuPickingManager.h" />

@@ -48,6 +48,9 @@ namespace Ken4lowEngine
 		/// </summary>
 		static const std::vector<ComponentTypeInfo>& GetRegisteredComponentTypes();
 
+		/// ApplicationLayer固有ComponentをEditor追加とActor JSON復元の対象へ登録する。
+		static void RegisterComponentType(ComponentTypeInfo typeInfo);
+
 		/// <summary>
 		/// 指定したComponentが同一Actorに複数追加可能かどうかを取得する
 		/// </summary>
