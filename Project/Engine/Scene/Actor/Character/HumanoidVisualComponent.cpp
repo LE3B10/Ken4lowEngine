@@ -18,15 +18,18 @@ namespace Ken4lowEngine
 	{
 		SceneComponent::Initialize();
 
-		HumanoidDefinition loadedDefinition;
 		std::string loadError;
-		if (!definitionPath_.empty() && loadedDefinition.LoadFromFile(definitionPath_, &loadError))
+		if (definition_.GetParts().empty())
 		{
-			definition_ = std::move(loadedDefinition); // 外部定義が存在する場合はActor JSON内の控えより新しいAssetを優先する。
-		}
-		else if (definition_.GetParts().empty())
-		{
-			definition_ = HumanoidDefinition::CreateDefault();
+			HumanoidDefinition loadedDefinition;
+			if (!definitionPath_.empty() && loadedDefinition.LoadFromFile(definitionPath_, &loadError))
+			{
+				definition_ = std::move(loadedDefinition); // 新規Componentは外部定義を読み込み、JSON復元済みの定義は上書きしない。
+			}
+			else
+			{
+				definition_ = HumanoidDefinition::CreateDefault();
+			}
 		}
 
 		if (!BuildBodyHierarchy(&loadError))
@@ -122,6 +125,12 @@ namespace Ken4lowEngine
 		SceneComponent::ToJson(outJson);
 		ComponentPropertyUtility::ToJson(const_cast<HumanoidVisualComponent*>(this)->CreateProperties(), outJson);
 		outJson["Definition"] = definition_.ToJson(); // 外部Assetが見つからない環境でも復元できる控えをActor JSONへ残す。
+		nlohmann::json partVisibility = nlohmann::json::object();
+		for (const HumanoidPartDefinition& part : definition_.GetParts())
+		{
+			partVisibility[part.id] = part.visible; // 共通定義を変更せず、Actor個体ごとの部位表示を別データとして保存する。
+		}
+		outJson["PartVisibility"] = std::move(partVisibility);
 		if (materialBinding_.HasBinding()) outJson["Material"] = materialBinding_.ToJson();
 	}
 
@@ -140,6 +149,16 @@ namespace Ken4lowEngine
 		if (hasExternalDefinition) definition_ = std::move(externalDefinition);
 		else if (hasInlineDefinition) definition_ = std::move(inlineDefinition);
 		else if (definition_.GetParts().empty()) definition_ = HumanoidDefinition::CreateDefault();
+
+		const auto visibilityIt = inJson.find("PartVisibility");
+		if (visibilityIt != inJson.end() && visibilityIt->is_object())
+		{
+			for (auto item = visibilityIt->begin(); item != visibilityIt->end(); ++item)
+			{
+				HumanoidPartDefinition* part = definition_.FindPart(item.key());
+				if (part && item.value().is_boolean()) part->visible = item.value().get<bool>(); // 未知IDは将来の定義差し替えとして安全に無視する。
+			}
+		}
 
 		const auto materialIt = inJson.find("Material");
 		if (materialIt != inJson.end() && materialIt->is_object()) materialBinding_.FromJson(*materialIt);
