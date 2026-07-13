@@ -1,5 +1,7 @@
 #pragma once
 
+#include "IBTNode.h"
+
 #include <functional>
 #include <memory>
 #include <random>
@@ -8,7 +10,6 @@
 
 class BossBase;
 class IBossAttack;
-class IBTNode;
 
 /// ボスが次に行う大分類を表し、派生ボス側の状態遷移へ渡す。
 enum class BossDecision
