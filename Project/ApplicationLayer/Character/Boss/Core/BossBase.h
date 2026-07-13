@@ -293,6 +293,18 @@ public: /// ---------- コンポーネント参照 ---------- ///
 	BossMovementComponent* GetMovementComponent() { return movementComponent_.get(); }
 	const BossMovementComponent* GetMovementComponent() const { return movementComponent_.get(); }
 
+	/// Adapterの内側で実際の速度積分を担当する共通Movement Componentを返す。
+	K4E::CharacterMovementComponent* GetCharacterMovementComponent()
+	{
+		return movementComponent_ ? movementComponent_->GetCharacterMovementComponent() : nullptr;
+	}
+
+	/// Adapterの内側で実際の速度積分を担当する共通Movement Componentを返すconst版。
+	const K4E::CharacterMovementComponent* GetCharacterMovementComponent() const
+	{
+		return movementComponent_ ? movementComponent_->GetCharacterMovementComponent() : nullptr;
+	}
+
 	/// <summary>
 	/// ステータスコンポーネントを取得
 	/// </summary>

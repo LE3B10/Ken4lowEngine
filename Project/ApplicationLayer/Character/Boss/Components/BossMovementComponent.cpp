@@ -30,6 +30,14 @@ void BossMovementComponent::Initialize(float moveSpeed, float turnSpeed, float s
 	moveSpeed_ = moveSpeed;
 	turnSpeed_ = turnSpeed;
 	stopDistance_ = stopDistance;
+	characterMovement_.InitializeForWorld();
+	characterMovement_.Stop();
+}
+
+void BossMovementComponent::Finalize()
+{
+	characterMovement_.Stop();
+	characterMovement_.FinalizeForWorld(); // Boss専用Adapter破棄時に共通Componentのライフサイクルも閉じる。
 }
 
 /// -------------------------------------------------------------
@@ -38,13 +46,13 @@ void BossMovementComponent::Initialize(float moveSpeed, float turnSpeed, float s
 void BossMovementComponent::Update(BossBase& boss, float deltaTime)
 {
 	// 死亡中は移動しない
-	if (boss.IsDead()) return;
+	if (boss.IsDead()) { characterMovement_.Stop(); return; }
 
 	// 攻撃中は移動しない
-	if (boss.GetAttackComponent() && boss.GetAttackComponent()->IsAttacking()) return;
+	if (boss.GetAttackComponent() && boss.GetAttackComponent()->IsAttacking()) { characterMovement_.Stop(); return; }
 
 	// Move中だけ移動を担当する
-	if (boss.GetState() != BossState::Move)	return;
+	if (boss.GetState() != BossState::Move) { characterMovement_.Stop(); return; }
 
 	// ターゲット方向へ向く
 	FaceToTarget(boss, deltaTime);
@@ -94,7 +102,7 @@ void BossMovementComponent::FaceToTarget(BossBase& boss, float deltaTime) const
 /// -------------------------------------------------------------
 ///						ターゲットへ近づく
 /// -------------------------------------------------------------
-void BossMovementComponent::MoveTowardsTarget(BossBase& boss, float deltaTime) const
+void BossMovementComponent::MoveTowardsTarget(BossBase& boss, float deltaTime)
 {
 	K4E::Vector3 position = boss.GetPosition();
 	const K4E::Vector3 target = boss.GetTargetPosition();
@@ -108,21 +116,21 @@ void BossMovementComponent::MoveTowardsTarget(BossBase& boss, float deltaTime) c
 	const float stopDistSq = stopDistance_ * stopDistance_;
 
 	// 十分近ければ止まる
-	if (distSq <= stopDistSq) return;
+	if (distSq <= stopDistSq) { characterMovement_.Stop(); return; }
 
 	// 距離を正規化して移動量を計算
 	const float dist = std::sqrt(distSq);
 
 	// 距離がほとんどない場合は移動しない
-	if (dist < kEpsilon) return;
+	if (dist < kEpsilon) { characterMovement_.Stop(); return; }
 
 	// 方向ベクトルを正規化
 	dx /= dist;
 	dz /= dist;
 
-	// 移動量を加算
-	position.x += dx * moveSpeed_ * deltaTime;
-	position.z += dz * moveSpeed_ * deltaTime;
+	characterMovement_.SetVelocity({ dx * moveSpeed_, 0.0f, dz * moveSpeed_ });
+	const K4E::Vector3 displacement = characterMovement_.CalculateDisplacement(deltaTime);
+	position = position + displacement; // 旧Boss側では共通Component::Updateを重ねず、計算結果を1回だけ衝突経路へ渡す。
 
 	// 更新した位置をセット
 	boss.SetPosition(position);

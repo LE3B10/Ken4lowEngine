@@ -1,9 +1,15 @@
 #include "BaseCharacter.h"
 
+#include <array>
 #include <memory>
 #include <utility>
 
 using namespace Ken4lowEngine;
+
+BaseCharacter::~BaseCharacter()
+{
+	if (humanoidVisualComponent_) humanoidVisualComponent_->FinalizeForWorld(); // 借用中の部位より先にAdapter接続を解除する。
+}
 
 /// -------------------------------------------------------------
 ///				　			　 更新処理
@@ -25,7 +31,10 @@ void BaseCharacter::BuildBodyHierarchy(
 	const BodyPartDefinition& bodyDefinition,
 	const std::vector<BodyPartDefinition>& partDefinitions)
 {
+	if (humanoidVisualComponent_) humanoidVisualComponent_->FinalizeForWorld();
 	parts_.clear();
+	body_ = {};
+	body_.id = "Body";
 	body_.object = std::make_unique<Object3D>();
 	body_.object->Initialize(bodyDefinition.modelPath);
 	body_.transform = {};
@@ -33,14 +42,21 @@ void BaseCharacter::BuildBodyHierarchy(
 	body_.transform.rotate_ = bodyDefinition.localRotation;
 	body_.transform.scale_ = bodyDefinition.scale;
 	body_.active = true;
+	body_.visible = true;
 	body_.object->SetTranslate(bodyDefinition.localPosition);
 	body_.object->SetRotate(bodyDefinition.localRotation);
 	body_.object->SetScale(bodyDefinition.scale);
 
+	static constexpr std::array<const char*, 5> kCompatibilityPartIds = {
+		"Head", "LeftArm", "RightArm", "LeftLeg", "RightLeg"
+	};
 	parts_.reserve(partDefinitions.size());
-	for (const auto& definition : partDefinitions)
+	for (size_t partIndex = 0; partIndex < partDefinitions.size(); ++partIndex)
 	{
+		const auto& definition = partDefinitions[partIndex];
 		BodyPart part{};
+		part.id = partIndex < kCompatibilityPartIds.size() ? kCompatibilityPartIds[partIndex] : "Part" + std::to_string(partIndex);
+		part.parentId = "Body";
 		part.object = std::make_unique<Object3D>();
 		part.object->Initialize(definition.modelPath);
 		part.transform.translate_ = definition.localPosition;
@@ -52,6 +68,10 @@ void BaseCharacter::BuildBodyHierarchy(
 		part.object->SetScale(definition.scale);
 		parts_.push_back(std::move(part));
 	}
+
+	if (!humanoidVisualComponent_) humanoidVisualComponent_ = std::make_unique<HumanoidVisualComponent>();
+	humanoidVisualComponent_->BindCompatibilityHierarchy(body_, parts_);
+	humanoidVisualComponent_->InitializeForWorld(); // 以降は旧階層更新を止め、Componentだけを実行する。
 }
 
 /// -------------------------------------------------------------
@@ -59,9 +79,11 @@ void BaseCharacter::BuildBodyHierarchy(
 /// -------------------------------------------------------------
 void BaseCharacter::Update(float deltaTime)
 {
-	(void)deltaTime; // 未使用
-
-	// 階層更新
+	if (humanoidVisualComponent_)
+	{
+		humanoidVisualComponent_->Update(deltaTime);
+		return; // 新旧の階層更新を同一フレームで重ねない。
+	}
 	UpdateHierarchy();
 }
 
@@ -70,6 +92,11 @@ void BaseCharacter::Update(float deltaTime)
 /// -------------------------------------------------------------
 void BaseCharacter::Draw()
 {
+	if (humanoidVisualComponent_)
+	{
+		humanoidVisualComponent_->Draw();
+		return; // Adapter接続後は旧Drawを実行しない。
+	}
 	// 体幹部位の描画
 	if (body_.active && body_.object)
 	{
@@ -90,7 +117,12 @@ void BaseCharacter::Draw()
 /// -------------------------------------------------------------
 void BaseCharacter::UpdateShadowMatrix(const Matrix4x4& lightViewProjection)
 {
-	body_.object->UpdateShadowMatrix(lightViewProjection);
+	if (humanoidVisualComponent_)
+	{
+		humanoidVisualComponent_->UpdateShadowMatrices(lightViewProjection);
+		return;
+	}
+	if (body_.object) body_.object->UpdateShadowMatrix(lightViewProjection);
 	for (const auto& part : parts_)
 	{
 		if (part.active && part.object)
@@ -105,8 +137,13 @@ void BaseCharacter::UpdateShadowMatrix(const Matrix4x4& lightViewProjection)
 /// -------------------------------------------------------------
 void BaseCharacter::DrawShadow()
 {
+	if (humanoidVisualComponent_)
+	{
+		humanoidVisualComponent_->DrawShadow();
+		return; // Shadowも通常描画と同じComponent経路だけを使う。
+	}
 	// 体幹部位のシャドウ描画
-	body_.object->DrawShadow();
+	if (body_.object) body_.object->DrawShadow();
 
 	// 各部位のシャドウ描画
 	for (const auto& part : parts_)
@@ -123,6 +160,11 @@ void BaseCharacter::DrawShadow()
 /// -------------------------------------------------------------
 void BaseCharacter::ApplySkinToAllParts(const std::string& texPath)
 {
+	if (humanoidVisualComponent_)
+	{
+		humanoidVisualComponent_->ApplySkinToAllParts(texPath);
+		return; // 共有Material/Texture処理をComponentへ集約する。
+	}
 	// 体幹部位
 	if (body_.object) ApplySkinTo(body_.object.get(), texPath);
 
@@ -192,8 +234,68 @@ Vector3 BaseCharacter::GetCenterPosition() const
 	const Vector3 offset = { 0.0f, 0.0f, 0.0f };
 
 	// ワールド座標に変換
-	Vector3 worldPosition = body_.transform.translate_ + offset;
+	Vector3 worldPosition = GetBody().transform.translate_ + offset;
 
 	// ワールド回転を考慮してオフセットを回転させる
 	return worldPosition;
+}
+
+BaseCharacter::BodyPart& BaseCharacter::GetBody()
+{
+	if (humanoidVisualComponent_)
+	{
+		if (BodyPart* body = humanoidVisualComponent_->GetCompatibilityBody()) return *body;
+	}
+	return body_;
+}
+
+const BaseCharacter::BodyPart& BaseCharacter::GetBody() const
+{
+	if (humanoidVisualComponent_)
+	{
+		if (const BodyPart* body = humanoidVisualComponent_->GetCompatibilityBody()) return *body;
+	}
+	return body_;
+}
+
+std::vector<BaseCharacter::BodyPart>& BaseCharacter::GetBodyParts()
+{
+	if (humanoidVisualComponent_)
+	{
+		if (auto* parts = humanoidVisualComponent_->GetCompatibilityParts()) return *parts;
+	}
+	return parts_;
+}
+
+const std::vector<BaseCharacter::BodyPart>& BaseCharacter::GetBodyParts() const
+{
+	if (humanoidVisualComponent_)
+	{
+		if (const auto* parts = humanoidVisualComponent_->GetCompatibilityParts()) return *parts;
+	}
+	return parts_;
+}
+
+void BaseCharacter::SetBodyActive(bool active)
+{
+	BodyPart& body = GetBody();
+	body.active = active;
+	body.visible = active;
+}
+
+void BaseCharacter::SetAllPartsActive(bool active)
+{
+	for (BodyPart& part : GetBodyParts())
+	{
+		part.active = active;
+		part.visible = active;
+	}
+}
+
+void BaseCharacter::SetPartActive(size_t index, bool active)
+{
+	auto& parts = GetBodyParts();
+	if (index >= parts.size()) return;
+	parts[index].active = active;
+	parts[index].visible = active; // 旧active APIとComponent表示状態を常に一致させる。
 }

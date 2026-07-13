@@ -85,6 +85,18 @@ namespace
 	}
 }
 
+EnemyBase::EnemyBase()
+{
+	healthComponent_ = std::make_unique<CharacterHealthComponent>();
+	healthComponent_->InitializeForWorld();
+	healthComponent_->ResetHealth(static_cast<float>(maxHp_)); // 生成直後から旧HP変数ではなく共通Componentを正本にする。
+}
+
+EnemyBase::~EnemyBase()
+{
+	if (healthComponent_) healthComponent_->FinalizeForWorld(); // Adapter対象のComponentライフサイクルをEnemyと揃える。
+}
+
 /// -------------------------------------------------------------
 /// 人型見た目の初期化
 /// -------------------------------------------------------------
@@ -196,6 +208,7 @@ void EnemyBase::Initialize()
 
 	isDead_ = false;
 	removable_ = false;
+	healthComponent_->ResetHealth(static_cast<float>(maxHp_)); // 初期化後は旧hp_を更新せず共通Componentだけを正本にする。
 
 	deathBreakActive_ = false;
 	deathBreakInitialized_ = false;
@@ -219,8 +232,6 @@ void EnemyBase::Initialize()
 	deathPieces_.clear();
 	lastHitDir_ = { 0, 0, 0 };
 	lastHitPower_ = 1.0f;
-
-	hp_ = maxHp_;
 
 	useGravity_ = true;
 	worldCol_.half = obbHalf_;
@@ -551,7 +562,39 @@ void EnemyBase::DrawShadow()
 
 void EnemyBase::SetCurrentHp(int v)
 {
-	hp_ = std::max(0, std::min(v, maxHp_));
+	if (healthComponent_)
+	{
+		healthComponent_->SetCurrentHealth(static_cast<float>(v));
+		return;
+	}
+	hp_ = std::max(0, std::min(v, maxHp_)); // Component生成前だけ旧設定値を保持する。
+}
+
+void EnemyBase::SetMaxHp(int value)
+{
+	maxHp_ = std::max(1, value); // Initialize前に派生Enemyが設定できる互換用の初期値。
+	if (healthComponent_)
+	{
+		healthComponent_->ResetHealth(static_cast<float>(maxHp_));
+		return;
+	}
+	hp_ = maxHp_;
+}
+
+int EnemyBase::GetHp() const
+{
+	return healthComponent_ ? static_cast<int>(healthComponent_->GetCurrentHealth()) : hp_;
+}
+
+int EnemyBase::GetMaxHp() const
+{
+	return healthComponent_ ? static_cast<int>(healthComponent_->GetMaxHealth()) : maxHp_;
+}
+
+float EnemyBase::GetHpRate() const
+{
+	if (healthComponent_) return healthComponent_->GetHealthRatio();
+	return maxHp_ > 0 ? static_cast<float>(hp_) / static_cast<float>(maxHp_) : 0.0f;
 }
 
 /// -------------------------------------------------------------
@@ -571,6 +614,7 @@ void EnemyBase::TakeDamage(int amount)
 void EnemyBase::TakeDamage(int amount, const Vector3& hitDir, float hitPower)
 {
 	if (isDead_) return;
+	if (!healthComponent_ || amount <= 0) return;
 
 	// 被弾情報を保存（死亡演出の初速に使う）
 	const Vector3 nd = NormalizeSafe(hitDir, { 0.0f, 0.0f, 1.0f });
@@ -580,12 +624,14 @@ void EnemyBase::TakeDamage(int amount, const Vector3& hitDir, float hitPower)
 	}
 	lastHitPower_ = (hitPower > 0.0f) ? hitPower : 1.0f;
 
+	CharacterDamageInfo damageInfo{};
+	damageInfo.amount = static_cast<float>(amount);
+	const CharacterDamageResult damageResult = healthComponent_->ApplyDamage(damageInfo);
+	if (!damageResult.accepted) return;
 	StartHitFlash();
-	hp_ -= amount;
 
-	if (hp_ <= 0)
+	if (damageResult.killed)
 	{
-		hp_ = 0;
 		const Vector3 deathOrigin = GetCenterPosition();
 		const Vector3 deathRotation = orientation_;
 		CaptureDeathEffectOrigin(deathOrigin, deathRotation);

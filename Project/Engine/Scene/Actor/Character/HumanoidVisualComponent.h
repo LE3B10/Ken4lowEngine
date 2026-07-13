@@ -27,6 +27,7 @@ namespace Ken4lowEngine
 			std::unique_ptr<Object3D> object;
 			WorldTransformEx transform;
 			bool visible = true;
+			bool active = true; // 旧キャラクターAPIの実行時表示フラグを移行中も保持する。
 		};
 
 	public:
@@ -102,6 +103,24 @@ namespace Ken4lowEngine
 		/// 生成済みの全部位を構築順で返すconst版。
 		const std::vector<BodyPart>& GetParts() const { return parts_; }
 
+		/// 移行中の旧キャラクターが所有する胴体と子部位を、Componentの単一描画経路へ接続する。
+		void BindCompatibilityHierarchy(BodyPart& body, std::vector<BodyPart>& childParts);
+
+		/// 移行中に接続された旧キャラクターの胴体を返す。
+		BodyPart* GetCompatibilityBody() { return compatibilityBody_; }
+
+		/// 移行中に接続された旧キャラクターの胴体を返すconst版。
+		const BodyPart* GetCompatibilityBody() const { return compatibilityBody_; }
+
+		/// 移行中に接続された旧キャラクターの子部位一覧を返す。
+		std::vector<BodyPart>* GetCompatibilityParts() { return compatibilityParts_; }
+
+		/// 移行中に接続された旧キャラクターの子部位一覧を返すconst版。
+		const std::vector<BodyPart>* GetCompatibilityParts() const { return compatibilityParts_; }
+
+		/// 旧APIが渡すLight行列を、接続中の全部位へComponent経由で反映する。
+		void UpdateShadowMatrices(const Matrix4x4& lightViewProjection);
+
 		/// 指定IDの部位表示を切り替える。
 		bool SetPartVisible(std::string_view partId, bool visible);
 
@@ -145,6 +164,9 @@ namespace Ken4lowEngine
 		/// Componentをルートとして全部位のWorldTransformとObject3Dを更新する。
 		void UpdateHierarchy();
 
+		/// Adapter接続された旧部位の親子TransformとObject3Dを更新する。
+		void UpdateCompatibilityHierarchy();
+
 		/// 共有Materialとスキンテクスチャを生成済み全部位へ適用する。
 		void ApplyAppearanceToAllParts();
 
@@ -169,5 +191,7 @@ namespace Ken4lowEngine
 		uint64_t materialRepositoryRevision_ = 0;
 		bool requestDefinitionReload_ = false;
 		bool requestDefinitionSave_ = false;
+		BodyPart* compatibilityBody_ = nullptr; // Adapter期間だけ旧側の所有権を借用する。
+		std::vector<BodyPart>* compatibilityParts_ = nullptr;
 	};
 } // namespace Ken4lowEngine

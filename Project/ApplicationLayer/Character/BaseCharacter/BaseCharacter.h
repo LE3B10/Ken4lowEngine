@@ -1,6 +1,6 @@
 #pragma once
 #include "Collider.h"
-#include "Object3D.h"
+#include <Scene/Actor/Character/HumanoidVisualComponent.h>
 #include "WorldTransformEx.h"
 
 #include <cstdint>
@@ -17,13 +17,8 @@ class BaseCharacter : public K4E::Collider
 {
 public: /// ---------- 構造体 ---------- ///
 
-	/// ---------- 部位データ ---------- ///
-	struct BodyPart
-	{
-		std::unique_ptr<K4E::Object3D> object; // 部位の3Dオブジェクト
-		K4E::WorldTransformEx transform;	   // 部位のワールド変換情報
-		bool active = true;					   // 描画/非描画
-	};
+	/// 旧APIの型を共通Componentの部位型へ合わせ、移行中の参照互換性を保つ。
+	using BodyPart = K4E::HumanoidVisualComponent::BodyPart;
 
 	/// モデル、ローカル姿勢、スケールをまとめた部位生成用の定義。
 	struct BodyPartDefinition
@@ -47,7 +42,7 @@ public: /// ---------- 構造体 ---------- ///
 public: /// ---------- メンバ関数 ---------- ///
 
 	// デストラクタ
-	virtual ~BaseCharacter() = default;
+	virtual ~BaseCharacter();
 
 	// 初期化処理
 	virtual void Initialize();
@@ -76,19 +71,19 @@ public: /// ---------- アクセッサ ---------- ///
 	virtual K4E::Vector3 GetCenterPosition() const override;
 
 	// 体幹部位のワールド変換行列を取得
-	const K4E::WorldTransformEx* GetWorldTransform() const { return &body_.transform; }
+	const K4E::WorldTransformEx* GetWorldTransform() const { return &GetBody().transform; }
 
 	// 体幹部位のアクセス
-	BodyPart& GetBody() { return body_; }
+	BodyPart& GetBody();
 
 	// 体幹部位のアクセス（const版）
-	const BodyPart& GetBody() const { return body_; }
+	const BodyPart& GetBody() const;
 
 	// 各部位のアクセス
-	std::vector<BodyPart>& GetBodyParts() { return parts_; }
+	std::vector<BodyPart>& GetBodyParts();
 
 	// 各部位のアクセス（const版）
-	const std::vector<BodyPart>& GetBodyParts() const { return parts_; }
+	const std::vector<BodyPart>& GetBodyParts() const;
 
 	// 各部位のインデックスを取得
 	PartIndices& GetPartIndices() { return partIndices_; }
@@ -97,13 +92,19 @@ public: /// ---------- アクセッサ ---------- ///
 	const PartIndices& GetPartIndices() const { return partIndices_; }
 
 	// 体幹部位の描画/非描画設定
-	void SetBodyActive(bool a) { body_.active = a; }
+	void SetBodyActive(bool active);
 
 	// 全部位の描画/非描画設定
-	void SetAllPartsActive(bool a) { for (auto& p : parts_) p.active = a; }
+	void SetAllPartsActive(bool active);
 
 	// 指定部位の描画/非描画設定
-	void SetPartActive(size_t i, bool a) { if (i < parts_.size()) parts_[i].active = a; }
+	void SetPartActive(size_t index, bool active);
+
+	/// Adapter接続中の共通人型表示Componentを返す。
+	K4E::HumanoidVisualComponent* GetHumanoidVisualComponent() { return humanoidVisualComponent_.get(); }
+
+	/// Adapter接続中の共通人型表示Componentを返すconst版。
+	const K4E::HumanoidVisualComponent* GetHumanoidVisualComponent() const { return humanoidVisualComponent_.get(); }
 
 public: /// ---------- スキン適用 ---------- ///
 
@@ -132,4 +133,7 @@ protected: /// ---------- メンバ変数 ---------- ///
 
 	// 各部位のインデックス
 	PartIndices partIndices_ = {};
+
+	// 旧部位の所有権を維持しつつ更新・描画を単一経路へ委譲する移行用Component。
+	std::unique_ptr<K4E::HumanoidVisualComponent> humanoidVisualComponent_;
 };
