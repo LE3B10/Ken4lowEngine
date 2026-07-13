@@ -89,6 +89,12 @@ void CharacterValidation::ProcessRequests()
 		}
 	}
 
+	if (requestValidation_)
+	{
+		requestValidation_ = false;
+		RunValidation(); // GPU描画開始前の更新フェーズで人型再構築と一時Actor破棄を完結させる。
+	}
+
 	if (requestReloadDefinition_)
 	{
 		requestReloadDefinition_ = false;
@@ -198,12 +204,6 @@ void CharacterValidation::ProcessRequests()
 void CharacterValidation::DrawImGui()
 {
 #ifdef USE_IMGUI
-	if (requestValidation_)
-	{
-		requestValidation_ = false;
-		RunValidation();
-	}
-
 	if (!ImGui::Begin("キャラクター共通機能 検証"))
 	{
 		ImGui::End();

@@ -40,6 +40,7 @@ namespace Ken4lowEngine
 
 	void HumanoidVisualComponent::Update(float deltaTime)
 	{
+		ProcessDeferredDefinitionRequests();
 		SceneComponent::Update(deltaTime);
 		RefreshSharedMaterialBinding();
 		UpdateHierarchy();
@@ -47,6 +48,7 @@ namespace Ken4lowEngine
 
 	void HumanoidVisualComponent::UpdateEditor(float deltaTime)
 	{
+		ProcessDeferredDefinitionRequests();
 		SceneComponent::UpdateEditor(deltaTime);
 		RefreshSharedMaterialBinding();
 		UpdateHierarchy(); // PIE停止中もGizmoと部位階層の表示位置を一致させる。
@@ -93,15 +95,14 @@ namespace Ken4lowEngine
 		ComponentPropertyUtility::DrawImGui(CreateProperties());
 		if (ImGui::Button("人型定義を再読み込み"))
 		{
-			std::string error;
-			if (!LoadDefinitionFromFile(definitionPath_, &error)) statusMessage_ = error;
+			requestDefinitionReload_ = true;
+			statusMessage_ = "人型定義の再読み込みを予約しました。"; // Shadow描画済みリソースをDraw中に破棄しない。
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("人型定義を保存"))
 		{
-			std::string error;
-			if (!SaveDefinitionToFile(definitionPath_, &error)) statusMessage_ = error;
-			else statusMessage_ = "人型定義を保存しました: " + definitionPath_;
+			requestDefinitionSave_ = true;
+			statusMessage_ = "人型定義の保存を予約しました。";
 		}
 
 		DrawMaterialBindingImGui();
@@ -117,6 +118,8 @@ namespace Ken4lowEngine
 
 	void HumanoidVisualComponent::Finalize()
 	{
+		requestDefinitionReload_ = false;
+		requestDefinitionSave_ = false;
 		parts_.clear(); // Object3Dの所有権をComponentからまとめて解放する。
 	}
 
@@ -330,6 +333,23 @@ namespace Ken4lowEngine
 		statusMessage_ = "人型部位を構築しました: " + std::to_string(parts_.size()) + " parts";
 		if (outError) outError->clear();
 		return true;
+	}
+
+	void HumanoidVisualComponent::ProcessDeferredDefinitionRequests()
+	{
+		if (requestDefinitionReload_)
+		{
+			requestDefinitionReload_ = false;
+			std::string error;
+			if (!LoadDefinitionFromFile(definitionPath_, &error)) statusMessage_ = error;
+		}
+		if (requestDefinitionSave_)
+		{
+			requestDefinitionSave_ = false;
+			std::string error;
+			if (!SaveDefinitionToFile(definitionPath_, &error)) statusMessage_ = error;
+			else statusMessage_ = "人型定義を保存しました: " + definitionPath_;
+		}
 	}
 
 	void HumanoidVisualComponent::UpdateHierarchy()

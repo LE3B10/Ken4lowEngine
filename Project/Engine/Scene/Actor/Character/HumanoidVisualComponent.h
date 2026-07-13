@@ -139,6 +139,9 @@ namespace Ken4lowEngine
 		/// 定義順に依存せず、親が先になる順序で部位とObject3Dを生成する。
 		bool BuildBodyHierarchy(std::string* outError = nullptr);
 
+		/// Detailsで予約された定義の再読込と保存を描画開始前の更新フェーズで処理する。
+		void ProcessDeferredDefinitionRequests();
+
 		/// Componentをルートとして全部位のWorldTransformとObject3Dを更新する。
 		void UpdateHierarchy();
 
@@ -164,5 +167,7 @@ namespace Ken4lowEngine
 		std::string materialBindingStatus_ = "モデル既定Materialを使用中";
 		std::string statusMessage_ = "人型定義は未初期化です。";
 		uint64_t materialRepositoryRevision_ = 0;
+		bool requestDefinitionReload_ = false;
+		bool requestDefinitionSave_ = false;
 	};
 } // namespace Ken4lowEngine
