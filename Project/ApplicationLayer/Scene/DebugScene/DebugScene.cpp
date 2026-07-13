@@ -10,7 +10,17 @@
 #include "TestActor.h"
 #include "TestGroundActor.h"
 
+#include <ActorJsonSerializer.h>
+#include <ColliderComponent.h>
+#include <RigidbodyComponent.h>
+
+#include <algorithm>
+#include <limits>
+#include <sstream>
+
 #ifdef USE_IMGUI
+#include <Editor/EditorPlayController.h>
+#include <Editor/EditorPlaySessionManager.h>
 #include <imgui.h>
 #endif // USE_IMGUI
 
@@ -30,8 +40,13 @@ void DebugScene::Initialize()
 
 	actorWorld_.SetPhysicsWorld(&actorPhysicsWorld_);
 	actorPhysicsWorld_.SetUseFixedStep(false);
-	actorWorld_.SpawnActor<TestActor>();
-	actorWorld_.SpawnActor<TestGroundActor>();
+	TestActor& phase1Actor = actorWorld_.SpawnActor<TestActor>();
+	phase1Actor.SetName(actorWorldPhase1Validation_.targetActorName);
+	phase1Actor.SetLayer("DebugValidation");
+	phase1Actor.AddTag("ActorWorldPhase1");
+	TestGroundActor& phase1Ground = actorWorld_.SpawnActor<TestGroundActor>();
+	phase1Ground.SetName("Phase1Ground");
+	phase1Ground.SetLayer("DebugValidation");
 	actorWorld_.Initialize();
 }
 
@@ -45,6 +60,7 @@ void DebugScene::Update()
 #endif // _DEBUG
 
 	const float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
+	ProcessActorWorldPhase1Requests();
 
 	actorWorld_.Update(deltaTime);
 
@@ -53,6 +69,12 @@ void DebugScene::Update()
 
 	// PhysicsWorldの結果をActor/Component側のTransformへ反映する
 	actorWorld_.PostPhysicsUpdate(deltaTime);
+}
+
+void DebugScene::UpdateEditor(float deltaTime)
+{
+	(void)deltaTime;
+	ProcessActorWorldPhase1Requests(); // Edit/Pause中の操作要求も次のActorWorld::UpdateEditor前に処理する。
 }
 
 /// -------------------------------------------------------------
@@ -123,12 +145,201 @@ void DebugScene::DrawImGui()
 #ifdef USE_IMGUI
 
 	actorWorld_.DrawImGui();
+	DrawActorWorldPhase1ValidationImGui();
 
 	actorPhysicsDebugDraw_.GetSettings().drawPhysicsDebug = true;
 	actorPhysicsDebugDraw_.GetSettings().drawColliders = true;
 	actorPhysicsDebugDraw_.DrawImGui(actorPhysicsWorld_);
 
 #endif // USE_IMGUI
+}
+
+K4E::Actor* DebugScene::FindActorWorldPhase1Target() const
+{
+	for (const auto& actor : actorWorld_.GetActors())
+	{
+		if (actor && actor->GetName() == actorWorldPhase1Validation_.targetActorName) return actor.get();
+	}
+	return nullptr;
+}
+
+void DebugScene::ProcessActorWorldPhase1Requests()
+{
+	auto& validation = actorWorldPhase1Validation_;
+	K4E::Actor* target = FindActorWorldPhase1Target();
+
+	if (validation.requestSpawn)
+	{
+		validation.requestSpawn = false;
+		if (!target)
+		{
+			TestActor& actor = actorWorld_.SpawnActor<TestActor>();
+			actor.SetName(validation.targetActorName);
+			actor.SetLayer("DebugValidation");
+			actor.AddTag("ActorWorldPhase1");
+			validation.lastMessage = "検証ActorをActorWorld経由で生成しました。";
+			validation.lastSucceeded = true;
+			target = &actor;
+		}
+	}
+
+	if (validation.requestToggleActive)
+	{
+		validation.requestToggleActive = false;
+		if (target)
+		{
+			target->SetActive(!target->IsActive());
+			validation.lastMessage = target->IsActive() ? "Actorを有効化しました。" : "Actorを無効化しました。";
+			validation.lastSucceeded = true;
+		}
+	}
+
+	if (validation.requestSave)
+	{
+		validation.requestSave = false;
+		validation.lastSucceeded = target && actorWorld_.SaveActorToJson(*target, validation.jsonPath);
+		validation.lastMessage = validation.lastSucceeded ? "Actor JSONを保存しました。" : "Actor JSONの保存に失敗しました。";
+	}
+
+	if (validation.requestReload)
+	{
+		validation.requestReload = false;
+		validation.lastSucceeded = target && actorWorld_.ReloadActorFromJson(*target, validation.jsonPath);
+		validation.lastMessage = validation.lastSucceeded ? "Actor JSONを安全な経路で再読込しました。" : "Actor JSONの再読込に失敗しました。";
+	}
+
+	if (validation.requestSpawnFromJson)
+	{
+		validation.requestSpawnFromJson = false;
+		if (target && !actorWorld_.SaveActorToJson(*target, validation.jsonPath))
+		{
+			validation.lastSucceeded = false;
+			validation.lastMessage = "複製用Actor JSONの保存に失敗しました。";
+		}
+		else
+		{
+			validation.lastSucceeded = actorWorld_.SpawnActorFromJson(validation.jsonPath) != nullptr;
+			validation.lastMessage = validation.lastSucceeded ? "JSONからActorを複製生成しました。" : "JSONからのActor生成に失敗しました。";
+		}
+	}
+
+	if (validation.requestDestroy)
+	{
+		validation.requestDestroy = false;
+		validation.lastSucceeded = actorWorld_.DestroyActor(target);
+		validation.pendingDestroyCheck = validation.lastSucceeded;
+		validation.lastMessage = validation.lastSucceeded ? "Actorの遅延削除を予約しました。" : "削除対象Actorが見つかりません。";
+	}
+}
+
+void DebugScene::RunActorWorldPhase1Validation()
+{
+	auto& validation = actorWorldPhase1Validation_;
+	K4E::Actor* target = FindActorWorldPhase1Target();
+	if (!target)
+	{
+		validation.lastSucceeded = false;
+		validation.lastMessage = "検証対象Actorが存在しません。生成ボタンから復元できます。";
+		return;
+	}
+
+	bool succeeded = target->GetRootComponent() != nullptr && !target->GetComponents().empty();
+	int previousUpdateOrder = (std::numeric_limits<int>::min)();
+	std::vector<const K4E::ActorComponent*> orderedComponents;
+	for (const auto& component : target->GetComponents())
+	{
+		if (!component || !component->IsInitialized()) succeeded = false;
+		if (component) orderedComponents.push_back(component.get());
+	}
+	std::stable_sort(orderedComponents.begin(), orderedComponents.end(),
+		[](const K4E::ActorComponent* lhs, const K4E::ActorComponent* rhs)
+		{
+			return lhs->GetUpdateOrder() < rhs->GetUpdateOrder();
+		});
+	for (const K4E::ActorComponent* component : orderedComponents)
+	{
+		if (component->GetUpdateOrder() < previousUpdateOrder) succeeded = false;
+		previousUpdateOrder = component->GetUpdateOrder();
+	}
+
+	const nlohmann::json snapshot = K4E::ActorJsonSerializer::SerializeActor(*target);
+	succeeded = succeeded && snapshot.contains("Active") && snapshot.contains("Components") && snapshot["Components"].is_array();
+
+	std::size_t expectedColliderCount = 0;
+	std::size_t expectedRigidbodyCount = 0;
+	for (const auto& actor : actorWorld_.GetActors())
+	{
+		if (!actor || !actor->IsActive() || actor->IsPendingDestroy()) continue;
+		for (const K4E::ColliderComponent* collider : actor->GetComponents<K4E::ColliderComponent>())
+		{
+			if (collider && collider->IsActiveInHierarchy() && collider->GetCollider()) ++expectedColliderCount;
+		}
+		const K4E::RigidbodyComponent* rigidbody = actor->GetComponent<K4E::RigidbodyComponent>();
+		if (rigidbody && rigidbody->IsActiveInHierarchy() && rigidbody->GetRigidbody()) ++expectedRigidbodyCount;
+	}
+	succeeded = succeeded && actorPhysicsWorld_.GetColliderCount() == expectedColliderCount;
+	succeeded = succeeded && actorPhysicsWorld_.GetRigidbodies().size() == expectedRigidbodyCount;
+
+	std::ostringstream message;
+	message << (succeeded ? "Phase 1自動検証に成功しました。" : "Phase 1自動検証で不整合を検出しました。")
+		<< " Actor=" << actorWorld_.GetActors().size()
+		<< " Collider=" << actorPhysicsWorld_.GetColliderCount()
+		<< " Rigidbody=" << actorPhysicsWorld_.GetRigidbodies().size();
+	validation.lastSucceeded = succeeded;
+	validation.lastMessage = message.str();
+}
+
+void DebugScene::DrawActorWorldPhase1ValidationImGui()
+{
+#ifdef USE_IMGUI
+	auto& validation = actorWorldPhase1Validation_;
+	if (validation.pendingDestroyCheck)
+	{
+		validation.pendingDestroyCheck = false;
+		validation.lastSucceeded = FindActorWorldPhase1Target() == nullptr;
+		validation.lastMessage = validation.lastSucceeded
+			? "遅延削除、Physics解除、内部参照解除を確認しました。"
+			: "削除予約したActorがまだ残っています。";
+	}
+	if (validation.requestValidation)
+	{
+		validation.requestValidation = false;
+		RunActorWorldPhase1Validation();
+	}
+
+	if (!ImGui::Begin("ActorWorld Phase 1 検証"))
+	{
+		ImGui::End();
+		return;
+	}
+
+	K4E::Actor* target = FindActorWorldPhase1Target();
+	ImGui::Text("実行状態: %s / %s",
+		K4E::EditorPlayController::GetInstance()->GetPlayStateText(),
+		K4E::EditorPlaySessionManager::GetInstance()->GetWorldDomainText());
+	ImGui::Text("対象Actor: %s", target ? target->GetName().c_str() : "なし");
+	ImGui::Text("Actor数: %zu", actorWorld_.GetActors().size());
+	ImGui::Text("Collider登録数: %zu", actorPhysicsWorld_.GetColliderCount());
+	ImGui::Text("Rigidbody登録数: %zu", actorPhysicsWorld_.GetRigidbodies().size());
+	ImGui::TextColored(validation.lastSucceeded ? ImVec4(0.35f, 1.0f, 0.45f, 1.0f) : ImVec4(1.0f, 0.4f, 0.35f, 1.0f),
+		"%s", validation.lastMessage.c_str());
+
+	if (ImGui::Button("自動検証")) validation.requestValidation = true;
+	ImGui::SameLine();
+	if (ImGui::Button("検証Actor生成")) validation.requestSpawn = true;
+	ImGui::SameLine();
+	if (ImGui::Button("Active切替")) validation.requestToggleActive = true;
+
+	if (ImGui::Button("JSON保存")) validation.requestSave = true;
+	ImGui::SameLine();
+	if (ImGui::Button("JSON再読込")) validation.requestReload = true;
+	ImGui::SameLine();
+	if (ImGui::Button("JSONから複製")) validation.requestSpawnFromJson = true;
+
+	if (ImGui::Button("遅延削除テスト")) validation.requestDestroy = true;
+	ImGui::TextDisabled("Play/Edit/Pauseの切替後も同じActorWorld経路で状態を確認できます。");
+	ImGui::End();
+#endif
 }
 
 /// -------------------------------------------------------------
@@ -157,4 +368,3 @@ void DebugScene::UpdateDebug()
 		input_->SetCursorVisible(isDebugCamera_);
 	}
 }
-

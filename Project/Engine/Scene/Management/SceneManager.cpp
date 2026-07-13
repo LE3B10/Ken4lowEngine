@@ -219,23 +219,7 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		ActorWorld* actorWorld = scene_ ? scene_->GetEditorActorWorld() : nullptr;
-		if (!actorWorld) return;
-		for (const auto& actorOwner : actorWorld->GetActors())
-		{
-			Actor* actor = actorOwner.get();
-			if (!actor || !actor->IsActive() || actor->IsPendingDestroy()) continue;
-			std::vector<ActorComponent*> components;
-			for (const auto& componentOwner : actor->GetComponents())
-			{
-				ActorComponent* component = componentOwner.get();
-				if (component && component->IsActiveInHierarchy()) components.push_back(component);
-			}
-			std::sort(components.begin(), components.end(), [](const ActorComponent* lhs, const ActorComponent* rhs)
-				{
-					return lhs->GetUpdateOrder() < rhs->GetUpdateOrder();
-				});
-			for (ActorComponent* component : components) component->UpdateEditor(deltaTime);
-		}
+		if (actorWorld) actorWorld->UpdateEditor(deltaTime); // Editor用Component更新もActorWorldの同じライフサイクル経路へ統一する。
 #else
 		(void)deltaTime;
 #endif

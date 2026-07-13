@@ -85,6 +85,12 @@ namespace Ken4lowEngine
 		SyncFromSceneTransform();
 	}
 
+	void ColliderComponent::UpdateEditor(float deltaTime)
+	{
+		SceneComponent::UpdateEditor(deltaTime);
+		SyncFromSceneTransform(); // Editorでは物理を進めず、Debug形状の位置だけを追従させる。
+	}
+
 	void ColliderComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
 	{
 		if (!collider_)

@@ -50,7 +50,7 @@ namespace Ken4lowEngine
 			if (rootComponent && rootComponent != newSceneComponent) newSceneComponent->AttachTo(rootComponent);
 			newSceneComponent->RefreshWorldTransform();
 		}
-		if (isInitialized_) newComponent->Initialize();
+		if (isInitialized_) newComponent->InitializeForWorld();
 		if (wasPhysicsRegistered) RegisterPhysicsComponents(*targetActor);
 
 		selectedActor_ = nullptr;
@@ -82,16 +82,6 @@ namespace Ken4lowEngine
 				EditorCommandHistory::GetInstance()->DiscardDependentRedoCommands(); // 再生成前のComponentを参照する後続Redoを除去する。
 			}));
 		EditorContext::GetInstance()->MarkLevelDirty();
-	}
-
-	void ActorWorld::ProcessPendingComponentDelete()
-	{
-		if (!hasPendingDeleteComponent_ || !pendingDeleteComponent_) return;
-		ActorComponent* deleteComponent = pendingDeleteComponent_;
-		hasPendingDeleteComponent_ = false;
-		pendingDeleteComponent_ = nullptr;
-		selectedComponent_ = deleteComponent;
-		DeleteSelectedComponent();
 	}
 
 	void ActorWorld::DeleteSelectedComponent()
@@ -214,7 +204,7 @@ namespace Ken4lowEngine
 			else if (owner->GetRootComponent() && owner->GetRootComponent() != duplicatedScene) duplicatedScene->AttachTo(owner->GetRootComponent());
 			duplicatedScene->RefreshWorldTransform();
 		}
-		if (isInitialized_) duplicatedComponent->Initialize();
+		if (isInitialized_) duplicatedComponent->InitializeForWorld();
 		if (wasPhysicsRegistered) RegisterPhysicsComponents(*owner);
 
 		selectedActor_ = nullptr;

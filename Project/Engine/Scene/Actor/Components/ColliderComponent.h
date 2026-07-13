@@ -26,6 +26,9 @@ namespace Ken4lowEngine
 		/// </summary>
 		void Update(float deltaTime) override;
 
+		/// Editor停止中にTransform変更だけをColliderへ同期する。
+		void UpdateEditor(float deltaTime) override;
+
 		/// <summary>
 		/// PhysicsWorld更新後にColliderのTransformをSceneComponentへ反映する
 		/// </summary>
@@ -71,6 +74,7 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// PhysicWorldへ登録するColliderを取得する
 		Collider* GetCollider() { return collider_.get(); }
+		const Collider* GetCollider() const { return collider_.get(); }
 
 		/// <summary>
 		/// Colliderの形状種別を設定する

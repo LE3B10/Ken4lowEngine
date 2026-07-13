@@ -47,7 +47,7 @@ namespace Ken4lowEngine
 
 		for (auto& actor : actors_)
 		{
-			if (!actor || !actor->IsActive() || IsHiddenByEditorOutliner(*actor))
+			if (!actor || actor->IsPendingDestroy() || !actor->IsActive() || IsHiddenByEditorOutliner(*actor))
 			{
 				continue; // 無効またはEditorで非表示のActorは通常描画対象から外す
 			}
@@ -55,6 +55,11 @@ namespace Ken4lowEngine
 			// 通常描画を持つActorだけが内部Component経由で描画される
 			actor->Draw();
 		}
+	}
+
+	void ActorWorld::PrepareRenderState()
+	{
+		SyncLightComponentsToLightManager(); // Scene側でLightComponentを再走査せずActorWorldへ統一する。
 	}
 
 	void ActorWorld::DrawScreenSpaceUI()
@@ -215,7 +220,7 @@ namespace Ken4lowEngine
 	{
 		for (auto& actor : actors_)
 		{
-			if (!actor || !actor->IsActive() || IsHiddenByEditorOutliner(*actor))
+			if (!actor || actor->IsPendingDestroy() || !actor->IsActive() || IsHiddenByEditorOutliner(*actor))
 			{
 				continue; // 無効またはEditorで非表示のActorはShadow描画対象から外す
 			}

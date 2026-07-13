@@ -121,6 +121,25 @@ namespace Ken4lowEngine
 		/// </summary>
 		virtual void Finalize() {};
 
+		/// ActorWorld管理下で初期化を一度だけ実行する。
+		void InitializeForWorld()
+		{
+			if (isInitialized_) return;
+			Initialize();
+			isInitialized_ = true;
+		}
+
+		/// ActorWorldから外れる際に終了処理を一度だけ実行する。
+		void FinalizeForWorld()
+		{
+			if (!isInitialized_) return;
+			Finalize();
+			isInitialized_ = false;
+		}
+
+		/// Componentのライフサイクル初期化が完了しているか返す。
+		bool IsInitialized() const { return isInitialized_; }
+
 	public: /// ---------- 所有者Actorの取得 / 設定 ---------- ///
 
 		/// <summary>
@@ -298,5 +317,8 @@ namespace Ken4lowEngine
 
 		// Draw実行順。小さい値ほど先に描画する
 		int drawOrder_ = 0;
+
+		// JSON再読込やPIE切替でInitializeとFinalizeが重複しないよう状態を保持する。
+		bool isInitialized_ = false;
 	};
 } // namespace Ken4lowEngine

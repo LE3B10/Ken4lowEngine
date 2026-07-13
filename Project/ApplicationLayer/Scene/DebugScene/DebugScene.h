@@ -3,15 +3,11 @@
 
 #include <ActorWorld.h>
 #include <Editor/ActorWorldEditorBridge.h>
-#include <LightComponent.h>
-#include <LightManager.h>
 #include <PhysicsWorld.h>
 #include <PhysicsDebugDraw.h>
 
-#include <algorithm>
-#include <cmath>
 #include <memory>
-#include <numbers>
+#include <string>
 #include <vector>
 
 namespace Ken4lowEngine
@@ -30,6 +26,7 @@ public:
 
 	void Initialize() override;
 	void Update() override;
+	void UpdateEditor(float deltaTime) override;
 
 	void BeginEditorPlay() override
 	{
@@ -50,34 +47,7 @@ public:
 
 	void PrepareShadowPass() override
 	{
-		std::vector<K4E::LightManager::PunctualLightGPU> componentLights;
-		for (const auto& actor : actorWorld_.GetActors())
-		{
-			if (!actor || actor->IsPendingDestroy() || !actor->IsActive()) continue;
-			for (const K4E::LightComponent* lightComponent : actor->GetComponents<K4E::LightComponent>())
-			{
-				if (!lightComponent || !lightComponent->IsActiveInHierarchy() || !lightComponent->IsEnabled() ||
-					lightComponent->GetLightType() == K4E::LightComponent::LightType::None) continue;
-				const K4E::Vector3& color = lightComponent->GetColor();
-				K4E::LightManager::PunctualLightGPU light{};
-				light.lightType = lightComponent->GetLightTypeValue();
-				light.color = { color.x, color.y, color.z, 1.0f };
-				light.intensity = lightComponent->GetIntensity();
-				light.position = lightComponent->GetWorldPosition();
-				light.radius = lightComponent->GetRange();
-				light.decay = lightComponent->GetDecay();
-				light.direction = lightComponent->CalculateDirection();
-				light.distance = lightComponent->GetRange();
-				const float outerAngle = std::clamp(lightComponent->GetOuterAngle(), 0.1f, 179.0f);
-				const float innerAngle = std::clamp(lightComponent->GetInnerAngle(), 0.0f, outerAngle);
-				light.cosAngle = std::cos(outerAngle * std::numbers::pi_v<float> / 180.0f);
-				light.cosFalloffStart = std::cos(innerAngle * std::numbers::pi_v<float> / 180.0f);
-				light.areaSize = lightComponent->GetAreaSize();
-				light.enabled = 1u;
-				componentLights.push_back(light);
-			}
-		}
-		K4E::LightManager::GetInstance()->SetLightComponentLights(componentLights);
+		actorWorld_.PrepareRenderState();
 	}
 
 	void Draw3DObjects() override;
@@ -88,6 +58,10 @@ public:
 
 private:
 	void UpdateDebug();
+	void ProcessActorWorldPhase1Requests();
+	void RunActorWorldPhase1Validation();
+	void DrawActorWorldPhase1ValidationImGui();
+	K4E::Actor* FindActorWorldPhase1Target() const;
 
 private:
 
@@ -97,4 +71,20 @@ private:
 	K4E::ActorWorld actorWorld_;
 	K4E::PhysicsWorld actorPhysicsWorld_;
 	K4E::PhysicsDebugDraw actorPhysicsDebugDraw_;
+
+	struct ActorWorldPhase1ValidationState
+	{
+		std::string targetActorName = "Phase1CharacterCandidate";
+		std::string jsonPath = "../Generated/Intermediate/ActorWorldPhase1Validation.json";
+		std::string lastMessage = "未検証";
+		bool lastSucceeded = false;
+		bool requestSpawn = false;
+		bool requestToggleActive = false;
+		bool requestSave = false;
+		bool requestReload = false;
+		bool requestSpawnFromJson = false;
+		bool requestDestroy = false;
+		bool requestValidation = true;
+		bool pendingDestroyCheck = false;
+	} actorWorldPhase1Validation_;
 };

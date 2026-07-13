@@ -91,23 +91,37 @@ namespace Ken4lowEngine
 
 	bool ActorJsonSerializer::SaveActorToFile(const Actor& actor, std::string_view filePath)
 	{
-		const std::filesystem::path path(filePath);
-		if (path.has_parent_path()) std::filesystem::create_directories(path.parent_path());
+		try
+		{
+			const std::filesystem::path path(filePath);
+			if (path.has_parent_path()) std::filesystem::create_directories(path.parent_path());
 
-		std::ofstream file(path);
-		if (!file.is_open()) return false;
-		file << SerializeActor(actor).dump(4);
-		return true;
+			std::ofstream file(path);
+			if (!file.is_open()) return false;
+			file << SerializeActor(actor).dump(4);
+			return file.good();
+		}
+		catch (...)
+		{
+			return false; // ファイルシステム例外をScene更新へ伝播させない。
+		}
 	}
 
 	bool ActorJsonSerializer::LoadActorFromFile(Actor& actor, std::string_view filePath)
 	{
-		std::ifstream file{ std::filesystem::path{ std::string(filePath) } };
-		if (!file.is_open()) return false;
+		try
+		{
+			std::ifstream file{ std::filesystem::path{ std::string(filePath) } };
+			if (!file.is_open()) return false;
 
-		nlohmann::json actorJson;
-		file >> actorJson;
-		return LoadActorFromJson(actor, actorJson);
+			nlohmann::json actorJson;
+			file >> actorJson;
+			return LoadActorFromJson(actor, actorJson);
+		}
+		catch (...)
+		{
+			return false; // JSON構文エラー時は既存Actorを変更せず失敗を返す。
+		}
 	}
 
 	bool ActorJsonSerializer::LoadActorFromJson(Actor& actor, const nlohmann::json& actorJson)
@@ -159,27 +173,48 @@ namespace Ken4lowEngine
 
 	std::unique_ptr<Actor> ActorJsonSerializer::CreateActorFromJson(std::string_view filePath, const ActorSpawnOptions& options)
 	{
-		std::ifstream file{ std::filesystem::path{ std::string(filePath) } };
-		if (!file.is_open()) return nullptr;
+		try
+		{
+			std::ifstream file{ std::filesystem::path{ std::string(filePath) } };
+			if (!file.is_open()) return nullptr;
 
-		nlohmann::json actorJson;
-		file >> actorJson;
-		return CreateActorFromJson(actorJson, options);
+			nlohmann::json actorJson;
+			file >> actorJson;
+			return CreateActorFromJson(actorJson, options);
+		}
+		catch (...)
+		{
+			return nullptr; // 不正JSONから半端なActorをWorldへ追加しない。
+		}
 	}
 
 	std::unique_ptr<Actor> ActorJsonSerializer::CreateActorFromJson(const nlohmann::json& actorJson, const ActorSpawnOptions& options)
 	{
-		if (!ValidateActorJson(actorJson) || !actorJson.contains("Class") || !actorJson["Class"].is_string()) return nullptr;
-
-		std::unique_ptr<Actor> actor = ActorFactory::CreateActor(actorJson["Class"].get<std::string>());
-		if (!actor || !LoadActorFromJson(*actor, actorJson)) return nullptr;
-
-		if (options.applySpawnOffset && actor->GetRootComponent())
+		std::unique_ptr<Actor> actor;
+		try
 		{
-			SceneComponent* root = actor->GetRootComponent();
-			root->SetLocalPosition(Vector3::Add(root->GetLocalPosition(), options.spawnOffset));
-			root->RefreshWorldTransform(); // Actor生成CommandのRedoでも同じSpawnOffsetを再現する。
+			if (!ValidateActorJson(actorJson) || !actorJson.contains("Class") || !actorJson["Class"].is_string()) return nullptr;
+
+			actor = ActorFactory::CreateActor(actorJson["Class"].get<std::string>());
+			if (!actor) return nullptr;
+			if (!LoadActorFromJson(*actor, actorJson))
+			{
+				actor->FinalizeForWorld();
+				return nullptr;
+			}
+
+			if (options.applySpawnOffset && actor->GetRootComponent())
+			{
+				SceneComponent* root = actor->GetRootComponent();
+				root->SetLocalPosition(Vector3::Add(root->GetLocalPosition(), options.spawnOffset));
+				root->RefreshWorldTransform(); // Actor生成CommandのRedoでも同じSpawnOffsetを再現する。
+			}
+			return actor;
 		}
-		return actor;
+		catch (...)
+		{
+			if (actor) actor->FinalizeForWorld();
+			return nullptr; // Component生成・初期化失敗時に不完全なActorを返さない。
+		}
 	}
 } // namespace Ken4lowEngine

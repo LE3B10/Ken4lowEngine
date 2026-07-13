@@ -31,16 +31,8 @@ namespace Ken4lowEngine
 			auto actor = std::make_unique<T>(std::forward<Args>(args)...);
 			actor->SetName(actor->GetClassTypeName()); // Actorの型名をデフォルトの名前として設定する。
 
-			auto& ref = *actor; // 登録後も生成したActorを呼び出し側で設定できるように参照を保持する。
-			actors_.push_back(std::move(actor));
-
-			if (isInitialized_)
-			{
-				ref.Initialize(); // 実行中にSpawnされたActorを即初期化する
-				RegisterPhysicsComponents(ref); // Collider/RigidbodyをPhysicsWorldへ自動登録する
-			}
-
-			return ref;
+			Actor* spawnedActor = AddActorToWorld(std::move(actor), true);
+			return *static_cast<T*>(spawnedActor); // 更新中の生成でも所有権はWorldへ移し、実体のアドレスは維持する。
 		}
 
 	public: /// ---------- メンバ関数 ---------- ///
@@ -54,6 +46,9 @@ namespace Ken4lowEngine
 		/// ActorWorldが所有する全Actorを更新する
 		/// </summary>
 		void Update(float deltaTime);
+
+		/// Editor停止中に遅延要求と表示用Componentだけを安全に更新する。
+		void UpdateEditor(float deltaTime);
 
 		/// <summary>
 		/// PhysicsWorld更新後に全Actorへ後処理を流す。
@@ -80,6 +75,9 @@ namespace Ken4lowEngine
 		/// </summary>
 		void DrawShadow();
 
+		/// Shadow Pass前にActor Component由来の描画状態を同期する。
+		void PrepareRenderState();
+
 		/// <summary>
 		/// ActorWorldが所有する全ActorのEditor表示を行う。
 		/// Phase 3以降はWorld Outliner / Detailsへ統合し、既定では旧ウィンドウを表示しない。
@@ -101,6 +99,8 @@ namespace Ken4lowEngine
 		/// </summary>
 		void SetSelectedEditorObject(Actor* actor, ActorComponent* component)
 		{
+			if (actor && !OwnsActor(actor)) actor = nullptr;
+			if (component && (!component->GetOwner() || !OwnsActor(component->GetOwner()))) component = nullptr;
 			selectedActor_ = actor;
 			selectedComponent_ = component;
 		}
@@ -137,6 +137,15 @@ namespace Ken4lowEngine
 		/// </summary>
 		Actor* SpawnActorFromJson(std::string_view filePath, const ActorSpawnOptions& options = {});
 
+		/// ActorをJSONへ保存する入口をActorWorldへ統一する。
+		bool SaveActorToJson(const Actor& actor, std::string_view filePath);
+
+		/// Actorの外部登録を解除してからJSONを安全に再読込する。
+		bool ReloadActorFromJson(Actor& actor, std::string_view filePath);
+
+		/// 所有Actorの削除を安全なフレーム終端へ予約する。
+		bool DestroyActor(Actor* actor);
+
 		/// <summary>Level JSON内へ埋め込まれたActor JSONからActorを生成する。</summary>
 		Actor* SpawnActorFromJsonData(const nlohmann::json& actorJson, const ActorSpawnOptions& options = {})
 		{
@@ -148,13 +157,7 @@ namespace Ken4lowEngine
 			}
 
 			Actor* spawnedActor = actor.get();
-			spawnedActor->SetName(MakeUniqueActorName(spawnedActor->GetName())); // 読み込み済みJSON専用の入口としてファイルパス版と明確に分離する。
-			actors_.push_back(std::move(actor));
-
-			if (isInitialized_)
-			{
-				RegisterPhysicsComponents(*spawnedActor); // Serializer初期化済みComponentを現在のPhysicsWorldへ登録する。
-			}
+			AddActorToWorld(std::move(actor), false); // SerializerがComponent初期化済みなのでActor固有Initializeは重ねない。
 
 			selectedActor_ = spawnedActor;
 			selectedComponent_ = nullptr;
@@ -182,11 +185,7 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// ActorWorldで使用するPhysicsWorldを設定する
 		/// </summary>
-		void SetPhysicsWorld(PhysicsWorld* physicsWorld)
-		{
-			physicsWorld_ = physicsWorld;  // ActorWorldは所有せず参照だけ保持する
-			SetupDefaultPhysicsSettings(); // PhysicsWorldの初期設定を行う
-		}
+		void SetPhysicsWorld(PhysicsWorld* physicsWorld);
 
 		/// <summary>
 		/// ActorWorld用physicsWorldの初期設定を行う
@@ -216,19 +215,9 @@ namespace Ken4lowEngine
 		void ProcessPendingActorReload();
 
 		/// <summary>
-		/// 指定ActorへJSONを読み込み、PhysicsWorld登録も安全に更新する。
-		/// </summary>
-		bool ReloadActorFromJson(Actor& actor, const std::string_view filePath);
-
-		/// <summary>
 		/// Actor JSON Spawn予約を次フレームの安全なタイミングで処理する
 		/// </summary>
 		void ProcessPendingActorSpawn();
-
-		/// <summary>
-		///	Actor削除予約を次フレームUpdateで実行する
-		/// </summary>
-		void ProcessPendingActorDelete();
 
 		/// <summary>
 		/// Actor Prefab JSONからSpawnするためのImGuiを描画する
@@ -280,10 +269,20 @@ namespace Ken4lowEngine
 		/// </summary>
 		bool IsValidActorPrefabJsonPath(const std::string& filePath) const;
 
-		/// <summary>
-		/// Component削除予約を次フレームの安全なタイミングで処理する
-		/// </summary>
-		void ProcessPendingComponentDelete();
+		/// 更新中に生成されたActorをフレーム終端でWorldへ追加する。
+		void ProcessPendingActorAdds();
+
+		/// Destroy予約済みActorを外部参照解除・Finalize後にまとめて破棄する。
+		void FlushPendingDestroyedActors();
+
+		/// ActorWorld内部に残る選択・遅延処理の参照を削除対象Actorから外す。
+		void ClearReferencesToActor(Actor& actor);
+
+		/// 指定Actorを現在のWorldが所有しているか確認する。
+		bool OwnsActor(const Actor* actor) const;
+
+		/// Actor所有権を即時または更新後キューへ追加する共通入口。
+		Actor* AddActorToWorld(std::unique_ptr<Actor> actor, bool initializeActor);
 
 		/// <summary>
 		/// 選択中Componentを削除する
@@ -299,6 +298,15 @@ namespace Ken4lowEngine
 
 		// ActorWorldがActorの寿命を管理する
 		std::vector<std::unique_ptr<Actor>> actors_;
+
+		struct PendingActorAdd
+		{
+			std::unique_ptr<Actor> actor;
+			bool initializeActor = true;
+		};
+
+		// Actor更新中のvector変更を避けるため、生成要求をフレーム終端まで所有する。
+		std::vector<PendingActorAdd> pendingActorAdds_;
 
 		std::string lastActorJsonSaveMessage_; // ActorWorldの最後のJSON保存メッセージを保持する
 
@@ -323,18 +331,6 @@ namespace Ken4lowEngine
 		// JSON生成予約中があるかどうか
 		bool hasPendingSpawnActor_ = false;
 
-		// Actor削除を次フレームUpdateで実行するための予約Actor
-		Actor* pendingDeleteActor_ = nullptr;
-
-		// Component削除を次フレームUpdateで実行するための予約Component
-		ActorComponent* pendingDeleteComponent_ = nullptr;
-
-		// Component削除予約中があるかどうか
-		bool hasPendingDeleteComponent_ = false;
-
-		// Actor削除予約中があるかどうか
-		bool hasPendingDeleteActor_ = false;
-
 		// Actor World上で選択中のActorComponent
 		ActorComponent* selectedComponent_ = nullptr;
 
@@ -349,6 +345,9 @@ namespace Ken4lowEngine
 
 		// ActorWorldが初期化済みかどうかのフラグ
 		bool isInitialized_ = false;
+
+		// Actor列挙中のSpawnを遅延キューへ振り分けるための更新中フラグ。
+		bool isUpdating_ = false;
 
 		Vector3 actorPrefabSpawnOffset_ = { 3.0f, 0.0f, 0.0f }; // Actor Prefab Spawn時の位置オフセット
 

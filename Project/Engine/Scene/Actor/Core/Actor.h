@@ -125,6 +125,9 @@ namespace Ken4lowEngine
 		/// </summary>
 		virtual void Initialize();
 
+		/// 派生Actorの初期化後にComponent初期化を必ず保証するActorWorld専用入口。
+		void InitializeForWorld();
+
 		/// <summary>
 		/// Actorが所有するComponentのみを初期化する
 		/// </summary>
@@ -134,6 +137,9 @@ namespace Ken4lowEngine
 		/// Actorが持つ全Componentを更新する
 		/// </summary>
 		virtual void Update(float deltaTime);
+
+		/// Editor停止中にゲームロジックを進めず、Componentの表示状態だけを同期する。
+		virtual void UpdateEditor(float deltaTime);
 
 		/// <summary>
 		/// PhysicsWorld更新後に全Componentへ後処理を流す。
@@ -174,6 +180,9 @@ namespace Ken4lowEngine
 		/// Actorが持つ全Componentの終了処理を行う
 		/// </summary>
 		virtual void Finalize();
+
+		/// 派生Actorの終了処理後もComponent参照解除を必ず保証するActorWorld専用入口。
+		void FinalizeForWorld();
 
 	public: /// ---------- JSONシリアライズ / デシリアライズ ---------- ///
 
@@ -380,6 +389,7 @@ namespace Ken4lowEngine
 
 		// PhysicsWorldへ登録済みかどうか
 		bool isPhysicsRegistered_ = false;
+
 	};
 
 }

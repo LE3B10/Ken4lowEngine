@@ -5,6 +5,30 @@
 
 namespace Ken4lowEngine
 {
+	void ActorWorld::SetPhysicsWorld(PhysicsWorld* physicsWorld)
+	{
+		if (physicsWorld_ == physicsWorld) return;
+
+		if (physicsWorld_)
+		{
+			for (auto& actor : actors_)
+			{
+				if (actor) UnregisterPhysicsComponents(*actor); // 旧Worldへ外部参照を残してから差し替えない。
+			}
+		}
+
+		physicsWorld_ = physicsWorld;
+		SetupDefaultPhysicsSettings();
+
+		if (physicsWorld_ && isInitialized_)
+		{
+			for (auto& actor : actors_)
+			{
+				if (actor) RegisterPhysicsComponents(*actor);
+			}
+		}
+	}
+
 	void ActorWorld::SetupDefaultPhysicsSettings()
 	{
 		if (!physicsWorld_)
@@ -26,19 +50,25 @@ namespace Ken4lowEngine
 
 	void ActorWorld::RegisterPhysicsComponents(Actor& actor)
 	{
-		if (!physicsWorld_ || actor.IsPhysicsRegistered() || !actor.IsActive())
+		if (!physicsWorld_ || !actor.IsActive() || actor.IsPendingDestroy())
 		{
-			return; // PhysicsWorldが無い、登録済み、または無効なActorの場合は何もしない
+			UnregisterPhysicsComponents(actor);
+			return;
 		}
 
 		auto colliders = actor.GetComponents<ColliderComponent>();
 		auto* rigidbody = actor.GetComponent<RigidbodyComponent>();
-		Rigidbody* physicsRigidbody = rigidbody ? rigidbody->GetRigidbody() : nullptr;
+		Rigidbody* physicsRigidbody = rigidbody && rigidbody->IsActiveInHierarchy() ? rigidbody->GetRigidbody() : nullptr;
+		bool hasRegisteredPhysics = false;
 
 		if (physicsRigidbody)
 		{
-			// ActorのRigidbodyをPhysicsWorldへ登録する
 			physicsWorld_->RegisterRigidbody(physicsRigidbody);
+			hasRegisteredPhysics = true;
+		}
+		else if (rigidbody && rigidbody->GetRigidbody())
+		{
+			physicsWorld_->UnregisterRigidbody(rigidbody->GetRigidbody()); // Component無効化を次の物理Step前に反映する。
 		}
 
 		for (ColliderComponent* collider : colliders)
@@ -48,23 +78,28 @@ namespace Ken4lowEngine
 				continue; // Colliderがnullptrなら登録しない
 			}
 
-			if (physicsRigidbody)
+			Collider* physicsCollider = collider->GetCollider();
+			if (!collider->IsActiveInHierarchy())
 			{
-				collider->GetCollider()->SetRigidbody(physicsRigidbody); // ColliderにRigidbodyを紐付ける
+				physicsWorld_->UnregisterCollider(physicsCollider);
+				physicsCollider->SetRigidbody(nullptr);
+				continue;
 			}
 
-			// ActorのColliderをPhysicsWorldへ登録する
-			physicsWorld_->RegisterCollider(collider->GetCollider());
+			physicsCollider->SetRigidbody(physicsRigidbody);
+			physicsWorld_->RegisterCollider(physicsCollider);
+			hasRegisteredPhysics = true;
 		}
 
-		actor.SetPhysicsRegistered(true); // 登録済みフラグを立てる
+		actor.SetPhysicsRegistered(hasRegisteredPhysics);
 	}
 
 	void ActorWorld::UnregisterPhysicsComponents(Actor& actor)
 	{
-		if (!physicsWorld_ || !actor.IsPhysicsRegistered())
+		if (!physicsWorld_)
 		{
-			return; // 未登録なら二重解除しない。
+			actor.SetPhysicsRegistered(false);
+			return;
 		}
 
 		auto colliders = actor.GetComponents<ColliderComponent>();
@@ -75,8 +110,8 @@ namespace Ken4lowEngine
 				continue; // Colliderがnullptrなら解除しない
 			}
 
-			// ActorのColliderをPhysicsWorldから登録解除する
 			physicsWorld_->UnregisterCollider(collider->GetCollider());
+			collider->GetCollider()->SetRigidbody(nullptr); // Rigidbody破棄後にColliderが古い参照を保持しない。
 		}
 
 		if (auto* rigidbody = actor.GetComponent<RigidbodyComponent>())
@@ -85,6 +120,6 @@ namespace Ken4lowEngine
 			physicsWorld_->UnregisterRigidbody(rigidbody->GetRigidbody());
 		}
 
-		actor.SetPhysicsRegistered(false); // 登録済みフラグを下ろす
+		actor.SetPhysicsRegistered(false);
 	}
 }

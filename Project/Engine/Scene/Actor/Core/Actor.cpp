@@ -16,12 +16,17 @@ namespace Ken4lowEngine
 		InitializeComponents();
 	}
 
+	void Actor::InitializeForWorld()
+	{
+		Initialize();
+		InitializeComponents(); // 派生側が基底呼び出しを忘れてもComponentの初期化を保証する。
+	}
+
 	void Actor::InitializeComponents()
 	{
 		for (auto& component : components_)
 		{
-			// 初期化処理は各Componentに移譲する
-			component->Initialize();
+			if (component) component->InitializeForWorld(); // JSON再読込後もComponentを二重初期化しない。
 		}
 	}
 
@@ -44,7 +49,7 @@ namespace Ken4lowEngine
 			updateComponents.push_back(component.get());
 		}
 
-		std::sort(updateComponents.begin(), updateComponents.end(),
+		std::stable_sort(updateComponents.begin(), updateComponents.end(),
 			[](const ActorComponent* a, const ActorComponent* b)
 			{
 				return a->GetUpdateOrder() < b->GetUpdateOrder(); // UpdateOrderの昇順でソートする
@@ -60,6 +65,25 @@ namespace Ken4lowEngine
 			// Actorは更新順だけ管理し、処理内容はComponent側に任せる
 			component->Update(deltaTime);
 		}
+	}
+
+	void Actor::UpdateEditor(float deltaTime)
+	{
+		if (!isActive_) return;
+
+		std::vector<ActorComponent*> updateComponents;
+		for (auto& component : components_)
+		{
+			if (component && component->IsActiveInHierarchy()) updateComponents.push_back(component.get());
+		}
+
+		std::stable_sort(updateComponents.begin(), updateComponents.end(),
+			[](const ActorComponent* lhs, const ActorComponent* rhs)
+			{
+				return lhs->GetUpdateOrder() < rhs->GetUpdateOrder();
+			});
+
+		for (ActorComponent* component : updateComponents) component->UpdateEditor(deltaTime);
 	}
 
 	void Actor::PostPhysicsUpdate(float deltaTime)
@@ -82,7 +106,7 @@ namespace Ken4lowEngine
 			updateComponents.push_back(component.get());
 		}
 
-		std::sort(updateComponents.begin(), updateComponents.end(),
+		std::stable_sort(updateComponents.begin(), updateComponents.end(),
 			[](const ActorComponent* a, const ActorComponent* b)
 			{
 				return a->GetUpdateOrder() < b->GetUpdateOrder(); // UpdateOrderの昇順でソートする
@@ -119,7 +143,7 @@ namespace Ken4lowEngine
 			drawComponents.push_back(component.get());
 		}
 
-		std::sort(drawComponents.begin(), drawComponents.end(),
+		std::stable_sort(drawComponents.begin(), drawComponents.end(),
 			[](const ActorComponent* a, const ActorComponent* b)
 			{
 				return a->GetDrawOrder() < b->GetDrawOrder(); // DrawOrderの昇順でソートする
@@ -155,7 +179,7 @@ namespace Ken4lowEngine
 			drawComponents.push_back(component.get());
 		}
 
-		std::sort(drawComponents.begin(), drawComponents.end(),
+		std::stable_sort(drawComponents.begin(), drawComponents.end(),
 			[](const ActorComponent* a, const ActorComponent* b)
 			{
 				return a->GetDrawOrder() < b->GetDrawOrder(); // DrawOrderの昇順でソートする
@@ -333,13 +357,48 @@ namespace Ken4lowEngine
 
 	void Actor::Finalize()
 	{
+		// Actorを跨ぐSceneComponent参照も含め、所有Componentを破棄する前に階層を解除する。
 		for (auto& component : components_)
 		{
-			// Component破棄前に明示的な終了処理を流す
-			component->Finalize();
+			SceneComponent* sceneComponent = dynamic_cast<SceneComponent*>(component.get());
+			if (!sceneComponent) continue;
+
+			const std::vector<SceneComponent*> children = sceneComponent->GetChildren();
+			for (SceneComponent* child : children)
+			{
+				if (!child) continue;
+				const bool belongsToAnotherActor = child->GetOwner() != this;
+				const Vector3 worldPosition = child->GetWorldPosition();
+				const Vector3 worldRotation = child->GetWorldRotation();
+				const Vector3 worldScale = child->GetWorldScale();
+				child->Detach();
+				if (belongsToAnotherActor)
+				{
+					child->SetLocalPosition(worldPosition);
+					child->SetLocalRotation(worldRotation);
+					child->SetLocalScale(worldScale);
+					child->RefreshWorldTransform(); // 親Actor削除後も子Actorの見た目位置を維持する。
+				}
+			}
+			sceneComponent->Detach();
+		}
+
+		for (auto& component : components_)
+		{
+			if (!component) continue;
+			component->FinalizeForWorld();
+			component->SetOwner(nullptr); // Component破棄時に所有Actorへの参照を残さない。
 		}
 
 		components_.clear(); // ActorがComponentの寿命を管理するため、ここで破棄する
+		rootComponent_ = nullptr;
+		isPhysicsRegistered_ = false;
+	}
+
+	void Actor::FinalizeForWorld()
+	{
+		Finalize();
+		if (!components_.empty()) Actor::Finalize(); // 派生側が基底呼び出しを忘れても所有参照を残さない。
 	}
 
 	void Actor::ToJson(nlohmann::json& outJson) const
@@ -397,17 +456,7 @@ namespace Ken4lowEngine
 
 	void Actor::ClearComponents()
 	{
-		for (auto& component : components_)
-		{
-			if (component)
-			{
-				component->Finalize(); // Component破棄前に明示的な終了処理を流す
-			}
-		}
-
-		components_.clear();		  // ActorがComponentの寿命を管理するため、ここで破棄する
-		rootComponent_ = nullptr;	  // RootComponentをリセットする
-		isPhysicsRegistered_ = false; // PhysicsWorldへの登録状態をリセットする
+		Actor::Finalize(); // JSON再読込では派生Actor全体を終了せず、Componentの参照解除だけを共通経路で行う。
 	}
 
 	bool Actor::RemoveComponent(ActorComponent* component)
@@ -466,7 +515,8 @@ namespace Ken4lowEngine
 		}
 
 		// Finalize直後にunique_ptrを破棄し、Component内部の所有リソースはRAIIで解放する。
-		(*removeIt)->Finalize();
+		(*removeIt)->FinalizeForWorld();
+		(*removeIt)->SetOwner(nullptr);
 		components_.erase(removeIt);
 		return true;
 	}

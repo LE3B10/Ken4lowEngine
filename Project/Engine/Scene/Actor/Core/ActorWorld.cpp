@@ -6,6 +6,12 @@
 #include "LightManager.h"
 #include "SceneComponent.h"
 
+#ifdef USE_IMGUI
+#include <Editor/EditorActorStateRegistry.h>
+#include <Editor/EditorContext.h>
+#endif
+
+#include <algorithm>
 #include <cstdio>
 
 namespace Ken4lowEngine
@@ -20,7 +26,7 @@ namespace Ken4lowEngine
 		for (auto& actor : actors_)
 		{
 			// 初期化処理は各Actorに委譲する
-			actor->Initialize();
+			actor->InitializeForWorld();
 
 			// Actor初期化後に生成されたCollider / RigidbodyをPhysicsWorldへ登録する
 			RegisterPhysicsComponents(*actor);
@@ -35,14 +41,13 @@ namespace Ken4lowEngine
 	{
 		ProcessPendingActorReload(); // JSON読込予約があれば次フレームの安全なタイミングで処理する
 		ProcessPendingActorSpawn();	 // JSON生成予約があれば次フレームの安全なタイミングで処理する
-		ProcessPendingActorDelete(); // Destroy予約があれば次フレームの安全なタイミングで処理する
-		ProcessPendingComponentDelete(); // Component削除予約があれば次フレームの安全なタイミングで処理する
 
+		isUpdating_ = true;
 		for (auto& actor : actors_)
 		{
-			if (!actor)
+			if (!actor || actor->IsPendingDestroy())
 			{
-				continue; // nullptrのActorは無視する
+				continue; // 削除予約済みActorは同じフレームで再更新しない。
 			}
 
 			if (!actor->IsActive())
@@ -50,35 +55,54 @@ namespace Ken4lowEngine
 				UnregisterPhysicsComponents(*actor); // 無効なActorは物理登録から外す
 				continue;
 			}
-
-			if (!actor->IsPhysicsRegistered())
-			{
-				RegisterPhysicsComponents(*actor); // 再有効化されたActorの物理登録を戻す
-			}
+			actor->InitializeComponents(); // 実行中に追加されたComponentをフレーム境界で初期化する。
+			RegisterPhysicsComponents(*actor); // ComponentのActive変更を含めてPhysics登録を同期する。
 
 			// ActorWorldは更新順だけ管理し、処理内容はActor/Component側に任せる
 			actor->Update(deltaTime);
+			actor->InitializeComponents(); // Update中に追加されたComponentもPhysics登録前に初期化する。
+			if (actor->IsPendingDestroy() || !actor->IsActive()) UnregisterPhysicsComponents(*actor);
+			else RegisterPhysicsComponents(*actor); // Update内のActive変更を直後のPhysics Stepへ反映する。
 
-			if (actor->IsPendingDestroy())
-			{
-				// Actor削除前にPhysicsWorldが持つ外部参照を解除する。
-				UnregisterPhysicsComponents(*actor);
-			}
 		}
+		isUpdating_ = false;
 
-		std::erase_if(actors_, [](const std::unique_ptr<Actor>& actor)
-			{
-				return actor->IsPendingDestroy(); // Destroy予約されたActorを更新後にまとめて削除する
-			});
+		FlushPendingDestroyedActors();
+		ProcessPendingActorAdds();
 
 		SyncLightComponentsToLightManager(); // ActorのLightComponentを描画用ライトへ反映する
+	}
+
+	void ActorWorld::UpdateEditor(float deltaTime)
+	{
+		ProcessPendingActorReload();
+		ProcessPendingActorSpawn();
+
+		isUpdating_ = true;
+		for (auto& actor : actors_)
+		{
+			if (!actor || actor->IsPendingDestroy()) continue;
+			if (!actor->IsActive())
+			{
+				UnregisterPhysicsComponents(*actor);
+				continue;
+			}
+			actor->InitializeComponents();
+			RegisterPhysicsComponents(*actor); // Edit中のActive変更も物理デバッグ登録へ反映する。
+			actor->UpdateEditor(deltaTime);
+		}
+		isUpdating_ = false;
+
+		FlushPendingDestroyedActors();
+		ProcessPendingActorAdds();
+		SyncLightComponentsToLightManager();
 	}
 
 	void ActorWorld::PostPhysicsUpdate(float deltaTime)
 	{
 		for (auto& actor : actors_)
 		{
-			if (!actor || !actor->IsActive())
+			if (!actor || actor->IsPendingDestroy() || !actor->IsActive())
 			{
 				continue; // 無効なActorは物理後更新対象から外す
 			}
@@ -92,17 +116,35 @@ namespace Ken4lowEngine
 
 	void ActorWorld::Finalize()
 	{
+		isUpdating_ = false;
+		selectedActor_ = nullptr;
+		selectedComponent_ = nullptr;
+		pendingReloadActor_ = nullptr;
+		hasPendingReloadActor_ = false;
+		hasPendingSpawnActor_ = false;
+		pendingReloadFilePath_.clear();
+		pendingSpawnFilePath_.clear();
+
 		for (auto& actor : actors_)
 		{
 			// Actor破棄前にPhysicsWorldが持つ外部参照を解除する
 			UnregisterPhysicsComponents(*actor);
 
 			// Actor破棄前にComponent側のFinalizeまで流す
-			actor->Finalize();
+			actor->FinalizeForWorld();
 		}
 
 		actors_.clear(); // Finalize後にActorを破棄し、古い状態が残らないようにする
+		for (PendingActorAdd& pending : pendingActorAdds_)
+		{
+			if (pending.actor) pending.actor->FinalizeForWorld();
+		}
+		pendingActorAdds_.clear();
 		LightManager::GetInstance()->SetLightComponentLights({}); // ActorWorld破棄時にComponent由来ライトを解除する
+#ifdef USE_IMGUI
+		EditorActorStateRegistry::GetInstance()->Clear();
+		EditorContext::GetInstance()->GetSelection().Clear();
+#endif
 
 		isInitialized_ = false; // 再Initialize時にSpawn済みActorを通常初期化できるように戻す
 	}
@@ -183,9 +225,6 @@ namespace Ken4lowEngine
 
 		Actor* spawnedActor = actor.get(); // Spawn後も呼び出し側が生成したActorを扱えるようにポインタを保持しておく
 
-		// SpawnしたActor名が既存Actorと被らないようにする
-		spawnedActor->SetName(MakeUniqueActorName(spawnedActor->GetName()));
-
 		for (CameraComponent* cameraComponent : spawnedActor->GetComponents<CameraComponent>())
 		{
 			if (!cameraComponent)
@@ -196,18 +235,26 @@ namespace Ken4lowEngine
 			cameraComponent->SetAutoRegisterMainCamera(false); // SpawnしたActorのCameraComponentをMainCameraとして登録する
 		}
 
-		actors_.push_back(std::move(actor)); // ActorWorldがActorの寿命を管理するため、所有権を移動する
-
-		if (isInitialized_)
-		{
-			RegisterPhysicsComponents(*spawnedActor); // Collider/RigidbodyをPhysicsWorldへ自動登録する
-		}
+		AddActorToWorld(std::move(actor), false); // JSON生成済みComponentはSerializer側で初期化されている。
 
 		selectedActor_ = spawnedActor; // Spawn後は自動的に生成したActorを選択状態にする
 		selectedComponent_ = nullptr; // Spawn後はComponent選択を解除する
 
 		lastActorJsonSaveMessage_ = "Spawned : " + std::string(filePath); // Spawn成功メッセージを更新する
 		return spawnedActor;
+	}
+
+	bool ActorWorld::SaveActorToJson(const Actor& actor, std::string_view filePath)
+	{
+		if (!OwnsActor(&actor) || actor.IsPendingDestroy()) return false;
+		return ActorJsonSerializer::SaveActorToFile(actor, filePath);
+	}
+
+	bool ActorWorld::DestroyActor(Actor* actor)
+	{
+		if (!OwnsActor(actor) || !actor || actor->IsPendingDestroy()) return false;
+		actor->Destroy();
+		return true;
 	}
 
 	bool ActorWorld::GetSelectedFocusPosition(Vector3& outPosition) const
@@ -245,9 +292,13 @@ namespace Ken4lowEngine
 
 	void ActorWorld::ProcessPendingActorReload()
 	{
-		if (!hasPendingReloadActor_ || !pendingReloadActor_)
+		if (!hasPendingReloadActor_) return;
+		if (!pendingReloadActor_ || !OwnsActor(pendingReloadActor_))
 		{
-			return; // JSON読込予約が無い場合は何もしない
+			hasPendingReloadActor_ = false;
+			pendingReloadActor_ = nullptr;
+			pendingReloadFilePath_.clear();
+			return; // 削除済みActorへの遅延参照は次フレームへ持ち越さない。
 		}
 
 		Actor* reloadActor = pendingReloadActor_;
@@ -268,13 +319,28 @@ namespace Ken4lowEngine
 		selectedActor_ = reloadActor; // 読み込み後もActorを選択状態に戻す
 	}
 
-	bool ActorWorld::ReloadActorFromJson(Actor& actor, const std::string_view filePath)
+	bool ActorWorld::ReloadActorFromJson(Actor& actor, std::string_view filePath)
 	{
+		if (!OwnsActor(&actor) || actor.IsPendingDestroy()) return false;
+		if (selectedComponent_ && selectedComponent_->GetOwner() == &actor) selectedComponent_ = nullptr;
+#ifdef USE_IMGUI
+		EditorContext::GetInstance()->GetSelection().Clear(); // 再生成されるComponentへの編集コールバックを先に破棄する。
+#endif
+		const nlohmann::json backup = ActorJsonSerializer::SerializeActor(actor);
 		UnregisterPhysicsComponents(actor); // JSON読み込み前にPhysicsWorld登録を解除する
 
-		const bool succeeded = ActorJsonSerializer::LoadActorFromFile(actor, filePath);
+		bool succeeded = false;
+		try
+		{
+			succeeded = ActorJsonSerializer::LoadActorFromFile(actor, filePath);
+		}
+		catch (...)
+		{
+			succeeded = false; // 壊れたJSONの例外をScene更新まで伝播させず、直前状態へ戻す。
+		}
 		if (!succeeded)
 		{
+			ActorJsonSerializer::LoadActorFromJson(actor, backup); // 読込途中で構成が変わっても直前の完全な状態を復元する。
 			RegisterPhysicsComponents(actor); // JSON読み込みに失敗した場合はPhysicsWorld登録を元に戻す
 			return false; // JSON読み込みに失敗した場合はfalseを返す
 		}
@@ -300,39 +366,72 @@ namespace Ken4lowEngine
 		SpawnActorFromJson(spawnFilePath, spawnOptions); // JSONからActorを生成してActorWorldに追加する
 	}
 
-	void ActorWorld::ProcessPendingActorDelete()
+	Actor* ActorWorld::AddActorToWorld(std::unique_ptr<Actor> actor, bool initializeActor)
 	{
-		if (!hasPendingDeleteActor_ || !pendingDeleteActor_)
+		if (!actor) return nullptr;
+		Actor* spawnedActor = actor.get();
+		spawnedActor->SetName(MakeUniqueActorName(spawnedActor->GetName())); // 全生成経路でActor名の一意性を保証する。
+		if (isUpdating_)
 		{
-			return; // Destroy予約が無い場合は何もしない
+			pendingActorAdds_.push_back({ std::move(actor), initializeActor });
+			return spawnedActor;
 		}
 
-		Actor* deletedActor = pendingDeleteActor_;
+		actors_.push_back(std::move(actor));
+		if (isInitialized_ && initializeActor) spawnedActor->InitializeForWorld();
+		if (isInitialized_) RegisterPhysicsComponents(*spawnedActor);
+		return spawnedActor;
+	}
 
-		hasPendingDeleteActor_ = false; // 次フレームで再度処理されないようにフラグを下ろす
-		pendingDeleteActor_ = nullptr; // 次フレームで再度処理されないようにポインタをクリアする
-
-		const std::string deletedActorName = deletedActor->GetName();
-
-		if (selectedActor_ == deletedActor)
+	void ActorWorld::ProcessPendingActorAdds()
+	{
+		if (pendingActorAdds_.empty()) return;
+		std::vector<PendingActorAdd> pendingAdds = std::move(pendingActorAdds_);
+		pendingActorAdds_.clear();
+		for (PendingActorAdd& pending : pendingAdds)
 		{
-			selectedActor_ = nullptr; // Destroy対象が選択中Actorなら選択解除する
+			AddActorToWorld(std::move(pending.actor), pending.initializeActor);
 		}
+	}
 
-		if (selectedComponent_ && selectedComponent_->GetOwner() == deletedActor)
+	bool ActorWorld::OwnsActor(const Actor* actor) const
+	{
+		if (!actor) return false;
+		const bool owned = std::any_of(actors_.begin(), actors_.end(),
+			[actor](const std::unique_ptr<Actor>& candidate) { return candidate.get() == actor; });
+		if (owned) return true;
+		return std::any_of(pendingActorAdds_.begin(), pendingActorAdds_.end(),
+			[actor](const PendingActorAdd& candidate) { return candidate.actor.get() == actor; });
+	}
+
+	void ActorWorld::ClearReferencesToActor(Actor& actor)
+	{
+		if (selectedActor_ == &actor) selectedActor_ = nullptr;
+		if (selectedComponent_ && selectedComponent_->GetOwner() == &actor) selectedComponent_ = nullptr;
+		if (pendingReloadActor_ == &actor)
 		{
-			selectedComponent_ = nullptr; // Destroy対象のActorが所有するComponentが選択中なら選択解除する
+			pendingReloadActor_ = nullptr;
+			hasPendingReloadActor_ = false;
+			pendingReloadFilePath_.clear();
 		}
+#ifdef USE_IMGUI
+		EditorActorStateRegistry::GetInstance()->Remove(&actor);
+		EditorContext::GetInstance()->GetSelection().Clear(); // EditorObjectInfoが保持する編集コールバックを削除Actorから切り離す。
+#endif
+	}
 
-		UnregisterPhysicsComponents(*deletedActor); // Destroy前にPhysicsWorld登録を解除する
-		deletedActor->Finalize(); // Destroy前にFinalizeを流す
-
-		std::erase_if(actors_, [deletedActor](const std::unique_ptr<Actor>& actor)
+	void ActorWorld::FlushPendingDestroyedActors()
+	{
+		std::erase_if(actors_, [this](const std::unique_ptr<Actor>& actor)
 			{
-				return actor.get() == deletedActor; // Destroy対象のActorをActorWorldから削除する
+				if (!actor || !actor->IsPendingDestroy()) return false;
+				const std::string actorName = actor->GetName();
+				ClearReferencesToActor(*actor);
+				UnregisterPhysicsComponents(*actor);
+				actor->FinalizeForWorld();
+				lastActorJsonSaveMessage_ = "Destroyed : " + actorName;
+				return true;
 			});
-
-		lastActorJsonSaveMessage_ = "Destroyed : " + deletedActorName; // Destroy成功メッセージを更新する
 	}
 
 	std::string ActorWorld::MakeUniqueComponentName(const Actor& actor, const std::string& baseName) const
@@ -379,6 +478,10 @@ namespace Ken4lowEngine
 				break; // 同名のActorが存在する場合はループを抜ける
 			}
 		}
+		for (const PendingActorAdd& pending : pendingActorAdds_)
+		{
+			if (pending.actor && pending.actor->GetName() == safeBaseName) existsSameName = true;
+		}
 
 		if (!existsSameName)
 		{
@@ -405,6 +508,14 @@ namespace Ken4lowEngine
 				{
 					exsits = true;
 					break; // 同名のActorが存在する場合はループを抜ける
+				}
+			}
+			for (const PendingActorAdd& pending : pendingActorAdds_)
+			{
+				if (pending.actor && pending.actor->GetName() == candidateName)
+				{
+					exsits = true;
+					break;
 				}
 			}
 
