@@ -8,11 +8,11 @@
 
 namespace Ken4lowEngine
 {
-	/// CharacterActorから移動計算を分離し、Root Transformへ速度を反映する基本Movement Component。
+	/// CharacterActorから移動計算を分離し、Root TransformまたはRigidbodyへ移動要求を反映する基本Movement Component。
 	class CharacterMovementComponent : public ActorComponent
 	{
 	public:
-		/// Play中だけ現在速度をRoot Transformへ反映する。
+		/// Play中だけ現在の目標速度をRoot TransformまたはRigidbody Motorへ反映する。
 		void Update(float deltaTime) override;
 
 		/// Character用移動設定をDetails上で編集・確認する。
@@ -27,20 +27,29 @@ namespace Ken4lowEngine
 		/// Actor JSONから移動設定を復元する。
 		void FromJson(const nlohmann::json& inJson) override;
 
-		/// Root Transformへ反映する移動速度を設定する。
+		/// Root TransformまたはRigidbody Motorが目指す速度を設定する。
 		virtual void SetVelocity(const Vector3& velocity);
 
-		/// 現在速度を0へ戻す。
+		/// 目標速度を0へ戻す。
 		virtual void Stop() { velocity_ = {}; }
 
-		/// Actorを持たない移行Adapterでも同じ速度積分を使えるよう、1フレームの移動量を返す。
+		/// Actorを持たない経路でも同じ速度積分を使えるよう、1フレームの移動量を返す。
 		Vector3 CalculateDisplacement(float deltaTime) const;
 
 		/// Character共通の+Z前方規約でRootを指定XZ方向へ滑らかに旋回させる。
 		bool FaceDirectionXZ(const Vector3& direction, float rotateSpeed, float deltaTime);
 
-		/// Root Transformへ反映する現在速度を返す。
+		/// 現在の目標速度を返す。
 		virtual const Vector3& GetVelocity() const { return velocity_; }
+
+		/// Rigidbody Characterが目標速度へ近づくために使える最大駆動力を設定する。
+		void SetMaxDriveForce(float force);
+
+		/// 入力を止めた時に水平速度を落とすための最大制動力を設定する。
+		void SetMaxBrakingForce(float force);
+
+		float GetMaxDriveForce() const { return maxDriveForce_; }
+		float GetMaxBrakingForce() const { return maxBrakingForce_; }
 
 		/// Componentの移動反映を切り替える。
 		void SetMovementEnabled(bool enabled) { movementEnabled_ = enabled; }
@@ -49,7 +58,7 @@ namespace Ken4lowEngine
 		bool IsMovementEnabled() const { return movementEnabled_; }
 
 	protected:
-		/// 派生Movement Componentが衝突解決などを追加できる移動適用点。
+		/// Rigidbodyを持たないCharacterへRoot Transform移動を適用する。
 		virtual void ApplyMovement(float deltaTime);
 
 	private:
@@ -57,7 +66,9 @@ namespace Ken4lowEngine
 		std::vector<ComponentProperty> CreateProperties();
 
 	private:
-		Vector3 velocity_{};
+		Vector3 velocity_{}; // Rigidbody使用時は現在速度ではなくMotorの目標速度を保持する。
+		float maxDriveForce_ = 80.0f;
+		float maxBrakingForce_ = 120.0f;
 		bool movementEnabled_ = true;
 	};
 } // namespace Ken4lowEngine
