@@ -12,6 +12,7 @@ void TestActor::Initialize()
 {
 	const bool hadSavedComposition = !GetComponents().empty();
 	Ken4lowEngine::PlayerActor::Initialize();
+	wasControllingPlayer_ = false;
 
 	if (!hadSavedComposition)
 	{
@@ -36,9 +37,14 @@ void TestActor::Update(float deltaTime)
 		if (input->PushKey(DIK_W)) moveZ += 1.0f;
 		playerInput->RequestMove(moveX, moveZ);
 
-		const float yawDelta = static_cast<float>(input->GetMouseMoveX()) * kMouseLookSensitivity;
-		const float pitchDelta = static_cast<float>(-input->GetMouseMoveY()) * kMouseLookSensitivity;
-		if (yawDelta != 0.0f || pitchDelta != 0.0f) playerInput->RequestLook(yawDelta, pitchDelta);
+		// キャプチャ開始直後はOSカーソルを中央へ移動した差分を視点回転として扱わない。
+		if (wasControllingPlayer_)
+		{
+			const float yawDelta = static_cast<float>(input->GetMouseMoveX()) * kMouseLookSensitivity;
+			const float pitchDelta = static_cast<float>(-input->GetMouseMoveY()) * kMouseLookSensitivity;
+			if (yawDelta != 0.0f || pitchDelta != 0.0f) playerInput->RequestLook(yawDelta, pitchDelta);
+		}
+		wasControllingPlayer_ = true;
 
 		if (input->TriggerKey(DIK_SPACE)) playerInput->RequestJump();
 		if (input->PushMouse(0)) playerInput->RequestFire();
@@ -49,10 +55,28 @@ void TestActor::Update(float deltaTime)
 		if (input->TriggerKey(DIK_4)) playerInput->RequestInventorySlot(3);
 		if (input->TriggerKey(DIK_5)) playerInput->RequestInventorySlot(4);
 	}
-	else if (playerInput)
+	else
 	{
-		playerInput->RequestMove(0.0f, 0.0f); // Editor操作やDebugCamera中は以前の移動要求を残さない。
+		wasControllingPlayer_ = false;
+		if (playerInput)
+		{
+			playerInput->RequestMove(0.0f, 0.0f); // Editor操作やDebugCamera中は以前の移動要求を残さない。
+		}
 	}
 
 	Ken4lowEngine::PlayerActor::Update(deltaTime);
+}
+
+void TestActor::PostPhysicsUpdate(float deltaTime)
+{
+	Ken4lowEngine::PlayerActor::PostPhysicsUpdate(deltaTime);
+
+	// Collider補正後のPlayer Root位置を反映した後で、Player Cameraをそのフレーム最後のMain Camera状態へ確定する。
+	if (!Ken4lowEngine::CameraManager::GetInstance()->IsUsingDebugCamera())
+	{
+		if (Ken4lowEngine::PlayerCameraComponent* camera = GetPlayerCameraComponent())
+		{
+			camera->SyncToMainCameraNow();
+		}
+	}
 }
