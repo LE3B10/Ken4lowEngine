@@ -2,6 +2,7 @@
 
 #include <ActorFactory.h>
 #include <ComponentFactory.h>
+#include <SceneComponent.h>
 
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyActor.h"
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyAIComponent.h"
@@ -21,7 +22,7 @@ using namespace Ken4lowEngine;
 
 namespace
 {
-	/// ApplicationLayer専用ComponentをEditor追加とActor JSON復元へ登録する情報を生成する。
+	/// ApplicationLayer専用ActorComponentをEditor追加とActor JSON復元へ登録する情報を生成する。
 	template<class T>
 	ComponentFactory::ComponentTypeInfo MakeApplicationComponentTypeInfo(const char* className, const char* displayName, const char* category, const char* description)
 	{
@@ -35,6 +36,28 @@ namespace
 		typeInfo.createFunc = [](Actor* owner) -> ActorComponent*
 		{
 			return owner ? &owner->AddComponent<T>() : nullptr;
+		};
+		return typeInfo;
+	}
+
+	/// ApplicationLayer専用SceneComponentを子ComponentとRootComponentの両経路から復元できる情報を生成する。
+	template<class T>
+	ComponentFactory::ComponentTypeInfo MakeApplicationSceneComponentTypeInfo(const char* className, const char* displayName, const char* category, const char* description)
+	{
+		ComponentFactory::ComponentTypeInfo typeInfo{};
+		typeInfo.className = className;
+		typeInfo.displayName = displayName;
+		typeInfo.category = category;
+		typeInfo.description = description;
+		typeInfo.allowMultiple = false;
+		typeInfo.canBeRoot = true;
+		typeInfo.createFunc = [](Actor* owner) -> ActorComponent*
+		{
+			return owner ? &owner->AddComponent<T>() : nullptr;
+		};
+		typeInfo.createRootFunc = [](Actor* owner) -> SceneComponent*
+		{
+			return owner ? &owner->CreateRootComponent<T>() : nullptr;
 		};
 		return typeInfo;
 	}
@@ -62,5 +85,5 @@ void RegisterDebugActors()
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerMovementComponent>("PlayerMovementComponent", "プレイヤー移動", "プレイヤー", "移動入力を速度へ変換し、共通Character移動へ委譲します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<WeaponComponent>("WeaponComponent", "武器", "プレイヤー", "射撃・リロード要求と弾薬状態を管理します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<InventoryComponent>("InventoryComponent", "Inventory", "プレイヤー", "武器スロットと選択中の装備を管理します。"));
-	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerCameraComponent>("PlayerCameraComponent", "プレイヤーカメラ", "プレイヤー", "視点要求を角度へ反映し、共通CameraComponentへ同期します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationSceneComponentTypeInfo<PlayerCameraComponent>("PlayerCameraComponent", "プレイヤーカメラ", "プレイヤー", "視点要求を角度へ反映し、共通CameraComponentへ同期します。"));
 }
