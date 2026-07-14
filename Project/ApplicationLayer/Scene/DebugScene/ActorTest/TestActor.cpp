@@ -24,7 +24,15 @@ void TestActor::Update(float deltaTime)
 {
 	auto* input = Ken4lowEngine::Input::GetInstance();
 	auto* playerInput = GetPlayerInputComponent();
-	const bool useDebugCamera = Ken4lowEngine::CameraManager::GetInstance()->IsUsingDebugCamera();
+	auto* cameraManager = Ken4lowEngine::CameraManager::GetInstance();
+
+	// PIEでゲーム入力を取得している間は、作業用DebugCameraではなくPlayerのゲームCameraを必ず描画に使う。
+	if (input && input->IsGameInputEnabled() && cameraManager->IsUsingDebugCamera())
+	{
+		cameraManager->SetUseDebugCamera(false);
+	}
+
+	const bool useDebugCamera = cameraManager->IsUsingDebugCamera();
 	const bool canControlPlayer = input && playerInput && input->IsGameInputEnabled() && !useDebugCamera;
 
 	if (canControlPlayer)
