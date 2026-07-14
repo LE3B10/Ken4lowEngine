@@ -13,7 +13,6 @@
 #include <Scene/Actor/Character/CharacterHealthComponent.h>
 #include <Scene/Actor/Character/CharacterMovementComponent.h>
 #include <Scene/Actor/Character/HumanoidVisualComponent.h>
-#include <SceneComponent.h>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -22,28 +21,18 @@
 namespace
 {
 	const K4E::Vector3 kBossPosition{ 0.0f, 3.0f, 18.0f };
-	const K4E::Vector3 kBossTargetPosition{ 0.0f, 2.0f, 7.0f };
 }
 
 void BossMigrationValidation::Initialize(K4E::ActorWorld& actorWorld)
 {
 	actorWorld_ = &actorWorld;
-	target_ = &actorWorld_->SpawnActor<K4E::CharacterActor>();
-	target_->SetName(targetName_);
-	target_->SetLayer("BossValidation");
-	if (K4E::SceneComponent* root = target_->GetRootComponent())
-	{
-		root->SetLocalPosition(kBossTargetPosition);
-		root->RefreshWorldTransform();
-	}
-	if (K4E::CharacterHealthComponent* health = target_->GetHealthComponent()) health->ResetHealth(10000.0f);
 
 	boss_ = &actorWorld_->SpawnActor<K4E::BossActor>();
 	boss_->SetName(bossName_);
 	boss_->SetLayer("BossValidation");
 	boss_->AddTag("Boss");
-	boss_->SetTargetActor(target_);
 	boss_->ResetForValidation(kBossPosition);
+
 	RefreshActorReferencesAndBindings();
 }
 
@@ -62,7 +51,7 @@ void BossMigrationValidation::UpdateEditor()
 void BossMigrationValidation::DrawImGui()
 {
 #ifdef USE_IMGUI
-	if (!ImGui::Begin("ボス Component 移行検証"))
+	if (!ImGui::Begin("ボス Player Target 検証"))
 	{
 		ImGui::End();
 		return;
@@ -80,6 +69,7 @@ void BossMigrationValidation::DrawImGui()
 	const auto* presentation = boss_ ? boss_->GetBossPresentationComponent() : nullptr;
 	const bool structureReady = boss_ && health && movement && collider && animation && visual && brain && attack && phase && weakPoint && presentation;
 
+	ImGui::Text("Target: %s", target_ ? target_->GetName().c_str() : "なし");
 	ImGui::Text("BossActor構成: %s", structureReady ? "OK" : "不足");
 	ImGui::Text("HP: %.0f / %.0f / Phase %d", health ? health->GetCurrentHealth() : 0.0f, health ? health->GetMaxHealth() : 0.0f, phase ? phase->GetCurrentPhase() : 0);
 	ImGui::Text("Brain: %s / Attack: %s", brain ? brain->GetStateName().c_str() : "None", attack ? attack->GetLastSelectedAttackId().c_str() : "None");
@@ -97,7 +87,7 @@ void BossMigrationValidation::DrawImGui()
 	if (ImGui::Button("Boss JSON保存")) requestSave_ = true;
 	ImGui::SameLine();
 	if (ImGui::Button("Boss JSON再読込")) requestReload_ = true;
-	ImGui::TextUnformatted("Headは弱点Componentの部位ID参照で2倍、Bodyは通常倍率として共通Healthへ適用されます。");
+	ImGui::TextDisabled("専用Target Dummyは削除済みで、BossActorはDebugPlayerだけを追跡・攻撃します。");
 	ImGui::End();
 #endif
 }
@@ -117,9 +107,21 @@ void BossMigrationValidation::RefreshActorReferencesAndBindings()
 		target_ = nullptr;
 		return;
 	}
+
 	boss_ = dynamic_cast<K4E::BossActor*>(actorWorld_->FindActorByName(bossName_));
 	target_ = dynamic_cast<K4E::CharacterActor*>(actorWorld_->FindActorByName(targetName_));
-	if (boss_) boss_->SetTargetActor(target_); // RuntimeポインタはJSON外なのでWorld複製後に張り直す。
+	if (!boss_)
+	{
+		lastSucceeded_ = false;
+		lastMessage_ = "BossActorが見つかりません。";
+		return;
+	}
+
+	boss_->SetTargetActor(target_); // PIE複製後も現在WorldのDebugPlayerへ非保存参照を張り直す。
+	lastSucceeded_ = target_ != nullptr;
+	lastMessage_ = lastSucceeded_
+		? "BossActorはDebugPlayerをTargetとして追跡・攻撃しています。"
+		: "DebugPlayerが見つからないためTargetを解除しています。";
 }
 
 void BossMigrationValidation::ProcessRequests()
@@ -142,8 +144,7 @@ void BossMigrationValidation::ProcessRequests()
 	{
 		requestReset_ = false;
 		if (boss_) boss_->ResetForValidation(kBossPosition);
-		lastSucceeded_ = boss_ != nullptr;
-		lastMessage_ = lastSucceeded_ ? "BossのHP・Phase・攻撃・演出を初期化しました。" : "Bossが見つかりません。";
+		RefreshActorReferencesAndBindings();
 	}
 	if (requestSave_)
 	{
