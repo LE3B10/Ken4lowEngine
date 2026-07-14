@@ -42,14 +42,23 @@ namespace Ken4lowEngine
 			visual->SetDrawOrder(0);
 			visual->SetCastShadowEnabled(true);
 			if (SceneComponent* root = GetRootComponent()) visual->AttachTo(root);
-			visual->InitializeForWorld(); // 直接InitializeされるGamePlayWorld経路でも部位を即時利用できるようにする。
+			visual->InitializeForWorld();
+			SyncRootToGameplayBody(); // 初期化直後から旧GameplayがBodyをワールドTransformとして参照できるようにする。
 		}
 
-		/// 旧GameplayがBody Transformへ書いた移動結果をActor Rootへ集約してからComponent更新を行う。
+		/// 旧GameplayがBody Transformへ書いた結果をRootへ集約し、Component更新後に同じBody参照へワールド値を戻す。
 		void Update(float deltaTime) override
 		{
 			SyncGameplayTransformToRoot();
 			CharacterActor::Update(deltaTime);
+			SyncRootToGameplayBody();
+		}
+
+		/// Physics補正後もRootの最終位置を旧GameplayのBody参照へ戻す。
+		void PostPhysicsUpdate(float deltaTime) override
+		{
+			CharacterActor::PostPhysicsUpdate(deltaTime);
+			SyncRootToGameplayBody();
 		}
 
 		std::string GetClassTypeName() const override { return "HumanoidCharacterActor"; }
@@ -90,7 +99,7 @@ namespace Ken4lowEngine
 				root->SetLocalPosition(position);
 				root->RefreshWorldTransform();
 			}
-			Collider::SetCenterPosition(position); // 未移行の問い合わせAPIも同じ位置を返すよう値だけ同期する。
+			Collider::SetCenterPosition(position);
 		}
 
 		Vector3 GetOBBHalfSize() const override
@@ -177,13 +186,28 @@ namespace Ken4lowEngine
 			const Vector3 localBodyRotation = bodyDefinition ? bodyDefinition->localRotation : Vector3{};
 			const Vector3 localBodyScale = bodyDefinition ? bodyDefinition->localScale : Vector3{ 1.0f, 1.0f, 1.0f };
 
-			// 旧Player/BossがBodyへ書いたワールド相当の移動・YawをRootへ移し、部位側は定義ローカル姿勢へ戻す。
 			root->SetLocalPosition(body_.transform.translate_ - localBodyPosition);
 			root->SetLocalRotation(body_.transform.rotate_ - localBodyRotation);
+			root->SetLocalScale(body_.transform.scale_);
 			root->RefreshWorldTransform();
+
+			// HumanoidVisualComponentが描画行列を作る間だけBodyを定義ローカル姿勢へ戻す。
 			body_.transform.translate_ = localBodyPosition;
 			body_.transform.rotate_ = localBodyRotation;
 			body_.transform.scale_ = localBodyScale;
+		}
+
+		void SyncRootToGameplayBody()
+		{
+			const SceneComponent* root = GetRootComponent();
+			if (!root || body_.id.empty()) return;
+			body_.transform.translate_ = root->GetWorldPosition();
+			body_.transform.rotate_ = root->GetWorldRotation();
+			body_.transform.scale_ = root->GetWorldScale();
+			body_.transform.worldTranslate_ = root->GetWorldPosition();
+			body_.transform.worldRotate_ = root->GetWorldRotation();
+			body_.transform.worldScale_ = root->GetWorldScale();
+			Collider::SetCenterPosition(root->GetWorldPosition());
 		}
 
 		PartIndices partIndices_{};
