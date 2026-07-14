@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CharacterActor.h"
+#include "CharacterColliderComponent.h"
 #include "HumanoidVisualComponent.h"
 #include <Collider.h>
 
