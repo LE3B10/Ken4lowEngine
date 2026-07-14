@@ -1,0 +1,367 @@
+{
+    "Active": true,
+    "Class": "BossActor",
+    "Components": [
+        {
+            "Active": true,
+            "Class": "SceneComponent",
+            "DrawOrder": 0,
+            "LocalPosition": [
+                0.0,
+                3.0,
+                10.043046951293945
+            ],
+            "LocalRotation": [
+                0.0,
+                -0.0,
+                0.0
+            ],
+            "LocalScale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "Name": "Boss Root",
+            "Parent": "",
+            "Type": "SceneComponent",
+            "UpdateOrder": -100
+        },
+        {
+            "Active": true,
+            "Class": "BossPhaseComponent",
+            "CurrentPhase": 1,
+            "DrawOrder": 0,
+            "Name": "Boss Phase",
+            "Phase2HealthRatio": 0.699999988079071,
+            "Phase3HealthRatio": 0.3499999940395355,
+            "Type": "ActorComponent",
+            "UpdateOrder": -98
+        },
+        {
+            "Active": true,
+            "Class": "BossPresentationComponent",
+            "DeathPresentationDuration": 1.2000000476837158,
+            "DrawOrder": 0,
+            "Name": "Boss Presentation",
+            "PhaseTransitionDuration": 0.800000011920929,
+            "Type": "ActorComponent",
+            "UpdateOrder": -97
+        },
+        {
+            "Active": true,
+            "ApproachDistance": 2.799999952316284,
+            "Class": "BossBrainComponent",
+            "DrawOrder": 0,
+            "MoveSpeed": 2.5999999046325684,
+            "Name": "Boss Brain",
+            "RotateSpeed": 5.5,
+            "Type": "ActorComponent",
+            "UpdateOrder": -95
+        },
+        {
+            "Active": true,
+            "Attacks": [
+                {
+                    "Active": 0.11999999731779099,
+                    "Animation": "Attack.Melee",
+                    "Behavior": "Melee",
+                    "Cooldown": 1.0,
+                    "Damage": 24.0,
+                    "Id": "Punch",
+                    "MaxHeightDifference": 3.0,
+                    "MaxRange": 3.200000047683716,
+                    "MinRange": 0.0,
+                    "MovementSpeed": 0.0,
+                    "Recovery": 0.3499999940395355,
+                    "Windup": 0.2199999988079071
+                },
+                {
+                    "Active": 0.1599999964237213,
+                    "Animation": "Attack.Melee",
+                    "Behavior": "Melee",
+                    "Cooldown": 1.7999999523162842,
+                    "Damage": 42.0,
+                    "Id": "HeavyPunch",
+                    "MaxHeightDifference": 3.5,
+                    "MaxRange": 4.0,
+                    "MinRange": 0.0,
+                    "MovementSpeed": 0.0,
+                    "Recovery": 0.550000011920929,
+                    "Windup": 0.44999998807907104
+                },
+                {
+                    "Active": 0.699999988079071,
+                    "Animation": "Attack.Charge",
+                    "Behavior": "Charge",
+                    "Cooldown": 3.0,
+                    "Damage": 36.0,
+                    "Id": "Charge",
+                    "MaxHeightDifference": 2.5,
+                    "MaxRange": 12.0,
+                    "MinRange": 2.5,
+                    "MovementSpeed": 8.0,
+                    "Recovery": 0.44999998807907104,
+                    "Windup": 0.3499999940395355
+                },
+                {
+                    "Active": 0.11999999731779099,
+                    "Animation": "Attack.Shockwave",
+                    "Behavior": "Shockwave",
+                    "Cooldown": 4.0,
+                    "Damage": 55.0,
+                    "Id": "Shockwave",
+                    "MaxHeightDifference": 2.0,
+                    "MaxRange": 8.0,
+                    "MinRange": 1.5,
+                    "MovementSpeed": 0.0,
+                    "Recovery": 0.6499999761581421,
+                    "Windup": 0.6499999761581421
+                }
+            ],
+            "Class": "BossAttackComponent",
+            "DrawOrder": 0,
+            "Name": "Boss Attack",
+            "Type": "ActorComponent",
+            "UpdateOrder": -92
+        },
+        {
+            "Active": true,
+            "BodyType": "Dynamic",
+            "Class": "RigidbodyComponent",
+            "DrawOrder": 0,
+            "DynamicFriction": 0.0,
+            "Mass": 4.0,
+            "Name": "Boss Rigidbody",
+            "Restitution": 0.0,
+            "SleepEnabled": false,
+            "StaticFriction": 0.0,
+            "Type": "ActorComponent",
+            "UpdateOrder": -85,
+            "UseGravity": true,
+            "Velocity": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        },
+        {
+            "Active": true,
+            "CastShadow": true,
+            "Class": "HumanoidVisualComponent",
+            "Definition": {
+                "Parts": [
+                    {
+                        "Id": "Body",
+                        "Model": "Characters/body.gltf"
+                    },
+                    {
+                        "Id": "Head",
+                        "Model": "Characters/head.gltf",
+                        "Parent": "Body",
+                        "Position": [
+                            0.0,
+                            0.75,
+                            0.0
+                        ]
+                    },
+                    {
+                        "Id": "LeftArm",
+                        "Model": "Characters/left_arm.gltf",
+                        "Parent": "Body",
+                        "Position": [
+                            -0.75,
+                            0.75,
+                            0.0
+                        ]
+                    },
+                    {
+                        "Id": "RightArm",
+                        "Model": "Characters/right_arm.gltf",
+                        "Parent": "Body",
+                        "Position": [
+                            0.75,
+                            0.75,
+                            0.0
+                        ]
+                    },
+                    {
+                        "Id": "LeftLeg",
+                        "Model": "Characters/left_leg.gltf",
+                        "Parent": "Body",
+                        "Position": [
+                            -0.25,
+                            -0.75,
+                            0.0
+                        ]
+                    },
+                    {
+                        "Id": "RightLeg",
+                        "Model": "Characters/right_leg.gltf",
+                        "Parent": "Body",
+                        "Position": [
+                            0.25,
+                            -0.75,
+                            0.0
+                        ]
+                    }
+                ]
+            },
+            "DefinitionPath": "Resources/JSON/Characters/DefaultHumanoid.json",
+            "DrawOrder": 0,
+            "LocalPosition": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "LocalRotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "LocalScale": [
+                1.5,
+                1.5,
+                1.5
+            ],
+            "Name": "Boss Humanoid Visual",
+            "Parent": "Boss Root",
+            "PartVisibility": {
+                "Body": true,
+                "Head": true,
+                "LeftArm": true,
+                "LeftLeg": true,
+                "RightArm": true,
+                "RightLeg": true
+            },
+            "SkinTexturePath": "Characters/enemy.dds",
+            "Type": "SceneComponent",
+            "UpdateOrder": 0
+        },
+        {
+            "Active": true,
+            "Class": "BossWeakPointComponent",
+            "DrawOrder": 0,
+            "Name": "Boss Weak Point",
+            "Type": "ActorComponent",
+            "UpdateOrder": -40,
+            "WeakPoints": [
+                {
+                    "DamageMultiplier": 2.0,
+                    "Enabled": true,
+                    "PartId": "Head"
+                },
+                {
+                    "DamageMultiplier": 1.25,
+                    "Enabled": true,
+                    "PartId": "LeftArm"
+                },
+                {
+                    "DamageMultiplier": 1.25,
+                    "Enabled": true,
+                    "PartId": "RightArm"
+                }
+            ]
+        },
+        {
+            "Active": true,
+            "Class": "CharacterHealthComponent",
+            "CurrentHealth": 1200.0,
+            "DrawOrder": 0,
+            "Invulnerable": false,
+            "MaxHealth": 1200.0,
+            "Name": "Character Health",
+            "Type": "ActorComponent",
+            "UpdateOrder": -50
+        },
+        {
+            "Active": true,
+            "Class": "CharacterMovementComponent",
+            "DrawOrder": 0,
+            "MovementEnabled": true,
+            "Name": "Character Movement",
+            "Type": "ActorComponent",
+            "UpdateOrder": -90,
+            "Velocity": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        },
+        {
+            "Active": true,
+            "Class": "CharacterTargetComponent",
+            "DrawOrder": 0,
+            "LocalPosition": [
+                0.0,
+                1.0,
+                0.0
+            ],
+            "LocalRotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "LocalScale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "Name": "Character Target",
+            "Parent": "Boss Root",
+            "Type": "SceneComponent",
+            "UpdateOrder": -80
+        },
+        {
+            "Active": true,
+            "AnimationName": "Idle",
+            "Class": "CharacterAnimationComponent",
+            "DrawOrder": 0,
+            "Duration": 1.5,
+            "Loop": true,
+            "Name": "Character Animation",
+            "PlaybackSpeed": 1.0,
+            "PlaybackTime": 0.0,
+            "Playing": true,
+            "Type": "ActorComponent",
+            "UpdateOrder": -70
+        },
+        {
+            "Active": true,
+            "Class": "CharacterColliderComponent",
+            "CollisionLayer": 1,
+            "DrawOrder": 0,
+            "HalfSize": [
+                1.100000023841858,
+                2.799999952316284,
+                1.100000023841858
+            ],
+            "IsTrigger": false,
+            "LocalPosition": [
+                0.0,
+                -0.6000000238418579,
+                0.0
+            ],
+            "LocalRotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "LocalScale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "Name": "Character Collider",
+            "Parent": "Boss Root",
+            "Radius": 1.0,
+            "ShapeType": "OBB",
+            "Type": "SceneComponent",
+            "UpdateOrder": -60
+        }
+    ],
+    "Layer": "BossValidation",
+    "Name": "ComponentBoss",
+    "Tags": [
+        "Boss"
+    ]
+}

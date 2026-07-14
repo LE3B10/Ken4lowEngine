@@ -129,8 +129,8 @@ namespace Ken4lowEngine
 			jumpSpeed_ = inJson.value("JumpSpeed", jumpSpeed_);
 			if (!std::isfinite(moveSpeed_)) moveSpeed_ = 6.0f;
 			if (!std::isfinite(jumpSpeed_)) jumpSpeed_ = 7.0f;
-			moveSpeed_ = std::max(0.0f, moveSpeed_);
-			jumpSpeed_ = std::max(0.0f, jumpSpeed_);
+			moveSpeed_ = (std::max)(0.0f, moveSpeed_);
+			jumpSpeed_ = (std::max)(0.0f, jumpSpeed_);
 			jumpRequested_ = false;
 		}
 
