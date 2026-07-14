@@ -10,6 +10,7 @@ namespace Ken4lowEngine
 	void DX12CommandManager::Initialize(ID3D12Device* device)
 	{
 		HRESULT hr{};
+		commandListSubmitted_ = false;
 
 		//コマンドロケータを生成する
 		hr = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator_));
@@ -34,6 +35,7 @@ namespace Ken4lowEngine
 
 	void DX12CommandManager::Finalize()
 	{
+		assert(!commandListSubmitted_ && "DirectXCommon must finish submitted GPU work before finalizing the command manager.");
 		commandQueue_.Reset();
 		commandList_.Reset();
 		commandAllocator_.Reset();
@@ -61,30 +63,39 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	void DX12CommandManager::ExecuteAndWait()
 	{
-		HRESULT hr{};
+		Execute();
+		WaitAndReset();
+	}
 
-		// コマンドリストの内容を確定させる。すべてのコマンドを積んでからCloseすること
-		hr = commandList_->Close();
+	void DX12CommandManager::Execute()
+	{
+		assert(!commandListSubmitted_ && "WaitAndReset must complete before submitting the command list again.");
+		if (commandListSubmitted_) return;
+
+		const HRESULT hr = commandList_->Close();
 		assert(SUCCEEDED(hr));
+		if (FAILED(hr)) return;
 
-		//GPUにコマンドリストの実行を行わせる
-		ComPtr<ID3D12CommandList> commandLists[] = { commandList_.Get() };
+		ID3D12CommandList* commandLists[] = { commandList_.Get() };
+		commandQueue_->ExecuteCommandLists(1, commandLists);
+		commandListSubmitted_ = true; // GPU参照中はAllocatorとCommandListをResetしない。
+	}
 
-		// GPUに対して積まれたコマンドを実行
-		commandQueue_->ExecuteCommandLists(1, commandLists->GetAddressOf());
+	void DX12CommandManager::WaitAndReset()
+	{
+		if (!commandListSubmitted_) return;
+		assert(fenceManager_ && "A fence manager is required before reusing a submitted command allocator.");
+		if (!fenceManager_) return;
 
-		// 🔹 GPUの完了を待つ
-		if (fenceManager_) {
-			fenceManager_->Signal(commandQueue_.Get());
-			fenceManager_->Wait();
-		}
+		fenceManager_->Signal(commandQueue_.Get());
+		fenceManager_->Wait();
 
-		// 次のフレーム用のコマンドリストを準備（コマンドリストのリセット）
-		hr = commandAllocator_->Reset();
-		assert(SUCCEEDED(hr));
-
-		hr = commandList_->Reset(commandAllocator_.Get(), nullptr);
-		assert(SUCCEEDED(hr));
+		const HRESULT allocatorResult = commandAllocator_->Reset();
+		assert(SUCCEEDED(allocatorResult));
+		if (FAILED(allocatorResult)) return;
+		const HRESULT commandListResult = commandList_->Reset(commandAllocator_.Get(), nullptr);
+		assert(SUCCEEDED(commandListResult));
+		if (SUCCEEDED(commandListResult)) commandListSubmitted_ = false;
 	}
 
 } // namespace Ken4lowEngine

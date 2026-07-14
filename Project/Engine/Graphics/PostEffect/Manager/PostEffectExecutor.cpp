@@ -158,7 +158,7 @@ namespace Ken4lowEngine
 		TransitionDepthTo(D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 		TransitionTo(renderTargetManager_->GetGameRenderTarget(), commandList, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		dxCommon_->GetCommandManager()->ExecuteAndWait(); // 従来のデバッグ用同期位置を維持する。
+		// 後続PostEffectは同じCommandList上のBarrier順序で安全なため、フレーム途中のGPU完了待ちは行わない。
 	}
 
 	void PostEffectExecutor::RenderPostEffect()

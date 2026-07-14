@@ -50,13 +50,17 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	void ExecuteAndWait();
 
+	/// コマンドリストをCloseしてQueueへ送信し、Present前にはGPU待機やAllocator再利用を行わない。
 	void Execute();
+
+	/// 送信済みコマンドの完了をFenceで待ち、AllocatorとCommandListを安全に再利用可能へ戻す。
+	void WaitAndReset();
 
 public: /// ---------- セッター ---------- ///
 
 	/// <summary>
 	/// フェンスマネージャをセットします。<br/>
-	/// ExecuteAndWait() 内で GPU 完了を待機する際に使用されます。
+	/// ExecuteAndWait() または WaitAndReset() で GPU 完了を待機する際に使用されます。
 	/// </summary>
 	/// <param name="fenceManager">同期に使用する DX12FenceManager。</param>
 	void SetFenceManager(DX12FenceManager* fenceManager) { fenceManager_ = fenceManager; }
@@ -93,6 +97,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	ComPtr<ID3D12GraphicsCommandList> commandList_;   // グラフィックスコマンドリスト
 	ComPtr<ID3D12CommandQueue> commandQueue_;		  // コマンドキュー
 	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};	  // コマンドキューの設定情報
+	bool commandListSubmitted_ = false;               // Present前送信と完了待ちを安全に分離する状態。
 };
 
 } // namespace Ken4lowEngine

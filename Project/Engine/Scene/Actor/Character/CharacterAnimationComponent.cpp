@@ -196,9 +196,9 @@ namespace Ken4lowEngine
 
 		if (animationName_ == "Attack.Melee")
 		{
-			setRotationOffset("RightArm", { threeStageSwing(-1.15f, 1.25f), 0.0f, -0.12f });
-			setRotationOffset("LeftArm", { threeStageSwing(-0.25f, 0.35f), 0.0f, 0.08f });
-			setRotationOffset("Body", { 0.0f, threeStageSwing(-0.18f, 0.22f), 0.0f });
+			setRotationOffset("RightArm", { threeStageSwing(0.35f, -1.30f), 0.0f, -0.08f }); // 正方向へ回し切らず、前方側の負X回転へ振り抜く。
+			setRotationOffset("LeftArm", { threeStageSwing(-0.10f, -0.45f), 0.0f, 0.12f });
+			setRotationOffset("Body", { 0.0f, threeStageSwing(0.10f, -0.16f), 0.0f });
 		}
 		else if (animationName_ == "Attack.Projectile")
 		{
@@ -209,12 +209,12 @@ namespace Ken4lowEngine
 		else if (animationName_ == "Attack.Charge")
 		{
 			setRotationOffset("Body", { 0.45f * std::sin(t * kPi), 0.0f, 0.0f });
-			setRotationOffset("LeftArm", { 0.75f * std::sin(t * kPi), 0.0f, 0.0f });
-			setRotationOffset("RightArm", { 0.75f * std::sin(t * kPi), 0.0f, 0.0f });
+			setRotationOffset("LeftArm", { -0.65f * std::sin(t * kPi), 0.0f, 0.0f });
+			setRotationOffset("RightArm", { -0.65f * std::sin(t * kPi), 0.0f, 0.0f });
 		}
 		else if (animationName_ == "Attack.Shockwave")
 		{
-			const float slam = threeStageSwing(-1.65f, 1.35f);
+			const float slam = threeStageSwing(-1.65f, -0.15f); // 叩き付け後も腕が背中側へ貫通する角度まで回さない。
 			setRotationOffset("LeftArm", { slam, 0.0f, 0.15f });
 			setRotationOffset("RightArm", { slam, 0.0f, -0.15f });
 		}
