@@ -6,6 +6,7 @@
 #include <Scene/Actor/Character/CharacterMovementComponent.h>
 #include <SceneComponent.h>
 
+#include <algorithm>
 #include <cmath>
 #include <numbers>
 
@@ -18,8 +19,6 @@ namespace Ken4lowEngine
 	namespace
 	{
 		constexpr float kDirectionEpsilon = 0.0001f;
-		constexpr float kPi = std::numbers::pi_v<float>;
-		constexpr float kTwoPi = kPi * 2.0f;
 
 		/// 旧MeleeEnemyと同じXZ長さと0判定で移動方向を正規化する。
 		Vector3 NormalizeDirectionXZ(const Vector3& direction)
