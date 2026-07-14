@@ -22,4 +22,10 @@ public:
 
 	/// DebugSceneの実入力をPlayerInputComponentへ要求として渡してからPlayerActorを更新する。
 	void Update(float deltaTime) override;
+
+	/// Physics補正後のPlayer位置を確定してから、そのフレーム最後にPlayer Cameraを同期する。
+	void PostPhysicsUpdate(float deltaTime) override;
+
+private:
+	bool wasControllingPlayer_ = false; // キャプチャ開始直後のカーソルワープをLook入力として扱わないための状態。
 };
