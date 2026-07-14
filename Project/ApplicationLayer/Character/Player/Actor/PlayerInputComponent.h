@@ -37,6 +37,7 @@ namespace Ken4lowEngine
 
 			if (inputEnabled_)
 			{
+				if (jumpRequested_ && movement) movement->RequestJump(); // InputはJump実装を持たず、Movementへ要求だけ配送する。
 				if (fireRequested_)
 				{
 					if (WeaponComponent* weapon = owner->GetComponent<WeaponComponent>()) weapon->RequestFire();
@@ -65,7 +66,11 @@ namespace Ken4lowEngine
 			ImGui::SeparatorText("プレイヤー入力要求");
 			ImGui::Text("Enabled: %s", inputEnabled_ ? "ON" : "OFF");
 			ImGui::Text("Move: %.2f, %.2f", moveX_, moveZ_);
-			ImGui::Text("Fire: %s / Reload: %s / Slot: %d", fireRequested_ ? "Yes" : "No", reloadRequested_ ? "Yes" : "No", inventorySlotRequested_);
+			ImGui::Text("Jump: %s / Fire: %s / Reload: %s / Slot: %d",
+				jumpRequested_ ? "Yes" : "No",
+				fireRequested_ ? "Yes" : "No",
+				reloadRequested_ ? "Yes" : "No",
+				inventorySlotRequested_);
 #endif
 		}
 
@@ -103,6 +108,9 @@ namespace Ken4lowEngine
 			lookPitchDelta_ += pitchDelta;
 		}
 
+		/// 1回分のJump要求を予約する。
+		void RequestJump() { jumpRequested_ = true; }
+
 		/// 1回分の射撃要求を予約する。
 		void RequestFire() { fireRequested_ = true; }
 
@@ -133,6 +141,7 @@ namespace Ken4lowEngine
 		{
 			lookYawDelta_ = 0.0f;
 			lookPitchDelta_ = 0.0f;
+			jumpRequested_ = false;
 			fireRequested_ = false;
 			reloadRequested_ = false;
 			inventorySlotRequested_ = -1;
@@ -143,6 +152,7 @@ namespace Ken4lowEngine
 		float moveZ_ = 0.0f;
 		float lookYawDelta_ = 0.0f;
 		float lookPitchDelta_ = 0.0f;
+		bool jumpRequested_ = false;
 		bool fireRequested_ = false;
 		bool reloadRequested_ = false;
 		int inventorySlotRequested_ = -1;
