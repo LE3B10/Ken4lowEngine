@@ -63,7 +63,7 @@ namespace Ken4lowEngine
 			rigidbody.SetName("Boss Rigidbody");
 			rigidbody.SetUpdateOrder(-85);
 			rigidbody.SetBodyType(BodyType::Dynamic);
-			rigidbody.SetMass(4.0f);
+			rigidbody.SetMass(20.0f); // Playerより十分重くし、逆質量ベースの衝突補正で押されにくくする。
 			rigidbody.SetUseGravity(true);
 			rigidbody.SetSleepEnabled(false);
 			rigidbody.SetRestitution(0.0f);
@@ -94,7 +94,12 @@ namespace Ken4lowEngine
 		const bool hadCollider = GetColliderComponent() != nullptr;
 		CharacterActor::Initialize();
 
-		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetUpdateOrder(-90);
+		if (CharacterMovementComponent* movement = GetMovementComponent())
+		{
+			movement->SetUpdateOrder(-90);
+			movement->SetMaxDriveForce(400.0f);   // 重いBossでも接近・Chargeへ十分加速できる自力駆動力を与える。
+			movement->SetMaxBrakingForce(600.0f); // 攻撃停止時は巨体でも必要以上に滑り続けないよう強めに制動する。
+		}
 		if (CharacterAnimationComponent* animation = GetAnimationComponent()) animation->SetUpdateOrder(-70);
 		if (!hadHealth)
 		{
