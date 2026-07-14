@@ -10,6 +10,8 @@
 
 namespace Ken4lowEngine
 {
+	class Collider;
+	struct CollisionHit;
 	class CharacterHealthComponent;
 	class CharacterMovementComponent;
 	class CharacterTargetComponent;
@@ -51,38 +53,26 @@ namespace Ken4lowEngine
 
 		/// CharacterのHP処理を担当するComponentを返す。
 		CharacterHealthComponent* GetHealthComponent();
-
-		/// CharacterのHP処理を担当するComponentを返す。
 		const CharacterHealthComponent* GetHealthComponent() const;
 
 		/// Characterの代表位置を担当するComponentを返す。
 		CharacterTargetComponent* GetTargetComponent();
-
-		/// Characterの代表位置を担当するComponentを返す。
 		const CharacterTargetComponent* GetTargetComponent() const;
 
 		/// Characterの移動処理を担当するComponentを返す。
 		CharacterMovementComponent* GetMovementComponent();
-
-		/// Characterの移動処理を担当するComponentを返す。
 		const CharacterMovementComponent* GetMovementComponent() const;
 
 		/// Characterの当たり判定を担当するComponentを返す。
 		CharacterColliderComponent* GetColliderComponent();
-
-		/// Characterの当たり判定を担当するComponentを返す。
 		const CharacterColliderComponent* GetColliderComponent() const;
 
 		/// Characterのアニメーション再生状態を担当するComponentを返す。
 		CharacterAnimationComponent* GetAnimationComponent();
-
-		/// Characterのアニメーション再生状態を担当するComponentを返す。
 		const CharacterAnimationComponent* GetAnimationComponent() const;
 
 		/// Characterへ任意追加された共通攻撃基盤を返す。
 		AttackComponent* GetAttackComponent();
-
-		/// Characterへ任意追加された共通攻撃基盤を返すconst版。
 		const AttackComponent* GetAttackComponent() const;
 
 		/// Characterが所有する指定型Componentへ統一した入口からアクセスする。
@@ -101,6 +91,22 @@ namespace Ken4lowEngine
 			const auto components = GetComponents<T>();
 			return components.empty() ? nullptr : components.front();
 		}
+
+		/// CharacterColliderComponentが受けた旧互換Collision通知を派生Characterへ配送する。
+		virtual void OnCollision(Collider* other) { (void)other; }
+		virtual void OnCollisionEnter(Collider* other) { OnCollision(other); }
+		virtual void OnCollisionStay(Collider* other) { OnCollision(other); }
+		virtual void OnCollisionExit(Collider* other) { (void)other; }
+
+		/// 詳細Hit情報を受け取るCollision通知。未override時は旧Collider*イベントへ委譲する。
+		virtual void OnCollisionEnter(const CollisionHit& hit);
+		virtual void OnCollisionStay(const CollisionHit& hit);
+		virtual void OnCollisionExit(const CollisionHit& hit);
+
+		/// Trigger/Overlap通知。未override時は対応するCollision通知へ委譲する。
+		virtual void OnOverlapBegin(const CollisionHit& hit);
+		virtual void OnOverlapStay(const CollisionHit& hit);
+		virtual void OnOverlapEnd(const CollisionHit& hit);
 
 		/// 死亡通知を受け取るListenerを登録し、解除用IDを返す。
 		DeathListenerId AddDeathListener(DeathListener listener);
