@@ -1,25 +1,25 @@
 #pragma once
-#include <Actor.h>
+
+#include "ApplicationLayer/Character/Player/Actor/PlayerActor.h"
+
 #include <string>
 
 /// -------------------------------------------------------------
-///	 Actor・ActorComponent・ActorWorldの動作確認を行うテスト用Actorクラス
+/// DebugSceneでPlayerActorの本番構成を操作・物理検証する一時ホスト。
+/// PlayerActor単体で入力元まで接続できた段階で削除できる。
 /// -------------------------------------------------------------
-class TestActor final : public Ken4lowEngine::Actor
+class TestActor final : public Ken4lowEngine::PlayerActor
 {
-public: /// ---------- メンバ関数 ---------- ///
-	
-	/// <summary>
-	/// JSON保存・復元で使用するActorクラス名を取得する。
-	/// </summary>
+public:
+	/// JSON保存・復元では従来のDebug検証名を維持する。
 	std::string GetClassTypeName() const override
 	{
-		return "TestActor"; // TestActorとして保存する。
+		return "TestActor";
 	}
 
-	/// <summary>
-	/// TestActor生成後の初期化処理を行う。
-	/// </summary>
+	/// PlayerActorのComponent構成を生成し、新規生成時だけDebugScene用の初期位置へ配置する。
 	void Initialize() override;
 
+	/// DebugSceneの実入力をPlayerInputComponentへ要求として渡してからPlayerActorを更新する。
+	void Update(float deltaTime) override;
 };
