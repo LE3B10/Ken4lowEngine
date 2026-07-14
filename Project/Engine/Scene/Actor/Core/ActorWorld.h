@@ -84,6 +84,9 @@ namespace Ken4lowEngine
 		/// </summary>
 		void DrawImGui();
 
+		/// 現行EditorのWorld Outlinerから構成済みActor生成UIを描画する。
+		void DrawActorCreationImGui() { DrawActorPrefabSpawnImGui(); }
+
 		/// <summary>
 		/// 選択中ActorまたはComponentのDetailsウィンドウを描画する。
 		/// </summary>
