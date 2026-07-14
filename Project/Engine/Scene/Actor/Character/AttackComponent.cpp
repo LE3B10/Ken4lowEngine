@@ -34,7 +34,8 @@ namespace Ken4lowEngine
 				{ "Recovery", data.recoveryTime },
 				{ "MinRange", data.minRange },
 				{ "MaxRange", data.maxRange },
-				{ "MovementSpeed", data.movementSpeed }
+				{ "MovementSpeed", data.movementSpeed },
+				{ "MaxHeightDifference", data.maxHeightDifference }
 			};
 		}
 
@@ -53,6 +54,7 @@ namespace Ken4lowEngine
 			data.minRange = json.value("MinRange", data.minRange);
 			data.maxRange = json.value("MaxRange", data.maxRange);
 			data.movementSpeed = json.value("MovementSpeed", data.movementSpeed);
+			data.maxHeightDifference = json.value("MaxHeightDifference", data.maxHeightDifference);
 			return data;
 		}
 	}
@@ -84,7 +86,9 @@ namespace Ken4lowEngine
 		ImGui::Text("命中回数: %d / 実測間隔: %.3f", acceptedHitCount_, lastMeasuredInterval_);
 		for (const AttackEntry& entry : attacks_)
 		{
-			ImGui::BulletText("%s [%s] CD %.2f / %.2f", entry.data.id.c_str(), entry.data.behaviorType.c_str(), entry.cooldownRemaining, entry.data.cooldown);
+			ImGui::BulletText("%s [%s] XZ %.2f-%.2f / Y差 <= %.2f / CD %.2f / %.2f",
+				entry.data.id.c_str(), entry.data.behaviorType.c_str(), entry.data.minRange, entry.data.maxRange,
+				entry.data.maxHeightDifference, entry.cooldownRemaining, entry.data.cooldown);
 		}
 #endif
 	}
@@ -143,7 +147,7 @@ namespace Ken4lowEngine
 
 		AttackContext context = MakeContext();
 		if (!context.owner || context.owner->IsDead() || !context.target || context.target->IsDead()) return false;
-		if (context.distanceToTarget < attackIt->data.minRange || context.distanceToTarget > attackIt->data.maxRange) return false;
+		if (!IsContextWithinAttackRange(context, attackIt->data)) return false;
 		if (!attackIt->behavior->CanStart(context, attackIt->data)) return false;
 
 		currentAttackIndex_ = static_cast<size_t>(std::distance(attacks_.begin(), attackIt));
@@ -157,6 +161,15 @@ namespace Ken4lowEngine
 		}
 		NotifyAttackEvent(AttackEventType::Started);
 		return true;
+	}
+
+	bool AttackComponent::IsTargetWithinAttackRange(std::string_view attackId) const
+	{
+		const AttackData* data = FindAttackData(attackId);
+		if (!data) return false;
+		const AttackContext context = MakeContext();
+		if (!context.owner || !context.target || context.owner->IsDead() || context.target->IsDead()) return false;
+		return IsContextWithinAttackRange(context, *data);
 	}
 
 	void AttackComponent::InterruptCurrentAttack()
@@ -239,9 +252,19 @@ namespace Ken4lowEngine
 		{
 			const SceneComponent* root = context.owner->GetRootComponent();
 			const Vector3 origin = root ? root->GetWorldPosition() : Vector3{};
-			context.distanceToTarget = Vector3::LengthXZ(context.target->GetTargetPosition() - origin);
+			const Vector3 targetPosition = context.target->GetTargetPosition();
+			const Vector3 toTarget = targetPosition - origin;
+			context.distanceToTarget = Vector3::LengthXZ(toTarget);
+			context.heightDifferenceToTarget = std::abs(toTarget.y);
 		}
 		return context;
+	}
+
+	bool AttackComponent::IsContextWithinAttackRange(const AttackContext& context, const AttackData& data)
+	{
+		return context.distanceToTarget >= data.minRange &&
+			context.distanceToTarget <= data.maxRange &&
+			context.heightDifferenceToTarget <= data.maxHeightDifference;
 	}
 
 	void AttackComponent::UpdateCurrentAttack(float deltaTime)
@@ -327,5 +350,6 @@ namespace Ken4lowEngine
 		data.minRange = finiteNonNegative(data.minRange, 0.0f);
 		data.maxRange = std::max(data.minRange, finiteNonNegative(data.maxRange, data.minRange));
 		data.movementSpeed = finiteNonNegative(data.movementSpeed, 0.0f);
+		data.maxHeightDifference = finiteNonNegative(data.maxHeightDifference, 2.5f);
 	}
 } // namespace Ken4lowEngine
