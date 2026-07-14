@@ -24,6 +24,8 @@ namespace Ken4lowEngine
 			EnsureAttachedToOwnerRoot(); // JSON復元やPIE複製後もPlayer Rootへの追従関係を必ず復元する。
 			SetInheritParentRotation(false);
 			SetAutoRegisterMainCamera(true); // PlayerCameraはゲーム用Cameraなので、PIE生成時の一時的な自動登録解除より優先する。
+			SetLocalRotation({ pitch_, yaw_, 0.0f });
+			SyncOwnerFacingToYaw(); // Player生成直後から体の水平向きをCameraのYawへ合わせる。
 			CameraComponent::Initialize();
 			ActivateAsMainCameraDriver();
 		}
@@ -41,6 +43,7 @@ namespace Ken4lowEngine
 			// 長時間操作でも角度が巨大化しないようYawを[-pi, pi]へ正規化する。
 			yaw_ = std::remainder(yaw_, std::numbers::pi_v<float> * 2.0f);
 			SetLocalRotation({ pitch_, yaw_, 0.0f });
+			SyncOwnerFacingToYaw(); // 視点の上下はCameraだけ、左右のYawはPlayer全身にも同期する。
 			ActivateAsMainCameraDriver();
 			CameraComponent::Update(deltaTime);
 		}
@@ -50,6 +53,7 @@ namespace Ken4lowEngine
 		{
 			EnsureGameplayCameraEnabled();
 			EnsureAttachedToOwnerRoot();
+			SyncOwnerFacingToYaw();
 			RefreshWorldTransform(); // Collider補正後のRoot位置を子CameraのWorld位置へ確実に伝播させる。
 			ActivateAsMainCameraDriver();
 			CameraComponent::PostPhysicsUpdate(deltaTime);
@@ -60,6 +64,7 @@ namespace Ken4lowEngine
 		{
 			EnsureGameplayCameraEnabled();
 			EnsureAttachedToOwnerRoot();
+			SyncOwnerFacingToYaw();
 			RefreshWorldTransform();
 			ActivateAsMainCameraDriver();
 			CameraComponent::PostPhysicsUpdate(0.0f);
@@ -101,6 +106,8 @@ namespace Ken4lowEngine
 			pendingYawDelta_ = 0.0f;
 			pendingPitchDelta_ = 0.0f;
 			EnsureAttachedToOwnerRoot();
+			SetLocalRotation({ pitch_, yaw_, 0.0f });
+			SyncOwnerFacingToYaw();
 		}
 
 		/// 入力Componentから1フレーム分の視点回転要求を受け取る。
@@ -120,6 +127,7 @@ namespace Ken4lowEngine
 			EnsureGameplayCameraEnabled();
 			EnsureAttachedToOwnerRoot();
 			SetLocalRotation({ pitch_, yaw_, 0.0f });
+			SyncOwnerFacingToYaw();
 			SyncToMainCameraNow();
 		}
 
@@ -140,6 +148,19 @@ namespace Ken4lowEngine
 			SceneComponent* root = owner ? owner->GetRootComponent() : nullptr;
 			if (!root || root == this || GetParent() == root) return;
 			AttachTo(root);
+		}
+
+		/// CameraのYawだけをPlayer Rootへ反映し、体全体を視点の水平方向へ向ける。
+		void SyncOwnerFacingToYaw()
+		{
+			Actor* owner = GetOwner();
+			SceneComponent* root = owner ? owner->GetRootComponent() : nullptr;
+			if (!root || root == this) return;
+
+			Vector3 rootRotation = root->GetLocalRotation();
+			rootRotation.y = yaw_; // PitchはCameraだけに残し、Player本体は水平回転だけ追従させる。
+			root->SetLocalRotation(rootRotation);
+			root->RefreshWorldTransform();
 		}
 
 		float pitch_ = 0.0f;
