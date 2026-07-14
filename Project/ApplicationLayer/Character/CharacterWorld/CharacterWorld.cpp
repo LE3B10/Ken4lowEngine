@@ -36,6 +36,8 @@ void CharacterWorld::Initialize(GameContext& ctx)
 	player_ = std::make_unique<Player>();
 	InjectPlayerDeps(*player_);
 	player_->Initialize();
+	// 旧BaseCharacterが持っていた初期Y=2.25を復元し、PlayerSpawnPointが無いStageでも地面へ半分埋まらないようにする。
+	player_->SetSpawnPosition({ 0.0f, 2.25f, 0.0f });
 	player_->SetSpawnOffset({ 0.0f, 0.0f, 0.0f });
 
 	if (ctx_.collisionManager_)
@@ -214,7 +216,31 @@ void CharacterWorld::DrawImGui()
 void CharacterWorld::DrawPlayerDebugImGui()
 {
 #ifdef USE_IMGUI
-	if (player_) player_->DrawPlayerDebugImGui();
+	if (!player_)
+	{
+		ImGui::TextUnformatted("Player: N/A");
+		return;
+	}
+
+	ImGui::SeparatorText("Actor / Components");
+	ImGui::TextUnformatted("GamePlay PlayerはHumanoidCharacterActor由来のActorです。");
+	ImGui::TextUnformatted("以下のComponent値は実行中のPlayer実体へ直接反映されます。");
+
+	for (const auto& componentOwner : player_->GetComponents())
+	{
+		if (!componentOwner) continue;
+		ActorComponent* component = componentOwner.get();
+		const std::string label = component->GetName().empty() ? component->GetClassTypeName() : component->GetName();
+		ImGui::PushID(component);
+		if (ImGui::CollapsingHeader(label.c_str()))
+		{
+			component->DrawImGui(); // GamePlaySceneでもActor/Component側の標準調整値を直接編集する。
+		}
+		ImGui::PopID();
+	}
+
+	ImGui::SeparatorText("Legacy Player Runtime");
+	player_->DrawPlayerDebugImGui();
 #endif
 }
 
