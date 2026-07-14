@@ -45,11 +45,11 @@ void TestActor::Update(float deltaTime)
 		if (input->PushKey(DIK_W)) moveZ += 1.0f;
 		playerInput->RequestMove(moveX, moveZ);
 
-		// キャプチャ開始直後はOSカーソルを中央へ移動した差分を視点回転として扱わない。
+		// Camera座標系ではYaw正方向が左、Pitch正方向が下なので、マウス操作は画面上の直感方向へ符号を合わせる。
 		if (wasControllingPlayer_)
 		{
-			const float yawDelta = static_cast<float>(input->GetMouseMoveX()) * kMouseLookSensitivity;
-			const float pitchDelta = static_cast<float>(-input->GetMouseMoveY()) * kMouseLookSensitivity;
+			const float yawDelta = static_cast<float>(-input->GetMouseMoveX()) * kMouseLookSensitivity;
+			const float pitchDelta = static_cast<float>(input->GetMouseMoveY()) * kMouseLookSensitivity;
 			if (yawDelta != 0.0f || pitchDelta != 0.0f) playerInput->RequestLook(yawDelta, pitchDelta);
 		}
 		wasControllingPlayer_ = true;
