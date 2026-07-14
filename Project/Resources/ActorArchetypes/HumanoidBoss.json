@@ -1,13 +1,14 @@
 {
   "Id": "HumanoidBoss",
   "DisplayName": "人型ボス",
-  "Description": "Character共通機能と人型表示に、Bossの判断・攻撃・フェーズ・弱点・演出をまとめた構成です。",
+  "Description": "Character共通機能と人型表示に、Bossの判断・攻撃・フェーズ・弱点・演出・物理挙動をまとめた構成です。",
   "Type": "BossActor",
   "Components": [
     "CharacterHealthComponent",
     "CharacterMovementComponent",
     "CharacterTargetComponent",
     "CharacterColliderComponent",
+    "RigidbodyComponent",
     "CharacterAnimationComponent",
     "HumanoidVisualComponent",
     "BossBrainComponent",
