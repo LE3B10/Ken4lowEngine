@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -16,7 +17,7 @@ namespace Ken4lowEngine
 	namespace
 	{
 		constexpr float kDirectionEpsilon = 0.0001f;
-		constexpr float kPi = 3.14159265359f;
+		constexpr float kPi = std::numbers::pi_v<float>;
 		constexpr float kTwoPi = kPi * 2.0f;
 
 		/// 旧MeleeEnemyと同じXZ長さと0判定で移動方向を正規化する。
