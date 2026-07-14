@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "BossWeakPointComponent.h"
 
 #include <Scene/Actor/Character/CharacterActor.h>
