@@ -92,7 +92,12 @@ public: /// ---------- パブリックメンバ関数 ---------- ///
 		wallObstacleOBBs_ = obbs;
 		wallObstacleWalkable_ = walkable;
 	}
-	void SetWorldCollisionSettings(const K4E::WorldCollisionSettings& s) { worldCollisionSettings_ = s; }
+	void SetWorldCollisionSettings(const K4E::WorldCollisionSettings& s)
+	{
+		worldCollisionSettings_ = s;
+		// 公開設定は「描画原点→物理中心」の差だが、旧Resolver内部は center = translate - offset で扱うため符号を変換する。
+		worldCollisionSettings_.centerOffset = s.centerOffset * -1.0f;
+	}
 
 private: /// ---------- プライベートメンバ関数 ---------- ///
 
@@ -184,4 +189,3 @@ private: /// ---------- プライベートメンバ変数 ---------- ///
 	bool lastGroundedByStageTop_ = false;
 	K4E::WorldCollisionSettings worldCollisionSettings_{};
 };
-
