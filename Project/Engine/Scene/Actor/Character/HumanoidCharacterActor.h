@@ -16,32 +16,40 @@ namespace Ken4lowEngine
 	public:
 		using BodyPart = HumanoidVisualComponent::BodyPart;
 
-		/// 部位配列はHumanoidVisualComponentの定義順に従う。標準定義ではBodyが0番、以降が子部位となる。
+		/// 旧Gameplayの子部位インデックスと同じ順序を維持する。
 		struct PartIndices
 		{
-			uint32_t body = 0;
-			uint32_t head = 1;
-			uint32_t leftArm = 2;
-			uint32_t rightArm = 3;
-			uint32_t leftLeg = 4;
-			uint32_t rightLeg = 5;
+			uint32_t head = 0;
+			uint32_t leftArm = 1;
+			uint32_t rightArm = 2;
+			uint32_t leftLeg = 3;
+			uint32_t rightLeg = 4;
 		};
 
-		/// Character共通Componentを生成した後、人型表示Componentを1つだけ接続する。
+		HumanoidCharacterActor()
+			: body_(EnsureVisualComponentForConstruction().GetBodyPart())
+		{
+		}
+
+		/// Character共通Componentを生成した後、人型表示ComponentをRootへ接続する。
 		void Initialize() override
 		{
 			CharacterActor::Initialize();
 			HumanoidVisualComponent* visual = GetHumanoidVisualComponent();
-			if (!visual)
-			{
-				visual = &AddComponent<HumanoidVisualComponent>();
-				visual->SetName("Humanoid Visual");
-				visual->SetUpdateOrder(-40);
-				visual->SetDrawOrder(0);
-				visual->SetCastShadowEnabled(true);
-				if (SceneComponent* root = GetRootComponent()) visual->AttachTo(root);
-			}
+			if (!visual) return;
+			visual->SetName("Humanoid Visual");
+			visual->SetUpdateOrder(-40);
+			visual->SetDrawOrder(0);
+			visual->SetCastShadowEnabled(true);
+			if (SceneComponent* root = GetRootComponent()) visual->AttachTo(root);
 			visual->InitializeForWorld(); // 直接InitializeされるGamePlayWorld経路でも部位を即時利用できるようにする。
+		}
+
+		/// 旧GameplayがBody Transformへ書いた移動結果をActor Rootへ集約してからComponent更新を行う。
+		void Update(float deltaTime) override
+		{
+			SyncGameplayTransformToRoot();
+			CharacterActor::Update(deltaTime);
 		}
 
 		std::string GetClassTypeName() const override { return "HumanoidCharacterActor"; }
@@ -49,25 +57,12 @@ namespace Ken4lowEngine
 		HumanoidVisualComponent* GetHumanoidVisualComponent() { return GetCharacterComponent<HumanoidVisualComponent>(); }
 		const HumanoidVisualComponent* GetHumanoidVisualComponent() const { return GetCharacterComponent<HumanoidVisualComponent>(); }
 
-		BodyPart& GetBody()
-		{
-			HumanoidVisualComponent* visual = GetHumanoidVisualComponent();
-			BodyPart* body = visual ? visual->FindPart("Body") : nullptr;
-			if (body) return *body;
-			return GetBodyParts().front();
-		}
-
-		const BodyPart& GetBody() const
-		{
-			const HumanoidVisualComponent* visual = GetHumanoidVisualComponent();
-			const BodyPart* body = visual ? visual->FindPart("Body") : nullptr;
-			if (body) return *body;
-			return GetBodyParts().front();
-		}
+		BodyPart& GetBody() { return body_; }
+		const BodyPart& GetBody() const { return body_; }
 
 		std::vector<BodyPart>& GetBodyParts()
 		{
-			return GetHumanoidVisualComponent()->GetParts(); // 部位データの所有権はHumanoidVisualComponentだけが持つ。
+			return GetHumanoidVisualComponent()->GetParts(); // 子部位の実体はHumanoidVisualComponentだけが所有する。
 		}
 
 		const std::vector<BodyPart>& GetBodyParts() const
@@ -78,18 +73,18 @@ namespace Ken4lowEngine
 		PartIndices& GetPartIndices() { return partIndices_; }
 		const PartIndices& GetPartIndices() const { return partIndices_; }
 
-		WorldTransformEx* GetWorldTransform() { return &GetBody().transform; }
-		const WorldTransformEx* GetWorldTransform() const { return &GetBody().transform; }
+		WorldTransformEx* GetWorldTransform() { return &body_.transform; }
+		const WorldTransformEx* GetWorldTransform() const { return &body_.transform; }
 
-		/// 旧Collider APIからの位置変更もActor RootとComponent Colliderへ同じ値を反映する。
 		Vector3 GetCenterPosition() const override
 		{
 			if (const SceneComponent* root = GetRootComponent()) return root->GetWorldPosition();
-			return GetBody().transform.worldTranslate_;
+			return body_.transform.translate_;
 		}
 
 		void SetCenterPosition(const Vector3& position) override
 		{
+			body_.transform.translate_ = position;
 			if (SceneComponent* root = GetRootComponent())
 			{
 				root->SetLocalPosition(position);
@@ -118,6 +113,7 @@ namespace Ken4lowEngine
 
 		void SetOrientation(const Vector3& rotation) override
 		{
+			body_.transform.rotate_ = rotation;
 			if (SceneComponent* root = GetRootComponent())
 			{
 				root->SetLocalRotation(rotation);
@@ -158,7 +154,38 @@ namespace Ken4lowEngine
 			if (HumanoidVisualComponent* visual = GetHumanoidVisualComponent()) visual->UpdateShadowMatrices(lightViewProjection);
 		}
 
+	protected:
+		BodyPart& body_; // 旧GameplayもHumanoidVisualComponent所有のBody実体を直接参照し、重複部位を持たない。
+
 	private:
-		PartIndices partIndices_{}; // インデックスはComponent所有配列への参照規約だけを保持し、部位実体は複製しない。
+		HumanoidVisualComponent& EnsureVisualComponentForConstruction()
+		{
+			if (HumanoidVisualComponent* existing = GetCharacterComponent<HumanoidVisualComponent>()) return *existing;
+			auto& visual = AddComponent<HumanoidVisualComponent>();
+			visual.SetName("Humanoid Visual");
+			return visual;
+		}
+
+		void SyncGameplayTransformToRoot()
+		{
+			SceneComponent* root = GetRootComponent();
+			HumanoidVisualComponent* visual = GetHumanoidVisualComponent();
+			if (!root || !visual || body_.id.empty()) return;
+
+			const HumanoidPartDefinition* bodyDefinition = visual->GetDefinition().FindPart("Body");
+			const Vector3 localBodyPosition = bodyDefinition ? bodyDefinition->localPosition : Vector3{};
+			const Vector3 localBodyRotation = bodyDefinition ? bodyDefinition->localRotation : Vector3{};
+			const Vector3 localBodyScale = bodyDefinition ? bodyDefinition->localScale : Vector3{ 1.0f, 1.0f, 1.0f };
+
+			// 旧Player/BossがBodyへ書いたワールド相当の移動・YawをRootへ移し、部位側は定義ローカル姿勢へ戻す。
+			root->SetLocalPosition(body_.transform.translate_ - localBodyPosition);
+			root->SetLocalRotation(body_.transform.rotate_ - localBodyRotation);
+			root->RefreshWorldTransform();
+			body_.transform.translate_ = localBodyPosition;
+			body_.transform.rotate_ = localBodyRotation;
+			body_.transform.scale_ = localBodyScale;
+		}
+
+		PartIndices partIndices_{};
 	};
 } // namespace Ken4lowEngine
