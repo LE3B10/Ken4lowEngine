@@ -164,6 +164,18 @@ namespace Ken4lowEngine
 		}
 
 	protected:
+		/// Guardian固有の旧調整値取得は既存データ互換のため残すが、個別部位生成には使用しない。
+		virtual Vector3 GetInitialBodyScale() const { return { 1.0f, 1.0f, 1.0f }; }
+		virtual Vector3 GetHeadScale() const { return { 1.0f, 1.0f, 1.0f }; }
+		virtual Vector3 GetArmScale() const { return { 1.0f, 1.0f, 1.0f }; }
+		virtual Vector3 GetLegScale() const { return { 1.0f, 1.0f, 1.0f }; }
+		virtual std::string GetBodyModelPath() const { return "Characters/body.gltf"; }
+		virtual std::string GetHeadModelPath() const { return "Characters/head.gltf"; }
+		virtual std::string GetLeftArmModelPath() const { return "Characters/left_arm.gltf"; }
+		virtual std::string GetRightArmModelPath() const { return "Characters/right_arm.gltf"; }
+		virtual std::string GetLeftLegModelPath() const { return "Characters/left_leg.gltf"; }
+		virtual std::string GetRightLegModelPath() const { return "Characters/right_leg.gltf"; }
+
 		BodyPart& body_; // 旧GameplayもHumanoidVisualComponent所有のBody実体を直接参照し、重複部位を持たない。
 
 	private:
