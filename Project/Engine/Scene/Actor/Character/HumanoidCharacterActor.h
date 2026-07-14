@@ -206,7 +206,6 @@ namespace Ken4lowEngine
 			body_.transform.scale_ = root->GetWorldScale();
 			body_.transform.worldTranslate_ = root->GetWorldPosition();
 			body_.transform.worldRotate_ = root->GetWorldRotation();
-			body_.transform.worldScale_ = root->GetWorldScale();
 			Collider::SetCenterPosition(root->GetWorldPosition());
 		}
 
