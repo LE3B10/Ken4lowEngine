@@ -23,6 +23,7 @@ namespace Ken4lowEngine
 		{
 			EnsureAttachedToOwnerRoot(); // JSON復元やPIE複製後もPlayer Rootへの追従関係を必ず復元する。
 			SetInheritParentRotation(false);
+			SetAutoRegisterMainCamera(true); // PlayerCameraはゲーム用Cameraなので、PIE生成時の一時的な自動登録解除より優先する。
 			CameraComponent::Initialize();
 			ActivateAsMainCameraDriver();
 		}
@@ -30,6 +31,7 @@ namespace Ken4lowEngine
 		/// 入力Componentから配送された視点要求を角度へ反映してから共通Camera更新を行う。
 		void Update(float deltaTime) override
 		{
+			EnsureGameplayCameraEnabled(); // ActorWorldのJSON Spawn経路で一度OFFにされてもPlay中は必ず復旧する。
 			EnsureAttachedToOwnerRoot();
 			yaw_ += pendingYawDelta_;
 			pitch_ = std::clamp(pitch_ + pendingPitchDelta_, -maxPitch_, maxPitch_);
@@ -46,6 +48,7 @@ namespace Ken4lowEngine
 		/// PhysicsでPlayer Rootが補正された後、最終位置をMain Cameraへ必ず反映する。
 		void PostPhysicsUpdate(float deltaTime) override
 		{
+			EnsureGameplayCameraEnabled();
 			EnsureAttachedToOwnerRoot();
 			RefreshWorldTransform(); // Collider補正後のRoot位置を子CameraのWorld位置へ確実に伝播させる。
 			ActivateAsMainCameraDriver();
@@ -55,6 +58,7 @@ namespace Ken4lowEngine
 		/// Actor側の最終PostPhysics地点から、Player Cameraをそのフレームの描画Cameraへ確定する。
 		void SyncToMainCameraNow()
 		{
+			EnsureGameplayCameraEnabled();
 			EnsureAttachedToOwnerRoot();
 			RefreshWorldTransform();
 			ActivateAsMainCameraDriver();
@@ -113,6 +117,7 @@ namespace Ken4lowEngine
 			yaw_ = std::isfinite(yaw) ? std::remainder(yaw, std::numbers::pi_v<float> * 2.0f) : 0.0f;
 			pendingYawDelta_ = 0.0f;
 			pendingPitchDelta_ = 0.0f;
+			EnsureGameplayCameraEnabled();
 			EnsureAttachedToOwnerRoot();
 			SetLocalRotation({ pitch_, yaw_, 0.0f });
 			SyncToMainCameraNow();
@@ -122,6 +127,12 @@ namespace Ken4lowEngine
 		float GetYaw() const { return yaw_; }
 
 	private:
+		/// PlayerCameraは通常の配置用Cameraと違い、Play中のゲーム視点として常にMain Cameraへ接続する。
+		void EnsureGameplayCameraEnabled()
+		{
+			SetAutoRegisterMainCamera(true);
+		}
+
 		/// Player CameraがPIE複製やJSON復元後も必ず所有PlayerのRootを親に持つよう補修する。
 		void EnsureAttachedToOwnerRoot()
 		{
