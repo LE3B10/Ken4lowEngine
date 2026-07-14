@@ -21,6 +21,7 @@ namespace Ken4lowEngine
 		{
 			SetInheritParentRotation(false);
 			CameraComponent::Initialize();
+			ActivateAsMainCameraDriver(); // Player生成時点からゲーム用Main CameraのDriverとして確定する。
 		}
 
 		/// 入力Componentから配送された視点要求を角度へ反映してから共通Camera更新を行う。
@@ -32,7 +33,15 @@ namespace Ken4lowEngine
 			pendingYawDelta_ = 0.0f;
 			pendingPitchDelta_ = 0.0f;
 			SetLocalRotation({ pitch_, yaw_, 0.0f }); // 視点角度だけを確定し、Camera本体への同期は基底Componentへ任せる。
+			ActivateAsMainCameraDriver(); // 他CameraComponentが存在してもPlayer Cameraを現在のMain Camera Driverへ戻す。
 			CameraComponent::Update(deltaTime);
+		}
+
+		/// PhysicsでPlayer Rootが補正された後、最終位置をMain Cameraへ必ず反映する。
+		void PostPhysicsUpdate(float deltaTime) override
+		{
+			ActivateAsMainCameraDriver();
+			CameraComponent::PostPhysicsUpdate(deltaTime);
 		}
 
 		/// Player視点角度をDebug表示する。
@@ -84,6 +93,7 @@ namespace Ken4lowEngine
 			pendingYawDelta_ = 0.0f;
 			pendingPitchDelta_ = 0.0f;
 			SetLocalRotation({ pitch_, yaw_, 0.0f });
+			ActivateAsMainCameraDriver(); // Reset直後もPlayer位置・向きをMain Cameraへ同期できる状態に戻す。
 		}
 
 		float GetPitch() const { return pitch_; }
