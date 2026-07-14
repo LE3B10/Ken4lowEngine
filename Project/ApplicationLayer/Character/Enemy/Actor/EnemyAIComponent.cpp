@@ -1,5 +1,7 @@
 #include "EnemyAIComponent.h"
 
+#include "EnemyAttackComponent.h"
+
 #include <Scene/Actor/Character/CharacterActor.h>
 #include <Scene/Actor/Character/CharacterMovementComponent.h>
 #include <SceneComponent.h>
@@ -46,6 +48,7 @@ namespace Ken4lowEngine
 	{
 		auto* owner = dynamic_cast<CharacterActor*>(GetOwner());
 		CharacterMovementComponent* movement = owner ? owner->GetMovementComponent() : nullptr;
+		EnemyAttackComponent* attack = owner ? owner->GetCharacterComponent<EnemyAttackComponent>() : nullptr;
 		SceneComponent* root = owner ? owner->GetRootComponent() : nullptr;
 		if (!owner || !movement || !root || !behaviorEnabled_ || owner->IsDead())
 		{
@@ -64,11 +67,13 @@ namespace Ken4lowEngine
 
 		const Vector3 current = root->GetWorldPosition();
 		const Vector3 target = targetActor_->GetTargetPosition();
-		distanceToTarget_ = Vector3::LengthXZ(target - current);
-		if (distanceToTarget_ <= attackStartRange_)
+		const Vector3 toTarget = target - current;
+		distanceToTarget_ = Vector3::LengthXZ(toTarget);
+		const bool withinMeleeVolume = attack && attack->IsTargetWithinAttackRange("Melee");
+		if (withinMeleeVolume)
 		{
 			movement->Stop();
-			movement->FaceDirectionXZ(target - current, rotateSpeed_, deltaTime); // 停止後もTargetへ正面を合わせたまま攻撃する。
+			movement->FaceDirectionXZ(toTarget, rotateSpeed_, deltaTime); // 水平距離と高さ差の両方を満たした時だけ攻撃待機へ入る。
 			stateName_ = "AttackRange";
 			return;
 		}
@@ -77,8 +82,8 @@ namespace Ken4lowEngine
 		pathFound_ = navigator_.GetNextWaypoint(current, target, current.y, deltaTime, waypoint);
 		const Vector3 direction = NormalizeDirectionXZ((pathFound_ ? waypoint : target) - current);
 		movement->FaceDirectionXZ(direction, rotateSpeed_, deltaTime);
-		movement->SetVelocity(direction * moveSpeed_); // 移動積分は共通Movementだけが実行し、AI側では位置を直接変更しない。
-		stateName_ = pathFound_ ? "ChasePath" : "ChaseDirect";
+		movement->SetVelocity(direction * moveSpeed_); // 高さ範囲外では攻撃せず、到達可能な経路探索・追跡を継続する。
+		stateName_ = distanceToTarget_ <= attackStartRange_ ? "TargetHeightOutOfRange" : (pathFound_ ? "ChasePath" : "ChaseDirect");
 	}
 
 	void EnemyAIComponent::DrawImGui()
@@ -88,7 +93,7 @@ namespace Ken4lowEngine
 		ImGui::Text("状態: %s", stateName_.c_str());
 		ImGui::Text("移動速度: %.2f", moveSpeed_);
 		ImGui::Text("回転速度: %.2f / Root Yaw: %.2f", rotateSpeed_, GetOwner() && GetOwner()->GetRootComponent() ? GetOwner()->GetRootComponent()->GetWorldRotation().y : 0.0f);
-		ImGui::Text("Target距離: %.2f", distanceToTarget_);
+		ImGui::Text("Target水平距離: %.2f", distanceToTarget_);
 		ImGui::Text("A*経路: %s / %zu nodes", pathFound_ ? "有効" : "未生成", navigator_.GetCurrentPath().size());
 #endif
 	}
