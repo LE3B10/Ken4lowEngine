@@ -182,6 +182,18 @@ namespace Ken4lowEngine
 		return GetCharacterComponent<CharacterColliderComponent>();
 	}
 
+	Collider* CharacterActor::GetCollisionPrimitive()
+	{
+		CharacterColliderComponent* colliderComponent = GetColliderComponent();
+		return colliderComponent ? colliderComponent->GetCollider() : nullptr;
+	}
+
+	const Collider* CharacterActor::GetCollisionPrimitive() const
+	{
+		const CharacterColliderComponent* colliderComponent = GetColliderComponent();
+		return colliderComponent ? colliderComponent->GetCollider() : nullptr;
+	}
+
 	CharacterAnimationComponent* CharacterActor::GetAnimationComponent()
 	{
 		return GetCharacterComponent<CharacterAnimationComponent>();
