@@ -295,8 +295,6 @@ void BossBase::Initialize()
 	attackCooldownTimer_ = 0.0f;
 
 	SetupAttacks();
-	SetupPhaseData();
-	SetupWeakPoints();
 	SetupBoss();
 	attackComponent_->Initialize(this);
 
