@@ -17,12 +17,6 @@ namespace Ken4lowEngine
 	void HumanoidVisualComponent::Initialize()
 	{
 		SceneComponent::Initialize();
-		if (compatibilityBody_ && compatibilityParts_)
-		{
-			UpdateCompatibilityHierarchy();
-			statusMessage_ = "旧キャラクター階層をAdapter接続しました。";
-			return; // Adapter接続時は内部モデルを生成せず、旧経路との二重所有を避ける。
-		}
 
 		std::string loadError;
 		if (definition_.GetParts().empty())
@@ -38,19 +32,11 @@ namespace Ken4lowEngine
 			}
 		}
 
-		if (!BuildBodyHierarchy(&loadError))
-		{
-			statusMessage_ = loadError;
-		}
+		if (!BuildBodyHierarchy(&loadError)) statusMessage_ = loadError;
 	}
 
 	void HumanoidVisualComponent::Update(float deltaTime)
 	{
-		if (compatibilityBody_ && compatibilityParts_)
-		{
-			UpdateCompatibilityHierarchy();
-			return; // 旧UpdateHierarchyは呼ばず、Component側だけで1回更新する。
-		}
 		ProcessDeferredDefinitionRequests();
 		SceneComponent::Update(deltaTime);
 		RefreshSharedMaterialBinding();
@@ -59,11 +45,6 @@ namespace Ken4lowEngine
 
 	void HumanoidVisualComponent::UpdateEditor(float deltaTime)
 	{
-		if (compatibilityBody_ && compatibilityParts_)
-		{
-			UpdateCompatibilityHierarchy();
-			return; // Editor側でも旧更新とComponent更新を重複させない。
-		}
 		ProcessDeferredDefinitionRequests();
 		SceneComponent::UpdateEditor(deltaTime);
 		RefreshSharedMaterialBinding();
@@ -72,11 +53,6 @@ namespace Ken4lowEngine
 
 	void HumanoidVisualComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
 	{
-		if (compatibilityBody_ && compatibilityParts_)
-		{
-			UpdateCompatibilityHierarchy();
-			return;
-		}
 		RefreshWorldTransform();
 		RefreshSharedMaterialBinding();
 		UpdateHierarchy();
@@ -84,18 +60,6 @@ namespace Ken4lowEngine
 
 	void HumanoidVisualComponent::Draw()
 	{
-		if (compatibilityBody_ && compatibilityParts_)
-		{
-			if (compatibilityBody_->visible && compatibilityBody_->active && compatibilityBody_->object)
-			{
-				compatibilityBody_->object->Draw();
-			}
-			for (const BodyPart& part : *compatibilityParts_)
-			{
-				if (part.visible && part.active && part.object) part.object->Draw();
-			}
-			return;
-		}
 		for (const BodyPart& part : parts_)
 		{
 			if (part.visible && part.active && part.object) part.object->Draw();
@@ -105,18 +69,6 @@ namespace Ken4lowEngine
 	void HumanoidVisualComponent::DrawShadow()
 	{
 		if (!IsCastShadowEnabled()) return;
-		if (compatibilityBody_ && compatibilityParts_)
-		{
-			if (compatibilityBody_->visible && compatibilityBody_->active && compatibilityBody_->object)
-			{
-				compatibilityBody_->object->DrawShadow();
-			}
-			for (const BodyPart& part : *compatibilityParts_)
-			{
-				if (part.visible && part.active && part.object) part.object->DrawShadow();
-			}
-			return;
-		}
 		for (const BodyPart& part : parts_)
 		{
 			if (part.visible && part.active && part.object) part.object->DrawShadow();
@@ -126,18 +78,6 @@ namespace Ken4lowEngine
 	void HumanoidVisualComponent::DrawEditorObjectId(uint32_t objectId)
 	{
 		if (objectId == 0) return;
-		if (compatibilityBody_ && compatibilityParts_)
-		{
-			if (compatibilityBody_->visible && compatibilityBody_->active && compatibilityBody_->object)
-			{
-				compatibilityBody_->object->DrawEditorObjectId(objectId);
-			}
-			for (const BodyPart& part : *compatibilityParts_)
-			{
-				if (part.visible && part.active && part.object) part.object->DrawEditorObjectId(objectId);
-			}
-			return;
-		}
 		for (const BodyPart& part : parts_)
 		{
 			if (part.visible && part.active && part.object) part.object->DrawEditorObjectId(objectId);
@@ -178,8 +118,6 @@ namespace Ken4lowEngine
 		requestDefinitionReload_ = false;
 		requestDefinitionSave_ = false;
 		parts_.clear(); // Object3Dの所有権をComponentからまとめて解放する。
-		compatibilityBody_ = nullptr;
-		compatibilityParts_ = nullptr; // 借用参照だけを外し、旧キャラクター側の所有物は破棄しない。
 	}
 
 	void HumanoidVisualComponent::ToJson(nlohmann::json& outJson) const
@@ -273,24 +211,12 @@ namespace Ken4lowEngine
 
 	HumanoidVisualComponent::BodyPart* HumanoidVisualComponent::FindPart(std::string_view partId)
 	{
-		if (compatibilityBody_ && compatibilityBody_->id == partId) return compatibilityBody_;
-		if (compatibilityParts_)
-		{
-			const auto compatibilityIt = std::find_if(compatibilityParts_->begin(), compatibilityParts_->end(), [partId](const BodyPart& part) { return part.id == partId; });
-			if (compatibilityIt != compatibilityParts_->end()) return &(*compatibilityIt);
-		}
 		const auto partIt = std::find_if(parts_.begin(), parts_.end(), [partId](const BodyPart& part) { return part.id == partId; });
 		return partIt != parts_.end() ? &(*partIt) : nullptr;
 	}
 
 	const HumanoidVisualComponent::BodyPart* HumanoidVisualComponent::FindPart(std::string_view partId) const
 	{
-		if (compatibilityBody_ && compatibilityBody_->id == partId) return compatibilityBody_;
-		if (compatibilityParts_)
-		{
-			const auto compatibilityIt = std::find_if(compatibilityParts_->begin(), compatibilityParts_->end(), [partId](const BodyPart& part) { return part.id == partId; });
-			if (compatibilityIt != compatibilityParts_->end()) return &(*compatibilityIt);
-		}
 		const auto partIt = std::find_if(parts_.begin(), parts_.end(), [partId](const BodyPart& part) { return part.id == partId; });
 		return partIt != parts_.end() ? &(*partIt) : nullptr;
 	}
@@ -298,31 +224,20 @@ namespace Ken4lowEngine
 	bool HumanoidVisualComponent::SetPartVisible(std::string_view partId, bool visible)
 	{
 		BodyPart* part = FindPart(partId);
-		if (compatibilityBody_ && compatibilityParts_)
-		{
-			if (!part) return false;
-			part->visible = visible;
-			part->active = visible;
-			return true; // 旧側のactiveとComponentのvisibleを同じ切替点で同期する。
-		}
 		HumanoidPartDefinition* partDefinition = definition_.FindPart(partId);
 		if (!part || !partDefinition) return false;
 		part->visible = visible;
+		part->active = visible;
 		partDefinition->visible = visible; // 実行時の切り替えを次回Actor JSON保存にも反映する。
 		return true;
 	}
 
 	void HumanoidVisualComponent::SetAllPartsVisible(bool visible)
 	{
-		if (compatibilityBody_ && compatibilityParts_)
-		{
-			compatibilityBody_->visible = compatibilityBody_->active = visible;
-			for (BodyPart& part : *compatibilityParts_) part.visible = part.active = visible;
-			return;
-		}
 		for (BodyPart& part : parts_)
 		{
 			part.visible = visible;
+			part.active = visible;
 			if (HumanoidPartDefinition* partDefinition = definition_.FindPart(part.id)) partDefinition->visible = visible;
 		}
 	}
@@ -360,27 +275,8 @@ namespace Ken4lowEngine
 		ApplyAppearanceToAllParts();
 	}
 
-	void HumanoidVisualComponent::BindCompatibilityHierarchy(BodyPart& body, std::vector<BodyPart>& childParts)
-	{
-		parts_.clear();
-		compatibilityBody_ = &body;
-		compatibilityParts_ = &childParts; // 所有権は旧キャラクターに残し、Componentは更新と描画だけを担当する。
-	}
-
 	void HumanoidVisualComponent::UpdateShadowMatrices(const Matrix4x4& lightViewProjection)
 	{
-		if (compatibilityBody_ && compatibilityBody_->active && compatibilityBody_->object)
-		{
-			compatibilityBody_->object->UpdateShadowMatrix(lightViewProjection);
-		}
-		if (compatibilityParts_)
-		{
-			for (const BodyPart& part : *compatibilityParts_)
-			{
-				if (part.active && part.object) part.object->UpdateShadowMatrix(lightViewProjection);
-			}
-			return;
-		}
 		for (const BodyPart& part : parts_)
 		{
 			if (part.active && part.object) part.object->UpdateShadowMatrix(lightViewProjection);
@@ -415,6 +311,7 @@ namespace Ken4lowEngine
 					? &visualRootTransform_
 					: &parts_[parentIt->second].transform;
 				part.visible = partDefinition.visible;
+				part.active = partDefinition.visible;
 				try
 				{
 					part.object = std::make_unique<Object3D>();
@@ -478,24 +375,6 @@ namespace Ken4lowEngine
 		}
 	}
 
-	void HumanoidVisualComponent::UpdateCompatibilityHierarchy()
-	{
-		if (!compatibilityBody_ || !compatibilityParts_ || !compatibilityBody_->object) return;
-
-		compatibilityBody_->transform.Update();
-		compatibilityBody_->object->UpdateWithWorldMatrix(compatibilityBody_->transform.worldMatrix_);
-		for (BodyPart& part : *compatibilityParts_)
-		{
-			if (!part.object) continue;
-			if (part.transform.parent_ == &compatibilityBody_->transform)
-			{
-				part.transform.worldRotate_ = compatibilityBody_->transform.worldRotate_;
-			}
-			part.transform.Update();
-			part.object->UpdateWithWorldMatrix(part.transform.worldMatrix_); // 分離済み部位も親を戻さず同じ経路で更新する。
-		}
-	}
-
 	void HumanoidVisualComponent::ApplyAppearanceToAllParts()
 	{
 		materialRepositoryRevision_ = MaterialRepository::GetInstance()->GetRevision();
@@ -503,21 +382,12 @@ namespace Ken4lowEngine
 		const bool hasBinding = materialBinding_.HasBinding();
 		const bool resolved = hasBinding && materialBinding_.Resolve(resolvedMaterial);
 
-		auto applyAppearance = [&](BodyPart& part)
+		for (BodyPart& part : parts_)
 		{
-			if (!part.object) return;
+			if (!part.object) continue;
 			if (resolved) part.object->ApplyMaterialDesc(resolvedMaterial);
 			else part.object->ResetMaterialBinding();
 			if (!skinTexturePath_.empty()) part.object->SetTextureForAll(skinTexturePath_); // Skin指定は共有MaterialのBaseColor Textureより後に適用する。
-		};
-		if (compatibilityBody_ && compatibilityParts_)
-		{
-			applyAppearance(*compatibilityBody_);
-			for (BodyPart& part : *compatibilityParts_) applyAppearance(part);
-		}
-		else
-		{
-			for (BodyPart& part : parts_) applyAppearance(part);
 		}
 
 		if (!hasBinding) materialBindingStatus_ = "モデル既定Materialを使用中";
