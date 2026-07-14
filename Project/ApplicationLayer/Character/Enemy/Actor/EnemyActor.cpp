@@ -11,6 +11,7 @@
 #include <Scene/Actor/Character/CharacterMovementComponent.h>
 #include <Scene/Actor/Character/HumanoidVisualComponent.h>
 #include <SceneComponent.h>
+#include <WorldGaugeComponent.h>
 
 namespace Ken4lowEngine
 {
@@ -71,6 +72,22 @@ namespace Ken4lowEngine
 			effect.SetUpdateOrder(20);
 		}
 
+		if (!GetHealthGaugeComponent())
+		{
+			auto& healthGauge = AddComponent<WorldGaugeComponent>();
+			healthGauge.SetName("Enemy HP Gauge");
+			healthGauge.SetDrawOrder(120);
+			healthGauge.SetLocalPosition({ 0.0f, 2.65f, 0.0f });
+			healthGauge.SetSize({ 190.0f, 16.0f });
+			healthGauge.SetScreenOffset({ 0.0f, -8.0f });
+			healthGauge.SetBackgroundColor({ 0.05f, 0.05f, 0.05f, 0.86f });
+			healthGauge.SetFillColor({ 0.90f, 0.58f, 0.16f, 1.0f });
+			healthGauge.SetBorderColor({ 1.0f, 1.0f, 1.0f, 0.90f });
+			healthGauge.SetBorderThickness(2.0f);
+			healthGauge.SetVisible(false); // 通常EnemyはPlayerの照準が合った時だけ表示する。
+			healthGauge.AttachTo(root);
+		}
+
 		CharacterActor::Initialize();
 
 		if (CharacterHealthComponent* health = GetHealthComponent()) health->ResetHealth(240.0f);
@@ -80,6 +97,13 @@ namespace Ken4lowEngine
 			collider->SetCollisionLayer(PhysicsCollisionLayer::DynamicActor);
 		}
 		if (visual) visual->ApplySkinToAllParts("Characters/enemy.dds");
+		SyncHealthGauge();
+	}
+
+	void EnemyActor::Update(float deltaTime)
+	{
+		CharacterActor::Update(deltaTime);
+		SyncHealthGauge(); // ゲーム描画用WorldGaugeへHealth Componentの値を同期する。
 	}
 
 	void EnemyActor::SetTargetActor(CharacterActor* targetActor)
@@ -100,6 +124,7 @@ namespace Ken4lowEngine
 		{
 			const SceneComponent* root = GetRootComponent();
 			if (EnemyEffectComponent* effect = GetEnemyEffectComponent()) effect->TriggerHitEffect(root ? root->GetWorldPosition() : Vector3{});
+			SyncHealthGauge();
 		}
 		return result;
 	}
@@ -119,6 +144,13 @@ namespace Ken4lowEngine
 		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->ResetBehavior();
 		if (EnemyAttackComponent* attack = GetEnemyAttackComponent()) attack->ResetAttackState();
 		if (EnemyEffectComponent* effect = GetEnemyEffectComponent()) effect->ResetEffectState();
+		SetHealthBarVisible(false);
+		SyncHealthGauge();
+	}
+
+	void EnemyActor::SetHealthBarVisible(bool visible)
+	{
+		if (WorldGaugeComponent* gauge = GetHealthGaugeComponent()) gauge->SetVisible(visible && !IsDead());
 	}
 
 	EnemyAIComponent* EnemyActor::GetEnemyAIComponent()
@@ -141,6 +173,24 @@ namespace Ken4lowEngine
 		return GetCharacterComponent<HumanoidVisualComponent>();
 	}
 
+	WorldGaugeComponent* EnemyActor::GetHealthGaugeComponent()
+	{
+		for (WorldGaugeComponent* gauge : GetComponents<WorldGaugeComponent>())
+		{
+			if (gauge && gauge->GetName() == "Enemy HP Gauge") return gauge;
+		}
+		return nullptr;
+	}
+
+	void EnemyActor::SyncHealthGauge()
+	{
+		CharacterHealthComponent* health = GetHealthComponent();
+		WorldGaugeComponent* gauge = GetHealthGaugeComponent();
+		if (!health || !gauge) return;
+		gauge->SetMaxValue(health->GetMaxHealth());
+		gauge->SetValue(health->GetCurrentHealth());
+	}
+
 	void EnemyActor::OnDeath(const CharacterDeathEvent& deathEvent)
 	{
 		(void)deathEvent;
@@ -149,6 +199,8 @@ namespace Ken4lowEngine
 		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->Stop();
 		if (RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>()) rigidbody->SetVelocity({});
 		if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(false);
+		SetHealthBarVisible(false);
+		SyncHealthGauge();
 
 		const SceneComponent* root = GetRootComponent();
 		if (EnemyEffectComponent* effect = GetEnemyEffectComponent()) effect->TriggerDeathEffect(root ? root->GetWorldPosition() : Vector3{});
