@@ -3,6 +3,7 @@
 #include "PlayerCameraComponent.h"
 
 #include <Actor.h>
+#include <Camera.h>
 #include <RigidbodyComponent.h>
 #include <Scene/Actor/Character/CharacterMovementComponent.h>
 
@@ -19,7 +20,7 @@ namespace Ken4lowEngine
 	class PlayerMovementComponent final : public CharacterMovementComponent
 	{
 	public:
-		/// 現在の移動入力をCamera Yaw基準のXZ速度へ変換し、物理Bodyまたは共通移動処理へ渡す。
+		/// 現在の移動入力を実際のPlayer Camera基準のXZ速度へ変換し、物理Bodyまたは共通移動処理へ渡す。
 		void Update(float deltaTime) override
 		{
 			float x = moveInputX_;
@@ -33,14 +34,40 @@ namespace Ken4lowEngine
 			}
 
 			Actor* owner = GetOwner();
-			const PlayerCameraComponent* camera = owner ? owner->GetComponent<PlayerCameraComponent>() : nullptr;
-			const float yaw = camera ? camera->GetYaw() : 0.0f;
-			const float sinYaw = std::sin(yaw);
-			const float cosYaw = std::cos(yaw);
+			const PlayerCameraComponent* playerCamera = owner ? owner->GetComponent<PlayerCameraComponent>() : nullptr;
 
-			// +Zを前方とし、CameraのYawだけを使ってFPS操作の移動方向をWorld空間へ変換する。
-			const float worldX = x * cosYaw - z * sinYaw;
-			const float worldZ = x * sinYaw + z * cosYaw;
+			// 見えているPlayer Cameraの前方向をXZ平面へ落とし、WASDの基準方向を画面と完全に一致させる。
+			Vector3 forward{ 0.0f, 0.0f, 1.0f };
+			if (playerCamera)
+			{
+				if (const Camera* camera = playerCamera->GetCamera())
+				{
+					forward = camera->GetForward();
+				}
+				else
+				{
+					const float yaw = playerCamera->GetYaw();
+					forward = { -std::sin(yaw), 0.0f, std::cos(yaw) };
+				}
+			}
+
+			forward.y = 0.0f;
+			const float forwardLengthSq = forward.x * forward.x + forward.z * forward.z;
+			if (forwardLengthSq <= 0.000001f)
+			{
+				forward = { 0.0f, 0.0f, 1.0f };
+			}
+			else
+			{
+				const float invForwardLength = 1.0f / std::sqrt(forwardLengthSq);
+				forward.x *= invForwardLength;
+				forward.z *= invForwardLength;
+			}
+
+			// Z+前方の左手座標系に合わせ、右方向はForwardのXZ直交ベクトルから求める。
+			const Vector3 right{ forward.z, 0.0f, -forward.x };
+			const float worldX = right.x * x + forward.x * z;
+			const float worldZ = right.z * x + forward.z * z;
 
 			RigidbodyComponent* rigidbodyComponent = owner ? owner->GetComponent<RigidbodyComponent>() : nullptr;
 			Rigidbody* rigidbody = rigidbodyComponent ? rigidbodyComponent->GetRigidbody() : nullptr;
