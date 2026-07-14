@@ -4,6 +4,7 @@
 #include <Collider.h>
 #include <PhysicsCollisionLayer.h>
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -14,6 +15,11 @@ namespace Ken4lowEngine
 	/// -------------------------------------------------------------
 	class ColliderComponent : public SceneComponent
 	{
+	public: /// ---------- コールバック型 ---------- ///
+
+		using CollisionCallback = std::function<void(Collider*)>;
+		using CollisionHitCallback = std::function<void(const CollisionHit&)>;
+
 	public: /// ---------- メンバ関数 ---------- ///
 
 		/// <summary>
@@ -72,7 +78,7 @@ namespace Ken4lowEngine
 		void SetRadius(float radius);
 
 		/// <summary>
-		/// PhysicWorldへ登録するColliderを取得する
+		/// PhysicsWorldへ登録するColliderを取得する
 		Collider* GetCollider() { return collider_.get(); }
 		const Collider* GetCollider() const { return collider_.get(); }
 
@@ -102,7 +108,7 @@ namespace Ken4lowEngine
 		void SetHalfSize(const Vector3& halfSize);
 
 		/// <summary>
-		/// AABB / OBB 判定に使う半サイズを取得する
+		/// AABB / OBBとして扱う半サイズを取得する
 		/// </summary>
 		const Vector3& GetHalfSize() const { return halfSize_; }
 
@@ -121,6 +127,39 @@ namespace Ken4lowEngine
 
 		std::vector<ComponentProperty> CreateProperties();
 
+	public: /// ---------- Collision Event ---------- ///
+
+		/// Colliderが受けた旧互換Collision通知をComponent所有者へ配送するコールバックを設定する。
+		void SetOnCollisionCallback(CollisionCallback callback) { onCollision_ = std::move(callback); }
+		void SetOnCollisionEnterCallback(CollisionCallback callback) { onCollisionEnter_ = std::move(callback); }
+		void SetOnCollisionStayCallback(CollisionCallback callback) { onCollisionStay_ = std::move(callback); }
+		void SetOnCollisionExitCallback(CollisionCallback callback) { onCollisionExit_ = std::move(callback); }
+
+		/// 詳細Hit情報を含むBlock/Overlap通知をComponent所有者へ配送するコールバックを設定する。
+		void SetOnCollisionEnterHitCallback(CollisionHitCallback callback) { onCollisionEnterHit_ = std::move(callback); }
+		void SetOnCollisionStayHitCallback(CollisionHitCallback callback) { onCollisionStayHit_ = std::move(callback); }
+		void SetOnCollisionExitHitCallback(CollisionHitCallback callback) { onCollisionExitHit_ = std::move(callback); }
+		void SetOnOverlapBeginCallback(CollisionHitCallback callback) { onOverlapBegin_ = std::move(callback); }
+		void SetOnOverlapStayCallback(CollisionHitCallback callback) { onOverlapStay_ = std::move(callback); }
+		void SetOnOverlapEndCallback(CollisionHitCallback callback) { onOverlapEnd_ = std::move(callback); }
+
+		/// Actor破棄・再構築時に古い所有者参照を残さないようCollision通知をまとめて解除する。
+		void ClearCollisionCallbacks();
+
+	private:
+		class ForwardingCollider;
+
+		void DispatchCollision(Collider* other);
+		void DispatchCollisionEnter(Collider* other);
+		void DispatchCollisionStay(Collider* other);
+		void DispatchCollisionExit(Collider* other);
+		void DispatchCollisionEnter(const CollisionHit& hit);
+		void DispatchCollisionStay(const CollisionHit& hit);
+		void DispatchCollisionExit(const CollisionHit& hit);
+		void DispatchOverlapBegin(const CollisionHit& hit);
+		void DispatchOverlapStay(const CollisionHit& hit);
+		void DispatchOverlapEnd(const CollisionHit& hit);
+
 	private: /// ---------- 内部処理 ---------- ///
 
 		/// <summary>
@@ -130,7 +169,7 @@ namespace Ken4lowEngine
 
 	private: /// ---------- メンバ変数 ---------- ///
 
-		// PhysicWorldへ登録するCollider。SphereColliderとして扱う
+		// PhysicsWorldへ登録するCollider。Collision EventをComponentへ戻すForwardingColliderとして生成する。
 		std::unique_ptr<Collider> collider_;
 
 		// Colliderの形状種別。SphereColliderとして扱う
@@ -147,5 +186,16 @@ namespace Ken4lowEngine
 
 		// Trigger判定かどうか
 		bool isTrigger_ = false;
+
+		CollisionCallback onCollision_{};
+		CollisionCallback onCollisionEnter_{};
+		CollisionCallback onCollisionStay_{};
+		CollisionCallback onCollisionExit_{};
+		CollisionHitCallback onCollisionEnterHit_{};
+		CollisionHitCallback onCollisionStayHit_{};
+		CollisionHitCallback onCollisionExitHit_{};
+		CollisionHitCallback onOverlapBegin_{};
+		CollisionHitCallback onOverlapStay_{};
+		CollisionHitCallback onOverlapEnd_{};
 	};
-}
+} // namespace Ken4lowEngine
