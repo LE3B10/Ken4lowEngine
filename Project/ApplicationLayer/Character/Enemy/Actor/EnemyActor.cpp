@@ -5,6 +5,7 @@
 #include "EnemyEffectComponent.h"
 
 #include <PhysicsCollisionLayer.h>
+#include <RigidbodyComponent.h>
 #include <Scene/Actor/Character/CharacterColliderComponent.h>
 #include <Scene/Actor/Character/CharacterHealthComponent.h>
 #include <Scene/Actor/Character/CharacterMovementComponent.h>
@@ -28,7 +29,21 @@ namespace Ken4lowEngine
 		{
 			ai = &AddComponent<EnemyAIComponent>();
 			ai->SetName("Enemy AI");
-			ai->SetUpdateOrder(-95); // AIは速度を決めるだけとし、位置積分より先に一度だけ実行する。
+			ai->SetUpdateOrder(-95); // AIは移動要求を決め、CharacterMovementが同フレームでPhysics速度へ変換する。
+		}
+
+		if (!GetComponent<RigidbodyComponent>())
+		{
+			auto& rigidbody = AddComponent<RigidbodyComponent>();
+			rigidbody.SetName("Enemy Rigidbody");
+			rigidbody.SetUpdateOrder(-85);
+			rigidbody.SetBodyType(BodyType::Dynamic);
+			rigidbody.SetMass(1.0f);
+			rigidbody.SetUseGravity(true);
+			rigidbody.SetSleepEnabled(false);
+			rigidbody.SetRestitution(0.0f);
+			rigidbody.SetStaticFriction(0.0f);
+			rigidbody.SetDynamicFriction(0.0f);
 		}
 
 		auto* visual = GetHumanoidVisualComponent();
@@ -99,6 +114,7 @@ namespace Ken4lowEngine
 		}
 		if (CharacterHealthComponent* health = GetHealthComponent()) health->ResetHealth(240.0f);
 		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->Stop();
+		if (RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>()) rigidbody->SetVelocity({}); // 再配置時に以前の落下・追跡速度を持ち越さない。
 		if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(true);
 		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->ResetBehavior();
 		if (EnemyAttackComponent* attack = GetEnemyAttackComponent()) attack->ResetAttackState();
@@ -131,6 +147,7 @@ namespace Ken4lowEngine
 		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->StopBehavior();
 		if (EnemyAttackComponent* attack = GetEnemyAttackComponent()) attack->StopAttacking();
 		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->Stop();
+		if (RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>()) rigidbody->SetVelocity({});
 		if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(false);
 
 		const SceneComponent* root = GetRootComponent();
