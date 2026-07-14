@@ -1,6 +1,8 @@
 #pragma once
 
+#include <Actor.h>
 #include <CameraComponent.h>
+#include <SceneComponent.h>
 
 #include <algorithm>
 #include <cmath>
@@ -19,29 +21,44 @@ namespace Ken4lowEngine
 		/// Player視点では親回転を継承せず、自身のPitch/Yawを使用する。
 		void Initialize() override
 		{
+			EnsureAttachedToOwnerRoot(); // JSON復元やPIE複製後もPlayer Rootへの追従関係を必ず復元する。
 			SetInheritParentRotation(false);
 			CameraComponent::Initialize();
-			ActivateAsMainCameraDriver(); // Player生成時点からゲーム用Main CameraのDriverとして確定する。
+			ActivateAsMainCameraDriver();
 		}
 
 		/// 入力Componentから配送された視点要求を角度へ反映してから共通Camera更新を行う。
 		void Update(float deltaTime) override
 		{
-			(void)deltaTime;
+			EnsureAttachedToOwnerRoot();
 			yaw_ += pendingYawDelta_;
 			pitch_ = std::clamp(pitch_ + pendingPitchDelta_, -maxPitch_, maxPitch_);
 			pendingYawDelta_ = 0.0f;
 			pendingPitchDelta_ = 0.0f;
-			SetLocalRotation({ pitch_, yaw_, 0.0f }); // 視点角度だけを確定し、Camera本体への同期は基底Componentへ任せる。
-			ActivateAsMainCameraDriver(); // 他CameraComponentが存在してもPlayer Cameraを現在のMain Camera Driverへ戻す。
+
+			// 長時間操作でも角度が巨大化しないようYawを[-pi, pi]へ正規化する。
+			yaw_ = std::remainder(yaw_, std::numbers::pi_v<float> * 2.0f);
+			SetLocalRotation({ pitch_, yaw_, 0.0f });
+			ActivateAsMainCameraDriver();
 			CameraComponent::Update(deltaTime);
 		}
 
 		/// PhysicsでPlayer Rootが補正された後、最終位置をMain Cameraへ必ず反映する。
 		void PostPhysicsUpdate(float deltaTime) override
 		{
+			EnsureAttachedToOwnerRoot();
+			RefreshWorldTransform(); // Collider補正後のRoot位置を子CameraのWorld位置へ確実に伝播させる。
 			ActivateAsMainCameraDriver();
 			CameraComponent::PostPhysicsUpdate(deltaTime);
+		}
+
+		/// Actor側の最終PostPhysics地点から、Player Cameraをそのフレームの描画Cameraへ確定する。
+		void SyncToMainCameraNow()
+		{
+			EnsureAttachedToOwnerRoot();
+			RefreshWorldTransform();
+			ActivateAsMainCameraDriver();
+			CameraComponent::PostPhysicsUpdate(0.0f);
 		}
 
 		/// Player視点角度をDebug表示する。
@@ -51,6 +68,8 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 			ImGui::SeparatorText("プレイヤーカメラ");
 			ImGui::Text("Pitch: %.3f / Yaw: %.3f", pitch_, yaw_);
+			ImGui::Text("Parent: %s", GetParent() ? GetParent()->GetName().c_str() : "None");
+			ImGui::Text("World Position: %.2f, %.2f, %.2f", GetWorldPosition().x, GetWorldPosition().y, GetWorldPosition().z);
 #endif
 		}
 
@@ -74,8 +93,10 @@ namespace Ken4lowEngine
 			if (!std::isfinite(pitch_)) pitch_ = 0.0f;
 			if (!std::isfinite(yaw_)) yaw_ = 0.0f;
 			pitch_ = std::clamp(pitch_, -maxPitch_, maxPitch_);
+			yaw_ = std::remainder(yaw_, std::numbers::pi_v<float> * 2.0f);
 			pendingYawDelta_ = 0.0f;
 			pendingPitchDelta_ = 0.0f;
+			EnsureAttachedToOwnerRoot();
 		}
 
 		/// 入力Componentから1フレーム分の視点回転要求を受け取る。
@@ -89,17 +110,27 @@ namespace Ken4lowEngine
 		void ResetLook(float pitch = 0.0f, float yaw = 0.0f)
 		{
 			pitch_ = std::clamp(pitch, -maxPitch_, maxPitch_);
-			yaw_ = yaw;
+			yaw_ = std::isfinite(yaw) ? std::remainder(yaw, std::numbers::pi_v<float> * 2.0f) : 0.0f;
 			pendingYawDelta_ = 0.0f;
 			pendingPitchDelta_ = 0.0f;
+			EnsureAttachedToOwnerRoot();
 			SetLocalRotation({ pitch_, yaw_, 0.0f });
-			ActivateAsMainCameraDriver(); // Reset直後もPlayer位置・向きをMain Cameraへ同期できる状態に戻す。
+			SyncToMainCameraNow();
 		}
 
 		float GetPitch() const { return pitch_; }
 		float GetYaw() const { return yaw_; }
 
 	private:
+		/// Player CameraがPIE複製やJSON復元後も必ず所有PlayerのRootを親に持つよう補修する。
+		void EnsureAttachedToOwnerRoot()
+		{
+			Actor* owner = GetOwner();
+			SceneComponent* root = owner ? owner->GetRootComponent() : nullptr;
+			if (!root || root == this || GetParent() == root) return;
+			AttachTo(root);
+		}
+
 		float pitch_ = 0.0f;
 		float yaw_ = 0.0f;
 		float pendingPitchDelta_ = 0.0f;
