@@ -56,6 +56,24 @@ namespace Ken4lowEngine
 			SyncRootToGameplayBody();
 		}
 
+		/// Actor描画とCollider Debug描画の名前衝突を避け、通常描画はComponent経路だけへ統一する。
+		void Draw() override
+		{
+			CharacterActor::Draw();
+		}
+
+		/// Shadow描画もActor/Component経路へ統一する。
+		void DrawShadow() override
+		{
+			CharacterActor::DrawShadow();
+		}
+
+		/// Details/ImGui描画はActor側のComponent表示を使用する。
+		void DrawImGui() override
+		{
+			CharacterActor::DrawImGui();
+		}
+
 		/// Physics補正後もRootの最終位置を旧GameplayのBody参照へ戻す。
 		void PostPhysicsUpdate(float deltaTime) override
 		{
