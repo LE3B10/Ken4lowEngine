@@ -120,9 +120,9 @@ namespace Ken4lowEngine
 		/// Rigidbodyが存在する場合はPhysicsWorldの接地状態を返す。
 		bool IsGrounded() const
 		{
-			const Actor* owner = GetOwner();
-			const RigidbodyComponent* rigidbodyComponent = owner ? owner->GetComponent<RigidbodyComponent>() : nullptr;
-			const Rigidbody* rigidbody = rigidbodyComponent ? rigidbodyComponent->GetRigidbody() : nullptr;
+			Actor* owner = GetOwner();
+			RigidbodyComponent* rigidbodyComponent = owner ? owner->GetComponent<RigidbodyComponent>() : nullptr;
+			Rigidbody* rigidbody = rigidbodyComponent ? rigidbodyComponent->GetRigidbody() : nullptr;
 			return rigidbody && rigidbody->IsGrounded();
 		}
 
