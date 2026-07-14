@@ -88,15 +88,23 @@ namespace Ken4lowEngine
 			healthGauge.AttachTo(root);
 		}
 
+		const bool hadHealth = GetHealthComponent() != nullptr;
+		const bool hadCollider = GetColliderComponent() != nullptr;
 		CharacterActor::Initialize();
 
-		if (CharacterHealthComponent* health = GetHealthComponent()) health->ResetHealth(240.0f);
-		if (CharacterColliderComponent* collider = GetColliderComponent())
+		if (!hadHealth)
 		{
-			collider->SetHalfSize({ 1.0f, 2.0f, 1.0f });
-			collider->SetCollisionLayer(PhysicsCollisionLayer::DynamicActor);
+			if (CharacterHealthComponent* health = GetHealthComponent()) health->ResetHealth(240.0f);
 		}
-		if (visual) visual->ApplySkinToAllParts("Characters/enemy.dds");
+		if (!hadCollider)
+		{
+			if (CharacterColliderComponent* collider = GetColliderComponent())
+			{
+				collider->SetHalfSize({ 1.0f, 2.0f, 1.0f });
+				collider->SetCollisionLayer(PhysicsCollisionLayer::DynamicActor);
+			}
+		}
+		if (visual && visual->GetSkinTexturePath().empty()) visual->ApplySkinToAllParts("Characters/enemy.dds");
 		SyncHealthGauge();
 	}
 
