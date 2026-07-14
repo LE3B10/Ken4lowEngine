@@ -16,11 +16,11 @@
 
 namespace Ken4lowEngine
 {
-	/// Playerの移動入力を速度へ変換し、Rigidbodyがある場合は物理移動へ、無い場合は共通Character移動へ委譲するComponent。
+	/// Playerの移動入力を目標速度へ変換し、共通Character MotorとRigidbodyへ委譲するComponent。
 	class PlayerMovementComponent final : public CharacterMovementComponent
 	{
 	public:
-		/// 現在の移動入力を実際のPlayer Camera基準のXZ速度へ変換し、物理Bodyまたは共通移動処理へ渡す。
+		/// 現在の移動入力を実際のPlayer Camera基準のXZ目標速度へ変換し、共通Motorへ渡す。
 		void Update(float deltaTime) override
 		{
 			float x = moveInputX_;
@@ -36,7 +36,7 @@ namespace Ken4lowEngine
 			Actor* owner = GetOwner();
 			const PlayerCameraComponent* playerCamera = owner ? owner->GetComponent<PlayerCameraComponent>() : nullptr;
 
-			// 見えているPlayer Cameraの前方向をXZ平面へ落とし、WASDの基準方向を画面と完全に一致させる。
+			// 見えているPlayer Cameraの前方向をXZ平面へ落とし、WASDの基準方向を画面と一致させる。
 			Vector3 forward{ 0.0f, 0.0f, 1.0f };
 			if (playerCamera)
 			{
@@ -69,30 +69,31 @@ namespace Ken4lowEngine
 			const float worldX = right.x * x + forward.x * z;
 			const float worldZ = right.z * x + forward.z * z;
 
+			Vector3 targetVelocity = GetVelocity();
+			targetVelocity.x = worldX * moveSpeed_;
+			targetVelocity.z = worldZ * moveSpeed_;
+			targetVelocity.y = 0.0f; // Rigidbody使用時のY速度は重力・Jump・衝突解決が所有する。
+			CharacterMovementComponent::SetVelocity(targetVelocity);
+
 			RigidbodyComponent* rigidbodyComponent = owner ? owner->GetComponent<RigidbodyComponent>() : nullptr;
 			Rigidbody* rigidbody = rigidbodyComponent ? rigidbodyComponent->GetRigidbody() : nullptr;
 			if (rigidbody)
 			{
-				Vector3 velocity = rigidbody->GetVelocity();
-				velocity.x = worldX * moveSpeed_;
-				velocity.z = worldZ * moveSpeed_;
+				CharacterMovementComponent::Update(deltaTime); // XZは質量とDrive Forceを考慮した共通Motorで加減速する。
 
 				if (jumpRequested_ && rigidbody->IsGrounded())
 				{
-					velocity.y = jumpSpeed_; // Jump要求はMovement側で物理速度へ変換し、Input側では具体処理を行わない。
+					Vector3 physicalVelocity = rigidbody->GetVelocity();
+					physicalVelocity.y = jumpSpeed_; // Jumpだけは瞬間的な跳躍Impulse相当としてY速度へ反映する。
+					rigidbodyComponent->SetVelocity(physicalVelocity);
 				}
 
-				rigidbodyComponent->SetVelocity(velocity);
-				CharacterMovementComponent::SetVelocity(velocity); // Debug表示用の共通速度も同じ値へ同期する。
 				jumpRequested_ = false;
-				return; // Rigidbody使用時はRoot Transformを直接積分せず、PhysicsWorldの結果だけを採用する。
+				return;
 			}
 
-			Vector3 velocity = GetVelocity();
-			velocity.x = worldX * moveSpeed_;
-			velocity.z = worldZ * moveSpeed_;
-			if (jumpRequested_) velocity.y = jumpSpeed_;
-			SetVelocity(velocity);
+			if (jumpRequested_) targetVelocity.y = jumpSpeed_;
+			CharacterMovementComponent::SetVelocity(targetVelocity);
 			jumpRequested_ = false;
 			CharacterMovementComponent::Update(deltaTime);
 		}
@@ -168,7 +169,7 @@ namespace Ken4lowEngine
 					Vector3 velocity = rigidbody->GetVelocity();
 					velocity.x = 0.0f;
 					velocity.z = 0.0f;
-					rigidbodyComponent->SetVelocity(velocity); // Reset時も重力由来のY速度は保持する。
+					rigidbodyComponent->SetVelocity(velocity); // Resetは検証初期化なので水平速度を即時停止する。
 				}
 			}
 

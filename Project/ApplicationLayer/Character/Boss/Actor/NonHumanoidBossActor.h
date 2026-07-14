@@ -53,7 +53,7 @@ namespace Ken4lowEngine
 				rigidbody.SetName("Non Humanoid Boss Rigidbody");
 				rigidbody.SetUpdateOrder(-85);
 				rigidbody.SetBodyType(BodyType::Dynamic);
-				rigidbody.SetMass(4.0f);
+				rigidbody.SetMass(20.0f); // 非人型Bossも大型BodyとしてPlayerから押されにくい質量比にする。
 				rigidbody.SetUseGravity(true);
 				rigidbody.SetSleepEnabled(false);
 				rigidbody.SetRestitution(0.0f);
@@ -65,6 +65,11 @@ namespace Ken4lowEngine
 			const bool hadCollider = GetColliderComponent() != nullptr;
 			CharacterActor::Initialize();
 
+			if (CharacterMovementComponent* movement = GetMovementComponent())
+			{
+				movement->SetMaxDriveForce(400.0f);
+				movement->SetMaxBrakingForce(600.0f);
+			}
 			if (!hadHealth)
 			{
 				if (CharacterHealthComponent* health = GetHealthComponent()) health->ResetHealth(1200.0f);
