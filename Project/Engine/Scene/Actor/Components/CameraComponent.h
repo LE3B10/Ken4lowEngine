@@ -28,11 +28,19 @@ namespace Ken4lowEngine
 		void SetInheritParentRotation(bool enabled) { inheritParentRotation_ = enabled; }
 		bool IsInheritParentRotationEnabled() const { return inheritParentRotation_; }
 
+		/// このCameraComponentをMain CameraへTransformを書き込む唯一のDriverとして有効化する。
+		void ActivateAsMainCameraDriver();
+		bool IsMainCameraDriver() const { return mainCameraDriver_ == this; }
+
 	private:
+		bool CanDriveMainCamera() const;
 		void SyncTransformToCamera();
 
 		Camera* camera_ = nullptr;
 		bool autoRegisterMainCamera_ = false;
 		bool inheritParentRotation_ = true; // falseならActorやModelの回転変更をゲームカメラへ伝播させない。
+
+		/// 複数CameraComponentが同じMain Cameraを上書きしないよう、現在のDriverを1つだけ保持する。
+		inline static CameraComponent* mainCameraDriver_ = nullptr;
 	};
 } // namespace Ken4lowEngine
