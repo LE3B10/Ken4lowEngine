@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -28,6 +29,7 @@ namespace Ken4lowEngine
 
 		HumanoidCharacterActor()
 			: body_(EnsureVisualComponentForConstruction().GetBodyPart())
+			, parts_(EnsureVisualComponentForConstruction().GetParts())
 		{
 		}
 
@@ -71,12 +73,12 @@ namespace Ken4lowEngine
 
 		std::vector<BodyPart>& GetBodyParts()
 		{
-			return GetHumanoidVisualComponent()->GetParts(); // 子部位の実体はHumanoidVisualComponentだけが所有する。
+			return parts_; // 実体はHumanoidVisualComponentだけが所有し、旧Gameplayには同じ配列への参照を返す。
 		}
 
 		const std::vector<BodyPart>& GetBodyParts() const
 		{
-			return GetHumanoidVisualComponent()->GetParts();
+			return parts_;
 		}
 
 		PartIndices& GetPartIndices() { return partIndices_; }
@@ -177,6 +179,7 @@ namespace Ken4lowEngine
 		virtual std::string GetRightLegModelPath() const { return "Characters/right_leg.gltf"; }
 
 		BodyPart& body_; // 旧GameplayもHumanoidVisualComponent所有のBody実体を直接参照し、重複部位を持たない。
+		std::vector<BodyPart>& parts_; // 旧Gameplay互換名もHumanoidVisualComponent所有配列への参照だけを保持する。
 
 	private:
 		HumanoidVisualComponent& EnsureVisualComponentForConstruction()
