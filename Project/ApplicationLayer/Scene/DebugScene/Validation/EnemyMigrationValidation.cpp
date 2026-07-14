@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "EnemyMigrationValidation.h"
 
 #include "ApplicationLayer/Character/Boss/Actor/BossActor.h"
