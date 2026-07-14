@@ -1,22 +1,33 @@
 #include "TestActor.h"
 
+#include <ActorJsonSerializer.h>
 #include <CameraManager.h>
 #include <Input.h>
 
 namespace
 {
 	constexpr float kMouseLookSensitivity = 0.0025f;
+	constexpr const char* kPlayerPrefabPath = "Resources/ActorPrefabs/DebugPlayer.json";
 }
 
 void TestActor::Initialize()
 {
 	const bool hadSavedComposition = !GetComponents().empty();
-	Ken4lowEngine::PlayerActor::Initialize();
-	wasControllingPlayer_ = false;
+	bool loadedFromPrefab = false;
 
+	// DebugScene初回生成時は保存済みPlayer構成を自動復元し、毎回Editorから読込操作を行わなくてよい状態にする。
 	if (!hadSavedComposition)
 	{
-		ResetForValidation({ 0.0f, 1.5f, 0.0f }); // 床へ落下して接地するまでをPhysicsWorldで確認できる高さから開始する。
+		loadedFromPrefab = Ken4lowEngine::ActorJsonSerializer::LoadActorFromFile(*this, kPlayerPrefabPath);
+	}
+
+	Ken4lowEngine::PlayerActor::Initialize(); // 古いPrefabに無い武器ViewModelやHUD Componentは不足分だけ補完する。
+	SetName("DebugPlayer");
+	wasControllingPlayer_ = false;
+
+	if (!hadSavedComposition && !loadedFromPrefab)
+	{
+		ResetForValidation({ 0.0f, 1.5f, 0.0f }); // Prefabが無い場合だけコード既定値へフォールバックする。
 	}
 }
 
