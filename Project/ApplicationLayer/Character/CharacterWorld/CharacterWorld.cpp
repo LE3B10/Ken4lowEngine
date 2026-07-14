@@ -45,7 +45,7 @@ void CharacterWorld::Initialize(GameContext& ctx)
 
 	if (ctx_.collisionManager_)
 	{
-		ctx_.collisionManager_->AddCollider(player_.get());
+		ctx_.collisionManager_->AddCollider(player_->GetCollisionPrimitive()); // Player本体はCharacterColliderComponent所有Colliderだけを登録する。
 	}
 
 	enemies_.clear();
@@ -59,7 +59,7 @@ void CharacterWorld::Finalize()
 
 	if (ctx_.collisionManager_ && player_)
 	{
-		ctx_.collisionManager_->RemoveCollider(player_.get());
+		ctx_.collisionManager_->RemoveCollider(player_->GetCollisionPrimitive()); // 破棄前に共通Component所有Colliderを登録解除する。
 	}
 	player_.reset();
 	ctx_ = GameContext{};
@@ -358,34 +358,5 @@ void CharacterWorld::DrawEnemyDebugImGui()
 	}
 
 	ImGui::Separator();
-	for (size_t i = 0; i < enemies_.size(); ++i)
-	{
-		ImGui::PushID(static_cast<int>(i));
-		if (ImGui::TreeNode("Enemy", "Enemy %zu", i))
-		{
-			if (enemies_[i]) { enemies_[i]->DrawImGui(); }
-			ImGui::TreePop();
-		}
-		ImGui::PopID();
-	}
 #endif
-}
-
-void CharacterWorld::DrawShadow()
-{
-	if (player_) { player_->DrawShadow(); }
-	for (auto& e : enemies_)
-	{
-		e->DrawShadow();
-	}
-}
-
-void CharacterWorld::UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
-{
-	if (player_) { player_->UpdateShadowMatrix(lightViewProjection); }
-
-	for (auto& e : enemies_)
-	{
-		e->UpdateShadowMatrix(lightViewProjection);
-	}
 }
