@@ -1,120 +1,93 @@
 #include "BossStatusComponent.h"
 
-/// -------------------------------------------------------------
-///						　初期化処理
-/// -------------------------------------------------------------
-void BossStatusComponent::Initialize(float maxHP)
-{
-	maxHP_ = std::max(1.0f, maxHP);
-	hp_ = maxHP_;
+#include <Scene/Actor/Character/CharacterHealthComponent.h>
 
-	isInvincible_ = false;
+#include <algorithm>
+
+using namespace Ken4lowEngine;
+
+void BossStatusComponent::Initialize(CharacterHealthComponent* health, float maxHP)
+{
+	health_ = health;
+	invincibleTimer_ = 0.0f;
+	if (health_) health_->ResetHealth(std::max(1.0f, maxHP)); // HPの正本は共通Healthだけに置く。
+}
+
+void BossStatusComponent::Update(float deltaTime)
+{
+	if (invincibleTimer_ <= 0.0f) return;
+	invincibleTimer_ = std::max(0.0f, invincibleTimer_ - deltaTime);
+	if (invincibleTimer_ <= 0.0f && health_) health_->SetInvulnerable(false);
+}
+
+void BossStatusComponent::Finalize()
+{
+	if (health_) health_->SetInvulnerable(false);
+	health_ = nullptr;
 	invincibleTimer_ = 0.0f;
 }
 
-/// -------------------------------------------------------------
-///						　更新処理
-/// -------------------------------------------------------------
-void BossStatusComponent::Update(float deltaTime)
-{
-	// 時間制無敵の更新
-	if (invincibleTimer_ > 0.0f)
-	{
-		// 無敵時間を減らす
-		invincibleTimer_ -= deltaTime;
-
-		// 無敵時間が0未満にならないように丸める
-		if (invincibleTimer_ < 0.0f) invincibleTimer_ = 0.0f;
-	}
-}
-
-/// -------------------------------------------------------------
-///						ダメージ適用
-/// -------------------------------------------------------------
 void BossStatusComponent::ApplyDamage(float damage)
 {
-	// マイナスダメージは無視
-	if (damage <= 0.0f)	return;
-
-	// 常時無敵 または 時間制無敵中なら受けない
-	if (isInvincible_ || invincibleTimer_ > 0.0f) return;
-
-	// ダメージを適用
-	hp_ -= damage;
-
-	// HPは0未満にならないように丸める
-	if (hp_ < 0.0f) hp_ = 0.0f;
+	if (!health_ || damage <= 0.0f || IsInvincible()) return;
+	CharacterDamageInfo damageInfo{};
+	damageInfo.amount = damage;
+	health_->ApplyDamage(damageInfo);
 }
 
-/// -------------------------------------------------------------
-///						回復処理
-/// -------------------------------------------------------------
 void BossStatusComponent::Heal(float value)
 {
-	// マイナス回復は無視
-	if (value <= 0.0f) return;
-
-	// HPを回復
-	hp_ += value;
-
-	// HPは最大HPを超えないように丸める
-	if (hp_ > maxHP_) hp_ = maxHP_;
+	if (health_ && value > 0.0f) health_->Heal(value);
 }
 
-/// -------------------------------------------------------------
-///						全回復処理
-/// -------------------------------------------------------------
 void BossStatusComponent::FullRecover()
 {
-	hp_ = maxHP_;
+	if (health_) health_->RestoreFullHealth();
 }
 
-/// -------------------------------------------------------------
-///						最大HP設定
-/// -------------------------------------------------------------
 void BossStatusComponent::SetMaxHP(float maxHP)
 {
-	maxHP_ = std::max(1.0f, maxHP);
-
-	// 新しい最大値に丸める
-	if (hp_ > maxHP_) hp_ = maxHP_;
+	if (health_) health_->SetMaxHealth(std::max(1.0f, maxHP));
 }
 
-/// -------------------------------------------------------------
-///						HP直接設定
-/// -------------------------------------------------------------
 void BossStatusComponent::SetHP(float hp)
 {
-	// 0～maxHPの範囲に収める
-	hp_ = std::clamp(hp, 0.0f, maxHP_);
+	if (health_) health_->SetCurrentHealth(hp);
 }
 
-/// -------------------------------------------------------------
-///					無敵フラグ設定
-/// -------------------------------------------------------------
 void BossStatusComponent::SetInvincible(bool isInvincible)
 {
-	// 常時無敵フラグをセット
-	isInvincible_ = isInvincible;
+	if (health_) health_->SetInvulnerable(isInvincible);
+	if (!isInvincible) invincibleTimer_ = 0.0f;
 }
 
-/// -------------------------------------------------------------
-///					時間制無敵設定
-/// -------------------------------------------------------------
 void BossStatusComponent::SetInvincibleTimer(float timeSec)
 {
-	// 0未満の時間は無効
 	invincibleTimer_ = std::max(0.0f, timeSec);
+	if (health_) health_->SetInvulnerable(invincibleTimer_ > 0.0f);
 }
 
-/// -------------------------------------------------------------
-///						HP割合
-/// -------------------------------------------------------------
+bool BossStatusComponent::IsInvincible() const
+{
+	return health_ && health_->IsInvulnerable();
+}
+
+float BossStatusComponent::GetHP() const
+{
+	return health_ ? health_->GetCurrentHealth() : 0.0f;
+}
+
+float BossStatusComponent::GetMaxHP() const
+{
+	return health_ ? health_->GetMaxHealth() : 0.0f;
+}
+
 float BossStatusComponent::GetHPRate() const
 {
-	// maxHP が 0 以下なら 0 を返す
-	if (maxHP_ <= 0.0f)	return 0.0f;
+	return health_ ? health_->GetHealthRatio() : 0.0f;
+}
 
-	// HP割合を計算して返す
-	return hp_ / maxHP_;
+bool BossStatusComponent::IsDead() const
+{
+	return !health_ || health_->IsDead();
 }
