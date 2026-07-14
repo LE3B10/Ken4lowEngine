@@ -18,7 +18,7 @@
 namespace Ken4lowEngine
 {
 	/// 共通Character機能とPlayer専用の入力・移動・武器・Inventory・Camera・Rigidbodyを束ねるActor。
-	class PlayerActor final : public CharacterActor
+	class PlayerActor : public CharacterActor
 	{
 	public:
 		/// 必要なPlayer専用Componentを不足分だけ生成し、共通Character ComponentとPhysicsへ接続する。
