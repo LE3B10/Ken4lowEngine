@@ -7,6 +7,7 @@
 #include "ApplicationLayer/Character/Boss/Components/BossWeakPointComponent.h"
 
 #include <PhysicsCollisionLayer.h>
+#include <RigidbodyComponent.h>
 #include <Scene/Actor/Character/CharacterAnimationComponent.h>
 #include <Scene/Actor/Character/CharacterColliderComponent.h>
 #include <Scene/Actor/Character/CharacterHealthComponent.h>
@@ -56,6 +57,20 @@ namespace Ken4lowEngine
 			attack.SetUpdateOrder(-92); // Chargeの速度出力を同フレームの共通Movementより先に確定する。
 		}
 
+		if (!GetComponent<RigidbodyComponent>())
+		{
+			auto& rigidbody = AddComponent<RigidbodyComponent>();
+			rigidbody.SetName("Boss Rigidbody");
+			rigidbody.SetUpdateOrder(-85);
+			rigidbody.SetBodyType(BodyType::Dynamic);
+			rigidbody.SetMass(4.0f);
+			rigidbody.SetUseGravity(true);
+			rigidbody.SetSleepEnabled(false);
+			rigidbody.SetRestitution(0.0f);
+			rigidbody.SetStaticFriction(0.0f);
+			rigidbody.SetDynamicFriction(0.0f);
+		}
+
 		auto* visual = GetHumanoidVisualComponent();
 		if (!visual)
 		{
@@ -64,7 +79,7 @@ namespace Ken4lowEngine
 			visual->SetUpdateOrder(0);
 			visual->SetDrawOrder(0);
 			visual->SetCastShadowEnabled(true);
-			visual->SetLocalScale({ 1.5f, 1.5f, 1.5f }); // Boss定義を差し替えるまで標準人型をBossらしい大きさで表示する。
+			visual->SetLocalScale({ 1.5f, 1.5f, 1.5f });
 			visual->AttachTo(root);
 		}
 
@@ -119,6 +134,7 @@ namespace Ken4lowEngine
 		}
 		if (CharacterHealthComponent* health = GetHealthComponent()) health->ResetHealth(1200.0f);
 		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->Stop();
+		if (RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>()) rigidbody->SetVelocity({}); // 再配置時に以前のCharge・落下速度を持ち越さない。
 		if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(true);
 		if (BossPhaseComponent* phase = GetBossPhaseComponent()) phase->ResetPhase();
 		if (BossPresentationComponent* presentation = GetBossPresentationComponent()) presentation->ResetPresentation();
@@ -140,6 +156,7 @@ namespace Ken4lowEngine
 		if (BossBrainComponent* brain = GetBossBrainComponent()) brain->StopBehavior();
 		if (BossAttackComponent* attack = GetBossAttackComponent()) attack->SetAttackEnabled(false);
 		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->Stop();
+		if (RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>()) rigidbody->SetVelocity({});
 		if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(false);
 		if (BossPresentationComponent* presentation = GetBossPresentationComponent()) presentation->StartDeathPresentation();
 	}
