@@ -6,6 +6,7 @@
 #include "PlayerMovementComponent.h"
 #include "WeaponComponent.h"
 
+#include <ModelComponent.h>
 #include <PhysicsCollisionLayer.h>
 #include <RigidbodyComponent.h>
 #include <Scene/Actor/Character/CharacterActor.h>
@@ -82,6 +83,20 @@ namespace Ken4lowEngine
 				camera->AttachTo(root);
 			}
 
+			if (!GetWeaponViewComponent())
+			{
+				auto& weaponView = AddComponent<ModelComponent>();
+				weaponView.SetName("Player Weapon View");
+				weaponView.SetUpdateOrder(15);
+				weaponView.SetDrawOrder(5);
+				weaponView.SetModelPath("Sources/Weapons/primary_rifle.gltf");
+				weaponView.SetLocalPosition({ 0.28f, -0.30f, 0.55f });
+				weaponView.SetLocalRotation({ 1.5708f, 1.5708f, 0.0f });
+				weaponView.SetLocalScale({ 0.55f, 0.55f, 0.55f });
+				weaponView.SetCastShadowEnabled(false); // 一人称ViewModelの影をWorldへ落とさず、旧FPS表示に近い見え方へ寄せる。
+				weaponView.AttachTo(camera);
+			}
+
 			const bool hadRigidbody = GetRigidbodyComponent() != nullptr;
 			if (!hadRigidbody)
 			{
@@ -115,6 +130,16 @@ namespace Ken4lowEngine
 				}
 			}
 			if (visual && visual->GetSkinTexturePath().empty()) visual->ApplySkinToAllParts("Characters/steve.dds");
+		}
+
+		/// ViewModelがPlayer Cameraと同じ描画Cameraを使うよう、Component更新前に参照を同期する。
+		void Update(float deltaTime) override
+		{
+			if (ModelComponent* weaponView = GetWeaponViewComponent())
+			{
+				if (PlayerCameraComponent* camera = GetPlayerCameraComponent()) weaponView->SetCamera(camera->GetCamera());
+			}
+			CharacterActor::Update(deltaTime);
 		}
 
 		/// JSON保存・復元で使用するActor識別名を返す。
@@ -151,6 +176,8 @@ namespace Ken4lowEngine
 		const InventoryComponent* GetInventoryComponent() const { return GetCharacterComponent<InventoryComponent>(); }
 		PlayerCameraComponent* GetPlayerCameraComponent() { return GetCharacterComponent<PlayerCameraComponent>(); }
 		const PlayerCameraComponent* GetPlayerCameraComponent() const { return GetCharacterComponent<PlayerCameraComponent>(); }
+		ModelComponent* GetWeaponViewComponent() { return GetCharacterComponent<ModelComponent>(); }
+		const ModelComponent* GetWeaponViewComponent() const { return GetCharacterComponent<ModelComponent>(); }
 		HumanoidVisualComponent* GetHumanoidVisualComponent() { return GetCharacterComponent<HumanoidVisualComponent>(); }
 		const HumanoidVisualComponent* GetHumanoidVisualComponent() const { return GetCharacterComponent<HumanoidVisualComponent>(); }
 		RigidbodyComponent* GetRigidbodyComponent() { return GetCharacterComponent<RigidbodyComponent>(); }
