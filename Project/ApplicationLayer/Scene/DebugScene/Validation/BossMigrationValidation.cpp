@@ -8,6 +8,7 @@
 #include "ApplicationLayer/Character/Boss/Components/BossWeakPointComponent.h"
 
 #include <ActorWorld.h>
+#include <RigidbodyComponent.h>
 #include <Scene/Actor/Character/CharacterAnimationComponent.h>
 #include <Scene/Actor/Character/CharacterColliderComponent.h>
 #include <Scene/Actor/Character/CharacterHealthComponent.h>
@@ -67,7 +68,9 @@ void BossMigrationValidation::DrawImGui()
 	const auto* phase = boss_ ? boss_->GetBossPhaseComponent() : nullptr;
 	const auto* weakPoint = boss_ ? boss_->GetBossWeakPointComponent() : nullptr;
 	const auto* presentation = boss_ ? boss_->GetBossPresentationComponent() : nullptr;
-	const bool structureReady = boss_ && health && movement && collider && animation && visual && brain && attack && phase && weakPoint && presentation;
+	const auto* rigidbodyComponent = boss_ ? boss_->GetComponent<K4E::RigidbodyComponent>() : nullptr;
+	const auto* rigidbody = rigidbodyComponent ? rigidbodyComponent->GetRigidbody() : nullptr;
+	const bool structureReady = boss_ && health && movement && collider && animation && visual && brain && attack && phase && weakPoint && presentation && rigidbody;
 
 	ImGui::Text("Target: %s", target_ ? target_->GetName().c_str() : "なし");
 	ImGui::Text("BossActor構成: %s", structureReady ? "OK" : "不足");
@@ -77,6 +80,7 @@ void BossMigrationValidation::DrawImGui()
 	ImGui::Text("Visual: %zu parts / Shadow %s", visual ? visual->GetParts().size() : 0u, visual && visual->IsCastShadowEnabled() ? "ON" : "OFF");
 	ImGui::Text("WeakPoint部位ID: %s / Head x%.2f", weakPoint && weakPoint->HasValidPartReferences() ? "OK" : "未解決", weakPoint ? weakPoint->ResolveDamageMultiplier("Head") : 0.0f);
 	ImGui::Text("Collider: %s / Movement: %s", collider && collider->IsActive() ? "有効" : "停止", movement && movement->IsMovementEnabled() ? "有効" : "停止");
+	ImGui::Text("Physics: %s / Grounded: %s", rigidbody ? "Dynamic" : "None", rigidbody && rigidbody->IsGrounded() ? "Yes" : "No");
 	ImGui::TextColored(lastSucceeded_ ? ImVec4(0.35f, 1.0f, 0.45f, 1.0f) : ImVec4(1.0f, 0.75f, 0.25f, 1.0f), "%s", lastMessage_.c_str());
 
 	if (ImGui::Button("Headへ100基礎Damage")) requestHeadDamage_ = true;
