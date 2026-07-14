@@ -1192,6 +1192,21 @@
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\Validation\EnemyMigrationValidation.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
     </ClCompile>
+    <ClCompile Include="ApplicationLayer\Scene\DebugScene\Validation\BossMigrationValidation.cpp">
+      <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Actor\BossActor.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Actor\BossActorAttackComponent.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Actor\BossBrainComponent.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Actor</Filter>
+    </ClCompile>
+    <ClCompile Include="ApplicationLayer\Character\Boss\Actor\BossPresentationComponent.cpp">
+      <Filter>ApplicationLayer\Character\Boss\Actor</Filter>
+    </ClCompile>
     <ClCompile Include="Engine\Scene\Actor\Core\Actor.cpp">
       <Filter>Engine\Scene\Actor\Core</Filter>
     </ClCompile>
@@ -2580,6 +2595,21 @@
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\EnemyMigrationValidation.h">
       <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\BossMigrationValidation.h">
+      <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Actor\BossActor.h">
+      <Filter>ApplicationLayer\Character\Boss\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Actor\BossActorAttackComponent.h">
+      <Filter>ApplicationLayer\Character\Boss\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Actor\BossBrainComponent.h">
+      <Filter>ApplicationLayer\Character\Boss\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Actor\BossPresentationComponent.h">
+      <Filter>ApplicationLayer\Character\Boss\Actor</Filter>
+    </ClInclude>
     <ClInclude Include="Engine\Physics\Collision\Core\PhysicsCollisionLayer.h">
       <Filter>Engine\Physics\Collision\Core</Filter>
     </ClInclude>
@@ -2947,6 +2977,9 @@
     </Filter>
     <Filter Include="ApplicationLayer\Character\Boss\Animations">
       <UniqueIdentifier>{e5af30ea-1e9d-43c1-9c9f-0876d8c7c70b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ApplicationLayer\Character\Boss\Actor">
+      <UniqueIdentifier>{4de25284-4f17-4cb4-a898-973ae6d88f09}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Character\Enemy\Core">
       <UniqueIdentifier>{18d937e2-c886-482e-acee-e0326534f8e2}</UniqueIdentifier>

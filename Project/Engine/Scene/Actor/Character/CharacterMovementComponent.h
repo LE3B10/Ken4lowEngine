@@ -36,6 +36,9 @@ namespace Ken4lowEngine
 		/// Actorを持たない移行Adapterでも同じ速度積分を使えるよう、1フレームの移動量を返す。
 		Vector3 CalculateDisplacement(float deltaTime) const;
 
+		/// Character共通の+Z前方規約でRootを指定XZ方向へ滑らかに旋回させる。
+		bool FaceDirectionXZ(const Vector3& direction, float rotateSpeed, float deltaTime);
+
 		/// Root Transformへ反映する現在速度を返す。
 		virtual const Vector3& GetVelocity() const { return velocity_; }
 

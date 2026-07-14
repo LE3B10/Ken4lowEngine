@@ -3,7 +3,9 @@
 #include "Actor.h"
 #include "SceneComponent.h"
 
+#include <algorithm>
 #include <cmath>
+#include <numbers>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -11,6 +13,21 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		constexpr float kDirectionEpsilon = 0.0001f;
+
+		/// Yaw差分を-πから+πへ正規化し、常に短い向きへ回転させる。
+		float WrapAngle(float angle)
+		{
+			constexpr float pi = std::numbers::pi_v<float>;
+			constexpr float twoPi = std::numbers::pi_v<float> * 2.0f;
+			angle = std::fmod(angle + pi, twoPi);
+			if (angle < 0.0f) angle += twoPi;
+			return angle - pi;
+		}
+	}
+
 	void CharacterMovementComponent::Update(float deltaTime)
 	{
 		if (!movementEnabled_ || !std::isfinite(deltaTime) || deltaTime <= 0.0f) return;
@@ -48,6 +65,24 @@ namespace Ken4lowEngine
 	{
 		if (!movementEnabled_ || !std::isfinite(deltaTime) || deltaTime <= 0.0f) return {};
 		return velocity_ * deltaTime; // Actor経路と旧Boss Adapterで同じ積分規則を共有する。
+	}
+
+	bool CharacterMovementComponent::FaceDirectionXZ(const Vector3& direction, float rotateSpeed, float deltaTime)
+	{
+		Actor* owner = GetOwner();
+		SceneComponent* root = owner ? owner->GetRootComponent() : nullptr;
+		const float length = Vector3::LengthXZ(direction);
+		if (!root || length < kDirectionEpsilon || !std::isfinite(rotateSpeed) || rotateSpeed < 0.0f || !std::isfinite(deltaTime) || deltaTime <= 0.0f) return false;
+
+		const Vector3 normalized{ direction.x / length, 0.0f, direction.z / length };
+		const float targetYaw = std::atan2(-normalized.x, normalized.z); // 人型モデルの+Z正面をTarget方向へ合わせる。
+		Vector3 rotation = root->GetLocalRotation();
+		const float maxStep = rotateSpeed * deltaTime;
+		const float deltaYaw = std::clamp(WrapAngle(targetYaw - rotation.y), -maxStep, maxStep);
+		rotation.y = WrapAngle(rotation.y + deltaYaw);
+		root->SetLocalRotation(rotation);
+		root->RefreshWorldTransform(); // Visual、Collider、Targetへ同じフレームの向きを伝播する。
+		return true;
 	}
 
 	void CharacterMovementComponent::ApplyMovement(float deltaTime)

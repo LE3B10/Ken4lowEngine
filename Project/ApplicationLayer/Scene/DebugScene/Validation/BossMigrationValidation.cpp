@@ -1,0 +1,161 @@
+#include "BossMigrationValidation.h"
+
+#include "ApplicationLayer/Character/Boss/Actor/BossActor.h"
+#include "ApplicationLayer/Character/Boss/Actor/BossActorAttackComponent.h"
+#include "ApplicationLayer/Character/Boss/Actor/BossBrainComponent.h"
+#include "ApplicationLayer/Character/Boss/Actor/BossPresentationComponent.h"
+#include "ApplicationLayer/Character/Boss/Components/BossPhaseComponent.h"
+#include "ApplicationLayer/Character/Boss/Components/BossWeakPointComponent.h"
+
+#include <ActorWorld.h>
+#include <Scene/Actor/Character/CharacterAnimationComponent.h>
+#include <Scene/Actor/Character/CharacterColliderComponent.h>
+#include <Scene/Actor/Character/CharacterHealthComponent.h>
+#include <Scene/Actor/Character/CharacterMovementComponent.h>
+#include <Scene/Actor/Character/HumanoidVisualComponent.h>
+#include <SceneComponent.h>
+
+#ifdef USE_IMGUI
+#include <imgui.h>
+#endif
+
+namespace
+{
+	const K4E::Vector3 kBossPosition{ 0.0f, 3.0f, 18.0f };
+	const K4E::Vector3 kBossTargetPosition{ 0.0f, 2.0f, 7.0f };
+}
+
+void BossMigrationValidation::Initialize(K4E::ActorWorld& actorWorld)
+{
+	actorWorld_ = &actorWorld;
+	target_ = &actorWorld_->SpawnActor<K4E::CharacterActor>();
+	target_->SetName(targetName_);
+	target_->SetLayer("BossValidation");
+	if (K4E::SceneComponent* root = target_->GetRootComponent())
+	{
+		root->SetLocalPosition(kBossTargetPosition);
+		root->RefreshWorldTransform();
+	}
+	if (K4E::CharacterHealthComponent* health = target_->GetHealthComponent()) health->ResetHealth(10000.0f);
+
+	boss_ = &actorWorld_->SpawnActor<K4E::BossActor>();
+	boss_->SetName(bossName_);
+	boss_->SetLayer("BossValidation");
+	boss_->AddTag("Boss");
+	boss_->SetTargetActor(target_);
+	boss_->ResetForValidation(kBossPosition);
+	RefreshActorReferencesAndBindings();
+}
+
+void BossMigrationValidation::Update()
+{
+	RefreshActorReferencesAndBindings();
+	ProcessRequests();
+}
+
+void BossMigrationValidation::UpdateEditor()
+{
+	RefreshActorReferencesAndBindings();
+	ProcessRequests();
+}
+
+void BossMigrationValidation::DrawImGui()
+{
+#ifdef USE_IMGUI
+	if (!ImGui::Begin("ボス Component 移行検証"))
+	{
+		ImGui::End();
+		return;
+	}
+
+	const auto* health = boss_ ? boss_->GetHealthComponent() : nullptr;
+	const auto* movement = boss_ ? boss_->GetMovementComponent() : nullptr;
+	const auto* collider = boss_ ? boss_->GetColliderComponent() : nullptr;
+	const auto* animation = boss_ ? boss_->GetAnimationComponent() : nullptr;
+	const auto* visual = boss_ ? boss_->GetHumanoidVisualComponent() : nullptr;
+	const auto* brain = boss_ ? boss_->GetBossBrainComponent() : nullptr;
+	const auto* attack = boss_ ? boss_->GetBossAttackComponent() : nullptr;
+	const auto* phase = boss_ ? boss_->GetBossPhaseComponent() : nullptr;
+	const auto* weakPoint = boss_ ? boss_->GetBossWeakPointComponent() : nullptr;
+	const auto* presentation = boss_ ? boss_->GetBossPresentationComponent() : nullptr;
+	const bool structureReady = boss_ && health && movement && collider && animation && visual && brain && attack && phase && weakPoint && presentation;
+
+	ImGui::Text("BossActor構成: %s", structureReady ? "OK" : "不足");
+	ImGui::Text("HP: %.0f / %.0f / Phase %d", health ? health->GetCurrentHealth() : 0.0f, health ? health->GetMaxHealth() : 0.0f, phase ? phase->GetCurrentPhase() : 0);
+	ImGui::Text("Brain: %s / Attack: %s", brain ? brain->GetStateName().c_str() : "None", attack ? attack->GetLastSelectedAttackId().c_str() : "None");
+	ImGui::Text("Animation: %s / Presentation: %s", animation ? animation->GetAnimationName().c_str() : "None", presentation ? presentation->GetStateName().c_str() : "None");
+	ImGui::Text("Visual: %zu parts / Shadow %s", visual ? visual->GetParts().size() : 0u, visual && visual->IsCastShadowEnabled() ? "ON" : "OFF");
+	ImGui::Text("WeakPoint部位ID: %s / Head x%.2f", weakPoint && weakPoint->HasValidPartReferences() ? "OK" : "未解決", weakPoint ? weakPoint->ResolveDamageMultiplier("Head") : 0.0f);
+	ImGui::Text("Collider: %s / Movement: %s", collider && collider->IsActive() ? "有効" : "停止", movement && movement->IsMovementEnabled() ? "有効" : "停止");
+	ImGui::TextColored(lastSucceeded_ ? ImVec4(0.35f, 1.0f, 0.45f, 1.0f) : ImVec4(1.0f, 0.75f, 0.25f, 1.0f), "%s", lastMessage_.c_str());
+
+	if (ImGui::Button("Headへ100基礎Damage")) requestHeadDamage_ = true;
+	ImGui::SameLine();
+	if (ImGui::Button("Bodyへ100基礎Damage")) requestBodyDamage_ = true;
+	ImGui::SameLine();
+	if (ImGui::Button("Boss Reset")) requestReset_ = true;
+	if (ImGui::Button("Boss JSON保存")) requestSave_ = true;
+	ImGui::SameLine();
+	if (ImGui::Button("Boss JSON再読込")) requestReload_ = true;
+	ImGui::TextUnformatted("Headは弱点Componentの部位ID参照で2倍、Bodyは通常倍率として共通Healthへ適用されます。");
+	ImGui::End();
+#endif
+}
+
+void BossMigrationValidation::Finalize()
+{
+	boss_ = nullptr;
+	target_ = nullptr;
+	actorWorld_ = nullptr;
+}
+
+void BossMigrationValidation::RefreshActorReferencesAndBindings()
+{
+	if (!actorWorld_)
+	{
+		boss_ = nullptr;
+		target_ = nullptr;
+		return;
+	}
+	boss_ = dynamic_cast<K4E::BossActor*>(actorWorld_->FindActorByName(bossName_));
+	target_ = dynamic_cast<K4E::CharacterActor*>(actorWorld_->FindActorByName(targetName_));
+	if (boss_) boss_->SetTargetActor(target_); // RuntimeポインタはJSON外なのでWorld複製後に張り直す。
+}
+
+void BossMigrationValidation::ProcessRequests()
+{
+	if (requestHeadDamage_)
+	{
+		requestHeadDamage_ = false;
+		const K4E::CharacterDamageResult result = boss_ ? boss_->ApplyWeakPointDamage("Head", 100.0f) : K4E::CharacterDamageResult{};
+		lastSucceeded_ = result.accepted;
+		lastMessage_ = result.accepted ? "Head弱点へ倍率適用ダメージを与えました。" : "Head弱点ダメージを適用できませんでした。";
+	}
+	if (requestBodyDamage_)
+	{
+		requestBodyDamage_ = false;
+		const K4E::CharacterDamageResult result = boss_ ? boss_->ApplyWeakPointDamage("Body", 100.0f) : K4E::CharacterDamageResult{};
+		lastSucceeded_ = result.accepted;
+		lastMessage_ = result.accepted ? "Bodyへ通常倍率ダメージを与えました。" : "Bodyダメージを適用できませんでした。";
+	}
+	if (requestReset_)
+	{
+		requestReset_ = false;
+		if (boss_) boss_->ResetForValidation(kBossPosition);
+		lastSucceeded_ = boss_ != nullptr;
+		lastMessage_ = lastSucceeded_ ? "BossのHP・Phase・攻撃・演出を初期化しました。" : "Bossが見つかりません。";
+	}
+	if (requestSave_)
+	{
+		requestSave_ = false;
+		lastSucceeded_ = actorWorld_ && boss_ && actorWorld_->SaveActorToJson(*boss_, jsonPath_);
+		lastMessage_ = lastSucceeded_ ? "BossActor全体をJSON保存しました。" : "BossActor JSON保存に失敗しました。";
+	}
+	if (requestReload_)
+	{
+		requestReload_ = false;
+		lastSucceeded_ = actorWorld_ && boss_ && actorWorld_->ReloadActorFromJson(*boss_, jsonPath_);
+		lastMessage_ = lastSucceeded_ ? "BossActorをJSONから復元しました。" : "BossActor JSON復元に失敗しました。先に保存してください。";
+		RefreshActorReferencesAndBindings();
+	}
+}

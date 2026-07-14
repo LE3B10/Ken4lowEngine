@@ -2,6 +2,7 @@
 #include "BaseScene.h"
 #include "Validation/CharacterValidation.h"
 #include "Validation/EnemyMigrationValidation.h"
+#include "Validation/BossMigrationValidation.h"
 
 #include <ActorWorld.h>
 #include <Editor/ActorWorldEditorBridge.h>
@@ -92,4 +93,5 @@ private:
 
 	CharacterValidation characterValidation_;
 	EnemyMigrationValidation enemyMigrationValidation_;
+	BossMigrationValidation bossMigrationValidation_;
 };

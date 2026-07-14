@@ -50,6 +50,7 @@ void DebugScene::Initialize()
 	actorWorld_.Initialize();
 	characterValidation_.Initialize(actorWorld_);
 	enemyMigrationValidation_.Initialize(actorWorld_); // 旧通常敵とComponent通常敵を同じDebugSceneへ並べて比較する。
+	bossMigrationValidation_.Initialize(actorWorld_); // 新BossActorの共通Componentと専用Componentを同じWorldで検証する。
 }
 
 /// -------------------------------------------------------------
@@ -65,6 +66,7 @@ void DebugScene::Update()
 	ProcessActorWorldValidationRequests();
 	characterValidation_.ProcessRequests();
 	enemyMigrationValidation_.Update(deltaTime);
+	bossMigrationValidation_.Update();
 
 	actorWorld_.Update(deltaTime);
 
@@ -81,6 +83,7 @@ void DebugScene::UpdateEditor(float deltaTime)
 	ProcessActorWorldValidationRequests(); // Edit/Pause中の操作要求も次のActorWorld::UpdateEditor前に処理する。
 	characterValidation_.ProcessRequests();
 	enemyMigrationValidation_.UpdateEditor();
+	bossMigrationValidation_.UpdateEditor();
 }
 
 /// -------------------------------------------------------------
@@ -143,6 +146,7 @@ void DebugScene::Finalize()
 	// Actorの外部登録を解除し、所有メンバ自体の破棄はDebugSceneのデストラクタへ任せる。
 	characterValidation_.Finalize();
 	enemyMigrationValidation_.Finalize();
+	bossMigrationValidation_.Finalize();
 	actorWorld_.Finalize();
 	input_ = nullptr;
 }
@@ -158,6 +162,7 @@ void DebugScene::DrawImGui()
 	DrawActorWorldValidationImGui();
 	characterValidation_.DrawImGui();
 	enemyMigrationValidation_.DrawImGui();
+	bossMigrationValidation_.DrawImGui();
 
 	actorPhysicsDebugDraw_.GetSettings().drawPhysicsDebug = true;
 	actorPhysicsDebugDraw_.GetSettings().drawColliders = true;

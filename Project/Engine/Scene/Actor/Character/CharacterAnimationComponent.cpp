@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -173,7 +174,8 @@ namespace Ken4lowEngine
 		setRotationOffset("RightLeg", {});
 
 		const float t = std::clamp(GetNormalizedTime(), 0.0f, 1.0f);
-		constexpr float kTwoPi = 6.28318530718f;
+		constexpr float kPi = std::numbers::pi_v<float>;
+		constexpr float kTwoPi = std::numbers::pi_v<float> * 2.0f;
 		if (animationName_ == "Walk")
 		{
 			const float swing = std::sin(t * kTwoPi) * 0.55f;
@@ -200,21 +202,34 @@ namespace Ken4lowEngine
 		}
 		else if (animationName_ == "Attack.Projectile")
 		{
-			const float recoil = std::sin(t * 3.14159265359f) * 0.25f;
+			const float recoil = std::sin(t * kPi) * 0.25f;
 			setRotationOffset("LeftArm", { -1.15f + recoil, 0.0f, 0.10f });
 			setRotationOffset("RightArm", { -1.15f + recoil, 0.0f, -0.10f });
 		}
 		else if (animationName_ == "Attack.Charge")
 		{
-			setRotationOffset("Body", { 0.45f * std::sin(t * 3.14159265359f), 0.0f, 0.0f });
-			setRotationOffset("LeftArm", { 0.75f * std::sin(t * 3.14159265359f), 0.0f, 0.0f });
-			setRotationOffset("RightArm", { 0.75f * std::sin(t * 3.14159265359f), 0.0f, 0.0f });
+			setRotationOffset("Body", { 0.45f * std::sin(t * kPi), 0.0f, 0.0f });
+			setRotationOffset("LeftArm", { 0.75f * std::sin(t * kPi), 0.0f, 0.0f });
+			setRotationOffset("RightArm", { 0.75f * std::sin(t * kPi), 0.0f, 0.0f });
 		}
 		else if (animationName_ == "Attack.Shockwave")
 		{
 			const float slam = threeStageSwing(-1.65f, 1.35f);
 			setRotationOffset("LeftArm", { slam, 0.0f, 0.15f });
 			setRotationOffset("RightArm", { slam, 0.0f, -0.15f });
+		}
+		else if (animationName_ == "Boss.PhaseTransition")
+		{
+			const float pulse = std::sin(t * kPi);
+			setRotationOffset("Body", { -0.15f * pulse, 0.0f, 0.0f });
+			setRotationOffset("LeftArm", { -1.15f * pulse, 0.0f, 0.35f * pulse });
+			setRotationOffset("RightArm", { -1.15f * pulse, 0.0f, -0.35f * pulse });
+		}
+		else if (animationName_ == "Boss.Dead")
+		{
+			setRotationOffset("Body", { 0.0f, 0.0f, 1.45f * t });
+			setRotationOffset("LeftArm", { 0.45f * t, 0.0f, 0.0f });
+			setRotationOffset("RightArm", { 0.45f * t, 0.0f, 0.0f });
 		}
 	}
 } // namespace Ken4lowEngine

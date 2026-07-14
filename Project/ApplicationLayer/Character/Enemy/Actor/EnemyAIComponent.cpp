@@ -4,7 +4,6 @@
 #include <Scene/Actor/Character/CharacterMovementComponent.h>
 #include <SceneComponent.h>
 
-#include <algorithm>
 #include <cmath>
 
 #ifdef USE_IMGUI
@@ -16,8 +15,6 @@ namespace Ken4lowEngine
 	namespace
 	{
 		constexpr float kDirectionEpsilon = 0.0001f;
-		constexpr float kPi = 3.14159265359f;
-		constexpr float kTwoPi = kPi * 2.0f;
 
 		/// 旧MeleeEnemyと同じXZ長さと0判定で移動方向を正規化する。
 		Vector3 NormalizeDirectionXZ(const Vector3& direction)
@@ -25,14 +22,6 @@ namespace Ken4lowEngine
 			const float length = Vector3::LengthXZ(direction);
 			if (length < kDirectionEpsilon) return {};
 			return { direction.x / length, 0.0f, direction.z / length };
-		}
-
-		/// Yaw差分を-πから+πへ正規化し、常に短い向きへ回転させる。
-		float WrapAngle(float angle)
-		{
-			angle = std::fmod(angle + kPi, kTwoPi);
-			if (angle < 0.0f) angle += kTwoPi;
-			return angle - kPi;
 		}
 	}
 
@@ -76,7 +65,7 @@ namespace Ken4lowEngine
 		if (distanceToTarget_ <= attackStartRange_)
 		{
 			movement->Stop();
-			FaceDirection(*root, target - current, deltaTime); // 停止後もTargetへ正面を合わせたまま攻撃する。
+			movement->FaceDirectionXZ(target - current, rotateSpeed_, deltaTime); // 停止後もTargetへ正面を合わせたまま攻撃する。
 			stateName_ = "AttackRange";
 			return;
 		}
@@ -84,7 +73,7 @@ namespace Ken4lowEngine
 		Vector3 waypoint = target;
 		pathFound_ = navigator_.GetNextWaypoint(current, target, current.y, deltaTime, waypoint);
 		const Vector3 direction = NormalizeDirectionXZ((pathFound_ ? waypoint : target) - current);
-		FaceDirection(*root, direction, deltaTime);
+		movement->FaceDirectionXZ(direction, rotateSpeed_, deltaTime);
 		movement->SetVelocity(direction * moveSpeed_); // 移動積分は共通Movementだけが実行し、AI側では位置を直接変更しない。
 		stateName_ = pathFound_ ? "ChasePath" : "ChaseDirect";
 	}
@@ -144,19 +133,5 @@ namespace Ken4lowEngine
 		distanceToTarget_ = 0.0f;
 		stateName_ = "Idle";
 		navigator_.Reset();
-	}
-
-	void EnemyAIComponent::FaceDirection(SceneComponent& root, const Vector3& direction, float deltaTime)
-	{
-		const Vector3 normalized = NormalizeDirectionXZ(direction);
-		if (Vector3::LengthXZ(normalized) < kDirectionEpsilon || !std::isfinite(deltaTime) || deltaTime <= 0.0f) return;
-
-		const float targetYaw = std::atan2(-normalized.x, normalized.z); // モデルの+Z正面を旧Enemyと同じワールド方向へ合わせる。
-		Vector3 rotation = root.GetLocalRotation();
-		const float maxStep = rotateSpeed_ * deltaTime;
-		const float deltaYaw = std::clamp(WrapAngle(targetYaw - rotation.y), -maxStep, maxStep);
-		rotation.y = WrapAngle(rotation.y + deltaYaw);
-		root.SetLocalRotation(rotation);
-		root.RefreshWorldTransform(); // Root更新後に動くVisual、Collider、Targetへ同じフレームのYawを伝播する。
 	}
 } // namespace Ken4lowEngine
