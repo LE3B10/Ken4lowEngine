@@ -14,6 +14,23 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		template<class Func>
+		void ForEachVisualPart(HumanoidVisualComponent::BodyPart& body, std::vector<HumanoidVisualComponent::BodyPart>& parts, Func&& func)
+		{
+			if (!body.id.empty()) func(body);
+			for (auto& part : parts) func(part);
+		}
+
+		template<class Func>
+		void ForEachVisualPart(const HumanoidVisualComponent::BodyPart& body, const std::vector<HumanoidVisualComponent::BodyPart>& parts, Func&& func)
+		{
+			if (!body.id.empty()) func(body);
+			for (const auto& part : parts) func(part);
+		}
+	}
+
 	void HumanoidVisualComponent::Initialize()
 	{
 		SceneComponent::Initialize();
@@ -22,14 +39,8 @@ namespace Ken4lowEngine
 		if (definition_.GetParts().empty())
 		{
 			HumanoidDefinition loadedDefinition;
-			if (!definitionPath_.empty() && loadedDefinition.LoadFromFile(definitionPath_, &loadError))
-			{
-				definition_ = std::move(loadedDefinition); // 新規Componentは外部定義を読み込み、JSON復元済みの定義は上書きしない。
-			}
-			else
-			{
-				definition_ = HumanoidDefinition::CreateDefault();
-			}
+			if (!definitionPath_.empty() && loadedDefinition.LoadFromFile(definitionPath_, &loadError)) definition_ = std::move(loadedDefinition);
+			else definition_ = HumanoidDefinition::CreateDefault();
 		}
 
 		if (!BuildBodyHierarchy(&loadError)) statusMessage_ = loadError;
@@ -48,7 +59,7 @@ namespace Ken4lowEngine
 		ProcessDeferredDefinitionRequests();
 		SceneComponent::UpdateEditor(deltaTime);
 		RefreshSharedMaterialBinding();
-		UpdateHierarchy(); // PIE停止中もGizmoと部位階層の表示位置を一致させる。
+		UpdateHierarchy();
 	}
 
 	void HumanoidVisualComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
@@ -60,28 +71,28 @@ namespace Ken4lowEngine
 
 	void HumanoidVisualComponent::Draw()
 	{
-		for (const BodyPart& part : parts_)
-		{
-			if (part.visible && part.active && part.object) part.object->Draw();
-		}
+		ForEachVisualPart(body_, parts_, [](const BodyPart& part)
+			{
+				if (part.visible && part.active && part.object) part.object->Draw();
+			});
 	}
 
 	void HumanoidVisualComponent::DrawShadow()
 	{
 		if (!IsCastShadowEnabled()) return;
-		for (const BodyPart& part : parts_)
-		{
-			if (part.visible && part.active && part.object) part.object->DrawShadow();
-		}
+		ForEachVisualPart(body_, parts_, [](const BodyPart& part)
+			{
+				if (part.visible && part.active && part.object) part.object->DrawShadow();
+			});
 	}
 
 	void HumanoidVisualComponent::DrawEditorObjectId(uint32_t objectId)
 	{
 		if (objectId == 0) return;
-		for (const BodyPart& part : parts_)
-		{
-			if (part.visible && part.active && part.object) part.object->DrawEditorObjectId(objectId);
-		}
+		ForEachVisualPart(body_, parts_, [objectId](const BodyPart& part)
+			{
+				if (part.visible && part.active && part.object) part.object->DrawEditorObjectId(objectId);
+			});
 	}
 
 	void HumanoidVisualComponent::DrawImGui()
@@ -93,7 +104,7 @@ namespace Ken4lowEngine
 		if (ImGui::Button("人型定義を再読み込み"))
 		{
 			requestDefinitionReload_ = true;
-			statusMessage_ = "人型定義の再読み込みを予約しました。"; // Shadow描画済みリソースをDraw中に破棄しない。
+			statusMessage_ = "人型定義の再読み込みを予約しました。";
 		}
 		ImGui::SameLine();
 		if (ImGui::Button("人型定義を保存"))
@@ -104,11 +115,11 @@ namespace Ken4lowEngine
 
 		DrawMaterialBindingImGui();
 		ImGui::SeparatorText("部位表示");
-		for (BodyPart& part : parts_)
-		{
-			bool visible = part.visible;
-			if (ImGui::Checkbox(part.id.c_str(), &visible)) SetPartVisible(part.id, visible);
-		}
+		ForEachVisualPart(body_, parts_, [this](BodyPart& part)
+			{
+				bool visible = part.visible;
+				if (ImGui::Checkbox(part.id.c_str(), &visible)) SetPartVisible(part.id, visible);
+			});
 		ImGui::TextWrapped("状態: %s", statusMessage_.c_str());
 #endif
 	}
@@ -117,19 +128,17 @@ namespace Ken4lowEngine
 	{
 		requestDefinitionReload_ = false;
 		requestDefinitionSave_ = false;
-		parts_.clear(); // Object3Dの所有権をComponentからまとめて解放する。
+		body_ = {};
+		parts_.clear(); // 胴体と子部位のGPU描画オブジェクトをComponent所有権からまとめて解放する。
 	}
 
 	void HumanoidVisualComponent::ToJson(nlohmann::json& outJson) const
 	{
 		SceneComponent::ToJson(outJson);
 		ComponentPropertyUtility::ToJson(const_cast<HumanoidVisualComponent*>(this)->CreateProperties(), outJson);
-		outJson["Definition"] = definition_.ToJson(); // 外部Assetが見つからない環境でも復元できる控えをActor JSONへ残す。
+		outJson["Definition"] = definition_.ToJson();
 		nlohmann::json partVisibility = nlohmann::json::object();
-		for (const HumanoidPartDefinition& part : definition_.GetParts())
-		{
-			partVisibility[part.id] = part.visible; // 共通定義を変更せず、Actor個体ごとの部位表示を別データとして保存する。
-		}
+		for (const HumanoidPartDefinition& part : definition_.GetParts()) partVisibility[part.id] = part.visible;
 		outJson["PartVisibility"] = std::move(partVisibility);
 		if (materialBinding_.HasBinding()) outJson["Material"] = materialBinding_.ToJson();
 	}
@@ -156,7 +165,7 @@ namespace Ken4lowEngine
 			for (auto item = visibilityIt->begin(); item != visibilityIt->end(); ++item)
 			{
 				HumanoidPartDefinition* part = definition_.FindPart(item.key());
-				if (part && item.value().is_boolean()) part->visible = item.value().get<bool>(); // 未知IDは将来の定義差し替えとして安全に無視する。
+				if (part && item.value().is_boolean()) part->visible = item.value().get<bool>();
 			}
 		}
 
@@ -164,10 +173,7 @@ namespace Ken4lowEngine
 		if (materialIt != inJson.end() && materialIt->is_object()) materialBinding_.FromJson(*materialIt);
 		else materialBinding_ = MaterialBinding{};
 
-		if (IsInitialized())
-		{
-			if (!BuildBodyHierarchy(&definitionError)) statusMessage_ = definitionError;
-		}
+		if (IsInitialized() && !BuildBodyHierarchy(&definitionError)) statusMessage_ = definitionError;
 	}
 
 	bool HumanoidVisualComponent::SetDefinition(const HumanoidDefinition& definition, std::string* outError)
@@ -211,12 +217,14 @@ namespace Ken4lowEngine
 
 	HumanoidVisualComponent::BodyPart* HumanoidVisualComponent::FindPart(std::string_view partId)
 	{
+		if (body_.id == partId) return &body_;
 		const auto partIt = std::find_if(parts_.begin(), parts_.end(), [partId](const BodyPart& part) { return part.id == partId; });
 		return partIt != parts_.end() ? &(*partIt) : nullptr;
 	}
 
 	const HumanoidVisualComponent::BodyPart* HumanoidVisualComponent::FindPart(std::string_view partId) const
 	{
+		if (body_.id == partId) return &body_;
 		const auto partIt = std::find_if(parts_.begin(), parts_.end(), [partId](const BodyPart& part) { return part.id == partId; });
 		return partIt != parts_.end() ? &(*partIt) : nullptr;
 	}
@@ -228,18 +236,18 @@ namespace Ken4lowEngine
 		if (!part || !partDefinition) return false;
 		part->visible = visible;
 		part->active = visible;
-		partDefinition->visible = visible; // 実行時の切り替えを次回Actor JSON保存にも反映する。
+		partDefinition->visible = visible;
 		return true;
 	}
 
 	void HumanoidVisualComponent::SetAllPartsVisible(bool visible)
 	{
-		for (BodyPart& part : parts_)
-		{
-			part.visible = visible;
-			part.active = visible;
-			if (HumanoidPartDefinition* partDefinition = definition_.FindPart(part.id)) partDefinition->visible = visible;
-		}
+		ForEachVisualPart(body_, parts_, [this, visible](BodyPart& part)
+			{
+				part.visible = visible;
+				part.active = visible;
+				if (HumanoidPartDefinition* definition = definition_.FindPart(part.id)) definition->visible = visible;
+			});
 	}
 
 	void HumanoidVisualComponent::SetSkinTexturePath(std::string_view texturePath)
@@ -277,53 +285,77 @@ namespace Ken4lowEngine
 
 	void HumanoidVisualComponent::UpdateShadowMatrices(const Matrix4x4& lightViewProjection)
 	{
-		for (const BodyPart& part : parts_)
-		{
-			if (part.active && part.object) part.object->UpdateShadowMatrix(lightViewProjection);
-		}
+		ForEachVisualPart(body_, parts_, [&lightViewProjection](const BodyPart& part)
+			{
+				if (part.active && part.object) part.object->UpdateShadowMatrix(lightViewProjection);
+			});
 	}
 
 	bool HumanoidVisualComponent::BuildBodyHierarchy(std::string* outError)
 	{
 		if (!definition_.Validate(outError)) return false;
-		parts_.clear();
-		parts_.reserve(definition_.GetParts().size()); // 親Transformへのポインタが構築中に無効化されない容量を先に確保する。
+		const HumanoidPartDefinition* bodyDefinition = definition_.FindPart("Body");
+		if (!bodyDefinition)
+		{
+			if (outError) *outError = "HumanoidDefinition requires a Body part.";
+			return false;
+		}
 
-		std::unordered_map<std::string, size_t> partIndices;
+		body_ = {};
+		parts_.clear();
+		parts_.reserve(definition_.GetParts().size() > 0 ? definition_.GetParts().size() - 1 : 0);
+
+		auto initializePart = [](BodyPart& part, const HumanoidPartDefinition& definition)
+			{
+				part.id = definition.id;
+				part.parentId = definition.parentId;
+				part.transform.translate_ = definition.localPosition;
+				part.transform.rotate_ = definition.localRotation;
+				part.transform.scale_ = definition.localScale;
+				part.visible = definition.visible;
+				part.active = definition.visible;
+				try
+				{
+					part.object = std::make_unique<Object3D>();
+					part.object->Initialize(definition.modelPath);
+				}
+				catch (const std::exception&)
+				{
+					part.object.reset();
+				}
+			};
+
+		initializePart(body_, *bodyDefinition);
+		body_.transform.parent_ = &visualRootTransform_;
+
+		std::unordered_map<std::string, BodyPart*> partsById;
+		partsById.emplace(body_.id, &body_);
 		std::vector<bool> built(definition_.GetParts().size(), false);
-		while (parts_.size() < definition_.GetParts().size())
+		for (size_t index = 0; index < definition_.GetParts().size(); ++index)
+		{
+			if (definition_.GetParts()[index].id == body_.id) built[index] = true;
+		}
+
+		while (parts_.size() + 1 < definition_.GetParts().size())
 		{
 			bool builtAnyPart = false;
 			for (size_t definitionIndex = 0; definitionIndex < definition_.GetParts().size(); ++definitionIndex)
 			{
 				if (built[definitionIndex]) continue;
 				const HumanoidPartDefinition& partDefinition = definition_.GetParts()[definitionIndex];
-				const auto parentIt = partIndices.find(partDefinition.parentId);
-				if (!partDefinition.parentId.empty() && parentIt == partIndices.end()) continue;
-
-				BodyPart part{};
-				part.id = partDefinition.id;
-				part.parentId = partDefinition.parentId;
-				part.transform.translate_ = partDefinition.localPosition;
-				part.transform.rotate_ = partDefinition.localRotation;
-				part.transform.scale_ = partDefinition.localScale;
-				part.transform.parent_ = partDefinition.parentId.empty()
-					? &visualRootTransform_
-					: &parts_[parentIt->second].transform;
-				part.visible = partDefinition.visible;
-				part.active = partDefinition.visible;
-				try
+				BodyPart* parentPart = nullptr;
+				if (!partDefinition.parentId.empty())
 				{
-					part.object = std::make_unique<Object3D>();
-					part.object->Initialize(partDefinition.modelPath);
-				}
-				catch (const std::exception&)
-				{
-					part.object.reset(); // 1部位のモデル生成失敗でEditor全体を停止させず、定義修正を可能にする。
+					const auto parentIt = partsById.find(partDefinition.parentId);
+					if (parentIt == partsById.end()) continue;
+					parentPart = parentIt->second;
 				}
 
-				partIndices.emplace(part.id, parts_.size());
-				parts_.push_back(std::move(part));
+				parts_.push_back({});
+				BodyPart& part = parts_.back();
+				initializePart(part, partDefinition);
+				part.transform.parent_ = parentPart ? &parentPart->transform : &visualRootTransform_;
+				partsById.emplace(part.id, &part);
 				built[definitionIndex] = true;
 				builtAnyPart = true;
 			}
@@ -331,6 +363,7 @@ namespace Ken4lowEngine
 			if (!builtAnyPart)
 			{
 				if (outError) *outError = "人型部位の親子順序を解決できませんでした。";
+				body_ = {};
 				parts_.clear();
 				return false;
 			}
@@ -338,7 +371,7 @@ namespace Ken4lowEngine
 
 		ApplyAppearanceToAllParts();
 		UpdateHierarchy();
-		statusMessage_ = "人型部位を構築しました: " + std::to_string(parts_.size()) + " parts";
+		statusMessage_ = "人型部位を構築しました: " + std::to_string(GetTotalPartCount()) + " parts";
 		if (outError) outError->clear();
 		return true;
 	}
@@ -368,9 +401,16 @@ namespace Ken4lowEngine
 		visualRootTransform_.parent_ = nullptr;
 		visualRootTransform_.Update();
 
+		if (!body_.id.empty())
+		{
+			body_.transform.parent_ = &visualRootTransform_;
+			body_.transform.Update();
+			if (body_.object) body_.object->UpdateWithWorldMatrix(body_.transform.worldMatrix_);
+		}
+
 		for (BodyPart& part : parts_)
 		{
-			part.transform.Update(); // 構築時に親が先となる順序へ並べているため1回の走査で階層全体を更新できる。
+			part.transform.Update();
 			if (part.object) part.object->UpdateWithWorldMatrix(part.transform.worldMatrix_);
 		}
 	}
@@ -382,13 +422,13 @@ namespace Ken4lowEngine
 		const bool hasBinding = materialBinding_.HasBinding();
 		const bool resolved = hasBinding && materialBinding_.Resolve(resolvedMaterial);
 
-		for (BodyPart& part : parts_)
-		{
-			if (!part.object) continue;
-			if (resolved) part.object->ApplyMaterialDesc(resolvedMaterial);
-			else part.object->ResetMaterialBinding();
-			if (!skinTexturePath_.empty()) part.object->SetTextureForAll(skinTexturePath_); // Skin指定は共有MaterialのBaseColor Textureより後に適用する。
-		}
+		ForEachVisualPart(body_, parts_, [this, resolved, &resolvedMaterial](BodyPart& part)
+			{
+				if (!part.object) return;
+				if (resolved) part.object->ApplyMaterialDesc(resolvedMaterial);
+				else part.object->ResetMaterialBinding();
+				if (!skinTexturePath_.empty()) part.object->SetTextureForAll(skinTexturePath_);
+			});
 
 		if (!hasBinding) materialBindingStatus_ = "モデル既定Materialを使用中";
 		else if (!resolved) materialBindingStatus_ = "MaterialAssetが見つからないためモデル既定へフォールバック";
