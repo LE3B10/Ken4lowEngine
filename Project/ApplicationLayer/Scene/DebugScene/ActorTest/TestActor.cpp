@@ -1,47 +1,61 @@
 #include "TestActor.h"
-#include <SceneComponent.h>
-#include <ModelComponent.h>
-#include <CameraComponent.h>
-#include <ColliderComponent.h>
-#include <RigidbodyComponent.h>
+
+#include <CameraManager.h>
+#include <Input.h>
+
+namespace
+{
+	constexpr float kMouseLookSensitivity = 0.0025f;
+}
 
 void TestActor::Initialize()
 {
-	if (!GetComponents().empty())
+	const bool hadSavedComposition = !GetComponents().empty();
+	Ken4lowEngine::PlayerActor::Initialize();
+
+	if (!hadSavedComposition)
 	{
-		Actor::Initialize();
-		return; // JSON復元済み構成へ既定Componentを重複追加しない。
+		ResetForValidation({ 0.0f, 1.5f, 0.0f }); // 床へ落下して接地するまでをPhysicsWorldで確認できる高さから開始する。
+	}
+}
+
+void TestActor::Update(float deltaTime)
+{
+	auto* input = Ken4lowEngine::Input::GetInstance();
+	auto* playerInput = GetPlayerInputComponent();
+	const bool useDebugCamera = Ken4lowEngine::CameraManager::GetInstance()->IsUsingDebugCamera();
+	const bool canControlPlayer = input && playerInput && input->IsGameInputEnabled() && !useDebugCamera;
+
+	if (canControlPlayer)
+	{
+		float moveX = 0.0f;
+		float moveZ = 0.0f;
+		if (input->PushKey(DIK_A)) moveX -= 1.0f;
+		if (input->PushKey(DIK_D)) moveX += 1.0f;
+		if (input->PushKey(DIK_S)) moveZ -= 1.0f;
+		if (input->PushKey(DIK_W)) moveZ += 1.0f;
+		playerInput->RequestMove(moveX, moveZ);
+
+		const float yawDelta = static_cast<float>(input->GetMouseMoveX()) * kMouseLookSensitivity;
+		const float pitchDelta = static_cast<float>(-input->GetMouseMoveY()) * kMouseLookSensitivity;
+		if (yawDelta != 0.0f || pitchDelta != 0.0f) playerInput->RequestLook(yawDelta, pitchDelta);
+
+		if (input->TriggerKey(DIK_SPACE)) playerInput->RequestJump();
+		if (input->PushMouse(0)) playerInput->RequestFire();
+		if (input->TriggerKey(DIK_R)) playerInput->RequestReload();
+		if (input->TriggerKey(DIK_1)) playerInput->RequestInventorySlot(0);
+		if (input->TriggerKey(DIK_2)) playerInput->RequestInventorySlot(1);
+		if (input->TriggerKey(DIK_3)) playerInput->RequestInventorySlot(2);
+		if (input->TriggerKey(DIK_4)) playerInput->RequestInventorySlot(3);
+		if (input->TriggerKey(DIK_5)) playerInput->RequestInventorySlot(4);
+
+		input->SetLockCursor(true);
+		input->SetCursorVisible(false);
+	}
+	else if (playerInput)
+	{
+		playerInput->RequestMove(0.0f, 0.0f); // Editor操作やDebugCamera中は以前の移動要求を残さない。
 	}
 
-	auto& root = CreateRootComponent<Ken4lowEngine::ColliderComponent>();
-	root.SetName("Root Collider Component");
-	root.SetLocalPosition({ 0.0f, 0.0f, 0.0f });
-	root.SetShapeType(Ken4lowEngine::ECollisionShapeType::AABB);
-	root.SetHalfSize({ 1.0f, 1.0f, 1.0f });
-	root.SetCollisionLayer(Ken4lowEngine::PhysicsCollisionLayer::DynamicActor);
-	root.SetUpdateOrder(-100); // TransformとColliderを描画Componentより先に同期する。
-
-	auto& model = AddComponent<Ken4lowEngine::ModelComponent>();
-	model.SetName("Model Component");
-	model.SetModelPath("Sample/cube.gltf");
-	model.SetUpdateOrder(0);
-	model.SetDrawOrder(0);
-	model.AttachTo(&root);
-
-	auto& camera = AddComponent<Ken4lowEngine::CameraComponent>();
-	camera.SetName("Camera Component");
-	camera.SetLocalPosition({ 0.0f, 2.0f, -8.0f });
-	camera.SetLocalRotation({ 0.2f, 0.0f, 0.0f });
-	camera.SetInheritParentRotation(false);
-	camera.SetAutoRegisterMainCamera(true);
-	camera.SetUpdateOrder(100); // 親Transform確定後にCameraを更新する。
-	camera.AttachTo(&root); // 位置だけActorへ追従し、Actorの回転とスケールはCameraへ継承しない。
-
-	auto& rigidbody = AddComponent<Ken4lowEngine::RigidbodyComponent>();
-	rigidbody.SetName("Rigidbody Component");
-	rigidbody.SetMass(1.0f);
-	rigidbody.SetUseGravity(true);
-	rigidbody.SetUpdateOrder(-50); // Collider同期後、通常描画Componentより前に物理状態を読む。
-
-	Actor::Initialize();
+	Ken4lowEngine::PlayerActor::Update(deltaTime);
 }
