@@ -43,10 +43,6 @@ struct BossHitResult
 };
 
 class Player;
-class BossPhaseComponent;
-class BossWeakPointComponent;
-class BossEffectComponent;
-class BossSoundComponent;
 
 /// Boss固有AI/攻撃を保持しつつ、HP・Movement・Collider・Animation・人型表示は共通Actor/Componentへ接続する基底。
 class BossBase : public BaseCharacter
@@ -156,15 +152,6 @@ public:
 	BossBrain* GetBrain() { return brain_.get(); }
 	const BossBrain* GetBrain() const { return brain_.get(); }
 
-	BossPhaseComponent* GetPhaseComponent() { return phaseComponent_.get(); }
-	const BossPhaseComponent* GetPhaseComponent() const { return phaseComponent_.get(); }
-	BossWeakPointComponent* GetWeakPointComponent() { return weakPointComponent_.get(); }
-	const BossWeakPointComponent* GetWeakPointComponent() const { return weakPointComponent_.get(); }
-	BossEffectComponent* GetEffectComponent() { return effectComponent_.get(); }
-	const BossEffectComponent* GetEffectComponent() const { return effectComponent_.get(); }
-	BossSoundComponent* GetSoundComponent() { return soundComponent_.get(); }
-	const BossSoundComponent* GetSoundComponent() const { return soundComponent_.get(); }
-
 	void SetDamageCallback(std::function<void(float)> callback) { damageCallback_ = std::move(callback); }
 
 	/// 攻撃アニメーションが使う腕のローカル回転を共通Visualの部位へ適用する。
@@ -210,10 +197,6 @@ protected:
 	std::unique_ptr<BossMovementComponent> movementComponent_;
 	std::unique_ptr<BossAnimationComponent> animationComponent_;
 	std::unique_ptr<BossAttackComponent> attackComponent_;
-	std::unique_ptr<BossPhaseComponent> phaseComponent_;
-	std::unique_ptr<BossWeakPointComponent> weakPointComponent_;
-	std::unique_ptr<BossEffectComponent> effectComponent_;
-	std::unique_ptr<BossSoundComponent> soundComponent_;
 
 	BossState state_ = BossState::Intro;
 	BossPhase phase_ = BossPhase::Phase1;
