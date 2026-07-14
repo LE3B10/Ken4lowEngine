@@ -7,6 +7,7 @@
 #include "CharacterAnimationComponent.h"
 #include "AttackComponent.h"
 #include "SceneComponent.h"
+#include <Collider.h>
 
 #include <algorithm>
 #include <utility>
@@ -111,6 +112,36 @@ namespace Ken4lowEngine
 		return {};
 	}
 
+	void CharacterActor::OnCollisionEnter(const CollisionHit& hit)
+	{
+		OnCollisionEnter(hit.other); // 詳細Hit未対応の派生Actorも旧Collider*経路で同じ処理を受け取れるようにする。
+	}
+
+	void CharacterActor::OnCollisionStay(const CollisionHit& hit)
+	{
+		OnCollisionStay(hit.other);
+	}
+
+	void CharacterActor::OnCollisionExit(const CollisionHit& hit)
+	{
+		OnCollisionExit(hit.other);
+	}
+
+	void CharacterActor::OnOverlapBegin(const CollisionHit& hit)
+	{
+		OnCollisionEnter(hit);
+	}
+
+	void CharacterActor::OnOverlapStay(const CollisionHit& hit)
+	{
+		OnCollisionStay(hit);
+	}
+
+	void CharacterActor::OnOverlapEnd(const CollisionHit& hit)
+	{
+		OnCollisionExit(hit);
+	}
+
 	CharacterHealthComponent* CharacterActor::GetHealthComponent()
 	{
 		return GetCharacterComponent<CharacterHealthComponent>();
@@ -163,7 +194,7 @@ namespace Ken4lowEngine
 
 	AttackComponent* CharacterActor::GetAttackComponent()
 	{
-		return GetCharacterComponent<AttackComponent>(); // 通常敵と将来のBossActorが同じ取得APIを利用する。
+		return GetCharacterComponent<AttackComponent>(); // 通常敵とBossActorが同じ取得APIを利用する。
 	}
 
 	const AttackComponent* CharacterActor::GetAttackComponent() const
