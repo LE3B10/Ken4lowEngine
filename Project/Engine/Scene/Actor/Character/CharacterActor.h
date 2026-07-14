@@ -38,42 +38,31 @@ namespace Ken4lowEngine
 
 		/// HP Componentへダメージ処理を委譲し、死亡へ遷移した場合だけイベントを通知する。
 		CharacterDamageResult ApplyDamage(const CharacterDamageInfo& damageInfo);
-
-		/// 数値だけでダメージを渡す簡易入口を提供する。
 		CharacterDamageResult ApplyDamage(float amount);
 
 		/// HP Componentへ問い合わせて現在の生存状態を返す。
 		bool IsAlive() const;
-
-		/// HP Componentへ問い合わせて現在の死亡状態を返す。
 		bool IsDead() const { return !IsAlive(); }
 
 		/// Target ComponentのWorld座標を返し、未設定時はRoot座標へフォールバックする。
 		Vector3 GetTargetPosition() const;
 
-		/// CharacterのHP処理を担当するComponentを返す。
 		CharacterHealthComponent* GetHealthComponent();
 		const CharacterHealthComponent* GetHealthComponent() const;
-
-		/// Characterの代表位置を担当するComponentを返す。
 		CharacterTargetComponent* GetTargetComponent();
 		const CharacterTargetComponent* GetTargetComponent() const;
-
-		/// Characterの移動処理を担当するComponentを返す。
 		CharacterMovementComponent* GetMovementComponent();
 		const CharacterMovementComponent* GetMovementComponent() const;
-
-		/// Characterの当たり判定を担当するComponentを返す。
 		CharacterColliderComponent* GetColliderComponent();
 		const CharacterColliderComponent* GetColliderComponent() const;
-
-		/// Characterのアニメーション再生状態を担当するComponentを返す。
 		CharacterAnimationComponent* GetAnimationComponent();
 		const CharacterAnimationComponent* GetAnimationComponent() const;
-
-		/// Characterへ任意追加された共通攻撃基盤を返す。
 		AttackComponent* GetAttackComponent();
 		const AttackComponent* GetAttackComponent() const;
+
+		/// PhysicsWorld/Legacy CollisionManagerのどちらからも同じComponent所有Colliderを参照する。
+		Collider* GetCollisionPrimitive();
+		const Collider* GetCollisionPrimitive() const;
 
 		/// Characterが所有する指定型Componentへ統一した入口からアクセスする。
 		template<class T>
@@ -108,16 +97,9 @@ namespace Ken4lowEngine
 		virtual void OnOverlapStay(const CollisionHit& hit);
 		virtual void OnOverlapEnd(const CollisionHit& hit);
 
-		/// 死亡通知を受け取るListenerを登録し、解除用IDを返す。
 		DeathListenerId AddDeathListener(DeathListener listener);
-
-		/// 登録IDに対応する死亡Listenerを解除する。
 		bool RemoveDeathListener(DeathListenerId listenerId);
-
-		/// 登録IDに対応する死亡Listenerが現在も有効か返す。
 		bool HasDeathListener(DeathListenerId listenerId) const;
-
-		/// Actorが保持する死亡Listenerをすべて解除する。
 		void ClearDeathListeners();
 
 	protected:
