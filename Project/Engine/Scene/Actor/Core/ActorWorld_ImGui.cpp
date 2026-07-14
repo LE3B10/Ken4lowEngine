@@ -73,6 +73,12 @@ namespace Ken4lowEngine
 	void ActorWorld::DrawSelectedInspectorContent()
 	{
 #ifdef USE_IMGUI
+		if (ImGui::CollapsingHeader("構成済みActor生成##ActorArchetypeCreation"))
+		{
+			DrawActorPrefabSpawnImGui(); // 現行DetailsからPrefab相当の構成済み定義を通常生成経路として利用する。
+			ImGui::Separator();
+		}
+
 		Actor* saveTargetActor = selectedActor_;
 		if (!saveTargetActor && selectedComponent_) saveTargetActor = selectedComponent_->GetOwner();
 
@@ -105,7 +111,7 @@ namespace Ken4lowEngine
 				if (ActorJsonSerializer::SaveActorToFile(*saveTargetActor, snapshotPath))
 				{
 					auto duplicatedActor = std::make_shared<Actor*>(nullptr);
-					EditorCommandHistory::GetInstance()->Clear(); // Actor寿命を変更する前に古いActor参照を持つCommandを破棄する。
+					EditorCommandHistory::GetInstance()->Clear();
 					EditorCommandHistory::GetInstance()->Execute(std::make_unique<EditorLambdaCommand>(
 						"アクタ複製",
 						[this, duplicatedActor, snapshotPath]()
