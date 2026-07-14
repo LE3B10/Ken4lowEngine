@@ -10,6 +10,7 @@ namespace Ken4lowEngine
 {
 	class Collider;
 	class Camera;
+	class CharacterHealthComponent;
 }
 namespace K4E = ::Ken4lowEngine;
 
@@ -27,18 +28,12 @@ enum class PlayerHitPart : uint8_t
 	Body,
 };
 
-/// ------------------------------------------------------------
-/// PlayerDamageComponent
-/// - 被弾 / 最近ヒット弾管理 / 落下ダメージ を担当
-/// - HUD や VFX には直接触らず、結果だけ返す
-/// ------------------------------------------------------------
+/// 被弾履歴とPlayer固有フィードバックだけを担当し、HPの正本はCharacterHealthComponentへ委譲する。
 class PlayerDamageComponent
 {
 public:
 	struct State
 	{
-		float maxHp = 100.0f;
-		float hp = 100.0f;
 		std::unordered_map<uint32_t, float> recentBulletHits{};
 		float recentBulletHitTTL = 0.25f;
 	};
@@ -49,17 +44,17 @@ public:
 		bool hpChanged = false;
 		bool notifyPlayerHit = false;
 		bool startedDeath = false;
-
 		float damage = 0.0f;
 		float hpAfter = 0.0f;
 		float maxHp = 0.0f;
 		float hitStrength01 = 0.0f;
 	};
 
+	/// 旧呼び出し互換の最大HP設定だけを保持し、現在HPは所有しない。
 	void Initialize(float maxHp)
 	{
-		state_.maxHp = maxHp;
-		state_.hp = maxHp;
+		configuredMaxHp_ = maxHp > 1.0f ? maxHp : 1.0f;
+		health_ = nullptr;
 	}
 
 	void Tick(float dt);
@@ -101,8 +96,8 @@ public:
 		std::function<void()> onHitSE,
 		std::function<void()> onDeathSE);
 
-	float GetHP() const { return state_.hp; }
-	float GetMaxHP() const { return state_.maxHp; }
+	float GetHP() const;
+	float GetMaxHP() const;
 	void Heal(float amount);
 
 	bool IsRecentBulletHit(uint32_t id) const
@@ -113,6 +108,9 @@ public:
 	void MarkRecentBulletHit(uint32_t id);
 
 private:
+	K4E::CharacterHealthComponent* BindHealth(Player& player);
+	const K4E::CharacterHealthComponent* GetHealth() const { return health_; }
+
 	DamageFeedback ApplyDamageAndHandleDeath(
 		Player& player,
 		float damage,
@@ -137,4 +135,6 @@ private:
 
 private:
 	State state_{};
+	K4E::CharacterHealthComponent* health_ = nullptr; // 所有権はPlayer Actorが持ち、このComponentは参照だけを保持する。
+	float configuredMaxHp_ = 100.0f;
 };
