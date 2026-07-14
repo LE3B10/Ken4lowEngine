@@ -25,9 +25,9 @@ namespace Ken4lowEngine
 		auto* owner = dynamic_cast<CharacterActor*>(GetOwner());
 		const auto* ai = owner ? owner->GetCharacterComponent<EnemyAIComponent>() : nullptr;
 		if (owner && !owner->IsDead() && ai && GetTargetActor() && !GetTargetActor()->IsDead()
-			&& ai->GetDistanceToTarget() <= ai->GetAttackStartRange())
+			&& IsTargetWithinAttackRange("Melee"))
 		{
-			StartAttack("Melee"); // Adapterは開始判断だけを行い、Damageや腕Transformを直接処理しない。
+			StartAttack("Melee"); // 水平距離とY差の両方を満たした時だけ攻撃を開始する。
 		}
 		AttackComponent::Update(deltaTime);
 	}
@@ -36,7 +36,9 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("通常敵攻撃");
+		const AttackData* melee = FindAttackData("Melee");
 		ImGui::Text("Damage: %.1f / Cooldown: %.2f / 命中間隔: %.2f", GetAttackDamage(), GetAttackCooldown(), GetExpectedHitInterval());
+		ImGui::Text("攻撃範囲 XZ <= %.2f / Y差 <= %.2f", melee ? melee->maxRange : 0.0f, melee ? melee->maxHeightDifference : 0.0f);
 		ImGui::Text("命中回数: %d / 実測間隔: %.3f", GetAcceptedHitCount(), GetLastMeasuredInterval());
 #endif
 	}
@@ -50,7 +52,8 @@ namespace Ken4lowEngine
 		outJson["AttackDamage"] = melee->damage;
 		outJson["AttackStartDelay"] = melee->windupTime;
 		outJson["AttackActiveTime"] = melee->activeTime;
-		outJson["AttackRecoveryTime"] = melee->recoveryTime; // Phase 7のJSONキーも残し、既存Actorデータを読み戻せるようにする。
+		outJson["AttackRecoveryTime"] = melee->recoveryTime;
+		outJson["AttackMaxHeightDifference"] = melee->maxHeightDifference; // 既存JSON互換を保ちつつ高さ範囲も個別調整できるよう保存する。
 	}
 
 	void EnemyAttackComponent::FromJson(const nlohmann::json& inJson)
@@ -65,6 +68,7 @@ namespace Ken4lowEngine
 		melee.windupTime = std::max(0.0f, inJson.value("AttackStartDelay", melee.windupTime));
 		melee.activeTime = std::max(0.0f, inJson.value("AttackActiveTime", melee.activeTime));
 		melee.recoveryTime = std::max(0.0f, inJson.value("AttackRecoveryTime", melee.recoveryTime));
+		melee.maxHeightDifference = std::max(0.0f, inJson.value("AttackMaxHeightDifference", melee.maxHeightDifference));
 		ConfigureAttack("Melee", melee);
 	}
 
@@ -99,6 +103,7 @@ namespace Ken4lowEngine
 		melee.activeTime = 0.10f;
 		melee.recoveryTime = 0.35f;
 		melee.maxRange = 2.4f;
+		melee.maxHeightDifference = 2.0f;
 		RegisterAttack(std::move(melee), std::make_unique<MeleeAttackBehavior>()); // 通常敵固有値だけをAdapterで登録し、実行ロジックは共通クラスを使う。
 	}
 } // namespace Ken4lowEngine
