@@ -2,6 +2,7 @@
 
 #include "CharacterActor.h"
 #include "HumanoidVisualComponent.h"
+#include <Collider.h>
 
 #include <cstdint>
 #include <string>
@@ -9,7 +10,7 @@
 namespace Ken4lowEngine
 {
 	/// Character共通ComponentとHumanoidVisualComponentだけで人型キャラクターを構成するActor。
-	class HumanoidCharacterActor : public CharacterActor
+	class HumanoidCharacterActor : public CharacterActor, public Collider
 	{
 	public:
 		using BodyPart = HumanoidVisualComponent::BodyPart;
@@ -39,7 +40,7 @@ namespace Ken4lowEngine
 				visual->SetCastShadowEnabled(true);
 				if (SceneComponent* root = GetRootComponent()) visual->AttachTo(root);
 			}
-			visual->InitializeForWorld(); // 直接Initializeされる旧GamePlayWorld経路でも部位を即時利用できるようにする。
+			visual->InitializeForWorld(); // 直接InitializeされるGamePlayWorld経路でも部位を即時利用できるようにする。
 		}
 
 		std::string GetClassTypeName() const override { return "HumanoidCharacterActor"; }
@@ -79,10 +80,49 @@ namespace Ken4lowEngine
 		WorldTransformEx* GetWorldTransform() { return &GetBody().transform; }
 		const WorldTransformEx* GetWorldTransform() const { return &GetBody().transform; }
 
-		Vector3 GetCenterPosition() const
+		/// 旧Collider APIからの位置変更もActor RootとComponent Colliderへ同じ値を反映する。
+		Vector3 GetCenterPosition() const override
 		{
 			if (const SceneComponent* root = GetRootComponent()) return root->GetWorldPosition();
 			return GetBody().transform.worldTranslate_;
+		}
+
+		void SetCenterPosition(const Vector3& position) override
+		{
+			if (SceneComponent* root = GetRootComponent())
+			{
+				root->SetLocalPosition(position);
+				root->RefreshWorldTransform();
+			}
+			Collider::SetCenterPosition(position); // 未移行の問い合わせAPIも同じ位置を返すよう値だけ同期する。
+		}
+
+		Vector3 GetOBBHalfSize() const override
+		{
+			const CharacterColliderComponent* component = GetColliderComponent();
+			return component ? component->GetHalfSize() : Collider::GetOBBHalfSize();
+		}
+
+		void SetOBBHalfSize(const Vector3& halfSize) override
+		{
+			if (CharacterColliderComponent* component = GetColliderComponent()) component->SetHalfSize(halfSize);
+			Collider::SetOBBHalfSize(halfSize);
+		}
+
+		Vector3 GetOrientation() const override
+		{
+			if (const SceneComponent* root = GetRootComponent()) return root->GetWorldRotation();
+			return Collider::GetOrientation();
+		}
+
+		void SetOrientation(const Vector3& rotation) override
+		{
+			if (SceneComponent* root = GetRootComponent())
+			{
+				root->SetLocalRotation(rotation);
+				root->RefreshWorldTransform();
+			}
+			Collider::SetOrientation(rotation);
 		}
 
 		void SetBodyActive(bool active)
