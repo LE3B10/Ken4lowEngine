@@ -32,11 +32,19 @@ namespace Ken4lowEngine
 			const float length = Vector3::LengthXZ(value);
 			return length > 0.0001f ? Vector3{ value.x / length, 0.0f, value.z / length } : Vector3{};
 		}
+
+		/// 攻撃Active中も水平距離とY差の両方を確認し、高所Targetへの不自然な命中を防ぐ。
+		bool IsWithinAttackVolume(const AttackContext& context, const AttackData& data)
+		{
+			return context.distanceToTarget >= data.minRange &&
+				context.distanceToTarget <= data.maxRange &&
+				context.heightDifferenceToTarget <= data.maxHeightDifference;
+		}
 	}
 
 	bool MeleeAttackBehavior::CanStart(const AttackContext& context, const AttackData& data) const
 	{
-		return context.target && !context.target->IsDead() && context.distanceToTarget <= data.maxRange;
+		return context.target && !context.target->IsDead() && IsWithinAttackVolume(context, data);
 	}
 
 	void MeleeAttackBehavior::Begin(AttackContext& context, const AttackData& data)
@@ -52,7 +60,7 @@ namespace Ken4lowEngine
 		(void)normalizedActiveTime;
 		if (executed_) return {};
 		executed_ = true;
-		if (context.distanceToTarget > data.maxRange) return { true, false, 0.0f };
+		if (!IsWithinAttackVolume(context, data)) return { true, false, 0.0f };
 		return ApplyDamageOnce(context, data.damage);
 	}
 
@@ -66,7 +74,7 @@ namespace Ken4lowEngine
 
 	bool ProjectileAttackBehavior::CanStart(const AttackContext& context, const AttackData& data) const
 	{
-		return context.target && !context.target->IsDead() && context.distanceToTarget >= data.minRange;
+		return context.target && !context.target->IsDead() && IsWithinAttackVolume(context, data);
 	}
 
 	void ProjectileAttackBehavior::Begin(AttackContext& context, const AttackData& data)
@@ -82,6 +90,7 @@ namespace Ken4lowEngine
 		(void)normalizedActiveTime;
 		if (fired_) return {};
 		fired_ = true;
+		if (!IsWithinAttackVolume(context, data)) return { true, false, 0.0f };
 		return ApplyDamageOnce(context, data.damage);
 	}
 
@@ -95,7 +104,7 @@ namespace Ken4lowEngine
 
 	bool ChargeAttackBehavior::CanStart(const AttackContext& context, const AttackData& data) const
 	{
-		return context.owner && context.target && data.movementSpeed > 0.0f;
+		return context.owner && context.target && data.movementSpeed > 0.0f && IsWithinAttackVolume(context, data);
 	}
 
 	void ChargeAttackBehavior::Begin(AttackContext& context, const AttackData& data)
@@ -117,7 +126,7 @@ namespace Ken4lowEngine
 			const Vector3 direction = NormalizeXZ(context.target->GetTargetPosition() - root->GetWorldPosition());
 			movement->SetVelocity(direction * data.movementSpeed); // 突進も位置を直接変更せず共通Movementへ速度を渡す。
 		}
-		if (hit_ || context.distanceToTarget > std::max(1.0f, data.minRange)) return {};
+		if (hit_ || !IsWithinAttackVolume(context, data)) return {};
 		hit_ = true;
 		return ApplyDamageOnce(context, data.damage);
 	}
@@ -135,7 +144,7 @@ namespace Ken4lowEngine
 
 	bool ShockwaveAttackBehavior::CanStart(const AttackContext& context, const AttackData& data) const
 	{
-		return context.target && context.distanceToTarget <= data.maxRange;
+		return context.target && IsWithinAttackVolume(context, data);
 	}
 
 	void ShockwaveAttackBehavior::Begin(AttackContext& context, const AttackData& data)
@@ -151,7 +160,7 @@ namespace Ken4lowEngine
 		(void)normalizedActiveTime;
 		if (emitted_) return {};
 		emitted_ = true;
-		if (context.distanceToTarget > data.maxRange) return { true, false, 0.0f };
+		if (!IsWithinAttackVolume(context, data)) return { true, false, 0.0f };
 		return ApplyDamageOnce(context, data.damage);
 	}
 
