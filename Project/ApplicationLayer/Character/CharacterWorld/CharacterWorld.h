@@ -11,7 +11,6 @@
 #include "EnemyType.h"
 #include "EnemyParticleEffectSystem.h"
 
-// 前方宣言
 class CollisionManager;
 class BulletManager;
 
@@ -28,8 +27,7 @@ struct GameContext
 /// -------------------------------------------------------------
 class CharacterWorld
 {
-private: /// ---------- 構造体 ---------- ///
-
+private:
 	struct EnemySpawnRequest
 	{
 		K4E::Vector3 position = {};
@@ -38,11 +36,9 @@ private: /// ---------- 構造体 ---------- ///
 		EnemyType enemyType = EnemyType::Melee;
 	};
 
-public: /// ---------- メンバ関数 ---------- ///
-
+public:
 	void Initialize(GameContext& ctx);
 	void Finalize();
-
 	void Update(float dt);
 	void UpdatePlayerOnly(float dt);
 	void WarmupStartGameplayVisuals();
@@ -52,22 +48,27 @@ public: /// ---------- メンバ関数 ---------- ///
 	void DrawPlayerDebugImGui();
 	void DrawEnemyDebugImGui();
 
-	void DrawShadow();
+	/// CharacterのShadow描画は各ActorのComponent DrawShadow経路へ統一する。
+	void DrawShadow()
+	{
+		if (player_) player_->DrawShadow();
+		for (auto& enemy : enemies_) if (enemy) enemy->DrawShadow();
+	}
 
-	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
+	/// Light行列の明示同期が必要な旧描画呼び出しも、各Characterの共通表示経路へ渡す。
+	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
+	{
+		if (player_) player_->UpdateShadowMatrix(lightViewProjection);
+		for (auto& enemy : enemies_) if (enemy) enemy->UpdateShadowMatrix(lightViewProjection);
+	}
 
 	Player* GetPlayer() { return player_.get(); }
 	const Player* GetPlayer() const { return player_.get(); }
 	const std::vector<std::unique_ptr<EnemyBase>>& GetEnemies() const { return enemies_; }
 
-	// HPバーやロックオンみたいな「EnemyBase* 配列」が欲しい処理用
 	std::vector<EnemyBase*> GetEnemyRawList() const;
-
-	// 生成
 	EnemyBase& SpawnEnemy(const EnemySpawnRequest& request);
 	EnemyBase& SpawnEnemyAt(const K4E::Vector3& position, EnemyType enemyType = EnemyType::Melee);
-
-	// 全消し
 	void ClearEnemies();
 	bool RemoveEnemy(EnemyBase* enemy);
 	void SetEnemyKilledCallback(std::function<void(const K4E::Vector3&)> callback) { onEnemyKilled_ = std::move(callback); }
@@ -75,32 +76,21 @@ public: /// ---------- メンバ関数 ---------- ///
 	int GetEnemyCount() const { return static_cast<int>(enemies_.size()); }
 	int GetAliveNormalEnemyCount() const;
 
-public: /// ---------- デバッグ用 ---------- ///
-
 	void SetDebug(bool on) { isDebug_ = on; }
 	bool IsDebug() const { return isDebug_; }
 
-private: /// ---------- 内部処理 ---------- ///
-
+private:
 	void InjectPlayerDeps(Player& p);
 	void InjectEnemyDeps(EnemyBase& e);
 
-private: /// ---------- メンバ変数 ---------- ///
-
-	GameContext ctx_{}; // ポインタ保持しない（Scene側ローカルctxの寿命問題を避ける）
-
+private:
+	GameContext ctx_{};
 	std::unique_ptr<Player> player_;
 	std::vector<std::unique_ptr<EnemyBase>> enemies_;
-
-	// 敵の被弾エフェクトシステム
 	EnemyParticleEffectSystem enemyParticleEffectSystem_;
 	std::function<void(const K4E::Vector3&)> onEnemyKilled_{};
 	std::unordered_set<const EnemyBase*> notifiedKilledEnemies_;
-	std::array<int, 2> spawnedEnemyCounts_{}; // Melee/MidRangeの通常ゲーム生成数だけを保持する。
-
-private: /// ---------- デバッグ用 ---------- ///
-
+	std::array<int, 2> spawnedEnemyCounts_{};
 	bool isDebug_ = false;
 	EnemyType debugSpawnEnemyType_ = EnemyType::Melee;
-
 };
