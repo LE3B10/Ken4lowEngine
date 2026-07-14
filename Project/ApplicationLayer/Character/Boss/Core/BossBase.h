@@ -3,534 +3,156 @@
 #include "BossTypes.h"
 #include "AABB.h"
 #include "WorldCollisionResolver.h"
-#include <Vector3.h>
 
-#include "BossBrain.h"				// ボスの思考を担当するクラス
-#include "BossAnimationComponent.h" // アニメーションを管理するクラス
-#include "BossAttackComponent.h"	// 攻撃を管理するクラス
-#include "BossMovementComponent.h"	// 移動を管理するクラス
-#include "BossPhaseComponent.h"		// フェーズ移行を管理するクラス
-#include "BossWeakPointComponent.h"	// 弱点を管理するクラス
-#include "BossStatusComponent.h"	// HP やステータスを管理するクラス
-#include "BossStateMachine.h"		// 状態遷移を管理するクラス
-#include "IBossAttack.h"			// 攻撃のインターフェース
+#include "BossBrain.h"
+#include "BossStateMachine.h"
+#include "BossStatusComponent.h"
+#include "BossMovementComponent.h"
+#include "BossAnimationComponent.h"
+#include "BossAttackComponent.h"
+#include "IBossAttack.h"
 
+#include <functional>
 #include <memory>
 #include <vector>
 
-namespace K4E = Ken4lowEngine;
+namespace K4E = ::Ken4lowEngine;
 
-/// -----------------------------------------------------------
-/// デバッグ用の簡易ヒット部位
-/// 今後、正式な弱点システムへ差し替える前の確認用
-/// -----------------------------------------------------------
-enum class BossHitPart
-{
-	None,       // ヒットなし
-	Head,       // 頭
-	Body,       // 胴体
-	LeftArm,    // 左腕
-	RightArm,   // 右腕
-	LeftLeg,    // 左脚
-	RightLeg    // 右脚
-};
-
-/// -----------------------------------------------------------
-/// 簡易ヒット判定の結果
-/// DebugScene から返してもらう想定
-/// -----------------------------------------------------------
-struct BossHitResult
-{
-	bool isHit = false;					  // 何かしら当たったか
-	BossHitPart part = BossHitPart::None; // どこに当たったか
-	K4E::Vector3 hitPosition{};           // 当たったとみなした位置
-	float damageMultiplier = 1.0f;        // 部位倍率（頭なら 2.0f など）
-};
-
-/// -----------------------------------------------------------
-///					 ボス共通の基底クラス
-///
-/// GamePlayWorldまたはデバッグシーンから派生ボスとして生成される共通基盤。
-/// 体パーツ、HP、状態、ターゲット、攻撃、移動、アニメーションの所有権を持ち、
-/// 個別ボスはSetup系overrideでモデル、攻撃、フェーズ、弱点を差し替える。
-/// -----------------------------------------------------------
 class Player;
+class BossPhaseComponent;
+class BossWeakPointComponent;
+class BossEffectComponent;
+class BossSoundComponent;
 
+/// Boss固有AI/攻撃を保持しつつ、HP・Movement・Collider・Animation・人型表示は共通Actor/Componentへ接続する基底。
 class BossBase : public BaseCharacter
 {
-public: /// ---------- ライフサイクル ---------- ///
-
-	// デストラクタは仮想関数にしておく
+public:
+	BossBase() = default;
 	~BossBase() override;
 
-	/// <summary>
-	/// 初期化
-	/// 共通コンポーネントを生成し、派生クラスのSetup系処理でボス固有データを構築する。
-	/// </summary>
-	virtual void Initialize() override;
-
-	/// <summary>
-	/// 更新
-	/// 状態、フェーズ、移動、攻撃、弱点、死亡判定をボス共通の順序で1フレーム進める。
-	/// </summary>
-	virtual void Update(float deltaTime) override;
-
-	/// <summary>
-	/// 描画
-	/// BaseCharacter の部位描画 + 攻撃描画など
-	/// </summary>
-	virtual void Draw() override;
-
-	// カメラ復帰後など、現在のViewProjectionで描画用WVPだけを再同期する。
-	void ForceSyncWorldTransform();
-
-	/// <summary>
-	/// シャドウ描画
-	/// </summary>
-	virtual void DrawShadow() override;
-
-	/// <summary>
-	/// デバッグ描画 / ImGui
-	/// </summary>
-	virtual void DrawImGui() override;
-
-	/// <summary>
-	/// 終了処理
-	/// 登録済み攻撃や各コンポーネントを解放し、Worldからの破棄に備える。
-	/// </summary>
+	void Initialize() override;
+	void Update(float deltaTime) override;
+	void Draw() override;
+	void DrawShadow() override;
+	virtual void DrawImGui();
 	virtual void Finalize();
 
-	/// <summary>
-	/// ParameterManager の共通ボス値を実行中のインスタンスへ反映する
-	/// </summary>
-	virtual void ApplyParameters();
+	/// 人型Bossは標準HumanoidVisualComponent構成をそのまま使用する。非人型Bossは別Actorを使用する。
+	virtual void BuildBossParts() { BaseCharacter::Initialize(); }
+	virtual void SetupAttacks() = 0;
+	virtual void SetupBoss() = 0;
 
-public: /// ---------- 衝突 ---------- ///
+	void ApplyParameters();
+	void ForceSyncWorldTransform();
+	bool MoveWithWorldCollision(const K4E::Vector3& desiredPosition);
+	void ClearRootParentKeepingWorldPosition();
 
-	/// <summary>
-	/// ボス基底では純粋仮想にしておく
-	/// 個別ボスでプレイヤー弾や近接ヒットなどを処理する
-	/// </summary>
-	virtual void OnCollision(K4E::Collider* other) override = 0;
-
-public: /// ---------- ダメージ / 死亡 ---------- ///
-
-	/// <summary>
-	/// ダメージを受けたとき
-	/// HPを減らし、フェーズ遷移や死亡判定に必要な共通通知を行う。
-	/// </summary>
 	virtual void OnDamaged(float damage);
-
-	/// <summary>
-	/// プレイヤー銃弾でダメージを受けたとき
-	/// 銃弾由来の統計やリアクションを派生側で分けたい場合の入口。
-	/// </summary>
 	virtual void OnBulletDamaged(float damage);
-
-	/// <summary>
-	/// 死亡時
-	/// HPが尽きた後の状態固定、攻撃停止、クリア条件通知に使う派生拡張点。
-	/// </summary>
+	virtual bool ApplyDamageToTargetPlayer(float damage, const K4E::Vector3* attackPosition = nullptr);
+	virtual void OnTargetPlayerDamaged(float damage);
 	virtual void OnDead();
 
-	// 生存中か
 	bool IsAlive() const;
-
-	// 死亡済みか
 	bool IsDead() const;
-
-public: /// ---------- 状態 / フェーズ管理 ---------- ///
-
-	// 状態を取得
-	BossState GetState() const { return state_; }
-
-	// 状態を設定
-	void SetState(BossState state) { state_ = state; }
-
-	// フェーズを取得
-	BossPhase GetPhase() const { return phase_; }
-
-	// フェーズを設定
-	void SetPhase(BossPhase phase) { phase_ = phase; }
-
-public: /// ---------- 位置 / 向き ---------- ///
-
-	/// <summary>
-	/// 位置は body_.transform.translate_ を使う
-	/// </summary>
-	const K4E::Vector3& GetPosition() const { return body_.transform.translate_; }
-
-	/// <summary>
-	/// ボス本体の位置を設定する
-	/// </summary>
-	void SetPosition(const K4E::Vector3& position) { body_.transform.translate_ = position; }
-
-	/// <summary>
-	/// ステージ障害物AABBをボス移動の押し戻し判定へ渡す
-	/// </summary>
-	void SetStageObstacleAABBs(const std::vector<K4E::AABB>* obstacleAABBs) { stageObstacleAABBs_ = obstacleAABBs; }
-
-	/// <summary>
-	/// ボス移動用のワールド衝突設定を変更する
-	/// </summary>
-	void SetWorldCollisionSettings(const K4E::WorldCollisionSettings& settings) { worldCollisionSettings_ = settings; }
-
-	/// <summary>
-	/// 障害物を考慮してボス本体を移動させる
-	/// </summary>
-	bool MoveWithWorldCollision(const K4E::Vector3& desiredPosition);
-
-	// 演出用の親Transformが残っていた場合に、現在のワールド座標を保ったまま親を外す。
-	void ClearRootParentKeepingWorldPosition();
-	bool HasRootParent() const { return body_.transform.parent_ != nullptr; }
-	K4E::Vector3 GetRootLocalPosition() const { return body_.transform.translate_; }
-	K4E::Vector3 GetRootWorldPosition() const { return body_.transform.worldTranslate_; }
-
-	/// <summary>
-	/// Yaw は body_.transform.rotate_.y を使う
-	/// </summary>
-	float GetYaw() const { return body_.transform.rotate_.y; }
-
-	/// <summary>
-	/// ボス本体のY回転を設定する
-	/// </summary>
-	void SetYaw(float yaw) { body_.transform.rotate_.y = yaw; }
-
-	/// <summary>
-	/// origin からターゲットへ向かうXZ正規化方向を返す
-	/// </summary>
-	K4E::Vector3 GetDirectionToTargetXZOrForward(const K4E::Vector3& origin) const;
-
-	/// <summary>
-	/// 共通の向き制御としてXZ方向へ即時にYawを合わせる
-	/// </summary>
-	void FaceDirectionXZImmediate(const K4E::Vector3& direction);
-
-	/// <summary>
-	/// 中心座標は BaseCharacter の実装をそのまま使う
-	/// 必要なら派生側で override 可
-	/// </summary>
-	virtual K4E::Vector3 GetCenterPosition() const override { return BaseCharacter::GetCenterPosition(); }
-
-public: /// ---------- HP / ステータス ---------- ///
-
-	// HP を取得
 	float GetHP() const;
-
-	// 最大HP を取得
 	float GetMaxHP() const;
-
-	// HP率を取得
 	float GetHPRate() const;
 
-public: /// ---------- ターゲット情報 ---------- ///
+	BossState GetState() const { return state_; }
+	void SetState(BossState state) { state_ = state; }
 
-	// ターゲットの位置
-	const K4E::Vector3& GetTargetPosition() const { return targetPosition_; }
+	void SetPosition(const K4E::Vector3& position) { SetCenterPosition(position); }
+	K4E::Vector3 GetPosition() const { return GetCenterPosition(); }
 
-	// ターゲットの位置をセット
-	void SetTargetPosition(const K4E::Vector3& targetPosition) { targetPosition_ = targetPosition; }
+	void SetYaw(float yaw)
+	{
+		auto rotation = GetBody().transform.rotate_;
+		rotation.y = yaw;
+		SetOrientation(rotation);
+	}
+	float GetYaw() const { return GetBody().transform.rotate_.y; }
 
-	// ボス攻撃が実際にプレイヤーHPへ届くよう、ターゲットPlayer本体も保持する。
-	void SetTargetPlayer(Player* player) { targetPlayer_ = player; }
-	Player* GetTargetPlayer() const { return targetPlayer_; }
-	bool ApplyDamageToTargetPlayer(float damage, const K4E::Vector3* attackPosition = nullptr);
-
-public: /// ---------- 攻撃距離 / 判定補助 ---------- ///
-
-	/// <summary>
-	/// 攻撃可能距離を取得
-	/// </summary>
-	float GetAttackRange() const { return attackRange_; }
-
-	/// <summary>
-	/// 攻撃可能距離を設定
-	/// </summary>
-	void SetAttackRange(float attackRange) { attackRange_ = attackRange; }
-
-	/// <summary>
-	/// 現在クールタイム中か
-	/// </summary>
-	bool IsAttackCoolingDown() const { return attackCooldownTimer_ > 0.0f; }
-
-	/// <summary>
-	/// クールタイム残り時間を取得
-	/// </summary>
-	float GetAttackCooldownTimer() const { return attackCooldownTimer_; }
-
-	/// <summary>
-	/// 攻撃クールタイムを設定
-	/// </summary>
-	void SetAttackCooldown(float timeSec) { attackCooldownSec_ = timeSec; }
-
-	/// <summary>
-	/// ターゲットまでのXZ距離を返す
-	/// </summary>
+	void SetTargetPosition(const K4E::Vector3& position) { targetPosition_ = position; }
+	K4E::Vector3 GetTargetPosition() const { return targetPosition_; }
+	K4E::Vector3 GetDirectionToTargetXZOrForward(const K4E::Vector3& origin) const;
+	void FaceDirectionXZImmediate(const K4E::Vector3& direction);
 	float GetDistanceToTargetXZ() const;
-
-	/// <summary>
-	/// ターゲットが攻撃範囲内か
-	/// </summary>
 	bool IsTargetInAttackRange() const;
 
-public: /// ---------- コンポーネント参照 ---------- ///
+	void SetTargetPlayer(Player* player) { targetPlayer_ = player; }
+	Player* GetTargetPlayer() const { return targetPlayer_; }
 
-	/// <summary>
-	/// 思考コンポーネントを取得
-	/// </summary>
+	void SetStageObstacleAABBs(const std::vector<K4E::AABB>* aabbs) { stageObstacleAABBs_ = aabbs; }
+	const std::vector<K4E::AABB>* GetStageObstacleAABBs() const { return stageObstacleAABBs_; }
+	const K4E::WorldCollisionSettings& GetWorldCollisionSettings() const { return worldCollisionSettings_; }
+	void SetWorldCollisionSettings(const K4E::WorldCollisionSettings& settings) { worldCollisionSettings_ = settings; }
+
+	void SetAttackRange(float attackRange) { attackRange_ = attackRange; }
+	float GetAttackRange() const { return attackRange_; }
+	void SetAttackCooldown(float cooldownSec) { attackCooldownSec_ = cooldownSec; }
+	float GetAttackCooldown() const { return attackCooldownSec_; }
+	bool IsAttackCoolingDown() const { return attackCooldownTimer_ > 0.0f; }
+	void ResetAttackCooldown() { attackCooldownTimer_ = attackCooldownSec_; }
+
+	void RegisterAttack(std::unique_ptr<IBossAttack> attack);
+	BossAttackComponent* GetAttackComponent() { return attackComponent_.get(); }
+	const BossAttackComponent* GetAttackComponent() const { return attackComponent_.get(); }
+	BossAnimationComponent* GetAnimationComponent() { return animationComponent_.get(); }
+	const BossAnimationComponent* GetAnimationComponent() const { return animationComponent_.get(); }
+	BossMovementComponent* GetMovementComponent() { return movementComponent_.get(); }
+	const BossMovementComponent* GetMovementComponent() const { return movementComponent_.get(); }
+	BossStateMachine* GetStateMachine() { return stateMachine_.get(); }
+	const BossStateMachine* GetStateMachine() const { return stateMachine_.get(); }
+	BossStatusComponent* GetStatusComponent() { return statusComponent_.get(); }
+	const BossStatusComponent* GetStatusComponent() const { return statusComponent_.get(); }
 	BossBrain* GetBrain() { return brain_.get(); }
 	const BossBrain* GetBrain() const { return brain_.get(); }
 
-	/// <summary>
-	/// 状態遷移コンポーネントを取得
-	/// </summary>
-	BossStateMachine* GetStateMachine() { return stateMachine_.get(); }
-	const BossStateMachine* GetStateMachine() const { return stateMachine_.get(); }
+	BossPhaseComponent* GetPhaseComponent() { return phaseComponent_.get(); }
+	const BossPhaseComponent* GetPhaseComponent() const { return phaseComponent_.get(); }
+	BossWeakPointComponent* GetWeakPointComponent() { return weakPointComponent_.get(); }
+	const BossWeakPointComponent* GetWeakPointComponent() const { return weakPointComponent_.get(); }
+	BossEffectComponent* GetEffectComponent() { return effectComponent_.get(); }
+	const BossEffectComponent* GetEffectComponent() const { return effectComponent_.get(); }
+	BossSoundComponent* GetSoundComponent() { return soundComponent_.get(); }
+	const BossSoundComponent* GetSoundComponent() const { return soundComponent_.get(); }
 
-	/// <summary>
-	/// 移動コンポーネントを取得
-	/// </summary>
-	BossMovementComponent* GetMovementComponent() { return movementComponent_.get(); }
-	const BossMovementComponent* GetMovementComponent() const { return movementComponent_.get(); }
+	void SetDamageCallback(std::function<void(float)> callback) { damageCallback_ = std::move(callback); }
 
-	/// Adapterの内側で実際の速度積分を担当する共通Movement Componentを返す。
-	K4E::CharacterMovementComponent* GetCharacterMovementComponent()
-	{
-		return movementComponent_ ? movementComponent_->GetCharacterMovementComponent() : nullptr;
-	}
-
-	/// Adapterの内側で実際の速度積分を担当する共通Movement Componentを返すconst版。
-	const K4E::CharacterMovementComponent* GetCharacterMovementComponent() const
-	{
-		return movementComponent_ ? movementComponent_->GetCharacterMovementComponent() : nullptr;
-	}
-
-	/// <summary>
-	/// ステータスコンポーネントを取得
-	/// </summary>
-	BossStatusComponent* GetStatusComponent() { return statusComponent_.get(); }
-	const BossStatusComponent* GetStatusComponent() const { return statusComponent_.get(); }
-
-	/// <summary>
-	/// 攻撃コンポーネントを取得
-	/// </summary>
-	BossAttackComponent* GetAttackComponent() { return attackComponent_.get(); }
-	const BossAttackComponent* GetAttackComponent() const { return attackComponent_.get(); }
-
-	/// <summary>
-	/// アニメーションコンポーネントを取得
-	/// </summary>
-	BossAnimationComponent* GetAnimationComponent() { return animationComponent_.get(); }
-	const BossAnimationComponent* GetAnimationComponent() const { return animationComponent_.get(); }
-
-public: /// ---------- 攻撃登録 ---------- ///
-
-	/// <summary>
-	/// 攻撃を登録する
-	/// 実体は BossAttackComponent に持たせる
-	/// </summary>
-	void RegisterAttack(std::unique_ptr<IBossAttack> attack);
-
-protected: /// ---------- ダメージ通知 ---------- ///
-
-	virtual void OnTargetPlayerDamaged(float damage);
-
-public: /// ---------- 腕周り補助 ---------- ///
-
-	/// <summary>
-	/// 左腕のローカル回転を設定
-	/// </summary>
-	void SetLeftArmLocalRotate(const K4E::Vector3& rotate)
-	{
-		auto& parts = GetBodyParts();
-		const auto idx = GetPartIndices().leftArm;
-		if (idx < parts.size())
-		{
-			parts[idx].transform.rotate_ = rotate;
-		}
-	}
-
-	/// <summary>
-	/// 右腕のローカル回転を設定
-	/// </summary>
-	void SetRightArmLocalRotate(const K4E::Vector3& rotate)
-	{
-		auto& parts = GetBodyParts();
-		const auto idx = GetPartIndices().rightArm;
-		if (idx < parts.size())
-		{
-			parts[idx].transform.rotate_ = rotate;
-		}
-	}
-
-	/// <summary>
-	/// 左腕根本のワールド座標を取得
-	/// 攻撃エフェクトの発生位置に使いやすい
-	/// </summary>
-	K4E::Vector3 GetLeftArmRootWorldPosition()
-	{
-		auto& parts = GetBodyParts();
-		const auto idx = GetPartIndices().leftArm;
-		if (idx >= parts.size()) return GetCenterPosition();
-
-		auto& body = GetBody();
-		body.transform.Update();
-
-		auto& arm = parts[idx];
-		arm.transform.worldRotate_ = body.transform.worldRotate_;
-		arm.transform.Update();
-
-		return arm.transform.worldTranslate_;
-	}
-
-	/// <summary>
-	/// 右腕根本のワールド座標を取得
-	/// </summary>
-	K4E::Vector3 GetRightArmRootWorldPosition()
-	{
-		auto& parts = GetBodyParts();
-		const auto idx = GetPartIndices().rightArm;
-		if (idx >= parts.size())
-		{
-			return GetCenterPosition();
-		}
-
-		auto& body = GetBody();
-		body.transform.Update();
-
-		auto& arm = parts[idx];
-		arm.transform.worldRotate_ = body.transform.worldRotate_;
-		arm.transform.Update();
-
-		return arm.transform.worldTranslate_;
-	}
-
-public: /// ---------- デバッグ用 ---------- ///
-
-	/// -----------------------------------------------------------
-	/// デバッグ用の簡易球判定
-	/// attackCenter / attackRadius を渡して、どの部位に当たったかを返す
-	/// まずは DebugScene での仮ヒット確認用
-	/// -----------------------------------------------------------
+	K4E::Vector3 GetPartWorldPosition(size_t partIndex);
 	BossHitResult CheckDebugHitSphere(const K4E::Vector3& attackCenter, float attackRadius);
-
-	/// -----------------------------------------------------------
-	/// ヒット結果を元にダメージ適用
-	/// baseDamage * damageMultiplier で最終ダメージを決める
-	/// -----------------------------------------------------------
 	void ApplyDebugHitResult(const BossHitResult& hitResult, float baseDamage);
 
-protected: /// ---------- 共通処理 ---------- ///
-
-	/// -----------------------------------------------------------
-	/// 各部位のワールド座標を返す
-	/// 今後、弱点管理や正式な当たり判定にも流用しやすい
-	/// -----------------------------------------------------------
-	K4E::Vector3 GetPartWorldPosition(size_t partIndex);
-
-	/// -----------------------------------------------------------
-	/// 指定位置と半径で球ヒット判定
-	/// attackCenter と partCenter の距離で簡易判定する
-	/// -----------------------------------------------------------
+protected:
+	virtual void UpdateState(float deltaTime);
+	virtual void UpdatePhase(float deltaTime);
+	virtual void UpdateMovement(float deltaTime);
+	virtual void UpdateAttack(float deltaTime);
+	virtual void UpdateWeakPoints(float deltaTime);
+	virtual void CheckDeath();
 	bool IsSphereHit(const K4E::Vector3& attackCenter, float attackRadius, const K4E::Vector3& targetCenter, float targetRadius) const;
 
-public: /// ---------- 派生クラスが決めるもの ---------- ///
+protected:
+	std::unique_ptr<BossBrain> brain_;
+	std::unique_ptr<BossStatusComponent> statusComponent_; // HP値は持たず、共通CharacterHealthComponentへのBoss API窓口だけを提供する。
+	std::unique_ptr<BossStateMachine> stateMachine_;
+	std::unique_ptr<BossMovementComponent> movementComponent_;
+	std::unique_ptr<BossAnimationComponent> animationComponent_;
+	std::unique_ptr<BossAttackComponent> attackComponent_;
+	std::unique_ptr<BossPhaseComponent> phaseComponent_;
+	std::unique_ptr<BossWeakPointComponent> weakPointComponent_;
+	std::unique_ptr<BossEffectComponent> effectComponent_;
+	std::unique_ptr<BossSoundComponent> soundComponent_;
 
-	/// <summary>
-	/// ボス用の体幹・部位を構築する
-	/// BaseCharacter::Initialize() は通常キャラ固定なので、
-	/// ボスではこちらを使う
-	/// </summary>
-	virtual void BuildBossParts() = 0;
-
-	/// <summary>
-	/// 攻撃登録
-	/// </summary>
-	virtual void SetupAttacks() = 0;
-
-	/// <summary>
-	/// フェーズ設定が必要なボスだけ上書きする任意フック
-	/// </summary>
-	virtual void SetupPhaseData() {}
-
-	/// <summary>
-	/// 弱点設定が必要なボスだけ上書きする任意フック
-	/// </summary>
-	virtual void SetupWeakPoints() {}
-
-	/// <summary>
-	/// ボス固有初期化
-	/// </summary>
-	virtual void SetupBoss() = 0;
-
-protected: /// ---------- 共通更新の中で分割する処理 ---------- ///
-
-	// 状態更新
-	virtual void UpdateState(float deltaTime);
-
-	// フェーズ更新
-	virtual void UpdatePhase(float deltaTime);
-
-	// 移動更新
-	virtual void UpdateMovement(float deltaTime);
-
-	// 攻撃更新
-	virtual void UpdateAttack(float deltaTime);
-
-	// 弱点更新
-	virtual void UpdateWeakPoints(float deltaTime);
-
-	// 死亡チェック
-	virtual void CheckDeath();
-
-protected: /// ---------- 共通情報群 ---------- ///
-
-	// 追跡対象
+	BossState state_ = BossState::Intro;
 	K4E::Vector3 targetPosition_{};
 	Player* targetPlayer_ = nullptr;
-
-	// 状態
-	BossState state_ = BossState::Intro;
-	BossPhase phase_ = BossPhase::Phase1;
-
-	// ボス移動時に参照するステージ障害物AABB
 	const std::vector<K4E::AABB>* stageObstacleAABBs_ = nullptr;
-
-	// ボス本体の押し戻し判定サイズ
 	K4E::WorldCollisionSettings worldCollisionSettings_{};
-
-protected: /// ---------- 攻撃まわり共通値 ---------- ///
-
-	// 攻撃可能距離
 	float attackRange_ = 3.0f;
-
-	// 攻撃終了後の再攻撃待ち
-	float attackCooldownSec_ = 1.0f;
+	float attackCooldownSec_ = 1.2f;
 	float attackCooldownTimer_ = 0.0f;
-
-protected: /// ---------- コンポーネント群 ---------- ///
-
-	// 思考
-	std::unique_ptr<BossBrain> brain_;
-
-	// 状態遷移
-	std::unique_ptr<BossStateMachine> stateMachine_;
-
-	// 攻撃
-	std::unique_ptr<BossAttackComponent> attackComponent_;
-
-	// 移動
-	std::unique_ptr<BossMovementComponent> movementComponent_;
-
-	// フェーズ移行
-	//std::unique_ptr<BossPhaseComponent> phaseComponent_;
-
-	// 弱点
-	//std::unique_ptr<BossWeakPointComponent> weakPointComponent_;
-
-	// HP やステータス
-	std::unique_ptr<BossStatusComponent> statusComponent_;
-
-	// アニメーション
-	std::unique_ptr<BossAnimationComponent> animationComponent_;
+	std::function<void(float)> damageCallback_{};
 };
