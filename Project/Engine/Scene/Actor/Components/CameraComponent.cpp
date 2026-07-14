@@ -16,15 +16,14 @@ namespace Ken4lowEngine
 			camera_ = nullptr;
 			return;
 		}
-		camera_ = CameraManager::GetInstance()->GetMainCamera();
-		SyncTransformToCamera();
-		if (camera_) camera_->Update();
+
+		ActivateAsMainCameraDriver();
 	}
 
 	void CameraComponent::Update(float deltaTime)
 	{
 		SceneComponent::Update(deltaTime);
-		if (!autoRegisterMainCamera_ || !camera_) return;
+		if (!CanDriveMainCamera()) return;
 		SyncTransformToCamera();
 		camera_->Update();
 	}
@@ -32,16 +31,16 @@ namespace Ken4lowEngine
 	void CameraComponent::UpdateEditor(float deltaTime)
 	{
 		SceneComponent::UpdateEditor(deltaTime);
-		if (!autoRegisterMainCamera_ || !camera_) return;
+		if (!CanDriveMainCamera()) return;
 		SyncTransformToCamera();
 		camera_->Update(); // Edit中も位置だけは同期し、モデルのScaleをカメラ行列へ混ぜない。
 	}
 
 	void CameraComponent::PostPhysicsUpdate([[maybe_unused]] float deltaTime)
 	{
-		if (!autoRegisterMainCamera_ || !camera_) return;
+		if (!CanDriveMainCamera()) return;
 		SyncTransformToCamera();
-		camera_->Update();
+		camera_->Update(); // Physics補正後のRoot位置を最終Camera Transformへ反映する。
 	}
 
 	void CameraComponent::DrawImGui()
@@ -55,12 +54,17 @@ namespace Ken4lowEngine
 			SetAutoRegisterMainCamera(autoRegister);
 		}
 		ImGui::Checkbox("Inherit Parent Rotation", &inheritParentRotation_);
+		ImGui::Text("Main Camera Driver: %s", IsMainCameraDriver() ? "Yes" : "No");
 		ImGui::TextDisabled("Camera scale is always fixed to 1,1,1.");
 #endif // USE_IMGUI
 	}
 
 	void CameraComponent::Finalize()
 	{
+		if (mainCameraDriver_ == this)
+		{
+			mainCameraDriver_ = nullptr; // 破棄済みComponentをDriverとして残さない。
+		}
 		camera_ = nullptr;
 	}
 
@@ -90,12 +94,29 @@ namespace Ken4lowEngine
 		autoRegisterMainCamera_ = autoRegister;
 		if (!autoRegisterMainCamera_)
 		{
+			if (mainCameraDriver_ == this) mainCameraDriver_ = nullptr;
 			camera_ = nullptr;
 			return;
 		}
+
+		ActivateAsMainCameraDriver();
+	}
+
+	void CameraComponent::ActivateAsMainCameraDriver()
+	{
+		if (!autoRegisterMainCamera_) return;
+
 		camera_ = CameraManager::GetInstance()->GetMainCamera();
+		if (!camera_) return;
+
+		mainCameraDriver_ = this; // Main Cameraを書き換えるComponentを必ず1つへ限定する。
 		SyncTransformToCamera();
-		if (camera_) camera_->Update();
+		camera_->Update();
+	}
+
+	bool CameraComponent::CanDriveMainCamera() const
+	{
+		return autoRegisterMainCamera_ && camera_ && mainCameraDriver_ == this;
 	}
 
 	void CameraComponent::SyncTransformToCamera()
