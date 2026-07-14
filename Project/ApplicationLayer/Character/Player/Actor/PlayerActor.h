@@ -97,7 +97,6 @@ namespace Ken4lowEngine
 				}
 			}
 			if (visual && visual->GetSkinTexturePath().empty()) visual->ApplySkinToAllParts("Characters/steve.dds");
-			if (InventoryComponent* inventory = GetInventoryComponent()) inventory->ResetInventory();
 		}
 
 		/// JSON保存・復元で使用するActor識別名を返す。
