@@ -7,6 +7,7 @@
 #include "WeaponComponent.h"
 
 #include <PhysicsCollisionLayer.h>
+#include <RigidbodyComponent.h>
 #include <Scene/Actor/Character/CharacterActor.h>
 #include <Scene/Actor/Character/CharacterAnimationComponent.h>
 #include <Scene/Actor/Character/CharacterColliderComponent.h>
@@ -16,11 +17,11 @@
 
 namespace Ken4lowEngine
 {
-	/// 共通Character機能とPlayer専用の入力・移動・武器・Inventory・Cameraを束ねるActor。
+	/// 共通Character機能とPlayer専用の入力・移動・武器・Inventory・Camera・Rigidbodyを束ねるActor。
 	class PlayerActor final : public CharacterActor
 	{
 	public:
-		/// 必要なPlayer専用Componentを不足分だけ生成し、共通Character Componentへ接続する。
+		/// 必要なPlayer専用Componentを不足分だけ生成し、共通Character ComponentとPhysicsへ接続する。
 		void Initialize() override
 		{
 			SceneComponent* root = GetRootComponent();
@@ -77,7 +78,23 @@ namespace Ken4lowEngine
 				camera->SetName("Player Camera");
 				camera->SetUpdateOrder(10);
 				camera->SetLocalPosition({ 0.0f, 1.6f, 0.0f });
+				camera->SetAutoRegisterMainCamera(true); // DebugSceneでもPlayerActorのCameraを通常ゲーム視点として使用する。
 				camera->AttachTo(root);
+			}
+
+			const bool hadRigidbody = GetRigidbodyComponent() != nullptr;
+			if (!hadRigidbody)
+			{
+				auto& rigidbody = AddComponent<RigidbodyComponent>();
+				rigidbody.SetName("Player Rigidbody");
+				rigidbody.SetUpdateOrder(-85);
+				rigidbody.SetBodyType(BodyType::Dynamic);
+				rigidbody.SetMass(1.0f);
+				rigidbody.SetUseGravity(true);
+				rigidbody.SetSleepEnabled(false);
+				rigidbody.SetRestitution(0.0f);
+				rigidbody.SetStaticFriction(0.0f);
+				rigidbody.SetDynamicFriction(0.0f);
 			}
 
 			const bool hadHealth = GetHealthComponent() != nullptr;
@@ -92,7 +109,8 @@ namespace Ken4lowEngine
 			{
 				if (CharacterColliderComponent* collider = GetColliderComponent())
 				{
-					collider->SetHalfSize({ 0.5f, 1.0f, 0.5f });
+					collider->SetShapeType(ECollisionShapeType::AABB);
+					collider->SetHalfSize({ 0.45f, 0.9f, 0.45f });
 					collider->SetCollisionLayer(PhysicsCollisionLayer::DynamicActor);
 				}
 			}
@@ -116,6 +134,7 @@ namespace Ken4lowEngine
 			if (PlayerInputComponent* input = GetPlayerInputComponent()) input->SetInputEnabled(true);
 			if (PlayerMovementComponent* movement = GetPlayerMovementComponent()) movement->ResetMovement();
 			if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(true);
+			if (RigidbodyComponent* rigidbody = GetRigidbodyComponent()) rigidbody->SetVelocity({}); // 再配置時に以前の落下・移動速度を持ち越さない。
 			if (WeaponComponent* weapon = GetWeaponComponent()) weapon->ResetWeapon();
 			if (InventoryComponent* inventory = GetInventoryComponent()) inventory->ResetInventory();
 			if (PlayerCameraComponent* camera = GetPlayerCameraComponent()) camera->ResetLook();
@@ -134,9 +153,11 @@ namespace Ken4lowEngine
 		const PlayerCameraComponent* GetPlayerCameraComponent() const { return GetCharacterComponent<PlayerCameraComponent>(); }
 		HumanoidVisualComponent* GetHumanoidVisualComponent() { return GetCharacterComponent<HumanoidVisualComponent>(); }
 		const HumanoidVisualComponent* GetHumanoidVisualComponent() const { return GetCharacterComponent<HumanoidVisualComponent>(); }
+		RigidbodyComponent* GetRigidbodyComponent() { return GetCharacterComponent<RigidbodyComponent>(); }
+		const RigidbodyComponent* GetRigidbodyComponent() const { return GetCharacterComponent<RigidbodyComponent>(); }
 
 	protected:
-		/// 死亡時は入力・移動・武器・Colliderを停止し、共通Healthの死亡状態を各機能へ反映する。
+		/// 死亡時は入力・移動・武器・Collider・Rigidbodyを停止し、共通Healthの死亡状態を各機能へ反映する。
 		void OnDeath(const CharacterDeathEvent& deathEvent) override
 		{
 			(void)deathEvent;
@@ -147,6 +168,7 @@ namespace Ken4lowEngine
 				movement->Stop();
 				movement->SetMovementEnabled(false);
 			}
+			if (RigidbodyComponent* rigidbody = GetRigidbodyComponent()) rigidbody->SetVelocity({});
 			if (WeaponComponent* weapon = GetWeaponComponent()) weapon->SetWeaponEnabled(false);
 			if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(false);
 		}
