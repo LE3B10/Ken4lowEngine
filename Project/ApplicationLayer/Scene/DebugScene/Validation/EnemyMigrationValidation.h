@@ -2,76 +2,54 @@
 
 #include <AABB.h>
 
-#include <memory>
 #include <string>
 #include <vector>
-
-class EnemyParticleEffectSystem;
-class MeleeEnemy;
 
 namespace Ken4lowEngine
 {
 	class ActorWorld;
 	class CharacterActor;
-	class Collider;
 	class EnemyActor;
 }
 
 namespace K4E = ::Ken4lowEngine;
 
-/// DebugSceneへ旧通常敵とComponent通常敵を同時配置し、実戦条件を比較する検証器。
+/// DebugSceneへ移行済みEnemyActorを配置し、操作中のDebugPlayerを実戦Targetとして検証する。
 class EnemyMigrationValidation
 {
 public:
-	/// 前方宣言したunique_ptr所有型の初期化処理を完全型が見える実装側で生成する。
-	EnemyMigrationValidation();
-
-	/// 前方宣言した所有型を実装側で安全に破棄する。
-	~EnemyMigrationValidation();
-
-	/// 初期化済みActorWorldへ新通常敵とTargetを生成し、旧通常敵も同条件で準備する。
+	/// 初期化済みActorWorldへEnemyActorだけを生成する。Target用Dummyは生成しない。
 	void Initialize(K4E::ActorWorld& actorWorld);
 
-	/// Play中だけ旧通常敵を更新し、新通常敵はActorWorldのComponent経路へ任せる。
+	/// Play中に現在WorldのDebugPlayerへTarget参照を張り直す。
 	void Update(float deltaTime);
 
-	/// Edit・Pause中はゲームロジックを進めず、UI操作要求だけを処理する。
+	/// Edit・Pause中もPIE復元後の参照だけを安全に張り直す。
 	void UpdateEditor();
 
-	/// ActorWorldに属さない旧通常敵だけを通常描画する。
-	void DrawLegacy();
-
-	/// ActorWorldに属さない旧通常敵だけをShadow Passへ描画する。
-	void DrawLegacyShadow();
-
-	/// 旧・新通常敵の移動、A*、攻撃、死亡、Effect、Collider、描画を一覧比較する。
+	/// EnemyActorのAI・攻撃・HP・Target状態を表示する。
 	void DrawImGui();
 
-	/// Scene終了時にActorWorldへの非所有参照を解除し、旧敵の所有物を解放する。
+	/// ActorWorldへの非所有参照を解除する。
 	void Finalize();
 
 private:
-	/// UIから予約されたダメージ操作を描画開始前の更新フェーズで処理する。
-	void ProcessRequests();
-
-	/// PIEのActorWorld複製後に現在のEnemyとTargetを名前で再取得し、非保存参照を接続し直す。
+	/// PIE複製後の現在WorldからEnemyとDebugPlayerを再取得して接続する。
 	void RefreshActorReferencesAndBindings();
 
-	/// 同じ被弾条件を旧HP経路と共通Health経路へ一度ずつ適用する。
-	void ApplyDamageToBoth(int amount);
+	/// UIから予約されたDamageとResetを更新フェーズで処理する。
+	void ProcessRequests();
 
 private:
 	K4E::ActorWorld* actorWorld_ = nullptr;
-	K4E::EnemyActor* componentEnemy_ = nullptr;
-	K4E::CharacterActor* componentTarget_ = nullptr;
-	std::unique_ptr<MeleeEnemy> legacyEnemy_;
-	std::unique_ptr<K4E::Collider> legacyTarget_;
-	std::unique_ptr<EnemyParticleEffectSystem> legacyEffectSystem_;
+	K4E::EnemyActor* enemy_ = nullptr;
+	K4E::CharacterActor* target_ = nullptr;
 	std::vector<K4E::AABB> navigationObstacles_;
-	std::string componentEnemyName_ = "ComponentEnemy";
-	std::string componentTargetName_ = "ComponentEnemyTarget";
-	int legacyHitEffectCount_ = 0;
-	int legacyDeathEffectCount_ = 0;
+	std::string enemyName_ = "ComponentEnemy";
+	std::string targetName_ = "DebugPlayer";
+	std::string lastMessage_ = "DebugPlayerへのTarget接続を待機中";
+	bool lastSucceeded_ = false;
 	bool requestDamage_ = false;
 	bool requestLethalDamage_ = false;
+	bool requestReset_ = false;
 };
