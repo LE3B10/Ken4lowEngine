@@ -6,7 +6,6 @@
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyActor.h"
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyAttackComponent.h"
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyEffectComponent.h"
-#include "ApplicationLayer/Character/Enemy/HPBar/EnemyHPBarProjector.h"
 #include "ApplicationLayer/Character/Player/Actor/PlayerActor.h"
 #include "ApplicationLayer/Character/Player/Actor/PlayerCameraComponent.h"
 #include "ApplicationLayer/Character/Player/Actor/WeaponComponent.h"
@@ -18,11 +17,9 @@
 #include <Scene/Actor/Character/CharacterColliderComponent.h>
 #include <Scene/Actor/Character/CharacterHealthComponent.h>
 #include <Scene/Actor/Character/HumanoidVisualComponent.h>
-#include <SceneComponent.h>
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -32,11 +29,7 @@ namespace
 {
 	const K4E::Vector3 kEnemyPosition{ 8.0f, 2.0f, 9.0f };
 	constexpr float kRayEpsilon = 0.00001f;
-
-	float Clamp01(float value)
-	{
-		return std::clamp(value, 0.0f, 1.0f);
-	}
+	constexpr const char* kEnemyPrefabPath = "Resources/ActorPrefabs/ComponentEnemy.json";
 
 	/// Camera中心RayとAABBの最初の交点距離をslab法で求める。
 	bool IntersectRayAabb(
@@ -77,25 +70,6 @@ namespace
 		outDistance = tMin;
 		return true;
 	}
-
-#ifdef USE_IMGUI
-	void DrawHealthBar(
-		ImDrawList* drawList,
-		const ImVec2& min,
-		const ImVec2& max,
-		float ratio,
-		ImU32 fillColor,
-		const char* label)
-	{
-		if (!drawList) return;
-		ratio = Clamp01(ratio);
-		drawList->AddRectFilled(min, max, IM_COL32(20, 20, 20, 220), 4.0f);
-		const ImVec2 fillMax{ min.x + (max.x - min.x) * ratio, max.y };
-		drawList->AddRectFilled(min, fillMax, fillColor, 4.0f);
-		drawList->AddRect(min, max, IM_COL32(255, 255, 255, 220), 4.0f, 0, 1.5f);
-		if (label && label[0] != '\0') drawList->AddText({ min.x, min.y - 19.0f }, IM_COL32(255, 255, 255, 255), label);
-	}
-#endif
 }
 
 void EnemyMigrationValidation::Initialize(K4E::ActorWorld& actorWorld)
@@ -106,11 +80,26 @@ void EnemyMigrationValidation::Initialize(K4E::ActorWorld& actorWorld)
 	};
 
 	enemy_ = &actorWorld_->SpawnActor<K4E::EnemyActor>();
+	const bool loadedFromPrefab = actorWorld_->ReloadActorFromJson(*enemy_, kEnemyPrefabPath);
+	if (loadedFromPrefab)
+	{
+		enemy_->Initialize(); // 古いPrefabに無い必須UI Componentだけを不足分として補完する。
+		lastMessage_ = "EnemyActorを保存済みPrefabから自動読込しました。";
+		lastSucceeded_ = true;
+	}
+	else
+	{
+		enemy_->ResetForComparison(kEnemyPosition);
+		lastMessage_ = "Enemy Prefabが無いためコード既定値で生成しました。";
+		lastSucceeded_ = false;
+	}
+
+	// 保存データ側の名前変更でTarget接続が切れないようDebugSceneの安定識別名は起動時に固定する。
 	enemy_->SetName(enemyName_);
 	enemy_->SetLayer("EnemyValidation");
 	enemy_->AddTag("NormalEnemy");
 	enemy_->SetNavigationObstacles(&navigationObstacles_);
-	enemy_->ResetForComparison(kEnemyPosition);
+	enemy_->SetHealthBarVisible(false);
 
 	RefreshActorReferencesAndBindings();
 	UpdateAimTarget();
@@ -130,6 +119,8 @@ void EnemyMigrationValidation::UpdateEditor()
 	RefreshActorReferencesAndBindings();
 	aimedEnemy_ = nullptr;
 	aimedBoss_ = nullptr;
+	if (enemy_) enemy_->SetHealthBarVisible(false);
+	if (auto* player = dynamic_cast<K4E::PlayerActor*>(target_)) player->SetCrosshairTargeted(false);
 	ProcessRequests();
 }
 
@@ -166,16 +157,16 @@ void EnemyMigrationValidation::DrawImGui()
 		if (ImGui::Button("Enemyを死亡させる")) requestLethalDamage_ = true;
 		ImGui::SameLine();
 		if (ImGui::Button("Enemy Reset")) requestReset_ = true;
-		ImGui::TextDisabled("左クリックはWeaponComponentの発射成立後、Camera中心Rayの最前Enemy/BossへDamageを与えます。");
+		ImGui::TextDisabled("ゲームHUDはGauge/Text/Sprite ComponentからActorWorldの2D描画パスへ流れます。");
 	}
 	ImGui::End();
-
-	DrawGameplayHud();
 #endif
 }
 
 void EnemyMigrationValidation::Finalize()
 {
+	if (enemy_) enemy_->SetHealthBarVisible(false);
+	if (auto* player = dynamic_cast<K4E::PlayerActor*>(target_)) player->SetCrosshairTargeted(false);
 	aimedEnemy_ = nullptr;
 	aimedBoss_ = nullptr;
 	enemy_ = nullptr;
@@ -223,12 +214,13 @@ void EnemyMigrationValidation::RefreshActorReferencesAndBindings()
 	enemy_->SetNavigationObstacles(&navigationObstacles_);
 	lastSucceeded_ = target_ != nullptr;
 	lastMessage_ = lastSucceeded_
-		? "DebugPlayerのWeapon、照準、Enemy/Boss HP HUDを実戦形式で検証しています。"
+		? "DebugPlayerのWeapon、照準、Enemy/Boss UI Componentを実戦形式で検証しています。"
 		: "DebugPlayerが見つからないためTargetと射撃を解除しています。";
 }
 
 void EnemyMigrationValidation::UpdateAimTarget()
 {
+	if (enemy_) enemy_->SetHealthBarVisible(false);
 	aimedEnemy_ = nullptr;
 	aimedBoss_ = nullptr;
 
@@ -236,7 +228,11 @@ void EnemyMigrationValidation::UpdateAimTarget()
 	const K4E::PlayerCameraComponent* playerCamera = player ? player->GetPlayerCameraComponent() : nullptr;
 	const K4E::Camera* camera = playerCamera ? playerCamera->GetCamera() : nullptr;
 	const K4E::WeaponComponent* weapon = player ? player->GetWeaponComponent() : nullptr;
-	if (!player || !camera || !weapon || player->IsDead()) return;
+	if (!player || !camera || !weapon || player->IsDead())
+	{
+		if (player) player->SetCrosshairTargeted(false);
+		return;
+	}
 
 	const K4E::Vector3 origin = camera->GetTranslate();
 	const K4E::Vector3 direction = K4E::Vector3::NormalizeSafe(camera->GetForward(), { 0.0f, 0.0f, 1.0f });
@@ -273,6 +269,9 @@ void EnemyMigrationValidation::UpdateAimTarget()
 
 	testEnemy(enemy_);
 	testBoss(boss_);
+
+	if (enemy_) enemy_->SetHealthBarVisible(aimedEnemy_ == enemy_);
+	player->SetCrosshairTargeted(aimedEnemy_ != nullptr || aimedBoss_ != nullptr);
 }
 
 void EnemyMigrationValidation::ProcessWeaponShot()
@@ -301,79 +300,6 @@ void EnemyMigrationValidation::ProcessWeaponShot()
 	}
 
 	lastMessage_ = "発射しましたがCamera中心RayにDamage対象はありませんでした。";
-}
-
-void EnemyMigrationValidation::DrawGameplayHud()
-{
-#ifdef USE_IMGUI
-	auto* player = dynamic_cast<K4E::PlayerActor*>(target_);
-	if (!player) return;
-
-	ImDrawList* drawList = ImGui::GetForegroundDrawList();
-	const ImVec2 displaySize = ImGui::GetIO().DisplaySize;
-	if (!drawList || displaySize.x <= 1.0f || displaySize.y <= 1.0f) return;
-
-	const ImVec2 center{ displaySize.x * 0.5f, displaySize.y * 0.5f };
-	const bool hasAimTarget = aimedEnemy_ != nullptr || aimedBoss_ != nullptr;
-	const ImU32 crosshairColor = hasAimTarget ? IM_COL32(255, 80, 80, 255) : IM_COL32(255, 255, 255, 230);
-	drawList->AddLine({ center.x - 9.0f, center.y }, { center.x - 3.0f, center.y }, crosshairColor, 2.0f);
-	drawList->AddLine({ center.x + 3.0f, center.y }, { center.x + 9.0f, center.y }, crosshairColor, 2.0f);
-	drawList->AddLine({ center.x, center.y - 9.0f }, { center.x, center.y - 3.0f }, crosshairColor, 2.0f);
-	drawList->AddLine({ center.x, center.y + 3.0f }, { center.x, center.y + 9.0f }, crosshairColor, 2.0f);
-
-	if (const K4E::CharacterHealthComponent* health = player->GetHealthComponent())
-	{
-		const float maxHealth = std::max(health->GetMaxHealth(), 0.0001f);
-		const float ratio = health->GetCurrentHealth() / maxHealth;
-		DrawHealthBar(drawList, { 35.0f, displaySize.y - 62.0f }, { 335.0f, displaySize.y - 38.0f }, ratio, IM_COL32(70, 210, 95, 255), "PLAYER HP");
-	}
-
-	if (const K4E::WeaponComponent* weapon = player->GetWeaponComponent())
-	{
-		char ammoText[96]{};
-		snprintf(ammoText, sizeof(ammoText), "AMMO %d / %d   RESERVE %d%s", weapon->GetMagazineAmmo(), weapon->GetMagazineCapacity(), weapon->GetReserveAmmo(), weapon->IsReloading() ? "   RELOADING" : "");
-		drawList->AddText({ displaySize.x - 320.0f, displaySize.y - 60.0f }, IM_COL32(255, 255, 255, 255), ammoText);
-	}
-
-	if (boss_)
-	{
-		if (const K4E::CharacterHealthComponent* health = boss_->GetHealthComponent())
-		{
-			const float maxHealth = std::max(health->GetMaxHealth(), 0.0001f);
-			const float ratio = health->GetCurrentHealth() / maxHealth;
-			const float width = std::min(700.0f, displaySize.x * 0.62f);
-			const float left = (displaySize.x - width) * 0.5f;
-			DrawHealthBar(drawList, { left, 44.0f }, { left + width, 70.0f }, ratio, IM_COL32(190, 55, 55, 255), "BOSS HP");
-		}
-	}
-
-	if (aimedEnemy_)
-	{
-		const K4E::PlayerCameraComponent* playerCamera = player->GetPlayerCameraComponent();
-		const K4E::Camera* camera = playerCamera ? playerCamera->GetCamera() : nullptr;
-		const K4E::CharacterColliderComponent* collider = aimedEnemy_->GetColliderComponent();
-		const K4E::CharacterHealthComponent* health = aimedEnemy_->GetHealthComponent();
-		if (camera && collider && health)
-		{
-			const K4E::Vector3 anchor = collider->GetWorldPosition() + K4E::Vector3{ 0.0f, collider->GetHalfSize().y + 0.65f, 0.0f };
-			const HpBarProjectResult projected = ProjectWorldToScreen(anchor, camera->GetViewMatrix(), camera->GetProjectionMatrix(), displaySize.x, displaySize.y);
-			if (projected.inFront && projected.inScreen)
-			{
-				const float width = 190.0f;
-				const float height = 16.0f;
-				const float maxHealth = std::max(health->GetMaxHealth(), 0.0001f);
-				const float ratio = health->GetCurrentHealth() / maxHealth;
-				DrawHealthBar(
-					drawList,
-					{ projected.screenPos.x - width * 0.5f, projected.screenPos.y - height * 0.5f },
-					{ projected.screenPos.x + width * 0.5f, projected.screenPos.y + height * 0.5f },
-					ratio,
-					IM_COL32(220, 155, 45, 255),
-					"ENEMY HP");
-			}
-		}
-	}
-#endif
 }
 
 void EnemyMigrationValidation::ProcessRequests()

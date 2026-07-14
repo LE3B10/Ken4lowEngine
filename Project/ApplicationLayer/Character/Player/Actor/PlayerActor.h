@@ -6,6 +6,8 @@
 #include "PlayerMovementComponent.h"
 #include "WeaponComponent.h"
 
+#include <GameViewportConstants.h>
+#include <GaugeComponent.h>
 #include <ModelComponent.h>
 #include <PhysicsCollisionLayer.h>
 #include <RigidbodyComponent.h>
@@ -15,10 +17,15 @@
 #include <Scene/Actor/Character/CharacterHealthComponent.h>
 #include <Scene/Actor/Character/HumanoidVisualComponent.h>
 #include <SceneComponent.h>
+#include <SpriteComponent.h>
+#include <TextComponent.h>
+
+#include <cstdio>
+#include <string_view>
 
 namespace Ken4lowEngine
 {
-	/// 共通Character機能とPlayer専用の入力・移動・武器・Inventory・Camera・Rigidbodyを束ねるActor。
+	/// 共通Character機能とPlayer専用の入力・移動・武器・Inventory・Camera・Rigidbody・HUDを束ねるActor。
 	class PlayerActor : public CharacterActor
 	{
 	public:
@@ -97,6 +104,8 @@ namespace Ken4lowEngine
 				weaponView.AttachTo(camera);
 			}
 
+			CreateGameplayHudComponents();
+
 			const bool hadRigidbody = GetRigidbodyComponent() != nullptr;
 			if (!hadRigidbody)
 			{
@@ -130,9 +139,10 @@ namespace Ken4lowEngine
 				}
 			}
 			if (visual && visual->GetSkinTexturePath().empty()) visual->ApplySkinToAllParts("Characters/steve.dds");
+			SyncGameplayHud();
 		}
 
-		/// ViewModelがPlayer Cameraと同じ描画Cameraを使うよう、Component更新前に参照を同期する。
+		/// ViewModelとゲーム用HUDをPlayerの現在状態へ同期する。
 		void Update(float deltaTime) override
 		{
 			if (ModelComponent* weaponView = GetWeaponViewComponent())
@@ -140,6 +150,7 @@ namespace Ken4lowEngine
 				if (PlayerCameraComponent* camera = GetPlayerCameraComponent()) weaponView->SetCamera(camera->GetCamera());
 			}
 			CharacterActor::Update(deltaTime);
+			SyncGameplayHud(); // HP・弾薬はImGuiではなくScreen Space UI Componentへ毎フレーム反映する。
 		}
 
 		/// JSON保存・復元で使用するActor識別名を返す。
@@ -164,6 +175,31 @@ namespace Ken4lowEngine
 			if (InventoryComponent* inventory = GetInventoryComponent()) inventory->ResetInventory();
 			if (PlayerCameraComponent* camera = GetPlayerCameraComponent()) camera->ResetLook();
 			if (CharacterAnimationComponent* animation = GetAnimationComponent()) animation->Play("Idle", 1.0f, true);
+			SetGameplayHudVisible(true);
+			SetCrosshairTargeted(false);
+			SyncGameplayHud();
+		}
+
+		/// 照準対象の有無をCrosshair用Sprite Componentの色へ反映する。
+		void SetCrosshairTargeted(bool targeted)
+		{
+			const Vector4 color = targeted ? Vector4{ 1.0f, 0.25f, 0.25f, 1.0f } : Vector4{ 1.0f, 1.0f, 1.0f, 0.92f };
+			for (SpriteComponent* sprite : GetComponents<SpriteComponent>())
+			{
+				if (sprite && sprite->GetName().starts_with("Player Crosshair ")) sprite->SetColor(color);
+			}
+		}
+
+		/// Player固定HUDの表示をまとめて切り替える。
+		void SetGameplayHudVisible(bool visible)
+		{
+			if (GaugeComponent* gauge = GetPlayerHealthGaugeComponent()) gauge->SetVisible(visible);
+			if (TextComponent* label = GetPlayerHealthLabelComponent()) label->SetVisible(visible);
+			if (TextComponent* ammo = GetAmmoTextComponent()) ammo->SetVisible(visible);
+			for (SpriteComponent* sprite : GetComponents<SpriteComponent>())
+			{
+				if (sprite && sprite->GetName().starts_with("Player Crosshair ")) sprite->SetVisible(visible);
+			}
 		}
 
 		PlayerInputComponent* GetPlayerInputComponent() { return GetCharacterComponent<PlayerInputComponent>(); }
@@ -176,8 +212,8 @@ namespace Ken4lowEngine
 		const InventoryComponent* GetInventoryComponent() const { return GetCharacterComponent<InventoryComponent>(); }
 		PlayerCameraComponent* GetPlayerCameraComponent() { return GetCharacterComponent<PlayerCameraComponent>(); }
 		const PlayerCameraComponent* GetPlayerCameraComponent() const { return GetCharacterComponent<PlayerCameraComponent>(); }
-		ModelComponent* GetWeaponViewComponent() { return GetCharacterComponent<ModelComponent>(); }
-		const ModelComponent* GetWeaponViewComponent() const { return GetCharacterComponent<ModelComponent>(); }
+		ModelComponent* GetWeaponViewComponent() { return FindNamedComponent<ModelComponent>("Player Weapon View"); }
+		const ModelComponent* GetWeaponViewComponent() const { return FindNamedComponent<ModelComponent>("Player Weapon View"); }
 		HumanoidVisualComponent* GetHumanoidVisualComponent() { return GetCharacterComponent<HumanoidVisualComponent>(); }
 		const HumanoidVisualComponent* GetHumanoidVisualComponent() const { return GetCharacterComponent<HumanoidVisualComponent>(); }
 		RigidbodyComponent* GetRigidbodyComponent() { return GetCharacterComponent<RigidbodyComponent>(); }
@@ -198,6 +234,113 @@ namespace Ken4lowEngine
 			if (RigidbodyComponent* rigidbody = GetRigidbodyComponent()) rigidbody->SetVelocity({});
 			if (WeaponComponent* weapon = GetWeaponComponent()) weapon->SetWeaponEnabled(false);
 			if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(false);
+			SyncGameplayHud();
+		}
+
+	private:
+		template<class T>
+		T* FindNamedComponent(std::string_view name)
+		{
+			for (T* component : GetComponents<T>())
+			{
+				if (component && component->GetName() == name) return component;
+			}
+			return nullptr;
+		}
+
+		template<class T>
+		const T* FindNamedComponent(std::string_view name) const
+		{
+			for (const T* component : GetComponents<T>())
+			{
+				if (component && component->GetName() == name) return component;
+			}
+			return nullptr;
+		}
+
+		GaugeComponent* GetPlayerHealthGaugeComponent() { return FindNamedComponent<GaugeComponent>("Player HP Gauge"); }
+		TextComponent* GetPlayerHealthLabelComponent() { return FindNamedComponent<TextComponent>("Player HP Label"); }
+		TextComponent* GetAmmoTextComponent() { return FindNamedComponent<TextComponent>("Player Ammo Text"); }
+
+		void CreateGameplayHudComponents()
+		{
+			constexpr float screenWidth = static_cast<float>(GameViewportConstants::Width);
+			constexpr float screenHeight = static_cast<float>(GameViewportConstants::Height);
+
+			if (!GetPlayerHealthGaugeComponent())
+			{
+				auto& gauge = AddComponent<GaugeComponent>();
+				gauge.SetName("Player HP Gauge");
+				gauge.SetDrawOrder(100);
+				gauge.SetPosition({ 36.0f, screenHeight - 54.0f });
+				gauge.SetSize({ 300.0f, 24.0f });
+				gauge.SetBackgroundColor({ 0.05f, 0.05f, 0.05f, 0.82f });
+				gauge.SetFillColor({ 0.20f, 0.82f, 0.32f, 1.0f });
+				gauge.SetBorderColor({ 1.0f, 1.0f, 1.0f, 0.90f });
+				gauge.SetBorderThickness(2.0f);
+			}
+
+			if (!GetPlayerHealthLabelComponent())
+			{
+				auto& label = AddComponent<TextComponent>();
+				label.SetName("Player HP Label");
+				label.SetDrawOrder(101);
+				label.SetText("PLAYER HP");
+				label.SetPosition({ 36.0f, screenHeight - 82.0f });
+				label.SetFontSize(22.0f);
+			}
+
+			if (!GetAmmoTextComponent())
+			{
+				auto& ammo = AddComponent<TextComponent>();
+				ammo.SetName("Player Ammo Text");
+				ammo.SetDrawOrder(101);
+				ammo.SetPosition({ screenWidth - 36.0f, screenHeight - 58.0f });
+				ammo.SetAnchor({ 1.0f, 0.0f });
+				ammo.SetFontSize(22.0f);
+			}
+
+			CreateCrosshairBar("Player Crosshair Left", { screenWidth * 0.5f - 10.0f, screenHeight * 0.5f }, { 8.0f, 2.0f });
+			CreateCrosshairBar("Player Crosshair Right", { screenWidth * 0.5f + 10.0f, screenHeight * 0.5f }, { 8.0f, 2.0f });
+			CreateCrosshairBar("Player Crosshair Top", { screenWidth * 0.5f, screenHeight * 0.5f - 10.0f }, { 2.0f, 8.0f });
+			CreateCrosshairBar("Player Crosshair Bottom", { screenWidth * 0.5f, screenHeight * 0.5f + 10.0f }, { 2.0f, 8.0f });
+			SetCrosshairTargeted(false);
+		}
+
+		void CreateCrosshairBar(std::string_view name, const Vector2& position, const Vector2& size)
+		{
+			if (FindNamedComponent<SpriteComponent>(name)) return;
+			auto& sprite = AddComponent<SpriteComponent>();
+			sprite.SetName(name);
+			sprite.SetDrawOrder(110);
+			sprite.SetTexturePath("Effects/white.dds");
+			sprite.SetPosition(position);
+			sprite.SetSize(size);
+			sprite.SetAnchor({ 0.5f, 0.5f });
+		}
+
+		void SyncGameplayHud()
+		{
+			if (CharacterHealthComponent* health = GetHealthComponent())
+			{
+				if (GaugeComponent* gauge = GetPlayerHealthGaugeComponent())
+				{
+					gauge->SetMaxValue(health->GetMaxHealth());
+					gauge->SetValue(health->GetCurrentHealth());
+				}
+			}
+
+			if (WeaponComponent* weapon = GetWeaponComponent())
+			{
+				if (TextComponent* ammo = GetAmmoTextComponent())
+				{
+					char text[96]{};
+					std::snprintf(text, sizeof(text), "AMMO %d / %d   RESERVE %d%s",
+						weapon->GetMagazineAmmo(), weapon->GetMagazineCapacity(), weapon->GetReserveAmmo(),
+						weapon->IsReloading() ? "   RELOADING" : "");
+					ammo->SetText(text);
+				}
+			}
 		}
 	};
 } // namespace Ken4lowEngine

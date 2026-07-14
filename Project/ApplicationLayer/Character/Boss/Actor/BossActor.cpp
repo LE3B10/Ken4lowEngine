@@ -6,6 +6,8 @@
 #include "ApplicationLayer/Character/Boss/Components/BossPhaseComponent.h"
 #include "ApplicationLayer/Character/Boss/Components/BossWeakPointComponent.h"
 
+#include <GameViewportConstants.h>
+#include <GaugeComponent.h>
 #include <PhysicsCollisionLayer.h>
 #include <RigidbodyComponent.h>
 #include <Scene/Actor/Character/CharacterAnimationComponent.h>
@@ -14,6 +16,7 @@
 #include <Scene/Actor/Character/CharacterMovementComponent.h>
 #include <Scene/Actor/Character/HumanoidVisualComponent.h>
 #include <SceneComponent.h>
+#include <TextComponent.h>
 
 namespace Ken4lowEngine
 {
@@ -90,6 +93,32 @@ namespace Ken4lowEngine
 			weakPoint.SetUpdateOrder(-40);
 		}
 
+		constexpr float screenWidth = static_cast<float>(GameViewportConstants::Width);
+		constexpr float gaugeWidth = 700.0f;
+		if (!GetHealthGaugeComponent())
+		{
+			auto& gauge = AddComponent<GaugeComponent>();
+			gauge.SetName("Boss HP Gauge");
+			gauge.SetDrawOrder(100);
+			gauge.SetPosition({ (screenWidth - gaugeWidth) * 0.5f, 44.0f });
+			gauge.SetSize({ gaugeWidth, 26.0f });
+			gauge.SetBackgroundColor({ 0.05f, 0.05f, 0.05f, 0.88f });
+			gauge.SetFillColor({ 0.78f, 0.16f, 0.16f, 1.0f });
+			gauge.SetBorderColor({ 1.0f, 1.0f, 1.0f, 0.92f });
+			gauge.SetBorderThickness(2.0f);
+		}
+
+		if (!GetHealthLabelComponent())
+		{
+			auto& label = AddComponent<TextComponent>();
+			label.SetName("Boss HP Label");
+			label.SetDrawOrder(101);
+			label.SetText("BOSS HP");
+			label.SetPosition({ screenWidth * 0.5f, 12.0f });
+			label.SetAnchor({ 0.5f, 0.0f });
+			label.SetFontSize(24.0f);
+		}
+
 		const bool hadHealth = GetHealthComponent() != nullptr;
 		const bool hadCollider = GetColliderComponent() != nullptr;
 		CharacterActor::Initialize();
@@ -114,6 +143,13 @@ namespace Ken4lowEngine
 			}
 		}
 		if (visual && visual->GetSkinTexturePath().empty()) visual->ApplySkinToAllParts("Characters/enemy.dds");
+		SyncHealthHud();
+	}
+
+	void BossActor::Update(float deltaTime)
+	{
+		CharacterActor::Update(deltaTime);
+		SyncHealthHud(); // BossのHPはImGuiではなくゲーム描画用Gauge Componentへ同期する。
 	}
 
 	void BossActor::SetTargetActor(CharacterActor* targetActor)
@@ -146,6 +182,9 @@ namespace Ken4lowEngine
 		if (BossBrainComponent* brain = GetBossBrainComponent()) brain->ResetBehavior();
 		if (BossAttackComponent* attack = GetBossAttackComponent()) attack->ResetAttackState();
 		if (CharacterAnimationComponent* animation = GetAnimationComponent()) animation->Play("Idle", 1.5f, true);
+		if (GaugeComponent* gauge = GetHealthGaugeComponent()) gauge->SetVisible(true);
+		if (TextComponent* label = GetHealthLabelComponent()) label->SetVisible(true);
+		SyncHealthHud();
 	}
 
 	BossBrainComponent* BossActor::GetBossBrainComponent() { return GetCharacterComponent<BossBrainComponent>(); }
@@ -154,6 +193,33 @@ namespace Ken4lowEngine
 	BossWeakPointComponent* BossActor::GetBossWeakPointComponent() { return GetCharacterComponent<BossWeakPointComponent>(); }
 	BossPresentationComponent* BossActor::GetBossPresentationComponent() { return GetCharacterComponent<BossPresentationComponent>(); }
 	HumanoidVisualComponent* BossActor::GetHumanoidVisualComponent() { return GetCharacterComponent<HumanoidVisualComponent>(); }
+
+	GaugeComponent* BossActor::GetHealthGaugeComponent()
+	{
+		for (GaugeComponent* gauge : GetComponents<GaugeComponent>())
+		{
+			if (gauge && gauge->GetName() == "Boss HP Gauge") return gauge;
+		}
+		return nullptr;
+	}
+
+	TextComponent* BossActor::GetHealthLabelComponent()
+	{
+		for (TextComponent* label : GetComponents<TextComponent>())
+		{
+			if (label && label->GetName() == "Boss HP Label") return label;
+		}
+		return nullptr;
+	}
+
+	void BossActor::SyncHealthHud()
+	{
+		CharacterHealthComponent* health = GetHealthComponent();
+		GaugeComponent* gauge = GetHealthGaugeComponent();
+		if (!health || !gauge) return;
+		gauge->SetMaxValue(health->GetMaxHealth());
+		gauge->SetValue(health->GetCurrentHealth());
+	}
 
 	void BossActor::OnDeath(const CharacterDeathEvent& deathEvent)
 	{
@@ -164,5 +230,6 @@ namespace Ken4lowEngine
 		if (RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>()) rigidbody->SetVelocity({});
 		if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(false);
 		if (BossPresentationComponent* presentation = GetBossPresentationComponent()) presentation->StartDeathPresentation();
+		SyncHealthHud();
 	}
 } // namespace Ken4lowEngine

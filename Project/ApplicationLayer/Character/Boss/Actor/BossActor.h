@@ -11,14 +11,19 @@ namespace Ken4lowEngine
 	class BossPhaseComponent;
 	class BossPresentationComponent;
 	class BossWeakPointComponent;
+	class GaugeComponent;
 	class HumanoidVisualComponent;
+	class TextComponent;
 
-	/// 共通Character機能とBoss専用判断・攻撃・フェーズ・弱点・演出を束ねるActor。
+	/// 共通Character機能とBoss専用判断・攻撃・フェーズ・弱点・演出・HP HUDを束ねるActor。
 	class BossActor final : public CharacterActor
 	{
 	public:
 		/// Boss専用Componentを不足分だけ生成し、共通Character Componentへ接続する。
 		void Initialize() override;
+
+		/// 共通更新後にBoss Healthを画面上部Gaugeへ同期する。
+		void Update(float deltaTime) override;
 
 		/// JSON保存・復元で使用するActor識別名を返す。
 		std::string GetClassTypeName() const override { return "BossActor"; }
@@ -50,8 +55,18 @@ namespace Ken4lowEngine
 		/// Bossの全部位描画を担当するComponentを返す。
 		HumanoidVisualComponent* GetHumanoidVisualComponent();
 
+		/// 画面上部のBoss HP Gaugeを返す。
+		GaugeComponent* GetHealthGaugeComponent();
+
+		/// Boss HPラベルを返す。
+		TextComponent* GetHealthLabelComponent();
+
 	protected:
 		/// 死亡時は判断・攻撃・移動・Colliderを止め、死亡演出を開始する。
 		void OnDeath(const CharacterDeathEvent& deathEvent) override;
+
+	private:
+		/// CharacterHealthの現在値を画面固定Gaugeへ反映する。
+		void SyncHealthHud();
 	};
 } // namespace Ken4lowEngine
