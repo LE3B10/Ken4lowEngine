@@ -12,7 +12,6 @@
 namespace Ken4lowEngine
 {
 	class CharacterActor;
-	class SceneComponent;
 
 	/// 通常敵の追跡判断とA*経路選択を、Actor本体や描画処理から分離して管理するComponent。
 	class EnemyAIComponent final : public ActorComponent
@@ -68,10 +67,6 @@ namespace Ken4lowEngine
 
 		/// 比較再実行時に経路と状態を初期値へ戻す。
 		void ResetBehavior();
-
-	private:
-		/// 旧Enemyと同じ前方規約でRootのYawを指定XZ方向へ滑らかに合わせる。
-		void FaceDirection(SceneComponent& root, const Vector3& direction, float deltaTime);
 
 	private:
 		CharacterActor* targetActor_ = nullptr;

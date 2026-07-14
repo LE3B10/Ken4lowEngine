@@ -7,6 +7,12 @@
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyAIComponent.h"
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyAttackComponent.h"
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyEffectComponent.h"
+#include "ApplicationLayer/Character/Boss/Actor/BossActor.h"
+#include "ApplicationLayer/Character/Boss/Actor/BossActorAttackComponent.h"
+#include "ApplicationLayer/Character/Boss/Actor/BossBrainComponent.h"
+#include "ApplicationLayer/Character/Boss/Actor/BossPresentationComponent.h"
+#include "ApplicationLayer/Character/Boss/Components/BossPhaseComponent.h"
+#include "ApplicationLayer/Character/Boss/Components/BossWeakPointComponent.h"
 #include "TestActor.h"
 #include "TestGroundActor.h"
 
@@ -14,14 +20,14 @@ using namespace Ken4lowEngine;
 
 namespace
 {
-	/// 通常敵専用ComponentをEditor追加とActor JSON復元へ登録する情報を生成する。
+	/// ApplicationLayer専用ComponentをEditor追加とActor JSON復元へ登録する情報を生成する。
 	template<class T>
-	ComponentFactory::ComponentTypeInfo MakeEnemyComponentTypeInfo(const char* className, const char* displayName, const char* description)
+	ComponentFactory::ComponentTypeInfo MakeApplicationComponentTypeInfo(const char* className, const char* displayName, const char* category, const char* description)
 	{
 		ComponentFactory::ComponentTypeInfo typeInfo{};
 		typeInfo.className = className;
 		typeInfo.displayName = displayName;
-		typeInfo.category = "通常敵";
+		typeInfo.category = category;
 		typeInfo.description = description;
 		typeInfo.allowMultiple = false;
 		typeInfo.canBeRoot = false;
@@ -39,7 +45,14 @@ void RegisterDebugActors()
 	ActorFactory::RegisterActorClass<TestActor>("TestActor");
 	ActorFactory::RegisterActorClass<TestGroundActor>("TestGroundActor");
 	ActorFactory::RegisterActorClass<EnemyActor>("EnemyActor"); // 通常敵ActorをEditor/JSON生成候補へ接続する。
-	ComponentFactory::RegisterComponentType(MakeEnemyComponentTypeInfo<EnemyAIComponent>("EnemyAIComponent", "通常敵AI", "A*追跡判断と移動速度出力を管理します。"));
-	ComponentFactory::RegisterComponentType(MakeEnemyComponentTypeInfo<EnemyAttackComponent>("EnemyAttackComponent", "通常敵攻撃", "攻撃間隔とダメージ適用を管理します。"));
-	ComponentFactory::RegisterComponentType(MakeEnemyComponentTypeInfo<EnemyEffectComponent>("EnemyEffectComponent", "通常敵Effect", "被弾・死亡Effectと死亡表示を管理します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<EnemyAIComponent>("EnemyAIComponent", "通常敵AI", "通常敵", "A*追跡判断と移動速度出力を管理します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<EnemyAttackComponent>("EnemyAttackComponent", "通常敵攻撃", "通常敵", "攻撃間隔とダメージ適用を管理します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<EnemyEffectComponent>("EnemyEffectComponent", "通常敵Effect", "通常敵", "被弾・死亡Effectと死亡表示を管理します。"));
+
+	ActorFactory::RegisterActorClass<BossActor>("BossActor"); // Phase 9のBossActorをEditor配置とJSON復元へ登録する。
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<BossBrainComponent>("BossBrainComponent", "ボス行動判断", "ボス", "Target追跡と攻撃要求を判断します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<BossAttackComponent>("BossAttackComponent", "ボス攻撃", "ボス", "フェーズ別攻撃選択と共通攻撃実行を管理します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<BossPhaseComponent>("BossPhaseComponent", "ボスフェーズ", "ボス", "共通HPからフェーズを判定します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<BossWeakPointComponent>("BossWeakPointComponent", "ボス弱点", "ボス", "人型部位IDを参照して弱点倍率を管理します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<BossPresentationComponent>("BossPresentationComponent", "ボス演出", "ボス", "フェーズ遷移と死亡演出を管理します。"));
 }

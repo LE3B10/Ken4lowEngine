@@ -238,12 +238,11 @@ namespace Ken4lowEngine
 		);
 		swapChain_->SetBackBufferState(backBufferIndex_, D3D12_RESOURCE_STATE_PRESENT);
 
-		// コマンド実行と GPU 完了待ち
-		commandManager_->ExecuteAndWait();
-		WaitForGpuIdle();
-
-		// 画面表示
-		swapChain_->GetSwapChain()->Present(1, 0);
+		// GPUへ先に送信してからPresentし、VBlank後にAllocator再利用待ちを行う。
+		commandManager_->Execute();
+		const HRESULT presentResult = swapChain_->GetSwapChain()->Present(1, 0);
+		commandManager_->WaitAndReset(); // GPU完了前のResource破棄とAllocator Resetは引き続き禁止する。
+		assert(SUCCEEDED(presentResult));
 	}
 
 	/// -------------------------------------------------------------

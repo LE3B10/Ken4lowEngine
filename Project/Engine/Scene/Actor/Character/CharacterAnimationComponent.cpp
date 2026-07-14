@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -173,7 +174,8 @@ namespace Ken4lowEngine
 		setRotationOffset("RightLeg", {});
 
 		const float t = std::clamp(GetNormalizedTime(), 0.0f, 1.0f);
-		constexpr float kTwoPi = 6.28318530718f;
+		constexpr float kPi = std::numbers::pi_v<float>;
+		constexpr float kTwoPi = std::numbers::pi_v<float> * 2.0f;
 		if (animationName_ == "Walk")
 		{
 			const float swing = std::sin(t * kTwoPi) * 0.55f;
@@ -194,27 +196,60 @@ namespace Ken4lowEngine
 
 		if (animationName_ == "Attack.Melee")
 		{
-			setRotationOffset("RightArm", { threeStageSwing(-1.15f, 1.25f), 0.0f, -0.12f });
-			setRotationOffset("LeftArm", { threeStageSwing(-0.25f, 0.35f), 0.0f, 0.08f });
-			setRotationOffset("Body", { 0.0f, threeStageSwing(-0.18f, 0.22f), 0.0f });
+			auto smooth01 = [](float value)
+			{
+				const float clamped = std::clamp(value, 0.0f, 1.0f);
+				return clamped * clamped * (3.0f - 2.0f * clamped); // 各動作境界の急な角速度変化を抑える。
+			};
+			auto overheadSwing = [t, smooth01](float raised, float strike)
+			{
+				if (t < 0.36f) return raised * smooth01(t / 0.36f); // 腕を下から頭上へ大きく持ち上げる。
+				if (t < 0.48f) return raised; // 振り下ろす方向を見せるため頭上で短く構える。
+				if (t < 0.70f) return raised + (strike - raised) * smooth01((t - 0.48f) / 0.22f);
+				return strike * (1.0f - smooth01((t - 0.70f) / 0.30f));
+			};
+			auto overheadBodyPitch = [t, smooth01]()
+			{
+				if (t < 0.36f) return -0.16f * smooth01(t / 0.36f);
+				if (t < 0.48f) return -0.16f;
+				if (t < 0.70f) return -0.16f + 0.40f * smooth01((t - 0.48f) / 0.22f);
+				return 0.24f * (1.0f - smooth01((t - 0.70f) / 0.30f));
+			};
+
+			setRotationOffset("RightArm", { overheadSwing(-2.05f, -0.18f), 0.0f, -0.16f });
+			setRotationOffset("LeftArm", { overheadSwing(-1.45f, -0.28f), 0.0f, 0.16f });
+			setRotationOffset("Body", { overheadBodyPitch(), 0.0f, 0.0f });
 		}
 		else if (animationName_ == "Attack.Projectile")
 		{
-			const float recoil = std::sin(t * 3.14159265359f) * 0.25f;
+			const float recoil = std::sin(t * kPi) * 0.25f;
 			setRotationOffset("LeftArm", { -1.15f + recoil, 0.0f, 0.10f });
 			setRotationOffset("RightArm", { -1.15f + recoil, 0.0f, -0.10f });
 		}
 		else if (animationName_ == "Attack.Charge")
 		{
-			setRotationOffset("Body", { 0.45f * std::sin(t * 3.14159265359f), 0.0f, 0.0f });
-			setRotationOffset("LeftArm", { 0.75f * std::sin(t * 3.14159265359f), 0.0f, 0.0f });
-			setRotationOffset("RightArm", { 0.75f * std::sin(t * 3.14159265359f), 0.0f, 0.0f });
+			setRotationOffset("Body", { 0.45f * std::sin(t * kPi), 0.0f, 0.0f });
+			setRotationOffset("LeftArm", { -0.65f * std::sin(t * kPi), 0.0f, 0.0f });
+			setRotationOffset("RightArm", { -0.65f * std::sin(t * kPi), 0.0f, 0.0f });
 		}
 		else if (animationName_ == "Attack.Shockwave")
 		{
-			const float slam = threeStageSwing(-1.65f, 1.35f);
+			const float slam = threeStageSwing(-1.65f, -0.15f); // 叩き付け後も腕が背中側へ貫通する角度まで回さない。
 			setRotationOffset("LeftArm", { slam, 0.0f, 0.15f });
 			setRotationOffset("RightArm", { slam, 0.0f, -0.15f });
+		}
+		else if (animationName_ == "Boss.PhaseTransition")
+		{
+			const float pulse = std::sin(t * kPi);
+			setRotationOffset("Body", { -0.15f * pulse, 0.0f, 0.0f });
+			setRotationOffset("LeftArm", { -1.15f * pulse, 0.0f, 0.35f * pulse });
+			setRotationOffset("RightArm", { -1.15f * pulse, 0.0f, -0.35f * pulse });
+		}
+		else if (animationName_ == "Boss.Dead")
+		{
+			setRotationOffset("Body", { 0.0f, 0.0f, 1.45f * t });
+			setRotationOffset("LeftArm", { 0.45f * t, 0.0f, 0.0f });
+			setRotationOffset("RightArm", { 0.45f * t, 0.0f, 0.0f });
 		}
 	}
 } // namespace Ken4lowEngine
