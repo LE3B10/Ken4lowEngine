@@ -217,6 +217,9 @@
     <Filter Include="Engine\Scene\Management">
       <UniqueIdentifier>{4ad4ddbd-96ec-4741-8e9b-67f02e5ea1e2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ApplicationLayer\Character\Player\Actor">
+      <UniqueIdentifier>{26355c87-0127-4d47-8263-74d4862927a2}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -2828,6 +2831,24 @@
     </ClInclude>
     <ClInclude Include="Engine\Editor\EditorLevelService.h">
       <Filter>Engine\Editor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Actor\InventoryComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Actor\PlayerActor.h">
+      <Filter>ApplicationLayer\Character\Player\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Actor\PlayerCameraComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Actor\PlayerInputComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Actor\PlayerMovementComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Actor\WeaponComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Actor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
