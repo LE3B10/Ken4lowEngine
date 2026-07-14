@@ -5,6 +5,7 @@
 #include "ApplicationLayer/Character/Boss/Components/BossPhaseComponent.h"
 
 #include <PhysicsCollisionLayer.h>
+#include <RigidbodyComponent.h>
 #include <Scene/Actor/Character/CharacterActor.h>
 #include <Scene/Actor/Character/CharacterColliderComponent.h>
 #include <Scene/Actor/Character/CharacterHealthComponent.h>
@@ -44,7 +45,20 @@ namespace Ken4lowEngine
 			{
 				auto& attack = AddComponent<BossAttackComponent>();
 				attack.SetName("Boss Attack");
-				attack.SetUpdateOrder(-92); // 攻撃要求は共通Movementの位置積分より先に確定する。
+				attack.SetUpdateOrder(-92);
+			}
+			if (!GetComponent<RigidbodyComponent>())
+			{
+				auto& rigidbody = AddComponent<RigidbodyComponent>();
+				rigidbody.SetName("Non Humanoid Boss Rigidbody");
+				rigidbody.SetUpdateOrder(-85);
+				rigidbody.SetBodyType(BodyType::Dynamic);
+				rigidbody.SetMass(4.0f);
+				rigidbody.SetUseGravity(true);
+				rigidbody.SetSleepEnabled(false);
+				rigidbody.SetRestitution(0.0f);
+				rigidbody.SetStaticFriction(0.0f);
+				rigidbody.SetDynamicFriction(0.0f);
 			}
 
 			const bool hadHealth = GetHealthComponent() != nullptr;
@@ -80,13 +94,14 @@ namespace Ken4lowEngine
 		BossPhaseComponent* GetBossPhaseComponent() { return GetCharacterComponent<BossPhaseComponent>(); }
 
 	protected:
-		/// 死亡時は判断・攻撃・移動・Colliderを停止する。
+		/// 死亡時は判断・攻撃・移動・Collider・物理速度を停止する。
 		void OnDeath(const CharacterDeathEvent& deathEvent) override
 		{
 			(void)deathEvent;
 			if (BossBrainComponent* brain = GetBossBrainComponent()) brain->StopBehavior();
 			if (BossAttackComponent* attack = GetBossAttackComponent()) attack->SetAttackEnabled(false);
 			if (CharacterMovementComponent* movement = GetMovementComponent()) movement->Stop();
+			if (RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>()) rigidbody->SetVelocity({});
 			if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(false);
 		}
 	};
