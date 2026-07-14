@@ -40,17 +40,47 @@ void DebugScene::Initialize()
 
 	actorWorld_.SetPhysicsWorld(&actorPhysicsWorld_);
 	actorPhysicsWorld_.SetUseFixedStep(false);
+
+	// DebugSceneではTestActorをPlayerActorの薄い入力ホストとして使い、実際の移動・物理・CameraはPlayer Componentへ任せる。
 	TestActor& validationActor = actorWorld_.SpawnActor<TestActor>();
 	validationActor.SetName(actorWorldValidation_.targetActorName);
-	validationActor.SetLayer("DebugValidation");
+	validationActor.SetLayer("Player");
+	validationActor.AddTag("Player");
 	validationActor.AddTag("ActorWorldValidation");
+
 	TestGroundActor& validationGround = actorWorld_.SpawnActor<TestGroundActor>();
 	validationGround.SetName("ValidationGround");
 	validationGround.SetLayer("DebugValidation");
+
 	actorWorld_.Initialize();
-	characterValidation_.Initialize(actorWorld_);
-	enemyMigrationValidation_.Initialize(actorWorld_); // 旧通常敵とComponent通常敵を同じDebugSceneへ並べて比較する。
-	bossMigrationValidation_.Initialize(actorWorld_); // 新BossActorの共通Componentと専用Componentを同じWorldで検証する。
+
+	// Enemy/Bossは専用Dummyではなく、現在操作しているDebugPlayerを唯一のTargetとして参照する。
+	enemyMigrationValidation_.Initialize(actorWorld_);
+	bossMigrationValidation_.Initialize(actorWorld_);
+}
+
+void DebugScene::BeginEditorPlay()
+{
+#ifdef USE_IMGUI
+	K4E::EditorPlayController::GetInstance()->CaptureGameInput(); // Play開始時からMain ViewportをFPS操作へ切り替える。
+#endif
+	if (input_)
+	{
+		input_->SetLockCursor(true);
+		input_->SetCursorVisible(false);
+	}
+}
+
+void DebugScene::EndEditorPlay()
+{
+#ifdef USE_IMGUI
+	K4E::EditorPlayController::GetInstance()->ReleaseGameInput(); // Stop後はEditor操作へ確実に戻す。
+#endif
+	if (input_)
+	{
+		input_->SetLockCursor(false);
+		input_->SetCursorVisible(true);
+	}
 }
 
 /// -------------------------------------------------------------
@@ -64,7 +94,6 @@ void DebugScene::Update()
 
 	const float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
 	ProcessActorWorldValidationRequests();
-	characterValidation_.ProcessRequests();
 	enemyMigrationValidation_.Update(deltaTime);
 	bossMigrationValidation_.Update();
 
@@ -81,7 +110,6 @@ void DebugScene::UpdateEditor(float deltaTime)
 {
 	(void)deltaTime;
 	ProcessActorWorldValidationRequests(); // Edit/Pause中の操作要求も次のActorWorld::UpdateEditor前に処理する。
-	characterValidation_.ProcessRequests();
 	enemyMigrationValidation_.UpdateEditor();
 	bossMigrationValidation_.UpdateEditor();
 }
@@ -92,7 +120,6 @@ void DebugScene::UpdateEditor(float deltaTime)
 void DebugScene::Draw3DObjects()
 {
 	actorWorld_.Draw();
-	enemyMigrationValidation_.DrawLegacy(); // 新通常敵はActorWorld、旧通常敵は検証器からそれぞれ一度だけ描画する。
 
 	// ActorComponent由来のColliderをWireframe表示する
 	actorPhysicsDebugDraw_.Draw(actorPhysicsWorld_);
@@ -100,7 +127,6 @@ void DebugScene::Draw3DObjects()
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
 	Wireframe::GetInstance()->DrawGrid(100.0f, 50.0f, { 0.25f, 0.25f, 0.25f, 1.0f });
-
 #endif // _DEBUG
 }
 
@@ -110,7 +136,6 @@ void DebugScene::Draw3DObjects()
 void DebugScene::DrawShadowObjects()
 {
 	actorWorld_.DrawShadow();
-	enemyMigrationValidation_.DrawLegacyShadow();
 }
 
 /// -------------------------------------------------------------
@@ -118,19 +143,14 @@ void DebugScene::DrawShadowObjects()
 /// -------------------------------------------------------------
 void DebugScene::Draw2DSprites()
 {
-#pragma region スプライトの描画                    
-
+#pragma region スプライトの描画
 	// 背景用の共通描画設定（後面）
 	SpriteManager::GetInstance()->SetRenderSetting_Background();
-
 #pragma endregion
 
-
 #pragma region UIの描画
-
 	// Actorに追加されたScreen Space Spriteを3D描画後にまとめて描画する
 	actorWorld_.DrawScreenSpaceUI();
-
 #pragma endregion
 }
 
@@ -140,11 +160,13 @@ void DebugScene::Draw2DSprites()
 void DebugScene::Finalize()
 {
 	// 入力状態を必ず戻す（ロック/非表示のまま終了しない）
-	input_->SetLockCursor(false);
-	input_->SetCursorVisible(true);
+	if (input_)
+	{
+		input_->SetLockCursor(false);
+		input_->SetCursorVisible(true);
+	}
 
 	// Actorの外部登録を解除し、所有メンバ自体の破棄はDebugSceneのデストラクタへ任せる。
-	characterValidation_.Finalize();
 	enemyMigrationValidation_.Finalize();
 	bossMigrationValidation_.Finalize();
 	actorWorld_.Finalize();
@@ -157,17 +179,14 @@ void DebugScene::Finalize()
 void DebugScene::DrawImGui()
 {
 #ifdef USE_IMGUI
-
 	actorWorld_.DrawImGui();
 	DrawActorWorldValidationImGui();
-	characterValidation_.DrawImGui();
 	enemyMigrationValidation_.DrawImGui();
 	bossMigrationValidation_.DrawImGui();
 
 	actorPhysicsDebugDraw_.GetSettings().drawPhysicsDebug = true;
 	actorPhysicsDebugDraw_.GetSettings().drawColliders = true;
 	actorPhysicsDebugDraw_.DrawImGui(actorPhysicsWorld_);
-
 #endif // USE_IMGUI
 }
 
@@ -192,9 +211,10 @@ void DebugScene::ProcessActorWorldValidationRequests()
 		{
 			TestActor& actor = actorWorld_.SpawnActor<TestActor>();
 			actor.SetName(validation.targetActorName);
-			actor.SetLayer("DebugValidation");
+			actor.SetLayer("Player");
+			actor.AddTag("Player");
 			actor.AddTag("ActorWorldValidation");
-			validation.lastMessage = "検証ActorをActorWorld経由で生成しました。";
+			validation.lastMessage = "DebugPlayerをActorWorld経由で生成しました。";
 			validation.lastSucceeded = true;
 			target = &actor;
 		}
@@ -256,7 +276,7 @@ void DebugScene::RunActorWorldValidation()
 	if (!target)
 	{
 		validation.lastSucceeded = false;
-		validation.lastMessage = "検証対象Actorが存在しません。生成ボタンから復元できます。";
+		validation.lastMessage = "DebugPlayerが存在しません。生成ボタンから復元できます。";
 		return;
 	}
 
@@ -334,7 +354,7 @@ void DebugScene::DrawActorWorldValidationImGui()
 	ImGui::Text("実行状態: %s / %s",
 		K4E::EditorPlayController::GetInstance()->GetPlayStateText(),
 		K4E::EditorPlaySessionManager::GetInstance()->GetWorldDomainText());
-	ImGui::Text("対象Actor: %s", target ? target->GetName().c_str() : "なし");
+	ImGui::Text("操作Player: %s", target ? target->GetName().c_str() : "なし");
 	ImGui::Text("Actor数: %zu", actorWorld_.GetActors().size());
 	ImGui::Text("Collider登録数: %zu", actorPhysicsWorld_.GetColliderCount());
 	ImGui::Text("Rigidbody登録数: %zu", actorPhysicsWorld_.GetRigidbodies().size());
@@ -343,7 +363,7 @@ void DebugScene::DrawActorWorldValidationImGui()
 
 	if (ImGui::Button("自動検証")) validation.requestValidation = true;
 	ImGui::SameLine();
-	if (ImGui::Button("検証Actor生成")) validation.requestSpawn = true;
+	if (ImGui::Button("DebugPlayer生成")) validation.requestSpawn = true;
 	ImGui::SameLine();
 	if (ImGui::Button("Active切替")) validation.requestToggleActive = true;
 
@@ -354,7 +374,7 @@ void DebugScene::DrawActorWorldValidationImGui()
 	if (ImGui::Button("JSONから複製")) validation.requestSpawnFromJson = true;
 
 	if (ImGui::Button("遅延削除テスト")) validation.requestDestroy = true;
-	ImGui::TextDisabled("Play/Edit/Pauseの切替後も同じActorWorld経路で状態を確認できます。");
+	ImGui::TextDisabled("Play中はDebugPlayerをEnemy/Bossの唯一のTargetとして使用します。");
 	ImGui::End();
 #endif
 }
@@ -377,11 +397,6 @@ void DebugScene::UpdateDebug()
 		CameraManager::GetInstance()->SetUseDebugCamera(nextDebugCamera);
 		Wireframe::GetInstance()->SetDebugCamera(nextDebugCamera);
 
-		// DebugScene自身も状態を保持して、必要に応じて入力のロックやカーソルの表示を切り替える
 		isDebugCamera_ = nextDebugCamera;
-
-		// デバッグカメラ使用中はカーソルをロックして非表示にする。通常カメラ使用中はカーソルを表示してロック解除する。
-		input_->SetLockCursor(!isDebugCamera_);
-		input_->SetCursorVisible(isDebugCamera_);
 	}
 }
