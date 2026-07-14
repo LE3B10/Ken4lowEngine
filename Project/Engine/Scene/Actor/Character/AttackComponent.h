@@ -28,15 +28,17 @@ namespace Ken4lowEngine
 		float minRange = 0.0f;
 		float maxRange = 2.5f;
 		float movementSpeed = 0.0f;
+		float maxHeightDifference = 2.5f; // XZ距離だけでなく、OwnerとTargetのY差も攻撃可能範囲として制限する。
 	};
 
-	/// 個別攻撃へOwner、Target、Animationをまとめて渡す実行コンテキスト。
+	/// 個別攻撃へOwner、Target、Animationと3次元距離情報をまとめて渡す実行コンテキスト。
 	struct AttackContext
 	{
 		CharacterActor* owner = nullptr;
 		CharacterActor* target = nullptr;
 		CharacterAnimationComponent* animation = nullptr;
-		float distanceToTarget = 0.0f;
+		float distanceToTarget = 0.0f; // XZ平面上の水平距離。
+		float heightDifferenceToTarget = 0.0f; // Owner基準点とTarget基準点の絶対Y差。
 	};
 
 	/// 個別攻撃が1フレームで発生させた実行結果を共通イベントへ返す。
@@ -122,6 +124,9 @@ namespace Ken4lowEngine
 		/// 指定IDの攻撃が条件とCooldownを満たす場合にWindupを開始する。
 		bool StartAttack(std::string_view attackId);
 
+		/// 現在のTargetが指定攻撃の水平距離と高さ差の両方を満たしているか返す。
+		bool IsTargetWithinAttackRange(std::string_view attackId) const;
+
 		/// 実行中攻撃を終了処理へ渡し、Interruptedイベントを発行する。
 		void InterruptCurrentAttack();
 
@@ -189,6 +194,9 @@ namespace Ken4lowEngine
 
 		/// OwnerとTargetの現在位置から個別攻撃へ渡すContextを生成する。
 		AttackContext MakeContext() const;
+
+		/// Contextが指定攻撃の水平距離と高さ差の両方を満たすか判定する。
+		static bool IsContextWithinAttackRange(const AttackContext& context, const AttackData& data);
 
 		/// 現在Phaseを1フレーム進め、境界到達時に次Phaseへ遷移する。
 		void UpdateCurrentAttack(float deltaTime);
