@@ -196,9 +196,29 @@ namespace Ken4lowEngine
 
 		if (animationName_ == "Attack.Melee")
 		{
-			setRotationOffset("RightArm", { threeStageSwing(0.35f, -1.30f), 0.0f, -0.08f }); // 正方向へ回し切らず、前方側の負X回転へ振り抜く。
-			setRotationOffset("LeftArm", { threeStageSwing(-0.10f, -0.45f), 0.0f, 0.12f });
-			setRotationOffset("Body", { 0.0f, threeStageSwing(0.10f, -0.16f), 0.0f });
+			auto smooth01 = [](float value)
+			{
+				const float clamped = std::clamp(value, 0.0f, 1.0f);
+				return clamped * clamped * (3.0f - 2.0f * clamped); // 各動作境界の急な角速度変化を抑える。
+			};
+			auto overheadSwing = [t, smooth01](float raised, float strike)
+			{
+				if (t < 0.36f) return raised * smooth01(t / 0.36f); // 腕を下から頭上へ大きく持ち上げる。
+				if (t < 0.48f) return raised; // 振り下ろす方向を見せるため頭上で短く構える。
+				if (t < 0.70f) return raised + (strike - raised) * smooth01((t - 0.48f) / 0.22f);
+				return strike * (1.0f - smooth01((t - 0.70f) / 0.30f));
+			};
+			auto overheadBodyPitch = [t, smooth01]()
+			{
+				if (t < 0.36f) return -0.16f * smooth01(t / 0.36f);
+				if (t < 0.48f) return -0.16f;
+				if (t < 0.70f) return -0.16f + 0.40f * smooth01((t - 0.48f) / 0.22f);
+				return 0.24f * (1.0f - smooth01((t - 0.70f) / 0.30f));
+			};
+
+			setRotationOffset("RightArm", { overheadSwing(-2.05f, -0.18f), 0.0f, -0.16f });
+			setRotationOffset("LeftArm", { overheadSwing(-1.45f, -0.28f), 0.0f, 0.16f });
+			setRotationOffset("Body", { overheadBodyPitch(), 0.0f, 0.0f });
 		}
 		else if (animationName_ == "Attack.Projectile")
 		{
