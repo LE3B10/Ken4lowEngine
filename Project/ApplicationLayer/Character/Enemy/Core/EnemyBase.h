@@ -1,129 +1,71 @@
 #pragma once
-#include <memory>
 #include <cstdint>
 #include <string>
 #include <vector>
 
-#include "Collider.h"
-#include "Object3D.h"
-#include "WorldTransformEx.h"
+#include <Scene/Actor/Character/HumanoidCharacterActor.h>
 #include "Vector3.h"
 #include "Vector4.h"
-
 #include "AABB.h"
 #include "WorldCollisionResolver.h"
-#include <Scene/Actor/Character/CharacterHealthComponent.h>
 
 namespace K4E = ::Ken4lowEngine;
 
-/// ---------- 前方宣言 ---------- ///
 class EnemyParticleEffectSystem;
 
-/// -------------------------------------------------------------
-/// EnemyBase
-///  - HP / 描画 / Collider / 物理（位置・速度）
-///  - 見た目は BaseCharacter 相当の人型パーツで管理
-///  - 死亡時は「バラバラ崩壊」演出（簡易物理）
-/// -------------------------------------------------------------
-class EnemyBase : public K4E::Collider
+/// 通常敵の固有AI・死亡演出を保持しつつ、HP・人型表示・ColliderはCharacter共通Componentへ委譲する基底。
+class EnemyBase : public K4E::HumanoidCharacterActor
 {
 public:
-	struct BodyPart
-	{
-		std::unique_ptr<K4E::Object3D> object;
-		K4E::WorldTransformEx transform;
-		bool active = true;
-	};
+	using BodyPart = K4E::HumanoidCharacterActor::BodyPart;
+	using PartIndices = K4E::HumanoidCharacterActor::PartIndices;
 
-	struct PartIndices
-	{
-		const uint32_t head = 0;
-		const uint32_t leftArm = 1;
-		const uint32_t rightArm = 2;
-		const uint32_t leftLeg = 3;
-		const uint32_t rightLeg = 4;
-	};
-
-public:
 	EnemyBase();
-	virtual ~EnemyBase();
+	~EnemyBase() override = default;
 
-	virtual void Initialize();
-	virtual void Update(float deltaTime);
-	virtual void Draw();
+	void Initialize() override;
+	void Update(float deltaTime) override;
+	void Draw() override;
 	virtual void DrawImGui();
 	virtual void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection);
-	virtual void DrawShadow();
+	void DrawShadow() override;
 	virtual void ApplyDirectorDifficulty(float moveSpeedMultiplier, float attackCooldownMultiplier, float damageMultiplier);
 
-public:
-	// HP
 	void SetMaxHp(int value);
-	// 現在HPを安全な範囲へ補正して設定する
 	void SetCurrentHp(int v);
-	// 現在HPを返す
 	int GetHp() const;
-
-	// 最大HPを返す
 	int GetMaxHp() const;
-
-	// 死亡しているかどうか
 	bool IsDead() const { return isDead_; }
 
-	// HPバーを表示したいワールド座標を返す
-	// 頭の少し上を想定
 	K4E::Vector3 GetHpBarWorldPosition() const
 	{
-		// ここは敵の中心座標を基準にして上へオフセットする
-		// GetWorldPosition() / GetCenterPosition() など、今使っている関数に合わせてください
 		K4E::Vector3 pos = GetCenterPosition();
-
-		// 頭上に表示するための高さ調整
-		// 人型なら 2.5f～3.5f くらいを試すと良い
 		pos.y += 3.0f;
-
 		return pos;
 	}
 
 	float GetHpRate() const;
-
-	/// 移行後のHP計算を担当する共通Componentを返す。
-	K4E::CharacterHealthComponent* GetCharacterHealthComponent() { return healthComponent_.get(); }
-
-	/// 移行後のHP計算を担当する共通Componentを返すconst版。
-	const K4E::CharacterHealthComponent* GetCharacterHealthComponent() const { return healthComponent_.get(); }
-
+	K4E::CharacterHealthComponent* GetCharacterHealthComponent() { return GetHealthComponent(); }
+	const K4E::CharacterHealthComponent* GetCharacterHealthComponent() const { return GetHealthComponent(); }
 	bool IsHpBarVisibleTarget() const { return !isDead_; }
-
 	bool IsRemovable() const { return removable_; }
 
-	// 物理（生存中のCollider用）
 	void SetPosition(const K4E::Vector3& p);
 	void SetVelocity(const K4E::Vector3& v) { velocity_ = v; }
 	const K4E::Vector3& GetVelocity() const { return velocity_; }
-
-	// Colliderと見た目を同期
 	void SetCenterPosition(const K4E::Vector3& pos) override;
+	void SetOrientation(const K4E::Vector3& rot) override;
 
-	// 見た目の向き
-	void SetOrientation(const K4E::Vector3& rot);
-
-	// ダメージ
-	// 既存互換：方向なし（従来通り呼べる）
 	virtual void TakeDamage(int amount);
-	// 新：被弾方向（弾の進行方向）と強さ（演出用）を渡せる
 	virtual void TakeDamage(int amount, const K4E::Vector3& hitDir, float hitPower);
-
 	virtual void SetColor(const K4E::Vector4& color);
 
-	// ヒット時の赤点滅
 	void EnableHitFlash(bool enable) { hitFlashEnabled_ = enable; }
 	void SetHitFlashDuration(float sec) { hitFlashDuration_ = sec; }
 	void SetHitFlashFrequency(float hz) { hitFlashFrequencyHz_ = hz; }
 	void SetHitFlashColor(const K4E::Vector4& c) { hitFlashColor_ = c; }
 	void StartHitFlash();
 
-	// Collider events
 	void OnCollisionEnter(K4E::Collider* other) override;
 	void OnCollisionStay(K4E::Collider* other) override { OnCollisionEnter(other); }
 	void OnCollisionExit(K4E::Collider* other) override { (void)other; }
@@ -152,13 +94,13 @@ public:
 	int GetStuckDetectionCount() const { return stuckDetectionCount_; }
 	int GetStuckRecoveryCount() const { return stuckRecoveryCount_; }
 
-	// 参照用
-	BodyPart& GetBody() { return body_; }
+	BodyPart& GetBody() { return K4E::HumanoidCharacterActor::GetBody(); }
+	const BodyPart& GetBody() const { return K4E::HumanoidCharacterActor::GetBody(); }
 	std::vector<BodyPart>& GetBodyParts() { return parts_; }
+	const std::vector<BodyPart>& GetBodyParts() const { return parts_; }
 	const PartIndices& GetPartIndices() const { return partIndices_; }
 
 	void SetParticleEffectSystem(EnemyParticleEffectSystem* effectSystem) { particleEffectSystem_ = effectSystem; }
-
 	void SpawnHitEffectAt(const K4E::Vector3& worldPos);
 	static void SetDeathDebugComparePositions(const K4E::Vector3& playerPosition, const K4E::Vector3& attackCenter);
 
@@ -166,11 +108,10 @@ public:
 	const std::vector<K4E::AABB>* GetResolvedNavigationObstacleAABBs() const { return g_navigationObstacleAABBs_ ? g_navigationObstacleAABBs_ : GetResolvedWorldAABBs(); }
 
 protected:
-	// 派生で差し替え可（デフォルトはバラバラ崩壊開始）
 	virtual void OnKilled();
 	virtual void OnBulletHit(K4E::Collider* bulletCollider);
 
-	// 見た目初期化
+	/// 旧個別生成は行わず、HumanoidVisualComponentへEnemyスキンを設定する。
 	void InitializeHumanoidVisual();
 	void UpdateVisualHierarchy();
 	void SetVisualColorAll(const K4E::Vector4& color);
@@ -180,18 +121,15 @@ protected:
 	bool OverlapsNavigationObstacle(const K4E::Vector3& center) const;
 
 private:
-	// コライダーだけ無効化（見た目は残す）
 	void DisableColliderOnly();
-	// ヒットフラッシュ
 	void UpdateHitFlash(float dt);
 
-	// ---- death break apart ----
 	struct DeathPiece
 	{
 		BodyPart* part = nullptr;
 		K4E::Vector3 velocity{ 0, 0, 0 };
 		K4E::Vector3 angularVel{ 0, 0, 0 };
-		float hitBias = 0.5f; // 被弾方向の影響（部位ごとに調整）
+		float hitBias = 0.5f;
 	};
 
 	void StartBreakApartDeath(const K4E::Vector3& deathOrigin, const K4E::Vector3& deathRotation);
@@ -204,9 +142,7 @@ private:
 	K4E::Vector3 BuildDeathPartWorldPosition(const K4E::Vector3& localOffset) const;
 
 protected:
-	// ----- humanoid visual -----
-	BodyPart body_;
-	std::vector<BodyPart> parts_;
+	std::vector<BodyPart>& parts_; // 子部位はHumanoidVisualComponent所有配列への参照だけを保持する。
 	PartIndices partIndices_{};
 	K4E::Vector3 orientation_{ 0.0f, 0.0f, 0.0f };
 
@@ -219,23 +155,15 @@ protected:
 	static constexpr float kWorldBoundsMinZ = -100.0f;
 	static constexpr float kWorldBoundsMaxZ = 100.0f;
 
-	// HP
-	int maxHp_ = 240;
-	int hp_ = 240;
-	std::unique_ptr<K4E::CharacterHealthComponent> healthComponent_; // 旧int APIを維持して共通HP処理へ委譲するAdapter先。
-
+	int configuredMaxHp_ = 240; // Initialize前に派生Enemyが設定する最大HPだけを保持し、現在HPは共通Healthが所有する。
 	bool isDead_ = false;
 	bool removable_ = false;
 
-	// 生存中の物理
 	K4E::Vector3 velocity_{ 0.0f, 0.0f, 0.0f };
 	bool useGravity_ = false;
 	float gravity_ = 19.6f;
-
-	// OBB半サイズ
 	K4E::Vector3 obbHalf_{ 1.0f, 2.0f, 1.0f };
 
-	// Hit flash
 	K4E::Vector4 baseColor_{ 1.0f, 1.0f, 1.0f, 1.0f };
 	K4E::Vector4 hitFlashColor_{ 1.0f, 0.0f, 0.0f, 1.0f };
 	float hitFlashTimer_ = 0.0f;
@@ -243,10 +171,7 @@ protected:
 	float hitFlashFrequencyHz_ = 18.0f;
 	bool hitFlashEnabled_ = true;
 
-	// stage AABB
 	const std::vector<K4E::AABB>* worldAABBs_ = nullptr;
-
-	// 押し出し用（生存中だけ）
 	K4E::WorldCollisionSettings worldCol_{};
 	bool worldColOverride_ = false;
 	bool useWorldResolve_ = true;
@@ -257,12 +182,10 @@ protected:
 	int stuckDetectionCount_ = 0;
 	int stuckRecoveryCount_ = 0;
 
-	// ---- last hit info (for death impulse) ----
 	K4E::Vector3 lastHitDir_{ 0.0f, 0.0f, 0.0f };
 	float lastHitPower_ = 1.0f;
 	float lastHitUpPower_ = 2.0f;
 
-	// ---- break apart sim ----
 	bool deathBreakActive_ = false;
 	bool deathBreakInitialized_ = false;
 	bool hasDeathEffectOrigin_ = false;
@@ -282,13 +205,13 @@ protected:
 	K4E::Vector3 deathDrawBodyPosition_{};
 	std::vector<K4E::Vector3> deathDrawPartPositions_{};
 	float deathTimer_ = 0.0f;
-	float deathSimDuration_ = 1.8f;   // 破片が残る時間
-	float deathFadeDuration_ = 0.6f;  // 最後にフェードする時間
-	float deathLinearDamping_ = 2.0f; // 大きいほどすぐ止まる
+	float deathSimDuration_ = 1.8f;
+	float deathFadeDuration_ = 0.6f;
+	float deathLinearDamping_ = 2.0f;
 	float deathAngularDamping_ = 2.5f;
-	float deathBounce_ = 0.25f;       // 0..1
-	float deathFriction_ = 0.7f;      // 0..1
-	float deathGroundY_ = 0.0f;       // とりあえず床はY=0想定（必要なら拡張）
+	float deathBounce_ = 0.25f;
+	float deathFriction_ = 0.7f;
+	float deathGroundY_ = 0.0f;
 	float deathMaxMovePerFrame_ = 0.25f;
 	std::vector<DeathPiece> deathPieces_;
 
