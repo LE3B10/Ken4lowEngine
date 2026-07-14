@@ -12,6 +12,7 @@
 namespace Ken4lowEngine
 {
 	class CharacterActor;
+	class SceneComponent;
 
 	/// 通常敵の追跡判断とA*経路選択を、Actor本体や描画処理から分離して管理するComponent。
 	class EnemyAIComponent final : public ActorComponent
@@ -44,6 +45,9 @@ namespace Ken4lowEngine
 		/// 旧敵との比較に使用する基本移動速度を返す。
 		float GetMoveSpeed() const { return moveSpeed_; }
 
+		/// 進行方向またはTarget方向へ向く最大Yaw回転速度を返す。
+		float GetRotateSpeed() const { return rotateSpeed_; }
+
 		/// 攻撃へ切り替える距離を返す。
 		float GetAttackStartRange() const { return attackStartRange_; }
 
@@ -66,10 +70,15 @@ namespace Ken4lowEngine
 		void ResetBehavior();
 
 	private:
+		/// 旧Enemyと同じ前方規約でRootのYawを指定XZ方向へ滑らかに合わせる。
+		void FaceDirection(SceneComponent& root, const Vector3& direction, float deltaTime);
+
+	private:
 		CharacterActor* targetActor_ = nullptr;
 		const std::vector<AABB>* navigationObstacles_ = nullptr;
 		EnemyAStarNavigator navigator_{};
 		float moveSpeed_ = 3.2f;
+		float rotateSpeed_ = 8.0f;
 		float stopDistance_ = 1.8f;
 		float attackStartRange_ = 2.4f;
 		float distanceToTarget_ = 0.0f;

@@ -16,6 +16,8 @@ namespace Ken4lowEngine
 	namespace
 	{
 		constexpr float kDirectionEpsilon = 0.0001f;
+		constexpr float kPi = 3.14159265359f;
+		constexpr float kTwoPi = kPi * 2.0f;
 
 		/// 旧MeleeEnemyと同じXZ長さと0判定で移動方向を正規化する。
 		Vector3 NormalizeDirectionXZ(const Vector3& direction)
@@ -23,6 +25,14 @@ namespace Ken4lowEngine
 			const float length = Vector3::LengthXZ(direction);
 			if (length < kDirectionEpsilon) return {};
 			return { direction.x / length, 0.0f, direction.z / length };
+		}
+
+		/// Yaw差分を-πから+πへ正規化し、常に短い向きへ回転させる。
+		float WrapAngle(float angle)
+		{
+			angle = std::fmod(angle + kPi, kTwoPi);
+			if (angle < 0.0f) angle += kTwoPi;
+			return angle - kPi;
 		}
 	}
 
@@ -66,6 +76,7 @@ namespace Ken4lowEngine
 		if (distanceToTarget_ <= attackStartRange_)
 		{
 			movement->Stop();
+			FaceDirection(*root, target - current, deltaTime); // 停止後もTargetへ正面を合わせたまま攻撃する。
 			stateName_ = "AttackRange";
 			return;
 		}
@@ -73,6 +84,7 @@ namespace Ken4lowEngine
 		Vector3 waypoint = target;
 		pathFound_ = navigator_.GetNextWaypoint(current, target, current.y, deltaTime, waypoint);
 		const Vector3 direction = NormalizeDirectionXZ((pathFound_ ? waypoint : target) - current);
+		FaceDirection(*root, direction, deltaTime);
 		movement->SetVelocity(direction * moveSpeed_); // 移動積分は共通Movementだけが実行し、AI側では位置を直接変更しない。
 		stateName_ = pathFound_ ? "ChasePath" : "ChaseDirect";
 	}
@@ -83,6 +95,7 @@ namespace Ken4lowEngine
 		ImGui::SeparatorText("通常敵AI");
 		ImGui::Text("状態: %s", stateName_.c_str());
 		ImGui::Text("移動速度: %.2f", moveSpeed_);
+		ImGui::Text("回転速度: %.2f / Root Yaw: %.2f", rotateSpeed_, GetOwner() && GetOwner()->GetRootComponent() ? GetOwner()->GetRootComponent()->GetWorldRotation().y : 0.0f);
 		ImGui::Text("Target距離: %.2f", distanceToTarget_);
 		ImGui::Text("A*経路: %s / %zu nodes", pathFound_ ? "有効" : "未生成", navigator_.GetCurrentPath().size());
 #endif
@@ -92,6 +105,7 @@ namespace Ken4lowEngine
 	{
 		ActorComponent::ToJson(outJson);
 		outJson["MoveSpeed"] = moveSpeed_;
+		outJson["RotateSpeed"] = rotateSpeed_;
 		outJson["StopDistance"] = stopDistance_;
 		outJson["AttackStartRange"] = attackStartRange_;
 	}
@@ -100,6 +114,7 @@ namespace Ken4lowEngine
 	{
 		ActorComponent::FromJson(inJson);
 		moveSpeed_ = std::max(0.0f, inJson.value("MoveSpeed", moveSpeed_));
+		rotateSpeed_ = std::max(0.0f, inJson.value("RotateSpeed", rotateSpeed_));
 		stopDistance_ = std::max(0.0f, inJson.value("StopDistance", stopDistance_));
 		attackStartRange_ = std::max(stopDistance_, inJson.value("AttackStartRange", attackStartRange_));
 	}
@@ -129,5 +144,19 @@ namespace Ken4lowEngine
 		distanceToTarget_ = 0.0f;
 		stateName_ = "Idle";
 		navigator_.Reset();
+	}
+
+	void EnemyAIComponent::FaceDirection(SceneComponent& root, const Vector3& direction, float deltaTime)
+	{
+		const Vector3 normalized = NormalizeDirectionXZ(direction);
+		if (Vector3::LengthXZ(normalized) < kDirectionEpsilon || !std::isfinite(deltaTime) || deltaTime <= 0.0f) return;
+
+		const float targetYaw = std::atan2(-normalized.x, normalized.z); // モデルの+Z正面を旧Enemyと同じワールド方向へ合わせる。
+		Vector3 rotation = root.GetLocalRotation();
+		const float maxStep = rotateSpeed_ * deltaTime;
+		const float deltaYaw = std::clamp(WrapAngle(targetYaw - rotation.y), -maxStep, maxStep);
+		rotation.y = WrapAngle(rotation.y + deltaYaw);
+		root.SetLocalRotation(rotation);
+		root.RefreshWorldTransform(); // Root更新後に動くVisual、Collider、Targetへ同じフレームのYawを伝播する。
 	}
 } // namespace Ken4lowEngine
