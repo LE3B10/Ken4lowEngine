@@ -1,6 +1,5 @@
 #pragma once
 #include "BaseScene.h"
-#include "Validation/CharacterValidation.h"
 #include "Validation/EnemyMigrationValidation.h"
 #include "Validation/BossMigrationValidation.h"
 
@@ -31,15 +30,14 @@ public:
 	void Update() override;
 	void UpdateEditor(float deltaTime) override;
 
-	void BeginEditorPlay() override
-	{
-		// ActorWorldの複製とEditor状態退避はEditorPlaySessionManagerへ一元化する。
-	}
+	/// Play開始時はDebugPlayerを操作するFPS入力へ自動キャプチャする。
+	void BeginEditorPlay() override;
 
-	void EndEditorPlay() override
-	{
-		// Runtime World固有の後処理だけをScene Hookへ残し、Editor World復元はManagerへ任せる。
-	}
+	/// Stop時はEditorへ入力を返し、カーソル固定を解除する。
+	void EndEditorPlay() override;
+
+	/// DebugSceneはPlayerActorのFPS操作を検証するため、Play中はMain Viewport入力をキャプチャする。
+	K4E::EditorInputPolicy GetEditorInputPolicy() const override { return K4E::EditorInputPolicy::FpsCapture; }
 
 	void CollectEditorObjects(std::vector<K4E::EditorObjectInfo>& outObjects) override
 	{
@@ -67,7 +65,6 @@ private:
 	K4E::Actor* FindActorWorldValidationTarget() const;
 
 private:
-
 	K4E::Input* input_ = nullptr;
 	bool isDebugCamera_ = false;
 
@@ -77,7 +74,7 @@ private:
 
 	struct ActorWorldValidationState
 	{
-		std::string targetActorName = "ActorWorldCandidate";
+		std::string targetActorName = "DebugPlayer";
 		std::string jsonPath = "../Generated/Intermediate/ActorWorldValidation.json";
 		std::string lastMessage = "未検証";
 		bool lastSucceeded = false;
@@ -91,7 +88,6 @@ private:
 		bool pendingDestroyCheck = false;
 	} actorWorldValidation_;
 
-	CharacterValidation characterValidation_;
 	EnemyMigrationValidation enemyMigrationValidation_;
 	BossMigrationValidation bossMigrationValidation_;
 };
