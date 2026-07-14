@@ -48,9 +48,6 @@ void TestActor::Update(float deltaTime)
 		if (input->TriggerKey(DIK_3)) playerInput->RequestInventorySlot(2);
 		if (input->TriggerKey(DIK_4)) playerInput->RequestInventorySlot(3);
 		if (input->TriggerKey(DIK_5)) playerInput->RequestInventorySlot(4);
-
-		input->SetLockCursor(true);
-		input->SetCursorVisible(false);
 	}
 	else if (playerInput)
 	{
