@@ -78,7 +78,6 @@ inline CollisionPreset GetCollisionPreset(ECollisionPresetId presetId)
 	}
 	case ECollisionPresetId::WorldDynamic:
 	{
-		// WorldDynamic用ObjectChannelは未定義のため、既存挙動を壊さないDefault予約として残す。
 		return MakeCollisionPreset("WorldDynamic", EObjectChannel::Default, true, true);
 	}
 	case ECollisionPresetId::Player:
@@ -117,7 +116,6 @@ inline CollisionPreset GetCollisionPreset(ECollisionPresetId presetId)
 	case ECollisionPresetId::PlayerProjectile:
 	case ECollisionPresetId::Projectile:
 	{
-		// Projectileは互換名として残し、実体はPlayerProjectileとして扱う。
 		CollisionPreset preset = MakeCollisionPreset(
 			presetId == ECollisionPresetId::Projectile ? "Projectile" : "PlayerProjectile",
 			EObjectChannel::PlayerProjectile,
@@ -145,7 +143,6 @@ inline CollisionPreset GetCollisionPreset(ECollisionPresetId presetId)
 	}
 	case ECollisionPresetId::Trigger:
 	{
-		// Trigger専用ObjectChannelは未定義のため、Queryのみ有効なDefault予約として残す。
 		CollisionPreset preset = MakeCollisionPreset("Trigger", EObjectChannel::Default, true, false);
 		SetPresetResponse(preset, EObjectChannel::Player, ECollisionResponse::Overlap);
 		return preset;
@@ -157,7 +154,6 @@ inline CollisionPreset GetCollisionPreset(ECollisionPresetId presetId)
 
 inline std::vector<CollisionPreset> GetDefaultCollisionPresets()
 {
-	// コード固定の既定プリセットはJson読み込み失敗時の安全なフォールバックとして必ず残す。
 	return {
 		GetCollisionPreset(ECollisionPresetId::WorldStatic),
 		GetCollisionPreset(ECollisionPresetId::WorldDynamic),
@@ -175,7 +171,6 @@ inline std::vector<CollisionPreset> GetDefaultCollisionPresets()
 
 inline void ApplyCollisionPreset(K4E::Collider& collider, const CollisionPreset& preset)
 {
-	// TypeIDは既存CollisionTypeIdDef互換のまま、ObjectChannelとしても同じ値を保持する。
 	collider.SetTypeID(ToCollisionTypeId(preset.objectChannel));
 	collider.SetObjectChannel(preset.objectChannel);
 	collider.SetCollisionPreset(preset.name);
@@ -183,8 +178,6 @@ inline void ApplyCollisionPreset(K4E::Collider& collider, const CollisionPreset&
 	collider.SetQueryEnabled(preset.queryEnabled);
 	collider.SetPhysicsEnabled(preset.physicsEnabled);
 	collider.SetTrigger(preset.queryEnabled && !preset.physicsEnabled);
-
-	// Presetが持つObjectChannelごとのResponseをColliderへ写し、個別判定へ反映できる状態にする。
 	collider.ResetCollisionResponses(static_cast<uint8_t>(ECollisionResponse::Ignore));
 	for (uint32_t channelIndex = 0; channelIndex < CollisionPreset::kMaxObjectChannels; ++channelIndex)
 	{
@@ -194,6 +187,20 @@ inline void ApplyCollisionPreset(K4E::Collider& collider, const CollisionPreset&
 
 inline void ApplyCollisionPreset(K4E::Collider& collider, ECollisionPresetId presetId)
 {
-	// コード既定Presetを直接適用する軽量入口。Json名解決はCollisionPresetLibrary側で行う。
 	ApplyCollisionPreset(collider, GetCollisionPreset(presetId));
+}
+
+/// CharacterActor系はComponent所有ColliderへPresetを適用し、Actor自身の独自Colliderを必要としない。
+template<class T>
+	requires requires(T& value) { value.GetCollisionPrimitive(); }
+inline void ApplyCollisionPreset(T& character, const CollisionPreset& preset)
+{
+	if (K4E::Collider* collider = character.GetCollisionPrimitive()) ApplyCollisionPreset(*collider, preset);
+}
+
+template<class T>
+	requires requires(T& value) { value.GetCollisionPrimitive(); }
+inline void ApplyCollisionPreset(T& character, ECollisionPresetId presetId)
+{
+	ApplyCollisionPreset(character, GetCollisionPreset(presetId));
 }
