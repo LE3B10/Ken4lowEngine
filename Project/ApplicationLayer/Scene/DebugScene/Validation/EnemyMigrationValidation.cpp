@@ -6,6 +6,7 @@
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyEffectComponent.h"
 
 #include <ActorWorld.h>
+#include <RigidbodyComponent.h>
 #include <Scene/Actor/Character/CharacterAnimationComponent.h>
 #include <Scene/Actor/Character/CharacterColliderComponent.h>
 #include <Scene/Actor/Character/CharacterHealthComponent.h>
@@ -67,6 +68,8 @@ void EnemyMigrationValidation::DrawImGui()
 	const auto* collider = enemy_ ? enemy_->GetColliderComponent() : nullptr;
 	const auto* health = enemy_ ? enemy_->GetHealthComponent() : nullptr;
 	const auto* animation = enemy_ ? enemy_->GetAnimationComponent() : nullptr;
+	const auto* rigidbodyComponent = enemy_ ? enemy_->GetComponent<K4E::RigidbodyComponent>() : nullptr;
+	const auto* rigidbody = rigidbodyComponent ? rigidbodyComponent->GetRigidbody() : nullptr;
 
 	ImGui::Text("Target: %s", target_ ? target_->GetName().c_str() : "なし");
 	ImGui::Text("AI: %s", ai ? (ai->HasPath() ? "追跡中" : "待機") : "None");
@@ -75,6 +78,7 @@ void EnemyMigrationValidation::DrawImGui()
 	ImGui::Text("Animation: %s", animation ? animation->GetAnimationName().c_str() : "None");
 	ImGui::Text("Visual: %zu parts", visual ? visual->GetParts().size() : 0u);
 	ImGui::Text("Collider: %s", collider && collider->IsActive() ? "有効" : "停止");
+	ImGui::Text("Physics: %s / Grounded: %s", rigidbody ? "Dynamic" : "None", rigidbody && rigidbody->IsGrounded() ? "Yes" : "No");
 	ImGui::Text("Effect: Hit %d / Death %d", effect ? effect->GetHitEffectCount() : 0, effect ? effect->GetDeathEffectCount() : 0);
 	ImGui::TextColored(lastSucceeded_ ? ImVec4(0.35f, 1.0f, 0.45f, 1.0f) : ImVec4(1.0f, 0.75f, 0.25f, 1.0f), "%s", lastMessage_.c_str());
 
