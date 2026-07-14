@@ -1,7 +1,7 @@
 {
   "Id": "Player",
   "DisplayName": "プレイヤー",
-  "Description": "Character共通機能と人型表示に、入力要求配送・移動・武器・Inventory・Cameraをまとめた構成です。",
+  "Description": "Character共通機能と人型表示に、入力要求配送・物理移動・武器・Inventory・Cameraをまとめた構成です。",
   "Type": "PlayerActor",
   "Components": [
     "CharacterHealthComponent",
@@ -11,6 +11,7 @@
     "CharacterAnimationComponent",
     "HumanoidVisualComponent",
     "PlayerInputComponent",
+    "RigidbodyComponent",
     "WeaponComponent",
     "InventoryComponent",
     "PlayerCameraComponent"
