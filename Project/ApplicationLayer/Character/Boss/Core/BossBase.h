@@ -41,7 +41,10 @@ public:
 	/// 人型Bossは標準HumanoidVisualComponent構成をそのまま使用する。非人型Bossは別Actorを使用する。
 	virtual void BuildBossParts() { BaseCharacter::Initialize(); }
 	virtual void SetupAttacks() = 0;
-	virtual void SetupBoss() = 0;
+	virtual void SetupBoss()
+	{
+		if (auto* visual = GetHumanoidVisualComponent()) visual->SetAllPartsVisible(true); // 共通人型表示をBossの初期表示状態へ揃える。
+	}
 
 	virtual void ApplyParameters();
 	void ForceSyncWorldTransform();
