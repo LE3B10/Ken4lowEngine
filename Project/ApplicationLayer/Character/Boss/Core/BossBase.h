@@ -43,7 +43,7 @@ public:
 	virtual void SetupAttacks() = 0;
 	virtual void SetupBoss() = 0;
 
-	void ApplyParameters();
+	virtual void ApplyParameters();
 	void ForceSyncWorldTransform();
 	bool MoveWithWorldCollision(const K4E::Vector3& desiredPosition);
 	void ClearRootParentKeepingWorldPosition();
