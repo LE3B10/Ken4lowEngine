@@ -2,6 +2,7 @@
 
 #include <AABB.h>
 
+#include <cstdio>
 #include <string>
 #include <vector>
 
