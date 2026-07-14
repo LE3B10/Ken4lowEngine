@@ -29,10 +29,23 @@ void BossMigrationValidation::Initialize(K4E::ActorWorld& actorWorld)
 	actorWorld_ = &actorWorld;
 
 	boss_ = &actorWorld_->SpawnActor<K4E::BossActor>();
+	const bool loadedFromPrefab = actorWorld_->ReloadActorFromJson(*boss_, jsonPath_);
+	if (loadedFromPrefab)
+	{
+		boss_->Initialize(); // 古いPrefabに無いBoss HP用Gauge/Text Componentだけを不足分として補完する。
+		lastMessage_ = "BossActorを保存済みPrefabから自動読込しました。";
+		lastSucceeded_ = true;
+	}
+	else
+	{
+		boss_->ResetForValidation(kBossPosition);
+		lastMessage_ = "Boss Prefabが無いためコード既定値で生成しました。";
+		lastSucceeded_ = false;
+	}
+
 	boss_->SetName(bossName_);
 	boss_->SetLayer("BossValidation");
 	boss_->AddTag("Boss");
-	boss_->ResetForValidation(kBossPosition);
 
 	RefreshActorReferencesAndBindings();
 }
@@ -91,7 +104,7 @@ void BossMigrationValidation::DrawImGui()
 	if (ImGui::Button("Boss JSON保存")) requestSave_ = true;
 	ImGui::SameLine();
 	if (ImGui::Button("Boss JSON再読込")) requestReload_ = true;
-	ImGui::TextDisabled("専用Target Dummyは削除済みで、BossActorはDebugPlayerだけを追跡・攻撃します。");
+	ImGui::TextDisabled("起動時はResources/ActorPrefabs/ComponentBoss.jsonを自動読込します。");
 	ImGui::End();
 #endif
 }
@@ -154,13 +167,14 @@ void BossMigrationValidation::ProcessRequests()
 	{
 		requestSave_ = false;
 		lastSucceeded_ = actorWorld_ && boss_ && actorWorld_->SaveActorToJson(*boss_, jsonPath_);
-		lastMessage_ = lastSucceeded_ ? "BossActor全体をJSON保存しました。" : "BossActor JSON保存に失敗しました。";
+		lastMessage_ = lastSucceeded_ ? "BossActor全体をPrefabへ保存しました。" : "BossActor Prefab保存に失敗しました。";
 	}
 	if (requestReload_)
 	{
 		requestReload_ = false;
 		lastSucceeded_ = actorWorld_ && boss_ && actorWorld_->ReloadActorFromJson(*boss_, jsonPath_);
-		lastMessage_ = lastSucceeded_ ? "BossActorをJSONから復元しました。" : "BossActor JSON復元に失敗しました。先に保存してください。";
+		if (lastSucceeded_ && boss_) boss_->Initialize(); // 保存時期が古いPrefabでも現在必須のUI Componentを補完する。
+		lastMessage_ = lastSucceeded_ ? "BossActorをPrefabから復元しました。" : "BossActor Prefab復元に失敗しました。";
 		RefreshActorReferencesAndBindings();
 	}
 }

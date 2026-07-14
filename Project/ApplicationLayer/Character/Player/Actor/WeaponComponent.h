@@ -16,9 +16,12 @@ namespace Ken4lowEngine
 	class WeaponComponent final : public ActorComponent
 	{
 	public:
-		/// 射撃・リロード要求とリロード時間を1フレーム進める。
+		/// 射撃・リロード要求とCooldown・リロード時間を1フレーム進める。
 		void Update(float deltaTime) override
 		{
+			const float safeDeltaTime = std::max(0.0f, deltaTime);
+			fireCooldownRemaining_ = std::max(0.0f, fireCooldownRemaining_ - safeDeltaTime);
+
 			if (!weaponEnabled_)
 			{
 				fireRequested_ = false;
@@ -28,7 +31,7 @@ namespace Ken4lowEngine
 
 			if (isReloading_)
 			{
-				reloadTimer_ += std::max(0.0f, deltaTime);
+				reloadTimer_ += safeDeltaTime;
 				if (reloadTimer_ >= reloadDuration_) FinishReload();
 			}
 
@@ -53,6 +56,7 @@ namespace Ken4lowEngine
 			ImGui::Text("Weapon ID: %d", weaponId_);
 			ImGui::Text("Ammo: %d / %d  Reserve: %d", magazineAmmo_, magazineCapacity_, reserveAmmo_);
 			ImGui::Text("State: %s", isReloading_ ? "Reloading" : "Ready");
+			ImGui::Text("Damage: %.1f / Range: %.1f / Fire Interval: %.3f", damage_, range_, fireInterval_);
 			ImGui::Text("Shot Revision: %u", shotRevision_);
 #endif
 		}
@@ -69,6 +73,9 @@ namespace Ken4lowEngine
 			outJson["MagazineAmmo"] = magazineAmmo_;
 			outJson["ReserveAmmo"] = reserveAmmo_;
 			outJson["ReloadDuration"] = reloadDuration_;
+			outJson["Damage"] = damage_;
+			outJson["Range"] = range_;
+			outJson["FireInterval"] = fireInterval_;
 			outJson["WeaponEnabled"] = weaponEnabled_;
 		}
 
@@ -81,10 +88,17 @@ namespace Ken4lowEngine
 			magazineAmmo_ = std::clamp(inJson.value("MagazineAmmo", magazineAmmo_), 0, magazineCapacity_);
 			reserveAmmo_ = std::max(0, inJson.value("ReserveAmmo", reserveAmmo_));
 			reloadDuration_ = inJson.value("ReloadDuration", reloadDuration_);
+			damage_ = inJson.value("Damage", damage_);
+			range_ = inJson.value("Range", range_);
+			fireInterval_ = inJson.value("FireInterval", fireInterval_);
 			if (!std::isfinite(reloadDuration_) || reloadDuration_ < 0.0f) reloadDuration_ = 1.5f;
+			if (!std::isfinite(damage_) || damage_ < 0.0f) damage_ = 25.0f;
+			if (!std::isfinite(range_) || range_ <= 0.0f) range_ = 200.0f;
+			if (!std::isfinite(fireInterval_) || fireInterval_ < 0.01f) fireInterval_ = 0.12f;
 			weaponEnabled_ = inJson.value("WeaponEnabled", weaponEnabled_);
 			isReloading_ = false;
 			reloadTimer_ = 0.0f;
+			fireCooldownRemaining_ = 0.0f;
 			fireRequested_ = false;
 			reloadRequested_ = false;
 		}
@@ -116,6 +130,7 @@ namespace Ken4lowEngine
 			reserveAmmo_ = defaultReserveAmmo_;
 			isReloading_ = false;
 			reloadTimer_ = 0.0f;
+			fireCooldownRemaining_ = 0.0f;
 			fireRequested_ = false;
 			reloadRequested_ = false;
 			weaponEnabled_ = true;
@@ -125,6 +140,9 @@ namespace Ken4lowEngine
 		int GetMagazineAmmo() const { return magazineAmmo_; }
 		int GetMagazineCapacity() const { return magazineCapacity_; }
 		int GetReserveAmmo() const { return reserveAmmo_; }
+		float GetDamage() const { return damage_; }
+		float GetRange() const { return range_; }
+		float GetFireInterval() const { return fireInterval_; }
 		bool IsReloading() const { return isReloading_; }
 		bool IsWeaponEnabled() const { return weaponEnabled_; }
 		unsigned int GetShotRevision() const { return shotRevision_; }
@@ -132,8 +150,9 @@ namespace Ken4lowEngine
 	private:
 		bool TryFire()
 		{
-			if (isReloading_ || magazineAmmo_ <= 0) return false;
-			--magazineAmmo_; // 実弾生成は後段の射撃システムへ接続し、このComponentは武器状態だけを確定する。
+			if (isReloading_ || magazineAmmo_ <= 0 || fireCooldownRemaining_ > 0.0f) return false;
+			--magazineAmmo_; // 実際のHit判定はCamera中心Rayを扱うゲームプレイ層へ通知し、このComponentは発射成立状態を確定する。
+			fireCooldownRemaining_ = fireInterval_;
 			++shotRevision_;
 			return true;
 		}
@@ -157,13 +176,17 @@ namespace Ken4lowEngine
 		}
 
 	private:
-		int weaponId_ = 0;
+		int weaponId_ = 1;
 		int magazineCapacity_ = 30;
 		int magazineAmmo_ = 30;
 		int reserveAmmo_ = 90;
 		int defaultReserveAmmo_ = 90;
 		float reloadDuration_ = 1.5f;
 		float reloadTimer_ = 0.0f;
+		float damage_ = 25.0f;
+		float range_ = 200.0f;
+		float fireInterval_ = 0.12f;
+		float fireCooldownRemaining_ = 0.0f;
 		bool weaponEnabled_ = true;
 		bool isReloading_ = false;
 		bool fireRequested_ = false;

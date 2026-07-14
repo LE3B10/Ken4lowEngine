@@ -15,7 +15,7 @@ namespace K4E = ::Ken4lowEngine;
 class BossMigrationValidation
 {
 public:
-	/// 初期化済みActorWorldへBossActorだけを配置する。Target用Dummyは生成しない。
+	/// 保存済みPrefabを優先してBossActorを配置し、無い場合だけコード既定値へフォールバックする。
 	void Initialize(K4E::ActorWorld& actorWorld);
 
 	/// Play中にRuntime WorldのDebugPlayerへTarget参照を張り直し、予約操作を処理する。
@@ -43,7 +43,7 @@ private:
 	K4E::CharacterActor* target_ = nullptr;
 	std::string bossName_ = "ComponentBoss";
 	std::string targetName_ = "DebugPlayer";
-	std::string jsonPath_ = "../Generated/Intermediate/BossActorValidation.json";
+	std::string jsonPath_ = "Resources/ActorPrefabs/ComponentBoss.json";
 	std::string lastMessage_ = "DebugPlayerへのTarget接続を待機中";
 	bool lastSucceeded_ = false;
 	bool requestHeadDamage_ = false;
