@@ -6,6 +6,7 @@
 #include "ContactRecord.h"
 #include "PlayerDamageCollider.h"
 #include "PlayerDeathComponent.h"
+#include "IPlayerRuntime.h"
 
 #include "PlayerStateMachines.h"
 #include "PlayerFsmApi.h"
@@ -81,14 +82,14 @@ struct PlayerRuntimeState
 };
 
 /// -------------------------------------------------------------
-///					　プレイヤークラス
+///　　　　　　　　プレイヤークラス
 ///
 /// GamePlayWorld内のCharacterWorldが所有するプレイヤー本体。
 /// 入力、移動、視点、武器、近接、被ダメージ、死亡、HUD連携を各コンポーネントへ委譲し、
 /// GamePlayScene/Worldからはこのクラスを通してプレイヤー状態を参照・更新する。
 /// 外部参照はBindDependenciesまたは個別Setterで受け取り、所有権は持たない。
 /// -------------------------------------------------------------
-class Player : public BaseCharacter
+class Player : public BaseCharacter, public IPlayerRuntime
 {
 public: /// ---------- メンバ関数 ---------- ///
 
