@@ -17,6 +17,7 @@
 #include "ApplicationLayer/Character/Boss/Components/BossWeakPointComponent.h"
 #include "ApplicationLayer/Character/Player/Actor/PlayerActor.h"
 #include "ApplicationLayer/Character/Player/Actor/PlayerHudPresenterComponent.h"
+#include "Validation/PlayerMigrationValidationComponent.h"
 #include "TestActor.h"
 #include "TestGroundActor.h"
 
@@ -88,6 +89,7 @@ void RegisterDebugActors()
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerMovementComponent>("PlayerMovementComponent", "プレイヤー移動", "プレイヤー", "移動入力を速度へ変換し、共通Character移動へ委譲します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<WeaponComponent>("WeaponComponent", "武器", "プレイヤー", "射撃・リロード要求と弾薬状態を管理します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<InventoryComponent>("InventoryComponent", "Inventory", "プレイヤー", "武器スロットと選択中の装備を管理します。"));
-	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerHudPresenterComponent>("PlayerHudPresenterComponent", "プレイヤーHUD", "プレイヤー", "HP・弾薬・Crosshair表示をPlayer本体から分離して同期します。")); // PIEのJSON複製でも新HUD Componentを復元できるよう登録する。
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerHudPresenterComponent>("PlayerHudPresenterComponent", "プレイヤーHUD", "プレイヤー", "HP・弾薬・Crosshair表示をPlayer本体から分離して同期します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerMigrationValidationComponent>("PlayerMigrationValidationComponent", "P9 Player検証", "デバッグ", "新PlayerのDamage・Heal・Fire・Reload・Death・GameOver・Resetを自動検証します。")); // PIE SnapshotでもDebug専用検証Componentを復元できるよう登録する。
 	ComponentFactory::RegisterComponentType(MakeApplicationSceneComponentTypeInfo<PlayerCameraComponent>("PlayerCameraComponent", "プレイヤーカメラ", "プレイヤー", "視点要求を角度へ反映し、共通CameraComponentへ同期します。"));
 }
