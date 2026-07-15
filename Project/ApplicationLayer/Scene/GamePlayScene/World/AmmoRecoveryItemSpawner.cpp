@@ -1,8 +1,8 @@
 #define NOMINMAX
 #include "AmmoRecoveryItemSpawner.h"
 
+#include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
 #include "ItemManager.h"
-#include "Player.h"
 #include "Stage.h"
 
 #ifdef USE_IMGUI
@@ -25,7 +25,6 @@ namespace
 	{
 		const float sizeX = floor.max.x - floor.min.x;
 		const float sizeZ = floor.max.z - floor.min.z;
-		// 小さすぎる床は壁上や装飾の可能性があるため、スポーン候補から外す。
 		return sizeX >= 2.0f && sizeZ >= 2.0f;
 	}
 }
@@ -37,7 +36,6 @@ void AmmoRecoveryItemSpawner::Initialize()
 
 void AmmoRecoveryItemSpawner::Reset()
 {
-	// リトライやWorld再生成時に、前回ステージのタイマーと床候補巡回を持ち越さない。
 	spawnTimerSec_ = 0.0f;
 	nextFloorIndex_ = 0;
 	lastSpawnPosition_ = {};
@@ -45,101 +43,58 @@ void AmmoRecoveryItemSpawner::Reset()
 	lastSuppressed_ = false;
 }
 
-void AmmoRecoveryItemSpawner::Update(float deltaTime, Player* player, ItemManager& itemManager, const K4E::Stage* stage, bool suppressNewSpawn)
+void AmmoRecoveryItemSpawner::Update(float deltaTime, IPlayerRuntime* player, ItemManager& itemManager, const K4E::Stage* stage, bool suppressNewSpawn)
 {
 	lastSuppressed_ = suppressNewSpawn;
-	if (suppressNewSpawn || !player)
-	{
-		// チュートリアルやボス登場演出など、進行を止めたい場面では新規スポーンタイマーも止める。
-		return;
-	}
+	if (suppressNewSpawn || !player) return;
 
 	if (!ShouldSpawnForPlayer(*player))
 	{
-		// 弾薬が十分ある間はタイマーを戻し、使い切った直後の即時スポーンを避ける。
 		spawnTimerSec_ = 0.0f;
 		return;
 	}
 
 	const int maxActiveCount = std::max(0, settings_.maxActiveCount);
-	if (itemManager.GetActiveItemCount(ItemType::AmmoSmall) >= maxActiveCount)
-	{
-		// 既存AmmoSmall数で上限を見て、時間スポーンが弾薬箱を増やし続けないようにする。
-		return;
-	}
+	if (itemManager.GetActiveItemCount(ItemType::AmmoSmall) >= maxActiveCount) return;
 
 	spawnTimerSec_ += deltaTime;
-	if (spawnTimerSec_ < std::max(0.1f, settings_.spawnIntervalSec))
-	{
-		return;
-	}
+	if (spawnTimerSec_ < std::max(0.1f, settings_.spawnIntervalSec)) return;
 
 	K4E::Vector3 spawnPosition{};
-	if (!TryFindSpawnPosition(*player, stage, spawnPosition))
-	{
-		return;
-	}
+	if (!TryFindSpawnPosition(*player, stage, spawnPosition)) return;
 
 	const int recoveryAmount = ResolveRecoveryAmount(*player);
-	if (recoveryAmount <= 0)
-	{
-		return;
-	}
+	if (recoveryAmount <= 0) return;
 
-	// 生成・取得・Collider管理は既存ItemManagerに任せ、スポナーは出現判断だけに集中する。
-	itemManager.SpawnAmmoSmall(spawnPosition, recoveryAmount);
+	itemManager.SpawnAmmoSmall(spawnPosition, recoveryAmount); // 生成管理はItemManagerへ委譲し、Runtime依存をスポーン判断だけに限定する。
 	lastSpawnPosition_ = spawnPosition;
 	lastSpawnSucceeded_ = true;
 	spawnTimerSec_ = 0.0f;
 }
 
-bool AmmoRecoveryItemSpawner::ShouldSpawnForPlayer(const Player& player) const
+bool AmmoRecoveryItemSpawner::ShouldSpawnForPlayer(const IPlayerRuntime& player) const
 {
-	if (!player.CanCurrentWeaponRecoverAmmo())
-	{
-		return false;
-	}
-
-	const int maxReserveAmmo = player.GetCurrentWeaponMaxReserveAmmo();
-	if (maxReserveAmmo <= 0)
-	{
-		return false;
-	}
-
-	// 予備弾薬が満タンなら詰み防止の支援は不要なので、スポーンを抑制する。
-	return player.GetCurrentWeaponReserveAmmo() < maxReserveAmmo;
+	const int maxReserveAmmo = player.GetMaxReserveAmmo();
+	return maxReserveAmmo > 0 && player.GetReserveAmmo() < maxReserveAmmo;
 }
 
-int AmmoRecoveryItemSpawner::ResolveRecoveryAmount(const Player& player) const
+int AmmoRecoveryItemSpawner::ResolveRecoveryAmount(const IPlayerRuntime& player) const
 {
-	if (settings_.recoveryAmountOverride > 0)
-	{
-		return settings_.recoveryAmountOverride;
-	}
-
-	// 既定値は「現在武器のマガジン1個分」とし、武器ごとの差を自然に反映する。
-	return std::max(1, player.GetCurrentWeaponMagazineCapacity());
+	if (settings_.recoveryAmountOverride > 0) return settings_.recoveryAmountOverride;
+	return std::max(1, player.GetMagazineCapacity());
 }
 
-bool AmmoRecoveryItemSpawner::TryFindSpawnPosition(const Player& player, const K4E::Stage* stage, K4E::Vector3& outPosition)
+bool AmmoRecoveryItemSpawner::TryFindSpawnPosition(const IPlayerRuntime& player, const K4E::Stage* stage, K4E::Vector3& outPosition)
 {
-	const K4E::Vector3 playerPosition = player.GetCenterPosition();
-	if (stage && TryFindFloorSpawnPosition(playerPosition, stage->GetFloorAABBs(), outPosition))
-	{
-		return true;
-	}
-
-	// 床AABBが未設定のステージでも弾切れ救済が止まらないよう、前方固定位置へフォールバックする。
+	const K4E::Vector3 playerPosition = player.GetWorldPosition();
+	if (stage && TryFindFloorSpawnPosition(playerPosition, stage->GetFloorAABBs(), outPosition)) return true;
 	outPosition = MakeFallbackSpawnPosition(playerPosition);
 	return true;
 }
 
 bool AmmoRecoveryItemSpawner::TryFindFloorSpawnPosition(const K4E::Vector3& playerPosition, const std::vector<K4E::AABB>& floorAABBs, K4E::Vector3& outPosition)
 {
-	if (floorAABBs.empty())
-	{
-		return false;
-	}
+	if (floorAABBs.empty()) return false;
 
 	const float minDistanceSq = settings_.minDistanceFromPlayer * settings_.minDistanceFromPlayer;
 	float farthestDistanceSq = -1.0f;
@@ -150,12 +105,8 @@ bool AmmoRecoveryItemSpawner::TryFindFloorSpawnPosition(const K4E::Vector3& play
 	{
 		const std::size_t index = (nextFloorIndex_ + i) % floorAABBs.size();
 		const K4E::AABB& floor = floorAABBs[index];
-		if (!IsUsableFloor(floor))
-		{
-			continue;
-		}
+		if (!IsUsableFloor(floor)) continue;
 
-		// 床AABB中央を候補にし、プレイヤー周辺ではなくステージ上の安全な床に置く。
 		K4E::Vector3 candidate{
 			(floor.min.x + floor.max.x) * 0.5f,
 			floor.max.y + settings_.spawnHeightOffset,
@@ -179,17 +130,14 @@ bool AmmoRecoveryItemSpawner::TryFindFloorSpawnPosition(const K4E::Vector3& play
 
 	if (hasFallback)
 	{
-		// 近距離候補しか無い小ステージでは、最も遠い床を選んで詰み防止を優先する。
 		outPosition = farthestPosition;
 		return true;
 	}
-
 	return false;
 }
 
 K4E::Vector3 AmmoRecoveryItemSpawner::MakeFallbackSpawnPosition(const K4E::Vector3& playerPosition) const
 {
-	// 床情報がない場合でもプレイヤー直近には置かず、少し離れた固定方向に出す。
 	return {
 		playerPosition.x + settings_.minDistanceFromPlayer,
 		playerPosition.y,
@@ -200,11 +148,7 @@ K4E::Vector3 AmmoRecoveryItemSpawner::MakeFallbackSpawnPosition(const K4E::Vecto
 void AmmoRecoveryItemSpawner::DrawImGui()
 {
 #ifdef USE_IMGUI
-	if (!ImGui::CollapsingHeader("Ammo Recovery Spawner", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		return;
-	}
-
+	if (!ImGui::CollapsingHeader("Ammo Recovery Spawner", ImGuiTreeNodeFlags_DefaultOpen)) return;
 	ImGui::DragFloat("Spawn Interval Sec", &settings_.spawnIntervalSec, 0.1f, 0.1f, 120.0f, "%.1f");
 	ImGui::DragInt("Max Active Ammo Items", &settings_.maxActiveCount, 1.0f, 0, 20);
 	ImGui::DragInt("Recovery Override(0=Magazine)", &settings_.recoveryAmountOverride, 1.0f, 0, 999);
