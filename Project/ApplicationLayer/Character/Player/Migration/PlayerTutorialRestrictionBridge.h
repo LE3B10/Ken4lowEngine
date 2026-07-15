@@ -1,6 +1,7 @@
 #pragma once
 
 #include <functional>
+#include <utility>
 
 /// P11移行中だけStage1Tutorialの入力許可状態を新PlayerInputComponentへ渡すための一時ブリッジ。
 class PlayerTutorialRestrictionBridge
