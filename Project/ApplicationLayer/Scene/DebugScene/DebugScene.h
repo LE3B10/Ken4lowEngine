@@ -2,6 +2,7 @@
 #include "BaseScene.h"
 #include "Validation/EnemyMigrationValidation.h"
 #include "Validation/BossMigrationValidation.h"
+#include "Validation/LevelDataValidation.h"
 
 #include <ActorWorld.h>
 #include <Editor/ActorWorldEditorBridge.h>
@@ -88,6 +89,7 @@ private:
 		bool pendingDestroyCheck = false;
 	} actorWorldValidation_;
 
+	LevelDataValidation levelDataValidation_;
 	EnemyMigrationValidation enemyMigrationValidation_;
 	BossMigrationValidation bossMigrationValidation_;
 };
