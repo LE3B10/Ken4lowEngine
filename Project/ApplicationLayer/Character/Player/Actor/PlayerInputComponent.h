@@ -22,7 +22,6 @@ namespace Ken4lowEngine
 	class PlayerInputComponent final : public ActorComponent
 	{
 	public:
-		/// 保持中の移動入力と1フレーム要求を各専用Componentへ配送する。
 		void Update(float deltaTime) override
 		{
 			(void)deltaTime;
@@ -34,33 +33,37 @@ namespace Ken4lowEngine
 			}
 
 			PlayerMovementComponent* movement = owner->GetComponent<PlayerMovementComponent>();
-			if (movement) movement->SetMoveInput(inputEnabled_ ? moveX_ : 0.0f, inputEnabled_ ? moveZ_ : 0.0f);
+			PlayerCameraComponent* camera = owner->GetComponent<PlayerCameraComponent>();
+			WeaponComponent* weapon = owner->GetComponent<WeaponComponent>();
+			InventoryComponent* inventory = owner->GetComponent<InventoryComponent>();
+
+			if (movement)
+			{
+				movement->SetMoveInput(inputEnabled_ ? moveX_ : 0.0f, inputEnabled_ ? moveZ_ : 0.0f);
+				movement->SetSprintHeld(inputEnabled_ && frameInput_.sprintHeld);
+			}
+			if (camera)
+			{
+				camera->SetAimHeld(inputEnabled_ && frameInput_.aimHeld);
+				camera->SetSprintHeld(inputEnabled_ && frameInput_.sprintHeld && !frameInput_.aimHeld);
+			}
+			if (weapon) weapon->SetTriggerHeld(inputEnabled_ && frameInput_.fireHeld);
 
 			if (inputEnabled_)
 			{
-				if (jumpRequested_ && movement) movement->RequestJump(); // InputはJump実装を持たず、Movementへ要求だけ配送する。
-				if (fireRequested_)
-				{
-					if (WeaponComponent* weapon = owner->GetComponent<WeaponComponent>()) weapon->RequestFire();
-				}
-				if (reloadRequested_)
-				{
-					if (WeaponComponent* weapon = owner->GetComponent<WeaponComponent>()) weapon->RequestReload();
-				}
-				if (inventorySlotRequested_ >= 0)
-				{
-					if (InventoryComponent* inventory = owner->GetComponent<InventoryComponent>()) inventory->RequestSelectSlot(inventorySlotRequested_);
-				}
-				if (lookYawDelta_ != 0.0f || lookPitchDelta_ != 0.0f)
-				{
-					if (PlayerCameraComponent* camera = owner->GetComponent<PlayerCameraComponent>()) camera->RequestLook(lookYawDelta_, lookPitchDelta_);
-				}
+				if (jumpRequested_ && movement) movement->RequestJump();
+				if (blinkRequested_ && movement) movement->RequestBlink();
+				if (fireRequested_ && weapon) weapon->RequestFire();
+				if (reloadRequested_ && weapon) weapon->RequestReload();
+				if (toggleFireModeRequested_ && weapon) weapon->RequestToggleFireMode();
+				if (inventorySlotRequested_ >= 0 && inventory) inventory->RequestSelectSlot(inventorySlotRequested_);
+				if (weaponSwitchRequested_ != 0 && inventory) inventory->RequestCycle(weaponSwitchRequested_);
+				if ((lookYawDelta_ != 0.0f || lookPitchDelta_ != 0.0f) && camera) camera->RequestLook(lookYawDelta_, lookPitchDelta_);
 			}
 
-			ClearTransientRequests(); // 入力Componentは要求を一度配送したら具体処理の完了状態を保持しない。
+			ClearTransientRequests(); // Hold状態はframeInput_に残し、Press系要求だけ1フレーム配送後に破棄する。
 		}
 
-		/// 入力受付状態と未配送要求をDebug表示する。
 		void DrawImGui() override
 		{
 #ifdef USE_IMGUI
@@ -71,30 +74,25 @@ namespace Ken4lowEngine
 				frameInput_.sprintHeld ? "Yes" : "No",
 				frameInput_.aimHeld ? "Yes" : "No",
 				frameInput_.fireHeld ? "Yes" : "No");
-			ImGui::Text("Jump: %s / Fire: %s / Reload: %s / Slot: %d",
+			ImGui::Text("Jump: %s / Blink: %s / Reload: %s / Slot: %d / Wheel: %d",
 				frameInput_.jumpPressed ? "Yes" : "No",
-				frameInput_.fireHeld ? "Yes" : "No",
+				frameInput_.blinkPressed ? "Yes" : "No",
 				frameInput_.reloadPressed ? "Yes" : "No",
-				frameInput_.weaponSlotPressed);
+				frameInput_.weaponSlotPressed,
+				frameInput_.weaponSwitch);
 			ImGui::Text("Restrictions: %s  Move:%s Shoot:%s Reload:%s",
-				restrictionsEnabled_ ? "ON" : "OFF",
-				allowMove_ ? "ON" : "OFF",
-				allowShoot_ ? "ON" : "OFF",
-				allowReload_ ? "ON" : "OFF");
+				restrictionsEnabled_ ? "ON" : "OFF", allowMove_ ? "ON" : "OFF", allowShoot_ ? "ON" : "OFF", allowReload_ ? "ON" : "OFF");
 #endif
 		}
 
-		/// JSON保存・復元で使用するComponent識別名を返す。
 		std::string GetClassTypeName() const override { return "PlayerInputComponent"; }
 
-		/// 入力受付状態だけをActor JSONへ保存し、フレーム要求と一時的な操作制限は保存しない。
 		void ToJson(nlohmann::json& outJson) const override
 		{
 			ActorComponent::ToJson(outJson);
 			outJson["InputEnabled"] = inputEnabled_;
 		}
 
-		/// Actor JSONから入力受付状態を復元し、未配送要求を破棄する。
 		void FromJson(const nlohmann::json& inJson) override
 		{
 			ActorComponent::FromJson(inJson);
@@ -113,8 +111,7 @@ namespace Ken4lowEngine
 
 			::InputSnapshot filtered = snapshot;
 			ApplyRestrictions(filtered);
-			frameInput_ = filtered; // 後続Componentが同じフレーム入力を参照できるよう、制限適用後の値を保持する。
-
+			frameInput_ = filtered;
 			RequestMove(filtered.moveX, filtered.moveZ);
 
 			if (allowLookInput)
@@ -125,17 +122,15 @@ namespace Ken4lowEngine
 			}
 
 			if (filtered.jumpPressed) RequestJump();
-			if (filtered.fireHeld) RequestFire();
+			if (filtered.blinkPressed) RequestBlink();
+			if (filtered.firePressed) RequestFire(); // SEMIはPress、AUTOはframeInput_.fireHeldをWeaponへ別途配送する。
 			if (filtered.reloadPressed) RequestReload();
 			if (filtered.weaponSlotPressed > 0) RequestInventorySlot(filtered.weaponSlotPressed - 1);
-
-			blinkRequested_ = filtered.blinkPressed;
+			if (filtered.weaponSwitch != 0) RequestWeaponSwitch(filtered.weaponSwitch);
+			if (filtered.toggleFireModePressed) RequestToggleFireMode();
 			meleeRequested_ = filtered.meleePressed;
-			weaponSwitchRequested_ = filtered.weaponSwitch;
-			toggleFireModeRequested_ = filtered.toggleFireModePressed;
 		}
 
-		/// 旧Tutorial制限と同じ意味で、移動・射撃・リロードの受付可否を設定する。
 		void SetInputRestrictions(bool enabled, bool allowMove, bool allowShoot, bool allowReload)
 		{
 			restrictionsEnabled_ = enabled;
@@ -144,33 +139,20 @@ namespace Ken4lowEngine
 			allowReload_ = allowReload;
 		}
 
-		/// 移動要求を更新する。値は配送されるまで保持する。
 		void RequestMove(float x, float z)
 		{
 			moveX_ = std::clamp(x, -1.0f, 1.0f);
 			moveZ_ = std::clamp(z, -1.0f, 1.0f);
 		}
-
-		/// 1フレーム分の視点回転要求を追加する。
-		void RequestLook(float yawDelta, float pitchDelta)
-		{
-			lookYawDelta_ += yawDelta;
-			lookPitchDelta_ += pitchDelta;
-		}
-
-		/// 1回分のJump要求を予約する。
+		void RequestLook(float yawDelta, float pitchDelta) { lookYawDelta_ += yawDelta; lookPitchDelta_ += pitchDelta; }
 		void RequestJump() { jumpRequested_ = true; }
-
-		/// 1回分の射撃要求を予約する。
+		void RequestBlink() { blinkRequested_ = true; }
 		void RequestFire() { fireRequested_ = true; }
-
-		/// 1回分のリロード要求を予約する。
 		void RequestReload() { reloadRequested_ = true; }
-
-		/// Inventoryのスロット選択要求を予約する。
 		void RequestInventorySlot(int slotIndex) { inventorySlotRequested_ = slotIndex; }
+		void RequestWeaponSwitch(int direction) { weaponSwitchRequested_ = direction < 0 ? -1 : (direction > 0 ? 1 : 0); }
+		void RequestToggleFireMode() { toggleFireModeRequested_ = true; }
 
-		/// Editor操作や再配置時に、保持入力と未配送要求をすべて初期化する。
 		void ResetInputState()
 		{
 			moveX_ = 0.0f;
@@ -179,7 +161,6 @@ namespace Ken4lowEngine
 			ClearTransientRequests();
 		}
 
-		/// 死亡や操作ロック時の入力受付を切り替える。
 		void SetInputEnabled(bool enabled)
 		{
 			inputEnabled_ = enabled;
@@ -194,7 +175,7 @@ namespace Ken4lowEngine
 		bool IsAimHeld() const { return frameInput_.aimHeld; }
 		bool IsFireHeld() const { return frameInput_.fireHeld; }
 		bool IsBlinkRequested() const { return frameInput_.blinkPressed; }
-		bool IsMeleeRequested() const { return frameInput_.meleePressed; }
+		bool IsMeleeRequested() const { return meleeRequested_; }
 		int GetWeaponSwitchRequested() const { return frameInput_.weaponSwitch; }
 		bool IsToggleFireModeRequested() const { return frameInput_.toggleFireModePressed; }
 
@@ -202,12 +183,10 @@ namespace Ken4lowEngine
 		void ApplyRestrictions(::InputSnapshot& input) const
 		{
 			if (!restrictionsEnabled_) return;
-
 			input.weaponSwitch = 0;
 			input.weaponSlotPressed = 0;
 			input.toggleFireModePressed = false;
 			input.meleePressed = false;
-
 			if (!allowMove_)
 			{
 				input.moveX = 0.0f;
@@ -232,13 +211,13 @@ namespace Ken4lowEngine
 			lookYawDelta_ = 0.0f;
 			lookPitchDelta_ = 0.0f;
 			jumpRequested_ = false;
+			blinkRequested_ = false;
 			fireRequested_ = false;
 			reloadRequested_ = false;
 			inventorySlotRequested_ = -1;
-			blinkRequested_ = false;
-			meleeRequested_ = false;
 			weaponSwitchRequested_ = 0;
 			toggleFireModeRequested_ = false;
+			meleeRequested_ = false;
 		}
 
 	private:
@@ -248,9 +227,9 @@ namespace Ken4lowEngine
 		float lookYawDelta_ = 0.0f;
 		float lookPitchDelta_ = 0.0f;
 		bool jumpRequested_ = false;
+		bool blinkRequested_ = false;
 		bool fireRequested_ = false;
 		bool reloadRequested_ = false;
-		bool blinkRequested_ = false;
 		bool meleeRequested_ = false;
 		int inventorySlotRequested_ = -1;
 		int weaponSwitchRequested_ = 0;
