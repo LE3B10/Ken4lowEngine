@@ -48,6 +48,12 @@ namespace Ken4lowEngine
 				scene.name = source.value("name", std::string{});
 				scene.raw = source;
 				ReadMetadata(source, scene.metadata);
+				ReadStageMetadata(source, scene.stage);
+
+				if (source.contains("entities") && source["entities"].is_object())
+				{
+					scene.entities = source["entities"]; // 実ステージ固有のSpawn/Trigger/Collision分類を型決め打ちせず保持する。
+				}
 
 				for (const nlohmann::json& objectJson : source["objects"])
 				{
@@ -86,6 +92,16 @@ namespace Ken4lowEngine
 			metadata.gameForward = meta.value("game_forward", std::string{});
 			metadata.gameUp = meta.value("game_up", std::string{});
 			metadata.raw = meta;
+		}
+
+		static void ReadStageMetadata(const nlohmann::json& source, BlenderStageMetadata& stage)
+		{
+			if (!source.contains("stage") || !source["stage"].is_object()) return;
+
+			const nlohmann::json& stageJson = source["stage"];
+			stage.id = stageJson.value("id", std::string{});
+			stage.mode = stageJson.value("mode", std::string{});
+			stage.raw = stageJson;
 		}
 
 		static BlenderObjectData ParseObject(const nlohmann::json& objectJson)
