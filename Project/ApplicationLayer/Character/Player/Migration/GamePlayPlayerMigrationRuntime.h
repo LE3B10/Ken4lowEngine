@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ApplicationLayer/Character/Player/Actor/PlayerActor.h"
+#include "ApplicationLayer/Character/Player/Migration/PlayerTutorialRestrictionBridge.h"
 #include "BulletManager.h"
 #include "Player.h"
 #include "Stage.h"
@@ -100,6 +101,16 @@ public:
 
 		K4E::Input* input = K4E::Input::GetInstance();
 		K4E::PlayerInputComponent* playerInput = player_->GetPlayerInputComponent();
+		if (playerInput)
+		{
+			const PlayerTutorialRestrictionBridge::State tutorialRestrictions = PlayerTutorialRestrictionBridge::GetState();
+			playerInput->SetInputRestrictions(
+				tutorialRestrictions.enabled,
+				tutorialRestrictions.allowMove,
+				tutorialRestrictions.allowShoot,
+				tutorialRestrictions.allowReload); // 旧Tutorialと同じ許可状態を新Playerへ毎フレーム同期する。
+		}
+
 		const bool canControl = allowInput && input && playerInput && input->IsGameInputEnabled() && !K4E::CameraManager::GetInstance()->IsUsingDebugCamera();
 		if (canControl)
 		{
@@ -297,7 +308,8 @@ private:
 			weapon->GetMagazineAmmo(),
 			weapon->GetReserveAmmo(),
 			weapon->IsReloading(),
-			weapon->GetReloadTimer());
+			weapon->GetReloadTimer(),
+			weapon->GetReloadDuration());
 		lastLegacyReserveAmmo_ = weapon->GetReserveAmmo();
 	}
 
