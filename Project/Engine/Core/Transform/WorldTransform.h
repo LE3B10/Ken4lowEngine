@@ -1,5 +1,6 @@
 #pragma once
 #include <DX12Include.h>
+#include <PerFrameUploadBuffer.h>
 #include "Vector3.h"
 #include "Matrix4x4.h"
 
@@ -10,7 +11,7 @@ namespace Ken4lowEngine
 	class Camera;
 
 	/// -------------------------------------------------------------
-	///				　	ワールド変換データクラス
+	///　				　ワールド変換データクラス
 	/// -------------------------------------------------------------
 	class WorldTransform
 	{
@@ -81,9 +82,8 @@ namespace Ken4lowEngine
 
 	private: /// ---------- メンバ変数 ---------- ///
 
-		// 座標変換行列データ
-		ComPtr <ID3D12Resource> wvpResource;	 // WVP行列データ用リソース
-		TransformationMatrix* wvpData = nullptr; // WVP行列データのマッピング先ポインタ
+		TransformationMatrix transformationData_{};
+		PerFrameUploadBuffer<TransformationMatrix> transformationBuffers_;
 	};
 
 } // namespace Ken4lowEngine
