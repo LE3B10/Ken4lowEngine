@@ -22,27 +22,30 @@
 #include <utility>
 #include <vector>
 
-/// P10/P11中だけ新PlayerActorをGamePlay実ステージへ投入し、旧Playerを互換Proxyとして残す移行ランタイム。
+/// P12中はCharacterWorld所有のActorWorld/PhysicsWorldを使い、旧Player互換だけを担当する移行ランタイム。
 class GamePlayPlayerMigrationRuntime
 {
 public:
-	bool Initialize(Player* legacyPlayer, BulletManager* bulletManager, K4E::Stage* stage)
+	bool Initialize(
+		Player* legacyPlayer,
+		BulletManager* bulletManager,
+		K4E::Stage* stage,
+		K4E::ActorWorld* actorWorld,
+		K4E::PhysicsWorld* physicsWorld)
 	{
 		Finalize();
 		legacyPlayer_ = legacyPlayer;
 		bulletManager_ = bulletManager;
 		stage_ = stage;
-		if (!legacyPlayer_ || !stage_) return false;
+		actorWorld_ = actorWorld;
+		physicsWorld_ = physicsWorld;
+		if (!legacyPlayer_ || !stage_ || !actorWorld_ || !physicsWorld_) return false;
 
-		playerPhysicsWorld_.SetUseFixedStep(false);
-		playerActorWorld_.SetPhysicsWorld(&playerPhysicsWorld_);
-
-		K4E::PlayerActor& player = playerActorWorld_.SpawnActor<K4E::PlayerActor>();
+		K4E::PlayerActor& player = actorWorld_->SpawnActor<K4E::PlayerActor>();
 		player.SetName("GamePlayPlayer");
 		player.SetLayer("Player");
 		player.AddTag("Player");
-		player.AddTag("P10Migration");
-		playerActorWorld_.Initialize();
+		player.AddTag("P12ActorWorldOwned");
 		player_ = &player;
 
 		stageColliders_ = stage_->GetWorldColliderPointers();
@@ -52,9 +55,9 @@ public:
 			weapon->ConfigureAmmoState(
 				legacyPlayer_->GetCurrentWeaponMagazineCapacity(),
 				legacyPlayer_->GetCurrentWeaponMagazineAmmo(),
-				legacyPlayer_->GetCurrentWeaponReserveAmmo()); // P11開始時は既存GamePlayの武器残弾を新Weaponへ引き継ぐ。
+				legacyPlayer_->GetCurrentWeaponReserveAmmo()); // P12でも既存GamePlayの武器残弾だけを新Playerへ引き継ぐ。
 		}
-		RefreshNearbyStageColliders(true); // Player周辺だけをPhysicsWorldへ登録し、Stage全ColliderのO(N^2)判定を避ける。
+		RefreshNearbyStageColliders(true);
 		player_->SetGameplayHudVisible(false);
 		if (auto* visual = player_->GetHumanoidVisualComponent()) visual->SetActive(false);
 
@@ -83,11 +86,12 @@ public:
 		active_ = false;
 		ClearNearbyStageColliders();
 		stageColliders_.clear();
-		playerActorWorld_.Finalize();
 		player_ = nullptr;
 		legacyPlayer_ = nullptr;
 		bulletManager_ = nullptr;
 		stage_ = nullptr;
+		actorWorld_ = nullptr;
+		physicsWorld_ = nullptr;
 		lastLegacyHp_ = 0.0f;
 		lastLegacyReserveAmmo_ = 0;
 		lastShotRevision_ = 0u;
@@ -97,7 +101,7 @@ public:
 
 	void Update(float deltaTime, bool allowInput = true)
 	{
-		if (!active_ || !player_) return;
+		if (!active_ || !player_ || !actorWorld_ || !physicsWorld_) return;
 
 		K4E::Input* input = K4E::Input::GetInstance();
 		K4E::PlayerInputComponent* playerInput = player_->GetPlayerInputComponent();
@@ -108,7 +112,7 @@ public:
 				tutorialRestrictions.enabled,
 				tutorialRestrictions.allowMove,
 				tutorialRestrictions.allowShoot,
-				tutorialRestrictions.allowReload); // 旧Tutorialと同じ許可状態を新Playerへ毎フレーム同期する。
+				tutorialRestrictions.allowReload);
 		}
 
 		const bool canControl = allowInput && input && playerInput && input->IsGameInputEnabled() && !K4E::CameraManager::GetInstance()->IsUsingDebugCamera();
@@ -122,10 +126,10 @@ public:
 			playerInput->ResetInputState();
 		}
 
-		playerActorWorld_.Update(deltaTime);
+		actorWorld_->Update(deltaTime);
 		RefreshNearbyStageColliders(false);
-		playerPhysicsWorld_.Update(deltaTime);
-		playerActorWorld_.PostPhysicsUpdate(deltaTime);
+		physicsWorld_->Update(deltaTime);
+		actorWorld_->PostPhysicsUpdate(deltaTime);
 		SyncLegacyProxyTransform();
 		SyncLegacyProxyWeaponState();
 		SpawnBridgedShots();
@@ -158,7 +162,7 @@ public:
 		{
 			if (K4E::WeaponComponent* weapon = player_->GetWeaponComponent())
 			{
-				weapon->AddReserveAmmo(reserveDelta); // Item/Tutorialが旧Proxyへ加えた弾薬差分だけを新Weaponへ移す。
+				weapon->AddReserveAmmo(reserveDelta);
 			}
 		}
 		lastLegacyReserveAmmo_ = legacyReserveAmmo;
@@ -166,17 +170,17 @@ public:
 
 	void PrepareRenderState()
 	{
-		if (active_) playerActorWorld_.PrepareRenderState();
+		if (active_ && actorWorld_) actorWorld_->PrepareRenderState();
 	}
 
 	void Draw()
 	{
-		if (active_) playerActorWorld_.Draw();
+		if (active_ && actorWorld_) actorWorld_->Draw();
 	}
 
 	void DrawShadow()
 	{
-		if (active_) playerActorWorld_.DrawShadow();
+		if (active_ && actorWorld_) actorWorld_->DrawShadow();
 	}
 
 	void SetDebugCameraEnabled(bool enabled)
@@ -219,7 +223,7 @@ private:
 
 	void RefreshNearbyStageColliders(bool force)
 	{
-		if (!player_) return;
+		if (!player_ || !physicsWorld_) return;
 		const K4E::Vector3 playerPosition = GetPlayerPosition();
 		if (!force && hasStageRefreshPosition_)
 		{
@@ -258,7 +262,7 @@ private:
 		{
 			if (!desired.contains(*it))
 			{
-				playerPhysicsWorld_.UnregisterCollider(*it);
+				physicsWorld_->UnregisterCollider(*it);
 				it = activeStageColliders_.erase(it);
 			}
 			else
@@ -270,7 +274,7 @@ private:
 		{
 			if (activeStageColliders_.insert(collider).second)
 			{
-				playerPhysicsWorld_.RegisterCollider(collider);
+				physicsWorld_->RegisterCollider(collider);
 			}
 		}
 
@@ -280,9 +284,12 @@ private:
 
 	void ClearNearbyStageColliders()
 	{
-		for (K4E::Collider* collider : activeStageColliders_)
+		if (physicsWorld_)
 		{
-			playerPhysicsWorld_.UnregisterCollider(collider);
+			for (K4E::Collider* collider : activeStageColliders_)
+			{
+				physicsWorld_->UnregisterCollider(collider);
+			}
 		}
 		activeStageColliders_.clear();
 	}
@@ -339,8 +346,8 @@ private:
 	static constexpr float kStageActivationRadius = 18.0f;
 	static constexpr float kStageRefreshDistance = 3.0f;
 	static constexpr size_t kMaxActiveStageColliders = 96;
-	K4E::ActorWorld playerActorWorld_{};
-	K4E::PhysicsWorld playerPhysicsWorld_{};
+	K4E::ActorWorld* actorWorld_ = nullptr;
+	K4E::PhysicsWorld* physicsWorld_ = nullptr;
 	K4E::PlayerActor* player_ = nullptr;
 	Player* legacyPlayer_ = nullptr;
 	BulletManager* bulletManager_ = nullptr;
