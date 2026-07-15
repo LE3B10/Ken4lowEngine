@@ -4,6 +4,7 @@
 #include <ResourceManager.h>
 #include <SRVManager.h>
 
+#include <algorithm>
 #include <cstring>
 
 namespace Ken4lowEngine
@@ -11,72 +12,47 @@ namespace Ken4lowEngine
 	void LightGpuBuffer::Initialize(DirectXCommon* dxCommon, const LightManager::LightingSettingsGPU& initialLightingSettings)
 	{
 		dxCommon_ = dxCommon;
-
-		if (!lightInfoResource_)
+		if (!dxCommon_)
 		{
-			// b2へ渡すライト数CBは既存LightInfoレイアウトのまま生成する。
-			lightInfoResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(LightManager::LightInfo));
-			lightInfoResource_->Map(0, nullptr, reinterpret_cast<void**>(&lightInfoData_));
-			lightInfoData_->lightCount = 0;
-			lightInfoResource_->SetName(L"LightInfoConstantBuffer");
+			return;
 		}
 
-		if (!lightingSettingsResource_)
+		const uint32_t frameCount = (std::max)(1u, dxCommon_->GetCommandManager()->GetFrameResourceCount());
+		lightInfoBuffers_.Initialize(dxCommon_->GetDevice(), frameCount);
+		lightingSettingsBuffers_.Initialize(dxCommon_->GetDevice(), frameCount);
+
+		lightInfoCpu_.lightCount = 0;
+		lightInfoBuffers_.WriteAll(lightInfoCpu_);
+		lightingSettingsBuffers_.WriteAll(initialLightingSettings);
+
+		punctualFrames_.resize(frameCount);
+		for (uint32_t frameIndex = 0; frameIndex < frameCount; ++frameIndex)
 		{
-			// b5へ渡すライティング調整CBは既存LightingSettingsGPUレイアウトのまま生成する。
-			lightingSettingsResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(LightManager::LightingSettingsGPU));
-			lightingSettingsResource_->Map(0, nullptr, reinterpret_cast<void**>(&lightingSettingsData_));
-			*lightingSettingsData_ = initialLightingSettings;
-			lightingSettingsResource_->SetName(L"LightingSettingsConstantBuffer");
-		}
-
-		if (!punctualSRVAllocated_)
-		{
-			punctualSRVIndex_ = SRVManager::GetInstance()->Allocate();
-			punctualSRVAllocated_ = true;
-		}
-
-		if (!punctualBuffer_)
-		{
-			const uint32_t stride = sizeof(LightManager::PunctualLightGPU);
-			const uint32_t minElems = 1;
-			const uint32_t minBytes = stride * minElems;
-
-			punctualBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), minBytes);
-			punctualBufferBytes_ = minBytes;
-			punctualBuffer_->SetName(L"PunctualLightBuffer");
-
-			// StructuredBufferのNumElementsは0にできないため、従来通り最低1要素でSRVを作る。
-			SRVManager::GetInstance()->CreateSRVForStructureBuffer(punctualSRVIndex_, punctualBuffer_.Get(), minElems, stride);
+			PunctualFrameBuffer& frame = punctualFrames_[frameIndex];
+			frame.srvIndex = SRVManager::GetInstance()->Allocate();
+			frame.srvAllocated = true;
+			EnsurePunctualFrameCapacity(frameIndex, sizeof(LightManager::PunctualLightGPU), 1u);
 		}
 	}
 
 	void LightGpuBuffer::Finalize()
 	{
-		if (punctualSRVAllocated_ && punctualSRVIndex_ != UINT32_MAX)
+		for (PunctualFrameBuffer& frame : punctualFrames_)
 		{
-			// SRVスロットの寿命をGPUバッファ管理側に閉じ、二重Freeを防ぐため状態も戻す。
-			SRVManager::GetInstance()->Free(punctualSRVIndex_);
-			punctualSRVIndex_ = UINT32_MAX;
-			punctualSRVAllocated_ = false;
+			if (frame.srvAllocated && frame.srvIndex != UINT32_MAX)
+			{
+				SRVManager::GetInstance()->Free(frame.srvIndex);
+			}
+			frame.resource.Reset();
+			frame.bufferBytes = 0;
+			frame.srvIndex = UINT32_MAX;
+			frame.srvAllocated = false;
 		}
 
-		if (lightInfoResource_)
-		{
-			lightInfoResource_->Unmap(0, nullptr);
-			lightInfoData_ = nullptr;
-		}
-
-		if (lightingSettingsResource_)
-		{
-			lightingSettingsResource_->Unmap(0, nullptr);
-			lightingSettingsData_ = nullptr;
-		}
-
-		punctualBuffer_.Reset();
-		punctualBufferBytes_ = 0;
-		lightInfoResource_.Reset();
-		lightingSettingsResource_.Reset();
+		punctualFrames_.clear();
+		punctualLightsCpu_.clear();
+		lightInfoBuffers_.Finalize();
+		lightingSettingsBuffers_.Finalize();
 		dxCommon_ = nullptr;
 	}
 
@@ -84,75 +60,131 @@ namespace Ken4lowEngine
 		const std::vector<LightManager::PunctualLightGPU>& punctualLights,
 		const std::vector<LightManager::PunctualLightGPU>& lightComponentLights)
 	{
-		std::vector<LightManager::PunctualLightGPU> sourceLights;
-		sourceLights.reserve(punctualLights.size() + lightComponentLights.size());
-		sourceLights.insert(sourceLights.end(), punctualLights.begin(), punctualLights.end());
-		sourceLights.insert(sourceLights.end(), lightComponentLights.begin(), lightComponentLights.end());
+		punctualLightsCpu_.clear();
+		punctualLightsCpu_.reserve(punctualLights.size() + lightComponentLights.size());
 
-		std::vector<LightManager::PunctualLightGPU> gpuLights;
-		gpuLights.reserve(sourceLights.size());
-		for (const auto& L : sourceLights)
-		{
-			if (L.lightType == 0 || L.enabled == 0u) { continue; }
-			LightManager::PunctualLightGPU C = L;
-			if (C.lightType == 1 || C.lightType == 3 || C.lightType == 4 || C.lightType == 5)
+		auto appendEnabledLights = [this](const std::vector<LightManager::PunctualLightGPU>& source)
 			{
-				// HLSLへ渡す方向ライト系のdirection正規化は、既存のGPU転送直前処理をそのまま維持する。
-				C.direction = Vector3::Normalize(C.direction);
-			}
-			gpuLights.push_back(C);
-		}
+				for (const auto& light : source)
+				{
+					if (light.lightType == 0 || light.enabled == 0u)
+					{
+						continue;
+					}
 
-		const uint32_t stride = sizeof(LightManager::PunctualLightGPU);
-		const uint32_t elemCount = static_cast<uint32_t>(gpuLights.size());
-		const uint32_t safeCount = (elemCount == 0) ? 1u : elemCount;
-		const uint32_t bytes = stride * safeCount;
+					LightManager::PunctualLightGPU normalized = light;
+					if (normalized.lightType == 1 || normalized.lightType == 3 || normalized.lightType == 4 || normalized.lightType == 5)
+					{
+						normalized.direction = Vector3::Normalize(normalized.direction);
+					}
+					punctualLightsCpu_.push_back(normalized);
+				}
+			};
 
-		if (!punctualBuffer_ || punctualBufferBytes_ < bytes)
-		{
-			// 既存挙動と同じく不足時だけ拡張し、ライト順序とデータ数は変更しない。
-			punctualBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), bytes);
-			punctualBufferBytes_ = bytes;
-			punctualBuffer_->SetName(L"PunctualLightBuffer");
-		}
+		appendEnabledLights(punctualLights);
+		appendEnabledLights(lightComponentLights);
 
-		if (elemCount > 0)
-		{
-			void* mapped = nullptr;
-			punctualBuffer_->Map(0, nullptr, &mapped);
-			std::memcpy(mapped, gpuLights.data(), elemCount * stride);
-			punctualBuffer_->Unmap(0, nullptr);
-		}
-
-		// SRVのNumElementsは従来通り有効ライト数に追従し、0本の場合だけ1に丸める。
-		SRVManager::GetInstance()->CreateSRVForStructureBuffer(punctualSRVIndex_, punctualBuffer_.Get(), safeCount, stride);
-
-		if (lightInfoData_)
-		{
-			lightInfoData_->lightCount = elemCount;
-		}
+		lightInfoCpu_.lightCount = static_cast<uint32_t>(punctualLightsCpu_.size());
+		const uint32_t frameIndex = GetCurrentFrameIndex();
+		lightInfoBuffers_.WriteFrame(frameIndex, lightInfoCpu_);
+		UploadPunctualLightsForFrame(frameIndex);
 	}
 
 	void LightGpuBuffer::BindPunctualLights(uint32_t rootIndexCB_b2, uint32_t rootIndexSRV_t2)
 	{
-		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		if (!dxCommon_ || punctualFrames_.empty())
+		{
+			return;
+		}
 
-		// Descriptor heap設定からCBV/SRV設定までの順序は既存LightManager実装と同じにする。
+		const uint32_t frameIndex = GetCurrentFrameIndex();
+		lightInfoBuffers_.WriteFrame(frameIndex, lightInfoCpu_);
+		UploadPunctualLightsForFrame(frameIndex);
+
+		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		const D3D12_GPU_VIRTUAL_ADDRESS lightInfoAddress = lightInfoBuffers_.GetGpuAddress(frameIndex);
+		if (lightInfoAddress != 0)
+		{
+			commandList->SetGraphicsRootConstantBufferView(rootIndexCB_b2, lightInfoAddress);
+		}
+
+		const PunctualFrameBuffer& frame = punctualFrames_[frameIndex % punctualFrames_.size()];
 		SRVManager::GetInstance()->PreDraw();
-		commandList->SetGraphicsRootConstantBufferView(rootIndexCB_b2, lightInfoResource_->GetGPUVirtualAddress());
-		SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(rootIndexSRV_t2, punctualSRVIndex_);
+		SRVManager::GetInstance()->SetGraphicsRootDescriptorTable(rootIndexSRV_t2, frame.srvIndex);
 	}
 
 	void LightGpuBuffer::BindLightingSettings(uint32_t rootIndexCB_b5, const LightManager::LightingSettingsGPU& lightingSettings)
 	{
-		auto commandList = dxCommon_->GetCommandManager()->GetCommandList();
-
-		if (lightingSettingsData_)
+		if (!dxCommon_)
 		{
-			// HLSLのLightingSettingsへ最新のAmbient/Exposure/Contrast/Fog/Shadingを送る。
-			*lightingSettingsData_ = lightingSettings;
+			return;
 		}
 
-		commandList->SetGraphicsRootConstantBufferView(rootIndexCB_b5, lightingSettingsResource_->GetGPUVirtualAddress());
+		const uint32_t frameIndex = GetCurrentFrameIndex();
+		lightingSettingsBuffers_.WriteFrame(frameIndex, lightingSettings); // 現在Frame専用CBへ書き込み、前FrameのGPU読み取りと競合させない。
+		const D3D12_GPU_VIRTUAL_ADDRESS settingsAddress = lightingSettingsBuffers_.GetGpuAddress(frameIndex);
+		if (settingsAddress != 0)
+		{
+			dxCommon_->GetCommandManager()->GetCommandList()->SetGraphicsRootConstantBufferView(rootIndexCB_b5, settingsAddress);
+		}
 	}
-}
+
+	uint32_t LightGpuBuffer::GetCurrentFrameIndex() const
+	{
+		return dxCommon_ && dxCommon_->GetCommandManager()
+			? dxCommon_->GetCommandManager()->GetCurrentFrameIndex()
+			: 0u;
+	}
+
+	void LightGpuBuffer::EnsurePunctualFrameCapacity(uint32_t frameIndex, uint32_t bytes, uint32_t elementCount)
+	{
+		if (!dxCommon_ || punctualFrames_.empty())
+		{
+			return;
+		}
+
+		PunctualFrameBuffer& frame = punctualFrames_[frameIndex % punctualFrames_.size()];
+		const uint32_t safeBytes = (std::max)(bytes, static_cast<uint32_t>(sizeof(LightManager::PunctualLightGPU)));
+		const uint32_t safeElementCount = (std::max)(1u, elementCount);
+		if (!frame.resource || frame.bufferBytes < safeBytes)
+		{
+			frame.resource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), safeBytes);
+			frame.bufferBytes = safeBytes;
+		}
+
+		if (frame.resource && frame.srvAllocated)
+		{
+			SRVManager::GetInstance()->CreateSRVForStructureBuffer(
+				frame.srvIndex,
+				frame.resource.Get(),
+				safeElementCount,
+				sizeof(LightManager::PunctualLightGPU));
+		}
+	}
+
+	void LightGpuBuffer::UploadPunctualLightsForFrame(uint32_t frameIndex)
+	{
+		if (!dxCommon_ || punctualFrames_.empty())
+		{
+			return;
+		}
+
+		const uint32_t elementCount = static_cast<uint32_t>(punctualLightsCpu_.size());
+		const uint32_t safeElementCount = (std::max)(1u, elementCount);
+		const uint32_t bytes = safeElementCount * static_cast<uint32_t>(sizeof(LightManager::PunctualLightGPU));
+		EnsurePunctualFrameCapacity(frameIndex, bytes, safeElementCount);
+
+		PunctualFrameBuffer& frame = punctualFrames_[frameIndex % punctualFrames_.size()];
+		if (!frame.resource || elementCount == 0)
+		{
+			return;
+		}
+
+		void* mapped = nullptr;
+		if (SUCCEEDED(frame.resource->Map(0, nullptr, &mapped)) && mapped)
+		{
+			std::memcpy(mapped, punctualLightsCpu_.data(), elementCount * sizeof(LightManager::PunctualLightGPU));
+			frame.resource->Unmap(0, nullptr);
+		}
+	}
+} // namespace Ken4lowEngine
