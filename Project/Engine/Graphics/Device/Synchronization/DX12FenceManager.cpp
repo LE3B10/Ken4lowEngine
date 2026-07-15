@@ -4,31 +4,20 @@
 namespace Ken4lowEngine
 {
 
-/// -------------------------------------------------------------
-///						　初期化処理
-/// -------------------------------------------------------------
 void DX12FenceManager::Initialize(ID3D12Device* device)
 {
-	// フェンスの生成
-	HRESULT hr = S_OK;
-	hr = device->CreateFence(fenceValue_, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_));
+	HRESULT hr = device->CreateFence(fenceValue_, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence_));
 	fence_->SetName(L"DX12FenceManager Fence");
 	assert(SUCCEEDED(hr));
 
-	// イベントの生成
 	fenceEvent_ = CreateEvent(nullptr, FALSE, FALSE, nullptr);
 	assert(fenceEvent_ != nullptr);
 }
 
-/// -------------------------------------------------------------
-///						　終了処理
-/// -------------------------------------------------------------
 void DX12FenceManager::Finalize()
 {
-	// イベントが有効なら
 	if (fenceEvent_)
 	{
-		// イベントハンドルを閉じる
 		CloseHandle(fenceEvent_);
 		fenceEvent_ = nullptr;
 	}
@@ -36,31 +25,42 @@ void DX12FenceManager::Finalize()
 	fenceValue_ = 0;
 }
 
-/// -------------------------------------------------------------
-///				　	GPUにシグナルを送る
-/// -------------------------------------------------------------
 void DX12FenceManager::Signal(ID3D12CommandQueue* commandQueue)
 {
-	// 次の値に更新してシグナルを送る
-	fenceValue_++;
-	HRESULT hr = S_OK;
-	hr = commandQueue->Signal(fence_.Get(), fenceValue_);
-	assert(SUCCEEDED(hr));
+	(void)SignalAndGetValue(commandQueue);
 }
 
-/// -------------------------------------------------------------
-///				    GPUの処理が完了するまで待機
-/// -------------------------------------------------------------
+UINT64 DX12FenceManager::SignalAndGetValue(ID3D12CommandQueue* commandQueue)
+{
+	++fenceValue_;
+	const HRESULT hr = commandQueue->Signal(fence_.Get(), fenceValue_);
+	assert(SUCCEEDED(hr));
+	return fenceValue_;
+}
+
 void DX12FenceManager::Wait()
 {
-	// GPUの処理が完了していなければ待機する
-	if (fence_->GetCompletedValue() < fenceValue_)
+	WaitForValue(fenceValue_);
+}
+
+void DX12FenceManager::WaitForValue(UINT64 fenceValue)
+{
+	if (!fence_ || fenceValue == 0 || fence_->GetCompletedValue() >= fenceValue)
 	{
-		HRESULT hr = S_OK;
-		hr = fence_->SetEventOnCompletion(fenceValue_, fenceEvent_);
-		assert(SUCCEEDED(hr));
+		return;
+	}
+
+	const HRESULT hr = fence_->SetEventOnCompletion(fenceValue, fenceEvent_);
+	assert(SUCCEEDED(hr));
+	if (SUCCEEDED(hr))
+	{
 		WaitForSingleObject(fenceEvent_, INFINITE);
 	}
+}
+
+UINT64 DX12FenceManager::GetCompletedValue() const
+{
+	return fence_ ? fence_->GetCompletedValue() : 0;
 }
 
 } // namespace Ken4lowEngine
