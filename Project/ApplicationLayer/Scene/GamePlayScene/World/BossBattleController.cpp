@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "BossBattleController.h"
 
+#include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
 #include "Camera.h"
 #include "CameraManager.h"
 #include "CharacterWorld.h"
@@ -11,7 +12,6 @@
 #include "Derived/GuardianBoss/GuardianBoss.h"
 #include "GamePlayStageContext.h"
 #include "HUDManager.h"
-#include "Player.h"
 #include "Stage.h"
 #include <LogString.h>
 
@@ -36,15 +36,13 @@ void BossClearItem::Initialize(const K4E::Vector3& position)
 {
 	K4E::Vector3 spawnPosition = position;
 	spawnPosition.y += 1.25f;
-
 	position_ = spawnPosition;
 	basePosition_ = spawnPosition;
 	rotation_ = {};
 	floatTimer_ = 0.0f;
 	spawned_ = true;
 	collected_ = false;
-
-	ApplyCollisionPreset(*this, ECollisionPresetId::Item); // BossClearItemは通常Itemと同じkItem判定を保つPreset移行対象にする。
+	ApplyCollisionPreset(*this, ECollisionPresetId::Item);
 #ifdef _DEBUG
 	const uint32_t legacyItemTypeId = static_cast<uint32_t>(CollisionTypeIdDef::kItem);
 	assert(GetTypeID() == legacyItemTypeId && "BossClearItem preset must keep legacy kItem TypeID.");
@@ -52,7 +50,6 @@ void BossClearItem::Initialize(const K4E::Vector3& position)
 	SetOwner<BossClearItem>(this);
 	SetOBBHalfSize(halfSize_);
 	SetCenterPosition(position_);
-
 	object3d_ = std::make_unique<K4E::Object3D>();
 	object3d_->Initialize("Sample/cube.gltf");
 	object3d_->SetScale({ 1.8f, 1.8f, 1.8f });
@@ -63,19 +60,13 @@ void BossClearItem::Initialize(const K4E::Vector3& position)
 
 void BossClearItem::Update(float deltaTime)
 {
-	if (!spawned_ || collected_)
-	{
-		return;
-	}
-
+	if (!spawned_ || collected_) return;
 	floatTimer_ += deltaTime * 3.0f;
 	position_ = basePosition_;
 	position_.y += std::sinf(floatTimer_) * 0.25f;
 	rotation_.y += deltaTime * 1.2f;
-
 	SetCenterPosition(position_);
 	SetOrientation(rotation_);
-
 	if (object3d_)
 	{
 		object3d_->SetTranslate(position_);
@@ -86,20 +77,13 @@ void BossClearItem::Update(float deltaTime)
 
 void BossClearItem::Draw()
 {
-	if (spawned_ && !collected_ && object3d_)
-	{
-		object3d_->Draw();
-	}
+	if (spawned_ && !collected_ && object3d_) object3d_->Draw();
 }
 
-bool BossClearItem::CheckPickup(const Player& player) const
+bool BossClearItem::CheckPickup(const IPlayerRuntime& player) const
 {
-	if (!spawned_ || collected_)
-	{
-		return false;
-	}
-
-	const K4E::Vector3 diff = position_ - player.GetCenterPosition();
+	if (!spawned_ || collected_) return false;
+	const K4E::Vector3 diff = position_ - player.GetWorldPosition();
 	return K4E::Vector3::Length(diff) <= pickupRadius_;
 }
 
@@ -110,21 +94,12 @@ void BossClearItem::MarkCollected()
 	SetCenterPosition({ 1.0e9f, 1.0e9f, 1.0e9f });
 }
 
-void BossClearItem::OnCollision(K4E::Collider* other)
-{
-	(void)other;
-}
+void BossClearItem::OnCollision(K4E::Collider* other) { (void)other; }
 
 void BossBattleController::Initialize(GamePlayStageContext& stageContext, bool stage1BeginnerBalanceEnabled)
 {
 	stage1BeginnerBalanceEnabled_ = stage1BeginnerBalanceEnabled;
 	bossSpawnPosition_ = stageContext.HasBossSpawnPoint() ? stageContext.GetBossSpawnPoint() : K4E::Vector3{ 0.0f, 2.25f, 30.0f };
-	if (!stageContext.HasBossSpawnPoint())
-	{
-		// Blender側BossSpawnPointが未設定の間は、DebugSceneと同じ仮固定座標を使う。
-		bossSpawnPosition_ = { 0.0f, 2.25f, 30.0f };
-	}
-
 	bossSpawned_ = false;
 	bossColliderRegistered_ = false;
 	bossSpawnConditionMet_ = false;
@@ -145,14 +120,8 @@ void BossBattleController::Initialize(GamePlayStageContext& stageContext, bool s
 
 void BossBattleController::Finalize(const Dependencies& deps)
 {
-	if (guardianBoss_ && deps.collisionManager)
-	{
-		deps.collisionManager->RemoveCollider(guardianBoss_.get());
-	}
-	if (clearItem_ && deps.collisionManager)
-	{
-		deps.collisionManager->RemoveCollider(clearItem_.get());
-	}
+	if (guardianBoss_ && deps.collisionManager) deps.collisionManager->RemoveCollider(guardianBoss_.get());
+	if (clearItem_ && deps.collisionManager) deps.collisionManager->RemoveCollider(clearItem_.get());
 	guardianBoss_.reset();
 	clearItem_.reset();
 	bossIntroController_.Finalize();
@@ -160,80 +129,46 @@ void BossBattleController::Finalize(const Dependencies& deps)
 
 void BossBattleController::UpdateSpawnProgress(const Dependencies& deps)
 {
-	if (!deps.crystalManager)
-	{
-		return;
-	}
-
+	if (!deps.crystalManager) return;
 	bossSpawnConditionMet_ = deps.crystalManager->AreAllCrystalsDestroyed() && !bossSpawned_;
-
-	// 全クリスタル破壊を検知し、即スポーンではなくボス登場遅延を開始する。
-	if (bossSpawnConditionMet_ && !bossIntroController_.HasPlayed() && !bossIntroController_.IsRunning())
-	{
-		bossIntroController_.RequestStart(bossSpawnPosition_);
-	}
+	if (bossSpawnConditionMet_ && !bossIntroController_.HasPlayed() && !bossIntroController_.IsRunning()) bossIntroController_.RequestStart(bossSpawnPosition_);
 }
 
 void BossBattleController::UpdateIntro(const Dependencies& deps, float deltaTime)
 {
-	if (bossIntroController_.ConsumeDebugResetRequest())
-	{
-		ResetIntroForDebug(deps);
-	}
-
+	if (bossIntroController_.ConsumeDebugResetRequest()) ResetIntroForDebug(deps);
 	if (bossIntroController_.ConsumeDebugStartRequest())
 	{
 		ResetIntroForDebug(deps);
 		bossIntroController_.RequestStart(bossIntroController_.GetBossAppearPosition());
 	}
-
 	if (bossIntroController_.ConsumeDebugClearBossParentRequest() && guardianBoss_)
 	{
-		// 検証用: 親子Transformが原因か切り分けるため、ワールド座標を維持して親を外す。
 		guardianBoss_->ClearRootParentKeepingWorldPosition();
 		guardianBoss_->ForceSyncWorldTransform();
 	}
-
 	if (bossIntroController_.ConsumeDebugForceBossToAppearRequest() && guardianBoss_)
 	{
 		guardianBoss_->ClearRootParentKeepingWorldPosition();
-		// 検証用: ボスを最終ワールド座標へ固定して、カメラ追従に見える原因がTransformか確認する。
 		guardianBoss_->SetPosition(bossIntroController_.GetBossAppearPosition());
 		guardianBoss_->SetYaw(kPi);
 		guardianBoss_->ForceSyncWorldTransform();
 	}
-
 	if (bossIntroController_.ConsumeDebugUseGameplayViewProjectionRequest())
 	{
-		if (deps.characters)
+		IPlayerRuntime* runtime = deps.characters ? deps.characters->GetPlayerRuntime() : nullptr;
+		if (runtime && runtime->GetCamera())
 		{
-			if (auto* debugPlayer = deps.characters->GetPlayer())
-			{
-				if (auto* gameplayCamera = debugPlayer->GetCamera())
-				{
-					// 検証用: 演出用ViewProjectionから通常ViewProjectionへ戻して、描画行列側の問題を切り分ける。
-					K4E::CameraManager::GetInstance()->SetMainCamera(gameplayCamera);
-					gameplayCamera->Update();
-				}
-			}
+			K4E::CameraManager::GetInstance()->SetMainCamera(runtime->GetCamera());
+			runtime->GetCamera()->Update();
 		}
-		if (guardianBoss_)
-		{
-			guardianBoss_->ForceSyncWorldTransform();
-		}
+		if (guardianBoss_) guardianBoss_->ForceSyncWorldTransform();
 	}
 
-	if (!bossIntroController_.IsRunning())
-	{
-		return;
-	}
-
-	Player* player = deps.characters ? deps.characters->GetPlayer() : nullptr;
-	auto* camera = player ? player->GetCamera() : nullptr;
-	if (camera)
-	{
-		K4E::CameraManager::GetInstance()->SetMainCamera(camera);
-	}
+	if (!bossIntroController_.IsRunning()) return;
+	IPlayerRuntime* player = deps.characters ? deps.characters->GetPlayerRuntime() : nullptr;
+	K4E::Camera* camera = player ? player->GetCamera() : nullptr;
+	if (camera) K4E::CameraManager::GetInstance()->SetMainCamera(camera);
 	bossIntroController_.Update(deltaTime, guardianBoss_.get(), camera);
 
 	if (bossIntroController_.ConsumeBossSpawnRequest())
@@ -241,136 +176,76 @@ void BossBattleController::UpdateIntro(const Dependencies& deps, float deltaTime
 		bossSpawnPosition_ = bossIntroController_.GetBossAppearPosition();
 		SpawnGuardianBoss(deps, false);
 	}
-
 	if (bossIntroController_.ConsumeBossColliderEnableRequest())
 	{
 		RegisterGuardianBossCollider(deps);
-		if (player)
-		{
-			AlignPlayerViewToBossAfterIntro(*player);
-		}
+		if (player) AlignPlayerViewToBossAfterIntro(*player);
 		if (deps.hudManager)
 		{
 			deps.hudManager->NotifyBossIntroCompleted(guardianBoss_ ? guardianBoss_->GetPosition() : bossSpawnPosition_);
-			if (stage1BeginnerBalanceEnabled_)
-			{
-				deps.hudManager->NotifyStage1BossAppeared();
-			}
+			if (stage1BeginnerBalanceEnabled_) deps.hudManager->NotifyStage1BossAppeared();
 		}
-		// ボス登場完了直後は強めに揺らし、ここから戦闘開始だとプレイヤーへ伝える。
 		StartCameraShake(0.75f, 0.42f, 24.0f);
 	}
 }
 
 void BossBattleController::UpdateRuntime(const Dependencies& deps, float deltaTime)
 {
-	Player* player = deps.characters ? deps.characters->GetPlayer() : nullptr;
+	IPlayerRuntime* player = deps.characters ? deps.characters->GetPlayerRuntime() : nullptr;
 	if (guardianBoss_)
 	{
 		if (player)
 		{
-			guardianBoss_->SetTargetPosition(player->GetCenterPosition());
-			guardianBoss_->SetTargetPlayer(player);
+			guardianBoss_->SetTargetPosition(player->GetWorldPosition());
+			guardianBoss_->SetTargetPlayer(player); // Boss攻撃は旧Player Proxyを経由せずRuntimeへ直接Damageを与える。
 		}
 		guardianBoss_->Update(deltaTime);
 		HandleBossPhasePresentation(deps);
 	}
-
 	UpdateCameraShake(deltaTime, player);
-
 	UpdateBossClearProgress(deps, deltaTime);
-	if (deps.crystalManager && deps.characters)
-	{
-		deps.crystalManager->SetProgressDebugStatus(deps.characters->GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
-	}
+	if (deps.crystalManager && deps.characters) deps.crystalManager->SetProgressDebugStatus(deps.characters->GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
 }
 
 void BossBattleController::UpdatePausedWorld(const Dependencies& deps, float deltaTime)
 {
-	if (deps.crystalManager && deps.characters)
-	{
-		deps.crystalManager->UpdatePresentationOnly(*deps.characters, deltaTime);
-	}
+	if (deps.crystalManager && deps.characters) deps.crystalManager->UpdatePresentationOnly(*deps.characters, deltaTime);
 	UpdateIntro(deps, deltaTime);
-	if (deps.stage)
-	{
-		// 演出用カメラと通常カメラを切り替えた後、最低限表示するステージのWVPを現在カメラへ合わせる。
-		deps.stage->Update();
-	}
+	if (deps.stage) deps.stage->Update();
 	UpdateBossClearProgress(deps, 0.0f);
-	if (deps.crystalManager && deps.characters)
-	{
-		deps.crystalManager->SetProgressDebugStatus(deps.characters->GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
-	}
+	if (deps.crystalManager && deps.characters) deps.crystalManager->SetProgressDebugStatus(deps.characters->GetAliveNormalEnemyCount(), bossSpawnConditionMet_, bossSpawned_, bossSpawnPosition_);
 }
 
 void BossBattleController::UpdateHud(const Dependencies& deps, float deltaTime)
 {
 	(void)deltaTime;
-	if (!deps.hudManager)
-	{
-		return;
-	}
-
-	deps.hudManager->SetBossHP(GetBossHP(), GetBossMaxHP(), IsBossBattleActive());
+	if (deps.hudManager) deps.hudManager->SetBossHP(GetBossHP(), GetBossMaxHP(), IsBossBattleActive());
 }
 
-void BossBattleController::UpdateBossGuideHud(Player& player, HUDManager& hudManager) const
+void BossBattleController::UpdateBossGuideHud(IPlayerRuntime& player, HUDManager& hudManager) const
 {
-	auto* camera = player.GetCamera();
+	K4E::Camera* camera = player.GetCamera();
 	if (!camera)
 	{
-		hudManager.SetBossGuide(player.GetCenterPosition(), bossSpawnPosition_, { 0.0f, 0.0f, 1.0f }, false);
+		hudManager.SetBossGuide(player.GetWorldPosition(), bossSpawnPosition_, { 0.0f, 0.0f, 1.0f }, false);
 		return;
 	}
-
 	const K4E::Vector3 bossPosition = guardianBoss_ ? guardianBoss_->GetPosition() : bossSpawnPosition_;
-	hudManager.SetBossGuide(player.GetCenterPosition(), bossPosition, camera->GetForward(), IsBossBattleActive());
+	hudManager.SetBossGuide(player.GetWorldPosition(), bossPosition, camera->GetForward(), IsBossBattleActive());
 }
 
 void BossBattleController::DrawBoss()
 {
 	if (guardianBoss_)
 	{
-		// Draw直前に現在の通常ViewProjectionでWVPを更新し、演出用ViewProjectionの残留を防ぐ。
 		guardianBoss_->ForceSyncWorldTransform();
 		guardianBoss_->Draw();
 	}
 }
-
-void BossBattleController::DrawClearItem()
-{
-	if (clearItem_)
-	{
-		clearItem_->Draw();
-	}
-}
-
-void BossBattleController::DrawBossIntro3D()
-{
-	if (guardianBoss_)
-	{
-		// ボス登場演出中に通常3D描画を止め、ボスだけを現在の演出用ViewProjectionへ同期する。
-		guardianBoss_->ForceSyncWorldTransform();
-		guardianBoss_->Draw();
-	}
-}
-
-void BossBattleController::DrawShadow()
-{
-	if (guardianBoss_)
-	{
-		guardianBoss_->DrawShadow();
-	}
-}
-
-void BossBattleController::DrawBossIntroShadow()
-{
-	if (guardianBoss_)
-	{
-		guardianBoss_->DrawShadow();
-	}
-}
+void BossBattleController::DrawClearItem() { if (clearItem_) clearItem_->Draw(); }
+void BossBattleController::DrawBossIntro3D() { if (guardianBoss_) { guardianBoss_->ForceSyncWorldTransform(); guardianBoss_->Draw(); } }
+void BossBattleController::DrawShadow() { if (guardianBoss_) guardianBoss_->DrawShadow(); }
+void BossBattleController::DrawBossIntroShadow() { if (guardianBoss_) guardianBoss_->DrawShadow(); }
 
 void BossBattleController::DrawImGui(const Dependencies& deps, bool bossIntroPresentationActive)
 {
@@ -380,61 +255,24 @@ void BossBattleController::DrawImGui(const Dependencies& deps, bool bossIntroPre
 	ImGui::Text("ボスCollider登録済み: %s", bossColliderRegistered_ ? "はい" : "いいえ");
 	ImGui::Text("ボス登場演出中: %s", bossIntroController_.IsRunning() ? "はい" : "いいえ");
 	ImGui::Text("ボス登場による進行停止: %s", bossIntroController_.IsGameplayPaused() ? "はい" : "いいえ");
-	ImGui::Text("ボス演出カメラ揺れ: %.2f / %.2f amp %.2f freq %.2f",
-		cameraShakeTimer_,
-		cameraShakeDuration_,
-		cameraShakeAmplitude_,
-		cameraShakeFrequency_);
-	ImGui::Text("最後に通知したフェーズ: %d", static_cast<int>(lastPresentedBossPhase_) + 1);
-	{
-		auto* debugPlayer = deps.characters ? deps.characters->GetPlayer() : nullptr;
-		bossIntroController_.SetDebugSnapshot(guardianBoss_.get(), debugPlayer ? debugPlayer->GetCamera() : nullptr);
-	}
+	ImGui::Text("ボス演出カメラ揺れ: %.2f / %.2f amp %.2f freq %.2f", cameraShakeTimer_, cameraShakeDuration_, cameraShakeAmplitude_, cameraShakeFrequency_);
+	IPlayerRuntime* runtime = deps.characters ? deps.characters->GetPlayerRuntime() : nullptr;
+	bossIntroController_.SetDebugSnapshot(guardianBoss_.get(), runtime ? runtime->GetCamera() : nullptr);
 	bossIntroController_.DrawImGui();
 	ImGui::SeparatorText("Boss Intro Draw Debug");
-	ImGui::Text("isBossIntroActive: %s", bossIntroController_.IsRunning() ? "true" : "false");
 	ImGui::Text("Camera Kind: %s", bossIntroPresentationActive ? "BossIntro Camera" : "Gameplay Camera");
-	ImGui::Text("ViewProjection Kind: %s", bossIntroPresentationActive ? "BossIntro ViewProjection" : "Gameplay ViewProjection");
-	ImGui::Text("Draw Gameplay 3D: %s", bossIntroPresentationActive ? "false" : "true");
-	ImGui::Text("Draw Gameplay UI: %s", bossIntroPresentationActive ? "false" : "true");
-	ImGui::Text("Draw BossIntro 3D: %s", bossIntroPresentationActive ? "true" : "false");
-	ImGui::Text("Draw Gameplay Route: %s", bossIntroPresentationActive ? "false" : "true");
 	if (guardianBoss_)
 	{
 		ImGui::Text("ボス生存中: %s", guardianBoss_->IsAlive() ? "はい" : "いいえ");
-		ImGui::Text("ボスHP: %.1f", guardianBoss_->GetHP());
-		ImGui::Text("ボス最大HP: %.1f", guardianBoss_->GetMaxHP());
-		ImGui::Text("ボスHP割合: %.1f%%", guardianBoss_->GetHPRate() * 100.0f);
-		ImGui::Text("近接攻撃ヒット回数: %d", guardianBoss_->GetMeleeHitCount());
-		ImGui::Text("銃弾ヒット回数: %d", guardianBoss_->GetBulletHitCount());
-		ImGui::Text("最後にボスへ与えたダメージ: %.1f", guardianBoss_->GetLastReceivedDamage());
+		ImGui::Text("ボスHP: %.1f / %.1f", guardianBoss_->GetHP(), guardianBoss_->GetMaxHP());
 		ImGui::Text("ボス攻撃ヒット回数: %d", guardianBoss_->GetBossAttackHitCount());
 		ImGui::Text("最後にプレイヤーが受けたボスダメージ: %.1f", guardianBoss_->GetLastPlayerDamage());
 	}
-	else
-	{
-		ImGui::Text("ボス生存中: いいえ");
-		ImGui::Text("ボスHP: 0.0");
-		ImGui::Text("ボス最大HP: 0.0");
-		ImGui::Text("ボスHP割合: 0.0%%");
-		ImGui::Text("近接攻撃ヒット回数: 0");
-		ImGui::Text("銃弾ヒット回数: 0");
-		ImGui::Text("最後にボスへ与えたダメージ: 0.0");
-		ImGui::Text("ボス攻撃ヒット回数: 0");
-		ImGui::Text("最後にプレイヤーが受けたボスダメージ: 0.0");
-	}
-
 	ImGui::SeparatorText("クリアCube状態");
 	ImGui::Text("クリアCube出現済み: %s", clearItemSpawned_ ? "はい" : "いいえ");
 	ImGui::Text("クリアCube取得済み: %s", clearItemCollected_ ? "はい" : "いいえ");
-	const K4E::Vector3 clearPos = clearItem_ ? clearItem_->GetPosition() : K4E::Vector3{};
-	ImGui::Text("クリアCube座標: %.2f, %.2f, %.2f", clearPos.x, clearPos.y, clearPos.z);
 	ImGui::Text("ゲームクリア判定: %s", isGameClear_ ? "はい" : "いいえ");
-	ImGui::Text("ボス撃破済み: %s", bossDefeated_ ? "はい" : "いいえ");
-	if (guardianBoss_)
-	{
-		guardianBoss_->DrawImGui();
-	}
+	if (guardianBoss_) guardianBoss_->DrawImGui();
 #else
 	(void)deps;
 	(void)bossIntroPresentationActive;
@@ -443,11 +281,7 @@ void BossBattleController::DrawImGui(const Dependencies& deps, bool bossIntroPre
 
 void BossBattleController::ResetIntroForDebug(const Dependencies& deps)
 {
-	if (guardianBoss_ && deps.collisionManager && bossColliderRegistered_)
-	{
-		deps.collisionManager->RemoveCollider(guardianBoss_.get());
-	}
-
+	if (guardianBoss_ && deps.collisionManager && bossColliderRegistered_) deps.collisionManager->RemoveCollider(guardianBoss_.get());
 	guardianBoss_.reset();
 	bossSpawned_ = false;
 	bossColliderRegistered_ = false;
@@ -456,103 +290,64 @@ void BossBattleController::ResetIntroForDebug(const Dependencies& deps)
 	bossIntroController_.Reset();
 }
 
-bool BossBattleController::IsBossBattleActive() const
-{
-	return guardianBoss_ && bossColliderRegistered_ && guardianBoss_->IsAlive() && !bossIntroController_.IsGameplayPaused();
-}
-
-float BossBattleController::GetBossHP() const
-{
-	return guardianBoss_ ? guardianBoss_->GetHP() : 0.0f;
-}
-
-float BossBattleController::GetBossMaxHP() const
-{
-	return guardianBoss_ ? guardianBoss_->GetMaxHP() : 0.0f;
-}
+bool BossBattleController::IsBossBattleActive() const { return guardianBoss_ && bossColliderRegistered_ && guardianBoss_->IsAlive() && !bossIntroController_.IsGameplayPaused(); }
+float BossBattleController::GetBossHP() const { return guardianBoss_ ? guardianBoss_->GetHP() : 0.0f; }
+float BossBattleController::GetBossMaxHP() const { return guardianBoss_ ? guardianBoss_->GetMaxHP() : 0.0f; }
 
 void BossBattleController::SpawnGuardianBoss(const Dependencies& deps, bool registerCollider)
 {
-	if (bossSpawned_)
-	{
-		return;
-	}
-
+	if (bossSpawned_) return;
 	guardianBoss_ = std::make_unique<GuardianBoss>();
 	guardianBoss_->Initialize();
 	if (stage1BeginnerBalanceEnabled_)
 	{
-		// ステージ1はプライマリ武器1丁で倒し切れるよう、ボスHPだけを導入ステージ用に下げる。
 		if (auto* status = guardianBoss_->GetStatusComponent())
 		{
 			status->SetMaxHP(kStage1BeginnerBossMaxHP);
 			status->SetHP(kStage1BeginnerBossMaxHP);
 		}
 	}
-
 	if (deps.stage)
 	{
 		guardianBoss_->SetStageObstacleAABBs(&deps.stage->GetWallObstacleAABBs());
-
 		K4E::WorldCollisionSettings bossCollisionSettings{};
 		bossCollisionSettings.half = { 1.25f, 1.75f, 1.25f };
 		bossCollisionSettings.centerOffset = { 0.0f, 0.0f, 0.0f };
-		bossCollisionSettings.eps = 0.002f; // ボス本体のColliderサイズに合わせて、障害物との押し戻しサイズを設定する。
+		bossCollisionSettings.eps = 0.002f;
 		guardianBoss_->SetWorldCollisionSettings(bossCollisionSettings);
 	}
-
 	guardianBoss_->SetPosition(registerCollider ? bossSpawnPosition_ : bossIntroController_.GetBossStartPosition());
 	guardianBoss_->SetYaw(kPi);
-	if (deps.characters)
+	if (deps.characters && deps.characters->GetPlayerRuntime())
 	{
-		if (auto* player = deps.characters->GetPlayer())
-		{
-			guardianBoss_->SetTargetPosition(player->GetCenterPosition());
-			guardianBoss_->SetTargetPlayer(player);
-		}
+		IPlayerRuntime* player = deps.characters->GetPlayerRuntime();
+		guardianBoss_->SetTargetPosition(player->GetWorldPosition());
+		guardianBoss_->SetTargetPlayer(player);
 	}
 	guardianBoss_->Update(0.0f);
 	bossSpawned_ = true;
-	if (registerCollider)
-	{
-		RegisterGuardianBossCollider(deps);
-	}
+	if (registerCollider) RegisterGuardianBossCollider(deps);
 }
 
 void BossBattleController::RegisterGuardianBossCollider(const Dependencies& deps)
 {
-	if (!guardianBoss_ || !deps.collisionManager || bossColliderRegistered_)
-	{
-		return;
-	}
-
+	if (!guardianBoss_ || !deps.collisionManager || bossColliderRegistered_) return;
 	guardianBoss_->ClearRootParentKeepingWorldPosition();
 	guardianBoss_->SetPosition(bossIntroController_.GetBossAppearPosition());
 	guardianBoss_->SetYaw(kPi);
 	guardianBoss_->ForceSyncWorldTransform();
-	// 登場完了後にボスAI/攻撃/当たり判定を有効化するため、このタイミングでCollider登録する。
 	deps.collisionManager->AddCollider(guardianBoss_.get());
 	bossColliderRegistered_ = true;
 	Log("[GuardianBoss] Collider registered as kBoss.\n");
 }
 
-void BossBattleController::AlignPlayerViewToBossAfterIntro(Player& player) const
+void BossBattleController::AlignPlayerViewToBossAfterIntro(IPlayerRuntime& player) const
 {
-	auto* resumedCamera = player.GetCamera();
-	if (!resumedCamera)
-	{
-		return;
-	}
-
+	K4E::Camera* resumedCamera = player.GetCamera();
+	if (!resumedCamera) return;
 	float pitch = 0.0f;
 	float yaw = 0.0f;
-	if (CalcLookAnglesToTarget(resumedCamera->GetTranslate(), bossIntroController_.GetBossLookTarget(), pitch, yaw))
-	{
-		// カットシーン復帰時も通常FPSカメラの内部角度をボス方向へ合わせ、次フレームで元視線へ戻らないようにする。
-		player.SetViewLookAngles(pitch, yaw);
-	}
-
-	player.SyncViewToPlayer();
+	if (CalcLookAnglesToTarget(resumedCamera->GetTranslate(), bossIntroController_.GetBossLookTarget(), pitch, yaw)) player.SetViewLookAngles(pitch, yaw);
 	K4E::CameraManager::GetInstance()->SetMainCamera(resumedCamera);
 	resumedCamera->Update();
 }
@@ -561,118 +356,59 @@ void BossBattleController::UpdateBossClearProgress(const Dependencies& deps, flo
 {
 	if (guardianBoss_ && guardianBoss_->IsDead() && !bossDefeated_)
 	{
-		// ボス死亡だけでは即クリアにせず、取得アイテムを出すための中間状態にする。
 		bossDefeated_ = true;
-		if (deps.setBossDefeated)
-		{
-			deps.setBossDefeated(false);
-		}
+		if (deps.setBossDefeated) deps.setBossDefeated(false);
 	}
-
-	if (bossDefeated_ && !clearItemSpawned_ && guardianBoss_)
-	{
-		// 撃破位置を基準にクリアアイテムを出し、プレイヤーが取りに行く余地を残す。
-		SpawnClearItem(deps, guardianBoss_->GetPosition());
-	}
-
+	if (bossDefeated_ && !clearItemSpawned_ && guardianBoss_) SpawnClearItem(deps, guardianBoss_->GetPosition());
 	if (clearItem_ && !clearItemCollected_)
 	{
 		clearItem_->Update(deltaTime);
-		if (deps.characters)
-		{
-			if (auto* player = deps.characters->GetPlayer())
-			{
-				if (clearItem_->CheckPickup(*player))
-				{
-					CollectClearItem(deps);
-				}
-			}
-		}
+		IPlayerRuntime* player = deps.characters ? deps.characters->GetPlayerRuntime() : nullptr;
+		if (player && clearItem_->CheckPickup(*player)) CollectClearItem(deps);
 	}
 }
 
 void BossBattleController::SpawnClearItem(const Dependencies& deps, const K4E::Vector3& bossPosition)
 {
-	if (clearItemSpawned_)
-	{
-		return;
-	}
-
+	if (clearItemSpawned_) return;
 	K4E::Vector3 spawnPosition = bossPosition;
 	spawnPosition.z -= 2.0f;
 	spawnPosition.y = std::max(spawnPosition.y, 0.75f);
-
 	clearItem_ = std::make_unique<BossClearItem>();
 	clearItem_->Initialize(spawnPosition);
-	if (deps.collisionManager)
-	{
-		deps.collisionManager->AddCollider(clearItem_.get());
-	}
-
+	if (deps.collisionManager) deps.collisionManager->AddCollider(clearItem_.get());
 	clearItemSpawned_ = true;
 	Log("[GameClear] BossClearItem spawned.\n");
 }
 
 void BossBattleController::CollectClearItem(const Dependencies& deps)
 {
-	if (clearItemCollected_ || isGameClear_)
-	{
-		return;
-	}
-
+	if (clearItemCollected_ || isGameClear_) return;
 	clearItemCollected_ = true;
 	isGameClear_ = true;
 	if (clearItem_)
 	{
 		clearItem_->MarkCollected();
-		if (deps.collisionManager)
-		{
-			deps.collisionManager->RemoveCollider(clearItem_.get());
-		}
+		if (deps.collisionManager) deps.collisionManager->RemoveCollider(clearItem_.get());
 	}
-
-	// ボス撃破後に出現するクリアCubeを取得したらゲームクリアへ進める。
-	if (deps.setBossDefeated)
-	{
-		deps.setBossDefeated(true);
-	}
+	if (deps.setBossDefeated) deps.setBossDefeated(true);
 	Log("[GameClear] Clear item collected.\n");
 }
 
 void BossBattleController::HandleBossPhasePresentation(const Dependencies& deps)
 {
 	(void)deps;
-	if (!guardianBoss_)
-	{
-		return;
-	}
-
+	if (!guardianBoss_) return;
 	BossPhase phase = BossPhase::Phase1;
-	if (!guardianBoss_->ConsumePhaseTransitionPresentation(phase))
-	{
-		return;
-	}
-
+	if (!guardianBoss_->ConsumePhaseTransitionPresentation(phase)) return;
 	lastPresentedBossPhase_ = phase;
-	if (phase == BossPhase::Phase3)
-	{
-		// Phase3は最終形態なので、Phase2より強い揺れで緊張感を上げる。
-		StartCameraShake(0.85f, 0.40f, 25.0f);
-	}
-	else if (phase == BossPhase::Phase2)
-	{
-		// Phase2は中程度の揺れにして、強化は伝えつつ酔いにくくする。
-		StartCameraShake(0.55f, 0.24f, 20.0f);
-	}
+	if (phase == BossPhase::Phase3) StartCameraShake(0.85f, 0.40f, 25.0f);
+	else if (phase == BossPhase::Phase2) StartCameraShake(0.55f, 0.24f, 20.0f);
 }
 
 void BossBattleController::StartCameraShake(float duration, float amplitude, float frequency)
 {
-	if (duration <= 0.0f || amplitude <= 0.0f)
-	{
-		return;
-	}
-
+	if (duration <= 0.0f || amplitude <= 0.0f) return;
 	cameraShakeDuration_ = duration;
 	cameraShakeTimer_ = duration;
 	cameraShakeAmplitude_ = amplitude;
@@ -680,55 +416,29 @@ void BossBattleController::StartCameraShake(float duration, float amplitude, flo
 	cameraShakeSeed_ += 2.31f;
 }
 
-void BossBattleController::UpdateCameraShake(float deltaTime, Player* player)
+void BossBattleController::UpdateCameraShake(float deltaTime, IPlayerRuntime* player)
 {
-	if (cameraShakeTimer_ <= 0.0f)
-	{
-		return;
-	}
-
+	if (cameraShakeTimer_ <= 0.0f) return;
 	cameraShakeTimer_ = std::max(0.0f, cameraShakeTimer_ - deltaTime);
-	if (!player)
-	{
-		return;
-	}
-
-	auto* camera = player->GetCamera();
-	if (!camera)
-	{
-		return;
-	}
-
-	// 戦闘中のカメラ揺れは通常FPSカメラの最終位置へ小さく足し、操作不能感を出さずに衝撃だけ伝える。
+	K4E::Camera* camera = player ? player->GetCamera() : nullptr;
+	if (!camera) return;
 	camera->SetTranslate(camera->GetTranslate() + BuildCameraShakeOffset());
 	camera->Update();
 }
 
 K4E::Vector3 BossBattleController::BuildCameraShakeOffset() const
 {
-	if (cameraShakeTimer_ <= 0.0f || cameraShakeDuration_ <= 0.0f)
-	{
-		return {};
-	}
-
+	if (cameraShakeTimer_ <= 0.0f || cameraShakeDuration_ <= 0.0f) return {};
 	const float remainRate = std::clamp(cameraShakeTimer_ / cameraShakeDuration_, 0.0f, 1.0f);
 	const float t = (cameraShakeDuration_ - cameraShakeTimer_) * cameraShakeFrequency_ + cameraShakeSeed_;
 	const float amp = cameraShakeAmplitude_ * remainRate * remainRate;
-	return {
-		std::sin(t * 1.51f) * amp,
-		std::cos(t * 1.13f) * amp * 0.50f,
-		std::sin(t * 0.83f) * amp * 0.30f
-	};
+	return { std::sin(t * 1.51f) * amp, std::cos(t * 1.13f) * amp * 0.50f, std::sin(t * 0.83f) * amp * 0.30f };
 }
 
 bool BossBattleController::CalcLookAnglesToTarget(const K4E::Vector3& from, const K4E::Vector3& target, float& outPitch, float& outYaw)
 {
 	K4E::Vector3 direction = target - from;
-	if (K4E::Vector3::LengthSquared(direction) <= 0.000001f)
-	{
-		return false;
-	}
-
+	if (K4E::Vector3::LengthSquared(direction) <= 0.000001f) return false;
 	direction = K4E::Vector3::Normalize(direction);
 	outYaw = std::atan2(-direction.x, direction.z);
 	const float xzLen = std::sqrt(direction.x * direction.x + direction.z * direction.z);
