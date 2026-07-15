@@ -28,7 +28,7 @@ public:
 
 	LevelDataValidation()
 	{
-		Load("stages/hajimarinoheigen.json");
+		Load("stages/fps_stage00.json");
 	}
 
 	bool Load(const std::string& relativePath)
