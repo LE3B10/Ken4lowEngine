@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PlayerCameraComponent.h"
+#include "WeaponComponent.h"
 
 #include <Actor.h>
 #include <Camera.h>
@@ -43,6 +44,8 @@ namespace Ken4lowEngine
 
 			Actor* owner = GetOwner();
 			const PlayerCameraComponent* playerCamera = owner ? owner->GetComponent<PlayerCameraComponent>() : nullptr;
+			const WeaponComponent* weapon = owner ? owner->GetComponent<WeaponComponent>() : nullptr;
+			const bool isReloading = weapon && weapon->IsReloading();
 			Vector3 forward{ 0.0f, 0.0f, 1.0f };
 			if (playerCamera)
 			{
@@ -60,7 +63,7 @@ namespace Ken4lowEngine
 			float worldZ = right.z * x + forward.z * z;
 
 			blinkCooldownRemaining_ = (std::max)(0.0f, blinkCooldownRemaining_ - safeDeltaTime);
-			if (blinkRequested_ && blinkCooldownRemaining_ <= 0.0f && blinkRemaining_ <= 0.0f)
+			if (blinkRequested_ && blinkCooldownRemaining_ <= 0.0f && blinkRemaining_ <= 0.0f && !isReloading)
 			{
 				Vector3 requestedDirection{ worldX, 0.0f, worldZ };
 				blinkDirection_ = NormalizeXZOrDefault(requestedDirection, forward);
@@ -78,9 +81,11 @@ namespace Ken4lowEngine
 			}
 			else
 			{
-				const float speedMultiplier = sprintHeld_ ? sprintSpeedMultiplier_ : 1.0f;
+				const float sprintMultiplier = (sprintHeld_ && !isReloading) ? sprintSpeedMultiplier_ : 1.0f;
+				const float actionMultiplier = isReloading ? reloadSpeedMultiplier_ : 1.0f;
+				const float speedMultiplier = sprintMultiplier * actionMultiplier;
 				worldX *= moveSpeed_ * speedMultiplier;
-				worldZ *= moveSpeed_ * speedMultiplier;
+				worldZ *= moveSpeed_ * speedMultiplier; // 旧Playerと同じくReload中は移動速度を0.65倍へ落とす。
 			}
 
 			Vector3 targetVelocity = GetVelocity();
@@ -94,7 +99,7 @@ namespace Ken4lowEngine
 			if (rigidbody)
 			{
 				CharacterMovementComponent::Update(safeDeltaTime);
-				if (jumpRequested_ && rigidbody->IsGrounded())
+				if (jumpRequested_ && rigidbody->IsGrounded() && !isReloading)
 				{
 					Vector3 physicalVelocity = rigidbody->GetVelocity();
 					physicalVelocity.y = jumpSpeed_; // JumpだけY速度を書き換え、重力・落下速度はPhysicsの正本を維持する。
@@ -104,7 +109,7 @@ namespace Ken4lowEngine
 				return;
 			}
 
-			if (jumpRequested_) targetVelocity.y = jumpSpeed_;
+			if (jumpRequested_ && !isReloading) targetVelocity.y = jumpSpeed_;
 			CharacterMovementComponent::SetVelocity(targetVelocity);
 			jumpRequested_ = false;
 			CharacterMovementComponent::Update(safeDeltaTime);
@@ -117,14 +122,16 @@ namespace Ken4lowEngine
 			ImGui::SeparatorText("プレイヤー移動");
 			ImGui::SliderFloat("移動速度", &moveSpeed_, 0.0f, 30.0f, "%.2f");
 			ImGui::SliderFloat("Sprint倍率", &sprintSpeedMultiplier_, 1.0f, 3.0f, "%.2f");
+			ImGui::SliderFloat("Reload移動倍率", &reloadSpeedMultiplier_, 0.1f, 1.0f, "%.2f");
 			ImGui::SliderFloat("ジャンプ速度", &jumpSpeed_, 0.0f, 30.0f, "%.2f");
 			ImGui::SliderFloat("Blink速度", &blinkSpeed_, 1.0f, 60.0f, "%.2f");
 			ImGui::SliderFloat("Blink時間", &blinkDuration_, 0.01f, 1.0f, "%.3f");
 			ImGui::SliderFloat("Blinkクールダウン", &blinkCooldown_, 0.0f, 5.0f, "%.2f");
-			ImGui::Text("入力: %.2f, %.2f / Sprint: %s / Blink: %s", moveInputX_, moveInputZ_, sprintHeld_ ? "Yes" : "No", IsBlinking() ? "Yes" : "No");
+			const Actor* owner = GetOwner();
+			const WeaponComponent* weapon = owner ? owner->GetComponent<WeaponComponent>() : nullptr;
+			ImGui::Text("入力: %.2f, %.2f / Sprint: %s / Reload: %s / Blink: %s", moveInputX_, moveInputZ_, sprintHeld_ ? "Yes" : "No", weapon && weapon->IsReloading() ? "Yes" : "No", IsBlinking() ? "Yes" : "No");
 			ImGui::Text("Grounded: %s", IsGrounded() ? "Yes" : "No");
 
-			Actor* owner = GetOwner();
 			const SceneComponent* root = owner ? owner->GetRootComponent() : nullptr;
 			const CharacterColliderComponent* collider = owner ? owner->GetComponent<CharacterColliderComponent>() : nullptr;
 			const Collider* physicsCollider = collider ? collider->GetCollider() : nullptr;
@@ -146,6 +153,7 @@ namespace Ken4lowEngine
 			CharacterMovementComponent::ToJson(outJson);
 			outJson["MoveSpeed"] = moveSpeed_;
 			outJson["SprintSpeedMultiplier"] = sprintSpeedMultiplier_;
+			outJson["ReloadSpeedMultiplier"] = reloadSpeedMultiplier_;
 			outJson["JumpSpeed"] = jumpSpeed_;
 			outJson["BlinkSpeed"] = blinkSpeed_;
 			outJson["BlinkDuration"] = blinkDuration_;
@@ -157,18 +165,21 @@ namespace Ken4lowEngine
 			CharacterMovementComponent::FromJson(inJson);
 			moveSpeed_ = inJson.value("MoveSpeed", moveSpeed_);
 			sprintSpeedMultiplier_ = inJson.value("SprintSpeedMultiplier", sprintSpeedMultiplier_);
+			reloadSpeedMultiplier_ = inJson.value("ReloadSpeedMultiplier", reloadSpeedMultiplier_);
 			jumpSpeed_ = inJson.value("JumpSpeed", jumpSpeed_);
 			blinkSpeed_ = inJson.value("BlinkSpeed", blinkSpeed_);
 			blinkDuration_ = inJson.value("BlinkDuration", blinkDuration_);
 			blinkCooldown_ = inJson.value("BlinkCooldown", blinkCooldown_);
 			if (!std::isfinite(moveSpeed_)) moveSpeed_ = 6.0f;
 			if (!std::isfinite(sprintSpeedMultiplier_)) sprintSpeedMultiplier_ = 1.55f;
+			if (!std::isfinite(reloadSpeedMultiplier_)) reloadSpeedMultiplier_ = 0.65f;
 			if (!std::isfinite(jumpSpeed_)) jumpSpeed_ = 7.0f;
 			if (!std::isfinite(blinkSpeed_)) blinkSpeed_ = 18.0f;
 			if (!std::isfinite(blinkDuration_)) blinkDuration_ = 0.15f;
 			if (!std::isfinite(blinkCooldown_)) blinkCooldown_ = 0.75f;
 			moveSpeed_ = (std::max)(0.0f, moveSpeed_);
 			sprintSpeedMultiplier_ = (std::max)(1.0f, sprintSpeedMultiplier_);
+			reloadSpeedMultiplier_ = std::clamp(reloadSpeedMultiplier_, 0.1f, 1.0f);
 			jumpSpeed_ = (std::max)(0.0f, jumpSpeed_);
 			blinkSpeed_ = (std::max)(0.0f, blinkSpeed_);
 			blinkDuration_ = (std::max)(0.01f, blinkDuration_);
@@ -217,6 +228,7 @@ namespace Ken4lowEngine
 		float GetMoveInputZ() const { return moveInputZ_; }
 		float GetMoveSpeed() const { return moveSpeed_; }
 		float GetJumpSpeed() const { return jumpSpeed_; }
+		float GetReloadSpeedMultiplier() const { return reloadSpeedMultiplier_; }
 
 	private:
 		static Vector3 NormalizeXZOrDefault(const Vector3& value, const Vector3& fallback)
@@ -260,6 +272,7 @@ namespace Ken4lowEngine
 		float moveInputZ_ = 0.0f;
 		float moveSpeed_ = 6.0f;
 		float sprintSpeedMultiplier_ = 1.55f;
+		float reloadSpeedMultiplier_ = 0.65f;
 		float jumpSpeed_ = 7.0f;
 		float blinkSpeed_ = 18.0f;
 		float blinkDuration_ = 0.15f;
