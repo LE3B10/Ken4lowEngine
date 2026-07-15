@@ -9,13 +9,17 @@
 #include <AudioManager.h>
 #include <Camera.h>
 #include <CameraManager.h>
+#include <Collider.h>
 #include <Input.h>
 #include <InputSnapshot.h>
 #include <PhysicsWorld.h>
-#include <StagePhysicsBinder.h>
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
+#include <unordered_set>
+#include <utility>
+#include <vector>
 
 /// P10中だけ新PlayerActorをGamePlay実ステージへ投入し、旧Playerを互換Proxyとして残す移行ランタイム。
 class GamePlayPlayerMigrationRuntime
@@ -40,9 +44,10 @@ public:
 		playerActorWorld_.Initialize();
 		player_ = &player;
 
-		playerStagePhysicsBinder_.Bind(playerPhysicsWorld_, stage_->GetWorldColliderPointers());
+		stageColliders_ = stage_->GetWorldColliderPointers();
 		player_->ResetForValidation(legacyPlayer_->GetCenterPosition());
-		player_->SetGameplayHudVisible(false); // 既存Wave/Tutorial HUDを維持し、P10中のPlayer HUD二重表示を避ける。
+		RefreshNearbyStageColliders(true); // P10ではPlayer周辺だけをPhysicsWorldへ登録し、Stage全ColliderのO(N^2)判定を避ける。
+		player_->SetGameplayHudVisible(false);
 		if (auto* visual = player_->GetHumanoidVisualComponent()) visual->SetActive(false);
 
 		if (K4E::PlayerCameraComponent* cameraComponent = player_->GetPlayerCameraComponent())
@@ -66,7 +71,8 @@ public:
 	void Finalize()
 	{
 		active_ = false;
-		playerStagePhysicsBinder_.Unbind();
+		ClearNearbyStageColliders();
+		stageColliders_.clear();
 		playerActorWorld_.Finalize();
 		player_ = nullptr;
 		legacyPlayer_ = nullptr;
@@ -74,6 +80,8 @@ public:
 		stage_ = nullptr;
 		lastLegacyHp_ = 0.0f;
 		lastShotRevision_ = 0u;
+		lastStageRefreshPosition_ = {};
+		hasStageRefreshPosition_ = false;
 	}
 
 	void Update(float deltaTime, bool allowInput = true)
@@ -94,6 +102,7 @@ public:
 		}
 
 		playerActorWorld_.Update(deltaTime);
+		RefreshNearbyStageColliders(false);
 		playerPhysicsWorld_.Update(deltaTime);
 		playerActorWorld_.PostPhysicsUpdate(deltaTime);
 		SyncLegacyProxyTransform();
@@ -113,7 +122,7 @@ public:
 		const float delta = legacyHp - lastLegacyHp_;
 		if (delta < -0.001f)
 		{
-			player_->ApplyPlayerDamage(-delta); // 既存Enemy/BossのCollision結果だけを新Player Healthへ移す。
+			player_->ApplyPlayerDamage(-delta);
 		}
 		else if (delta > 0.001f)
 		{
@@ -151,6 +160,8 @@ public:
 	const K4E::PlayerActor* GetPlayer() const { return player_; }
 	IPlayerRuntime* GetPlayerRuntime() { return player_; }
 	const IPlayerRuntime* GetPlayerRuntime() const { return player_; }
+	size_t GetRegisteredStageColliderCount() const { return activeStageColliders_.size(); }
+	size_t GetTotalStageColliderCount() const { return stageColliders_.size(); }
 
 	K4E::Camera* GetCamera() const
 	{
@@ -166,6 +177,83 @@ public:
 	}
 
 private:
+	static float DistanceSquaredPointToAabbXZ(const K4E::Vector3& point, const K4E::AABB& bounds)
+	{
+		const float dx = point.x < bounds.min.x ? bounds.min.x - point.x : (point.x > bounds.max.x ? point.x - bounds.max.x : 0.0f);
+		const float dz = point.z < bounds.min.z ? bounds.min.z - point.z : (point.z > bounds.max.z ? point.z - bounds.max.z : 0.0f);
+		return dx * dx + dz * dz;
+	}
+
+	void RefreshNearbyStageColliders(bool force)
+	{
+		if (!player_) return;
+		const K4E::Vector3 playerPosition = GetPlayerPosition();
+		if (!force && hasStageRefreshPosition_)
+		{
+			const float dx = playerPosition.x - lastStageRefreshPosition_.x;
+			const float dz = playerPosition.z - lastStageRefreshPosition_.z;
+			if (dx * dx + dz * dz < kStageRefreshDistance * kStageRefreshDistance) return;
+		}
+
+		std::vector<std::pair<float, K4E::Collider*>> candidates;
+		candidates.reserve(stageColliders_.size());
+		for (K4E::Collider* collider : stageColliders_)
+		{
+			if (!collider || !collider->IsCollisionEnabledForQuery()) continue;
+			const float distanceSq = DistanceSquaredPointToAabbXZ(playerPosition, collider->GetAABB());
+			if (distanceSq <= kStageActivationRadius * kStageActivationRadius)
+			{
+				candidates.emplace_back(distanceSq, collider);
+			}
+		}
+
+		if (candidates.size() > kMaxActiveStageColliders)
+		{
+			std::nth_element(
+				candidates.begin(),
+				candidates.begin() + static_cast<std::ptrdiff_t>(kMaxActiveStageColliders),
+				candidates.end(),
+				[](const auto& lhs, const auto& rhs) { return lhs.first < rhs.first; });
+			candidates.resize(kMaxActiveStageColliders);
+		}
+
+		std::unordered_set<K4E::Collider*> desired;
+		desired.reserve(candidates.size());
+		for (const auto& candidate : candidates) desired.insert(candidate.second);
+
+		for (auto it = activeStageColliders_.begin(); it != activeStageColliders_.end();)
+		{
+			if (!desired.contains(*it))
+			{
+				playerPhysicsWorld_.UnregisterCollider(*it);
+				it = activeStageColliders_.erase(it);
+			}
+			else
+			{
+				++it;
+			}
+		}
+		for (K4E::Collider* collider : desired)
+		{
+			if (activeStageColliders_.insert(collider).second)
+			{
+				playerPhysicsWorld_.RegisterCollider(collider);
+			}
+		}
+
+		lastStageRefreshPosition_ = playerPosition;
+		hasStageRefreshPosition_ = true;
+	}
+
+	void ClearNearbyStageColliders()
+	{
+		for (K4E::Collider* collider : activeStageColliders_)
+		{
+			playerPhysicsWorld_.UnregisterCollider(collider);
+		}
+		activeStageColliders_.clear();
+	}
+
 	void SyncLegacyProxyTransform()
 	{
 		if (!player_ || !legacyPlayer_) return;
@@ -200,14 +288,20 @@ private:
 
 private:
 	static constexpr float kMouseLookSensitivity = 0.0025f;
+	static constexpr float kStageActivationRadius = 18.0f;
+	static constexpr float kStageRefreshDistance = 3.0f;
+	static constexpr size_t kMaxActiveStageColliders = 96;
 	K4E::ActorWorld playerActorWorld_{};
 	K4E::PhysicsWorld playerPhysicsWorld_{};
-	K4E::StagePhysicsBinder playerStagePhysicsBinder_{};
 	K4E::PlayerActor* player_ = nullptr;
 	Player* legacyPlayer_ = nullptr;
 	BulletManager* bulletManager_ = nullptr;
 	K4E::Stage* stage_ = nullptr;
+	std::vector<K4E::Collider*> stageColliders_{};
+	std::unordered_set<K4E::Collider*> activeStageColliders_{};
+	K4E::Vector3 lastStageRefreshPosition_{};
 	float lastLegacyHp_ = 0.0f;
 	unsigned int lastShotRevision_ = 0u;
+	bool hasStageRefreshPosition_ = false;
 	bool active_ = false;
 };
