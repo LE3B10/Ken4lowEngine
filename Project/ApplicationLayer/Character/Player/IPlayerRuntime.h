@@ -21,27 +21,44 @@ public:
 	virtual bool IsDeathActive() const = 0;
 	bool IsDeathSequenceFinished() const { return IsGameOverReady(); }
 
-	virtual Ken4lowEngine::Vector3 GetWorldPosition() const = 0;
-	virtual Ken4lowEngine::Collider* GetCollisionPrimitive() = 0;
-	virtual const Ken4lowEngine::Collider* GetCollisionPrimitive() const = 0;
-	virtual Ken4lowEngine::Camera* GetCamera() const = 0;
+	// P13中も旧Playerソース自体を比較用にコンパイルできるよう、追加Runtime APIは安全な既定実装を持つ。
+	virtual Ken4lowEngine::Vector3 GetWorldPosition() const { return {}; }
+	virtual Ken4lowEngine::Collider* GetCollisionPrimitive() { return nullptr; }
+	virtual const Ken4lowEngine::Collider* GetCollisionPrimitive() const { return nullptr; }
+	virtual Ken4lowEngine::Camera* GetCamera() const { return nullptr; }
 
-	virtual float ApplyRuntimeDamage(float amount) = 0;
-	virtual float HealRuntime(float amount) = 0;
+	virtual float ApplyRuntimeDamage(float amount)
+	{
+		(void)amount;
+		return 0.0f;
+	}
+	virtual float HealRuntime(float amount)
+	{
+		(void)amount;
+		return 0.0f;
+	}
 	virtual void ApplyDamage(float amount, const Ken4lowEngine::Vector3* attackPosition = nullptr)
 	{
 		(void)attackPosition;
 		ApplyRuntimeDamage(amount); // 旧Boss攻撃の位置付きDamage呼び出しをRuntime境界へ吸収する。
 	}
 
-	virtual int AddReserveAmmo(int amount) = 0;
-	virtual int GetMagazineAmmo() const = 0;
-	virtual int GetMagazineCapacity() const = 0;
-	virtual int GetReserveAmmo() const = 0;
-	virtual int GetMaxReserveAmmo() const = 0;
-	virtual bool IsReloading() const = 0;
-	virtual float GetReloadTimer() const = 0;
-	virtual float GetReloadDuration() const = 0;
+	virtual int AddReserveAmmo(int amount)
+	{
+		(void)amount;
+		return 0;
+	}
+	virtual int GetMagazineAmmo() const { return 0; }
+	virtual int GetMagazineCapacity() const { return 0; }
+	virtual int GetReserveAmmo() const { return 0; }
+	virtual int GetMaxReserveAmmo() const { return 0; }
+	virtual bool IsReloading() const { return false; }
+	virtual float GetReloadTimer() const { return 0.0f; }
+	virtual float GetReloadDuration() const { return 0.0f; }
 
-	virtual void SetViewLookAngles(float pitch, float yaw) = 0;
+	virtual void SetViewLookAngles(float pitch, float yaw)
+	{
+		(void)pitch;
+		(void)yaw;
+	}
 };
