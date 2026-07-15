@@ -181,6 +181,7 @@ void DebugScene::DrawImGui()
 #ifdef USE_IMGUI
 	actorWorld_.DrawImGui();
 	DrawActorWorldValidationImGui();
+	levelDataValidation_.DrawImGui(); // Blender JSONからLevelDataへの読み込み結果を画面上で確認する。
 	enemyMigrationValidation_.DrawImGui();
 	bossMigrationValidation_.DrawImGui();
 
