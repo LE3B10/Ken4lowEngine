@@ -1,6 +1,7 @@
 #include "RenderPipelineController.h"
 
 #include "DirectXCommon.h"
+#include "GameTimer.h"
 #include "LightManager.h"
 
 #include <algorithm>
@@ -11,10 +12,13 @@
 
 namespace Ken4lowEngine
 {
+	RenderPipelineController* RenderPipelineController::activeController_ = nullptr;
+
 	void RenderPipelineController::Initialize(DirectXCommon* dxCommon)
 	{
 		// ControllerはDX12リソースを所有せず、既存DirectXCommonのフレーム入口だけを参照する。
 		dxCommon_ = dxCommon;
+		activeController_ = this;
 	}
 
 	void RenderPipelineController::ExecuteFrame(bool editorModeEnabled, const FrameCallbacks& callbacks)
@@ -94,6 +98,13 @@ namespace Ken4lowEngine
 	void RenderPipelineController::DrawPerformanceImGui()
 	{
 #ifdef USE_IMGUI
+		const GameTimer::CompletedFrameTiming& completed = GameTimer::GetInstance()->GetCompletedFrameTiming();
+		frameTimingSummary_.frameIntervalMs = completed.frameIntervalMs;
+		frameTimingSummary_.updateMs = completed.updateMs;
+		frameTimingSummary_.drawMs = completed.drawMs;
+		frameTimingSummary_.presentMs = completed.presentMs;
+		frameTimingSummary_.totalFrameMs = completed.totalFrameMs;
+
 		if (!ImGui::Begin("Render Pipeline Performance"))
 		{
 			ImGui::End();
