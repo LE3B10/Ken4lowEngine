@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-/// P10中だけ新PlayerActorをGamePlay実ステージへ投入し、旧Playerを互換Proxyとして残す移行ランタイム。
+/// P10/P11中だけ新PlayerActorをGamePlay実ステージへ投入し、旧Playerを互換Proxyとして残す移行ランタイム。
 class GamePlayPlayerMigrationRuntime
 {
 public:
@@ -46,7 +46,14 @@ public:
 
 		stageColliders_ = stage_->GetWorldColliderPointers();
 		player_->ResetForValidation(legacyPlayer_->GetCenterPosition());
-		RefreshNearbyStageColliders(true); // P10ではPlayer周辺だけをPhysicsWorldへ登録し、Stage全ColliderのO(N^2)判定を避ける。
+		if (K4E::WeaponComponent* weapon = player_->GetWeaponComponent())
+		{
+			weapon->ConfigureAmmoState(
+				legacyPlayer_->GetCurrentWeaponMagazineCapacity(),
+				legacyPlayer_->GetCurrentWeaponMagazineAmmo(),
+				legacyPlayer_->GetCurrentWeaponReserveAmmo()); // P11開始時は既存GamePlayの武器残弾を新Weaponへ引き継ぐ。
+		}
+		RefreshNearbyStageColliders(true); // Player周辺だけをPhysicsWorldへ登録し、Stage全ColliderのO(N^2)判定を避ける。
 		player_->SetGameplayHudVisible(false);
 		if (auto* visual = player_->GetHumanoidVisualComponent()) visual->SetActive(false);
 
@@ -62,9 +69,11 @@ public:
 		legacyPlayer_->SetDebugCamera(true);
 		legacyPlayer_->SetStartGameplayVisualsVisible(false);
 		lastLegacyHp_ = legacyPlayer_->GetHP();
+		lastLegacyReserveAmmo_ = legacyPlayer_->GetCurrentWeaponReserveAmmo();
 		lastShotRevision_ = player_->GetWeaponComponent() ? player_->GetWeaponComponent()->GetShotRevision() : 0u;
 		active_ = true;
 		SyncLegacyProxyTransform();
+		SyncLegacyProxyWeaponState();
 		return true;
 	}
 
@@ -79,6 +88,7 @@ public:
 		bulletManager_ = nullptr;
 		stage_ = nullptr;
 		lastLegacyHp_ = 0.0f;
+		lastLegacyReserveAmmo_ = 0;
 		lastShotRevision_ = 0u;
 		lastStageRefreshPosition_ = {};
 		hasStageRefreshPosition_ = false;
@@ -106,6 +116,7 @@ public:
 		playerPhysicsWorld_.Update(deltaTime);
 		playerActorWorld_.PostPhysicsUpdate(deltaTime);
 		SyncLegacyProxyTransform();
+		SyncLegacyProxyWeaponState();
 		SpawnBridgedShots();
 
 		if (!K4E::CameraManager::GetInstance()->IsUsingDebugCamera())
@@ -119,16 +130,27 @@ public:
 		if (!active_ || !player_ || !legacyPlayer_) return;
 
 		const float legacyHp = legacyPlayer_->GetHP();
-		const float delta = legacyHp - lastLegacyHp_;
-		if (delta < -0.001f)
+		const float hpDelta = legacyHp - lastLegacyHp_;
+		if (hpDelta < -0.001f)
 		{
-			player_->ApplyPlayerDamage(-delta);
+			player_->ApplyPlayerDamage(-hpDelta);
 		}
-		else if (delta > 0.001f)
+		else if (hpDelta > 0.001f)
 		{
-			player_->HealPlayer(delta);
+			player_->HealPlayer(hpDelta);
 		}
 		lastLegacyHp_ = legacyHp;
+
+		const int legacyReserveAmmo = legacyPlayer_->GetCurrentWeaponReserveAmmo();
+		const int reserveDelta = legacyReserveAmmo - lastLegacyReserveAmmo_;
+		if (reserveDelta != 0)
+		{
+			if (K4E::WeaponComponent* weapon = player_->GetWeaponComponent())
+			{
+				weapon->AddReserveAmmo(reserveDelta); // Item/Tutorialが旧Proxyへ加えた弾薬差分だけを新Weaponへ移す。
+			}
+		}
+		lastLegacyReserveAmmo_ = legacyReserveAmmo;
 	}
 
 	void PrepareRenderState()
@@ -265,6 +287,20 @@ private:
 		}
 	}
 
+	void SyncLegacyProxyWeaponState()
+	{
+		if (!player_ || !legacyPlayer_) return;
+		K4E::WeaponComponent* weapon = player_->GetWeaponComponent();
+		if (!weapon) return;
+
+		legacyPlayer_->GetWeaponComponent().ApplyMigrationProxyState(
+			weapon->GetMagazineAmmo(),
+			weapon->GetReserveAmmo(),
+			weapon->IsReloading(),
+			weapon->GetReloadTimer());
+		lastLegacyReserveAmmo_ = weapon->GetReserveAmmo();
+	}
+
 	void SpawnBridgedShots()
 	{
 		if (!player_ || !bulletManager_) return;
@@ -301,6 +337,7 @@ private:
 	std::unordered_set<K4E::Collider*> activeStageColliders_{};
 	K4E::Vector3 lastStageRefreshPosition_{};
 	float lastLegacyHp_ = 0.0f;
+	int lastLegacyReserveAmmo_ = 0;
 	unsigned int lastShotRevision_ = 0u;
 	bool hasStageRefreshPosition_ = false;
 	bool active_ = false;
