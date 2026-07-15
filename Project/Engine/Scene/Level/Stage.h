@@ -25,8 +25,13 @@ namespace Ken4lowEngine
 	{
 	public: /// ---------- メンバ関数 ---------- ///
 
-		Stage() = default;
-		~Stage() = default;
+		Stage() { activeRuntimeStage_ = this; }
+		~Stage()
+		{
+			if (activeRuntimeStage_ == this) activeRuntimeStage_ = nullptr; // P10移行ランタイムが破棄済みStageを参照しないよう寿命と同期する。
+		}
+
+		static Stage* GetActiveRuntimeStage() { return activeRuntimeStage_; }
 
 		/// <summary>
 		/// ステージを初期化する
@@ -122,6 +127,7 @@ namespace Ken4lowEngine
 
 	private: /// ---------- メンバ変数 ---------- ///
 
+		inline static Stage* activeRuntimeStage_ = nullptr;
 		std::unique_ptr<LevelData> levelData_;
 		std::unique_ptr<Object3D> stageModel_;                 // ステージ描画モデル
 		StageChunkManager stageChunkManager_;                 // 静的ステージを Chunk 単位で Draw スキップする管理クラス
