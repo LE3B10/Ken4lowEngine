@@ -1,12 +1,11 @@
 #pragma once
 #include "Effects/PlayerHealthPostEffect/PlayerHealthPostEffect.h"
+#include "IPlayerRuntime.h"
 
 namespace Ken4lowEngine
 {
 	class PostEffectManager;
 }
-
-class Player;
 
 /// -------------------------------------------------------------
 /// プレイヤーHPから画面危機演出用パラメータを計算するクラス
@@ -16,7 +15,7 @@ class PlayerHealthPostEffectController
 public:
 	void Initialize(Ken4lowEngine::PostEffectManager* postEffectManager);
 	void Finalize();
-	void Update(float deltaTime, const Player* player);
+	void Update(float deltaTime, const IPlayerRuntime* player);
 	void DrawImGui();
 	void DrawImGuiContent();
 	void NotifyDamageTaken();
