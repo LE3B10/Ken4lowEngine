@@ -18,20 +18,19 @@
 
 namespace Ken4lowEngine
 {
-	/// Playerの移動入力を目標速度へ変換し、共通Character MotorとRigidbodyへ委譲するComponent。
+	/// Playerの移動入力を目標速度へ変換し、Sprint・Blink・Jumpを共通Character MotorとRigidbodyへ委譲するComponent。
 	class PlayerMovementComponent final : public CharacterMovementComponent
 	{
 	public:
-		/// 保存済みPrefabの旧Collider値を新Playerの身体基準へ正規化してから移動処理を開始する。
 		void Initialize() override
 		{
 			CharacterMovementComponent::Initialize();
 			NormalizePlayerColliderLayout(); // 旧Prefabの巨大Colliderや中心オフセットを実行時へ持ち越さない。
 		}
 
-		/// 現在の移動入力を実際のPlayer Camera基準のXZ目標速度へ変換し、共通Motorへ渡す。
 		void Update(float deltaTime) override
 		{
+			const float safeDeltaTime = std::max(0.0f, deltaTime);
 			float x = moveInputX_;
 			float z = moveInputZ_;
 			const float lengthSq = x * x + z * z;
@@ -44,59 +43,63 @@ namespace Ken4lowEngine
 
 			Actor* owner = GetOwner();
 			const PlayerCameraComponent* playerCamera = owner ? owner->GetComponent<PlayerCameraComponent>() : nullptr;
-
-			// 見えているPlayer Cameraの前方向をXZ平面へ落とし、WASDの基準方向を画面と一致させる。
 			Vector3 forward{ 0.0f, 0.0f, 1.0f };
 			if (playerCamera)
 			{
-				if (const Camera* camera = playerCamera->GetCamera())
-				{
-					forward = camera->GetForward();
-				}
+				if (const Camera* camera = playerCamera->GetCamera()) forward = camera->GetForward();
 				else
 				{
 					const float yaw = playerCamera->GetYaw();
 					forward = { -std::sin(yaw), 0.0f, std::cos(yaw) };
 				}
 			}
+			forward = NormalizeXZOrDefault(forward, { 0.0f, 0.0f, 1.0f });
 
-			forward.y = 0.0f;
-			const float forwardLengthSq = forward.x * forward.x + forward.z * forward.z;
-			if (forwardLengthSq <= 0.000001f)
+			const Vector3 right{ forward.z, 0.0f, -forward.x };
+			float worldX = right.x * x + forward.x * z;
+			float worldZ = right.z * x + forward.z * z;
+
+			blinkCooldownRemaining_ = std::max(0.0f, blinkCooldownRemaining_ - safeDeltaTime);
+			if (blinkRequested_ && blinkCooldownRemaining_ <= 0.0f && blinkRemaining_ <= 0.0f)
 			{
-				forward = { 0.0f, 0.0f, 1.0f };
+				Vector3 requestedDirection{ worldX, 0.0f, worldZ };
+				blinkDirection_ = NormalizeXZOrDefault(requestedDirection, forward);
+				blinkRemaining_ = blinkDuration_;
+				blinkCooldownRemaining_ = blinkCooldown_;
+			}
+			blinkRequested_ = false;
+
+			const bool blinking = blinkRemaining_ > 0.0f;
+			if (blinking)
+			{
+				worldX = blinkDirection_.x * blinkSpeed_;
+				worldZ = blinkDirection_.z * blinkSpeed_;
+				blinkRemaining_ = std::max(0.0f, blinkRemaining_ - safeDeltaTime);
 			}
 			else
 			{
-				const float invForwardLength = 1.0f / std::sqrt(forwardLengthSq);
-				forward.x *= invForwardLength;
-				forward.z *= invForwardLength;
+				const float speedMultiplier = sprintHeld_ ? sprintSpeedMultiplier_ : 1.0f;
+				worldX *= moveSpeed_ * speedMultiplier;
+				worldZ *= moveSpeed_ * speedMultiplier;
 			}
 
-			// Z+前方の左手座標系に合わせ、右方向はForwardのXZ直交ベクトルから求める。
-			const Vector3 right{ forward.z, 0.0f, -forward.x };
-			const float worldX = right.x * x + forward.x * z;
-			const float worldZ = right.z * x + forward.z * z;
-
 			Vector3 targetVelocity = GetVelocity();
-			targetVelocity.x = worldX * moveSpeed_;
-			targetVelocity.z = worldZ * moveSpeed_;
-			targetVelocity.y = 0.0f; // Rigidbody使用時のY速度は重力・Jump・衝突解決が所有する。
+			targetVelocity.x = worldX;
+			targetVelocity.z = worldZ;
+			targetVelocity.y = 0.0f;
 			CharacterMovementComponent::SetVelocity(targetVelocity);
 
 			RigidbodyComponent* rigidbodyComponent = owner ? owner->GetComponent<RigidbodyComponent>() : nullptr;
 			Rigidbody* rigidbody = rigidbodyComponent ? rigidbodyComponent->GetRigidbody() : nullptr;
 			if (rigidbody)
 			{
-				CharacterMovementComponent::Update(deltaTime); // XZは質量とDrive Forceを考慮した共通Motorで加減速する。
-
+				CharacterMovementComponent::Update(safeDeltaTime);
 				if (jumpRequested_ && rigidbody->IsGrounded())
 				{
 					Vector3 physicalVelocity = rigidbody->GetVelocity();
-					physicalVelocity.y = jumpSpeed_; // Jumpだけは瞬間的な跳躍Impulse相当としてY速度へ反映する。
+					physicalVelocity.y = jumpSpeed_; // JumpだけY速度を書き換え、重力・落下速度はPhysicsの正本を維持する。
 					rigidbodyComponent->SetVelocity(physicalVelocity);
 				}
-
 				jumpRequested_ = false;
 				return;
 			}
@@ -104,18 +107,21 @@ namespace Ken4lowEngine
 			if (jumpRequested_) targetVelocity.y = jumpSpeed_;
 			CharacterMovementComponent::SetVelocity(targetVelocity);
 			jumpRequested_ = false;
-			CharacterMovementComponent::Update(deltaTime);
+			CharacterMovementComponent::Update(safeDeltaTime);
 		}
 
-		/// 共通移動情報にPlayer用移動速度と物理接地状態を追加表示する。
 		void DrawImGui() override
 		{
 			CharacterMovementComponent::DrawImGui();
 #ifdef USE_IMGUI
 			ImGui::SeparatorText("プレイヤー移動");
 			ImGui::SliderFloat("移動速度", &moveSpeed_, 0.0f, 30.0f, "%.2f");
+			ImGui::SliderFloat("Sprint倍率", &sprintSpeedMultiplier_, 1.0f, 3.0f, "%.2f");
 			ImGui::SliderFloat("ジャンプ速度", &jumpSpeed_, 0.0f, 30.0f, "%.2f");
-			ImGui::Text("入力: %.2f, %.2f", moveInputX_, moveInputZ_);
+			ImGui::SliderFloat("Blink速度", &blinkSpeed_, 1.0f, 60.0f, "%.2f");
+			ImGui::SliderFloat("Blink時間", &blinkDuration_, 0.01f, 1.0f, "%.3f");
+			ImGui::SliderFloat("Blinkクールダウン", &blinkCooldown_, 0.0f, 5.0f, "%.2f");
+			ImGui::Text("入力: %.2f, %.2f / Sprint: %s / Blink: %s", moveInputX_, moveInputZ_, sprintHeld_ ? "Yes" : "No", IsBlinking() ? "Yes" : "No");
 			ImGui::Text("Grounded: %s", IsGrounded() ? "Yes" : "No");
 
 			Actor* owner = GetOwner();
@@ -133,41 +139,52 @@ namespace Ken4lowEngine
 #endif
 		}
 
-		/// JSON保存・復元で使用するComponent識別名を返す。
 		std::string GetClassTypeName() const override { return "PlayerMovementComponent"; }
 
-		/// Player固有の移動速度とJump速度をActor JSONへ保存する。
 		void ToJson(nlohmann::json& outJson) const override
 		{
 			CharacterMovementComponent::ToJson(outJson);
 			outJson["MoveSpeed"] = moveSpeed_;
+			outJson["SprintSpeedMultiplier"] = sprintSpeedMultiplier_;
 			outJson["JumpSpeed"] = jumpSpeed_;
+			outJson["BlinkSpeed"] = blinkSpeed_;
+			outJson["BlinkDuration"] = blinkDuration_;
+			outJson["BlinkCooldown"] = blinkCooldown_;
 		}
 
-		/// Actor JSONからPlayer固有の移動設定を復元する。
 		void FromJson(const nlohmann::json& inJson) override
 		{
 			CharacterMovementComponent::FromJson(inJson);
 			moveSpeed_ = inJson.value("MoveSpeed", moveSpeed_);
+			sprintSpeedMultiplier_ = inJson.value("SprintSpeedMultiplier", sprintSpeedMultiplier_);
 			jumpSpeed_ = inJson.value("JumpSpeed", jumpSpeed_);
+			blinkSpeed_ = inJson.value("BlinkSpeed", blinkSpeed_);
+			blinkDuration_ = inJson.value("BlinkDuration", blinkDuration_);
+			blinkCooldown_ = inJson.value("BlinkCooldown", blinkCooldown_);
 			if (!std::isfinite(moveSpeed_)) moveSpeed_ = 6.0f;
+			if (!std::isfinite(sprintSpeedMultiplier_)) sprintSpeedMultiplier_ = 1.55f;
 			if (!std::isfinite(jumpSpeed_)) jumpSpeed_ = 7.0f;
-			moveSpeed_ = (std::max)(0.0f, moveSpeed_);
-			jumpSpeed_ = (std::max)(0.0f, jumpSpeed_);
-			jumpRequested_ = false;
+			if (!std::isfinite(blinkSpeed_)) blinkSpeed_ = 18.0f;
+			if (!std::isfinite(blinkDuration_)) blinkDuration_ = 0.15f;
+			if (!std::isfinite(blinkCooldown_)) blinkCooldown_ = 0.75f;
+			moveSpeed_ = std::max(0.0f, moveSpeed_);
+			sprintSpeedMultiplier_ = std::max(1.0f, sprintSpeedMultiplier_);
+			jumpSpeed_ = std::max(0.0f, jumpSpeed_);
+			blinkSpeed_ = std::max(0.0f, blinkSpeed_);
+			blinkDuration_ = std::max(0.01f, blinkDuration_);
+			blinkCooldown_ = std::max(0.0f, blinkCooldown_);
+			ResetTransientMovementState();
 		}
 
-		/// 入力Componentから受け取った移動要求を保持する。
 		void SetMoveInput(float x, float z)
 		{
 			moveInputX_ = std::clamp(x, -1.0f, 1.0f);
 			moveInputZ_ = std::clamp(z, -1.0f, 1.0f);
 		}
-
-		/// Input Componentから配送されたJump要求を次のMovement更新で処理する。
+		void SetSprintHeld(bool held) { sprintHeld_ = held; }
 		void RequestJump() { jumpRequested_ = true; }
+		void RequestBlink() { blinkRequested_ = true; }
 
-		/// Rigidbodyが存在する場合はPhysicsWorldの接地状態を返す。
 		bool IsGrounded() const
 		{
 			Actor* owner = GetOwner();
@@ -175,14 +192,12 @@ namespace Ken4lowEngine
 			Rigidbody* rigidbody = rigidbodyComponent ? rigidbodyComponent->GetRigidbody() : nullptr;
 			return rigidbody && rigidbody->IsGrounded();
 		}
+		bool IsSprinting() const { return sprintHeld_ && !IsBlinking(); }
+		bool IsBlinking() const { return blinkRemaining_ > 0.0f; }
 
-		/// 移動要求と現在の水平速度を停止状態へ戻す。
 		void ResetMovement()
 		{
-			moveInputX_ = 0.0f;
-			moveInputZ_ = 0.0f;
-			jumpRequested_ = false;
-
+			ResetTransientMovementState();
 			Actor* owner = GetOwner();
 			if (RigidbodyComponent* rigidbodyComponent = owner ? owner->GetComponent<RigidbodyComponent>() : nullptr)
 			{
@@ -191,10 +206,9 @@ namespace Ken4lowEngine
 					Vector3 velocity = rigidbody->GetVelocity();
 					velocity.x = 0.0f;
 					velocity.z = 0.0f;
-					rigidbodyComponent->SetVelocity(velocity); // Resetは検証初期化なので水平速度を即時停止する。
+					rigidbodyComponent->SetVelocity(velocity);
 				}
 			}
-
 			Stop();
 			SetMovementEnabled(true);
 		}
@@ -205,13 +219,19 @@ namespace Ken4lowEngine
 		float GetJumpSpeed() const { return jumpSpeed_; }
 
 	private:
+		static Vector3 NormalizeXZOrDefault(const Vector3& value, const Vector3& fallback)
+		{
+			const float lengthSq = value.x * value.x + value.z * value.z;
+			if (lengthSq <= 0.000001f) return fallback;
+			const float invLength = 1.0f / std::sqrt(lengthSq);
+			return { value.x * invLength, 0.0f, value.z * invLength };
+		}
+
 		void NormalizePlayerColliderLayout()
 		{
 			Actor* owner = GetOwner();
 			CharacterColliderComponent* collider = owner ? owner->GetComponent<CharacterColliderComponent>() : nullptr;
 			if (!collider) return;
-
-			// CharacterActorのRootをPlayer身体中心として扱い、Collider中心も同じWorld位置へ統一する。
 			collider->SetShapeType(ECollisionShapeType::AABB);
 			collider->SetLocalPosition({ 0.0f, 0.0f, 0.0f });
 			collider->SetLocalRotation({ 0.0f, 0.0f, 0.0f });
@@ -220,15 +240,35 @@ namespace Ken4lowEngine
 			collider->RefreshWorldTransform();
 		}
 
+		void ResetTransientMovementState()
+		{
+			moveInputX_ = 0.0f;
+			moveInputZ_ = 0.0f;
+			sprintHeld_ = false;
+			jumpRequested_ = false;
+			blinkRequested_ = false;
+			blinkRemaining_ = 0.0f;
+			blinkCooldownRemaining_ = 0.0f;
+			blinkDirection_ = { 0.0f, 0.0f, 1.0f };
+		}
+
 	private:
 		static constexpr float kColliderHalfWidth = 0.45f;
 		static constexpr float kColliderHalfHeight = 0.90f;
 		static constexpr float kColliderHalfDepth = 0.45f;
-
 		float moveInputX_ = 0.0f;
 		float moveInputZ_ = 0.0f;
 		float moveSpeed_ = 6.0f;
+		float sprintSpeedMultiplier_ = 1.55f;
 		float jumpSpeed_ = 7.0f;
+		float blinkSpeed_ = 18.0f;
+		float blinkDuration_ = 0.15f;
+		float blinkCooldown_ = 0.75f;
+		float blinkRemaining_ = 0.0f;
+		float blinkCooldownRemaining_ = 0.0f;
+		Vector3 blinkDirection_{ 0.0f, 0.0f, 1.0f };
+		bool sprintHeld_ = false;
 		bool jumpRequested_ = false;
+		bool blinkRequested_ = false;
 	};
 } // namespace Ken4lowEngine
