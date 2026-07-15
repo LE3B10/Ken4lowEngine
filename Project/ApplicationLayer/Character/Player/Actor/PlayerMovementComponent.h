@@ -4,7 +4,9 @@
 
 #include <Actor.h>
 #include <Camera.h>
+#include <PhysicsCollisionLayer.h>
 #include <RigidbodyComponent.h>
+#include <Scene/Actor/Character/CharacterColliderComponent.h>
 #include <Scene/Actor/Character/CharacterMovementComponent.h>
 
 #include <algorithm>
@@ -20,6 +22,13 @@ namespace Ken4lowEngine
 	class PlayerMovementComponent final : public CharacterMovementComponent
 	{
 	public:
+		/// 保存済みPrefabの旧Collider値を新Playerの身体基準へ正規化してから移動処理を開始する。
+		void Initialize() override
+		{
+			CharacterMovementComponent::Initialize();
+			NormalizePlayerColliderLayout(); // 旧Prefabの巨大Colliderや中心オフセットを実行時へ持ち越さない。
+		}
+
 		/// 現在の移動入力を実際のPlayer Camera基準のXZ目標速度へ変換し、共通Motorへ渡す。
 		void Update(float deltaTime) override
 		{
@@ -108,6 +117,19 @@ namespace Ken4lowEngine
 			ImGui::SliderFloat("ジャンプ速度", &jumpSpeed_, 0.0f, 30.0f, "%.2f");
 			ImGui::Text("入力: %.2f, %.2f", moveInputX_, moveInputZ_);
 			ImGui::Text("Grounded: %s", IsGrounded() ? "Yes" : "No");
+
+			Actor* owner = GetOwner();
+			const SceneComponent* root = owner ? owner->GetRootComponent() : nullptr;
+			const CharacterColliderComponent* collider = owner ? owner->GetComponent<CharacterColliderComponent>() : nullptr;
+			const Collider* physicsCollider = collider ? collider->GetCollider() : nullptr;
+			const float rootY = root ? root->GetWorldPosition().y : 0.0f;
+			const float colliderCenterY = physicsCollider ? physicsCollider->GetCenterPosition().y : 0.0f;
+			const float colliderHalfHeight = collider ? collider->GetHalfSize().y : 0.0f;
+			ImGui::SeparatorText("移動 / Collider基準");
+			ImGui::Text("Root Y: %.3f", rootY);
+			ImGui::Text("Collider Center Y: %.3f", colliderCenterY);
+			ImGui::Text("Collider Bottom Y: %.3f", colliderCenterY - colliderHalfHeight);
+			ImGui::Text("Center Offset Y: %.3f", colliderCenterY - rootY);
 #endif
 		}
 
@@ -183,6 +205,26 @@ namespace Ken4lowEngine
 		float GetJumpSpeed() const { return jumpSpeed_; }
 
 	private:
+		void NormalizePlayerColliderLayout()
+		{
+			Actor* owner = GetOwner();
+			CharacterColliderComponent* collider = owner ? owner->GetComponent<CharacterColliderComponent>() : nullptr;
+			if (!collider) return;
+
+			// CharacterActorのRootをPlayer身体中心として扱い、Collider中心も同じWorld位置へ統一する。
+			collider->SetShapeType(ECollisionShapeType::AABB);
+			collider->SetLocalPosition({ 0.0f, 0.0f, 0.0f });
+			collider->SetLocalRotation({ 0.0f, 0.0f, 0.0f });
+			collider->SetHalfSize({ kColliderHalfWidth, kColliderHalfHeight, kColliderHalfDepth });
+			collider->SetCollisionLayer(PhysicsCollisionLayer::DynamicActor);
+			collider->RefreshWorldTransform();
+		}
+
+	private:
+		static constexpr float kColliderHalfWidth = 0.45f;
+		static constexpr float kColliderHalfHeight = 0.90f;
+		static constexpr float kColliderHalfDepth = 0.45f;
+
 		float moveInputX_ = 0.0f;
 		float moveInputZ_ = 0.0f;
 		float moveSpeed_ = 6.0f;
