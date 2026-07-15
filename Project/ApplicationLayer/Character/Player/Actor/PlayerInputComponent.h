@@ -68,14 +68,14 @@ namespace Ken4lowEngine
 			ImGui::Text("Enabled: %s", inputEnabled_ ? "ON" : "OFF");
 			ImGui::Text("Move: %.2f, %.2f", moveX_, moveZ_);
 			ImGui::Text("Sprint: %s / Aim: %s / Fire Held: %s",
-				sprintHeld_ ? "Yes" : "No",
-				aimHeld_ ? "Yes" : "No",
-				fireHeld_ ? "Yes" : "No");
+				frameInput_.sprintHeld ? "Yes" : "No",
+				frameInput_.aimHeld ? "Yes" : "No",
+				frameInput_.fireHeld ? "Yes" : "No");
 			ImGui::Text("Jump: %s / Fire: %s / Reload: %s / Slot: %d",
-				jumpRequested_ ? "Yes" : "No",
-				fireRequested_ ? "Yes" : "No",
-				reloadRequested_ ? "Yes" : "No",
-				inventorySlotRequested_);
+				frameInput_.jumpPressed ? "Yes" : "No",
+				frameInput_.fireHeld ? "Yes" : "No",
+				frameInput_.reloadPressed ? "Yes" : "No",
+				frameInput_.weaponSlotPressed);
 			ImGui::Text("Restrictions: %s  Move:%s Shoot:%s Reload:%s",
 				restrictionsEnabled_ ? "ON" : "OFF",
 				allowMove_ ? "ON" : "OFF",
@@ -113,11 +113,9 @@ namespace Ken4lowEngine
 
 			::InputSnapshot filtered = snapshot;
 			ApplyRestrictions(filtered);
+			frameInput_ = filtered; // 後続Componentが同じフレーム入力を参照できるよう、制限適用後の値を保持する。
 
 			RequestMove(filtered.moveX, filtered.moveZ);
-			sprintHeld_ = filtered.sprintHeld;
-			aimHeld_ = filtered.aimHeld;
-			fireHeld_ = filtered.fireHeld;
 
 			if (allowLookInput)
 			{
@@ -177,9 +175,7 @@ namespace Ken4lowEngine
 		{
 			moveX_ = 0.0f;
 			moveZ_ = 0.0f;
-			sprintHeld_ = false;
-			aimHeld_ = false;
-			fireHeld_ = false;
+			frameInput_ = {};
 			ClearTransientRequests();
 		}
 
@@ -193,13 +189,14 @@ namespace Ken4lowEngine
 		bool IsInputEnabled() const { return inputEnabled_; }
 		float GetMoveX() const { return moveX_; }
 		float GetMoveZ() const { return moveZ_; }
-		bool IsSprintHeld() const { return sprintHeld_; }
-		bool IsAimHeld() const { return aimHeld_; }
-		bool IsFireHeld() const { return fireHeld_; }
-		bool IsBlinkRequested() const { return blinkRequested_; }
-		bool IsMeleeRequested() const { return meleeRequested_; }
-		int GetWeaponSwitchRequested() const { return weaponSwitchRequested_; }
-		bool IsToggleFireModeRequested() const { return toggleFireModeRequested_; }
+		const ::InputSnapshot& GetFrameInput() const { return frameInput_; }
+		bool IsSprintHeld() const { return frameInput_.sprintHeld; }
+		bool IsAimHeld() const { return frameInput_.aimHeld; }
+		bool IsFireHeld() const { return frameInput_.fireHeld; }
+		bool IsBlinkRequested() const { return frameInput_.blinkPressed; }
+		bool IsMeleeRequested() const { return frameInput_.meleePressed; }
+		int GetWeaponSwitchRequested() const { return frameInput_.weaponSwitch; }
+		bool IsToggleFireModeRequested() const { return frameInput_.toggleFireModePressed; }
 
 	private:
 		void ApplyRestrictions(::InputSnapshot& input) const
@@ -245,13 +242,11 @@ namespace Ken4lowEngine
 		}
 
 	private:
+		::InputSnapshot frameInput_{};
 		float moveX_ = 0.0f;
 		float moveZ_ = 0.0f;
 		float lookYawDelta_ = 0.0f;
 		float lookPitchDelta_ = 0.0f;
-		bool sprintHeld_ = false;
-		bool aimHeld_ = false;
-		bool fireHeld_ = false;
 		bool jumpRequested_ = false;
 		bool fireRequested_ = false;
 		bool reloadRequested_ = false;
