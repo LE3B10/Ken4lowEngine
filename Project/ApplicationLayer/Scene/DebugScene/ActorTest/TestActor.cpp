@@ -15,21 +15,15 @@ void TestActor::Initialize()
 {
 	const bool hadSavedComposition = !GetComponents().empty();
 	bool loadedFromPrefab = false;
-
-	// DebugScene初回生成時は保存済みPlayer構成を自動復元し、毎回Editorから読込操作を行わなくてよい状態にする。
 	if (!hadSavedComposition)
 	{
 		loadedFromPrefab = Ken4lowEngine::ActorJsonSerializer::LoadActorFromFile(*this, kPlayerPrefabPath);
 	}
 
-	Ken4lowEngine::PlayerActor::Initialize(); // 古いPrefabに無い武器ViewModelやHUD Componentは不足分だけ補完する。
+	Ken4lowEngine::PlayerActor::Initialize();
 	SetName("DebugPlayer");
 	wasControllingPlayer_ = false;
-
-	if (!hadSavedComposition && !loadedFromPrefab)
-	{
-		ResetForValidation({ 0.0f, 1.5f, 0.0f }); // Prefabが無い場合だけコード既定値へフォールバックする。
-	}
+	if (!hadSavedComposition && !loadedFromPrefab) ResetForValidation({ 0.0f, 1.5f, 0.0f });
 }
 
 void TestActor::Update(float deltaTime)
@@ -38,29 +32,28 @@ void TestActor::Update(float deltaTime)
 	auto* playerInput = GetPlayerInputComponent();
 	auto* cameraManager = Ken4lowEngine::CameraManager::GetInstance();
 
-	// PIEでゲーム入力を取得している間は、作業用DebugCameraではなくPlayerのゲームCameraを必ず描画に使う。
-	if (input && input->IsGameInputEnabled() && cameraManager->IsUsingDebugCamera())
-	{
-		cameraManager->SetUseDebugCamera(false);
-	}
+	if (input && input->IsGameInputEnabled() && cameraManager->IsUsingDebugCamera()) cameraManager->SetUseDebugCamera(false);
 
 	const bool useDebugCamera = cameraManager->IsUsingDebugCamera();
 	const bool canControlPlayer = input && playerInput && input->IsGameInputEnabled() && !useDebugCamera;
-
 	if (canControlPlayer)
 	{
-		// 旧Playerと同じInputSnapshot生成経路を使い、DebugSceneだけ別キー割り当てになる状態を解消する。
 		const InputSnapshot inputSnapshot = Ken4lowEngine::BuildInputSnapshot(*input);
 		playerInput->ApplyInputSnapshot(inputSnapshot, kMouseLookSensitivity, wasControllingPlayer_);
 		wasControllingPlayer_ = true;
+
+		if (input->TriggerKey(DIK_F6)) ApplyPlayerDamage(25.0f);
+		if (input->TriggerKey(DIK_F7)) HealPlayer(25.0f);
+		if (input->TriggerKey(DIK_F8))
+		{
+			const Ken4lowEngine::SceneComponent* root = GetRootComponent();
+			ResetForValidation(root ? root->GetLocalPosition() : Ken4lowEngine::Vector3{}); // その場で新Player全機能を初期状態へ戻して再検証する。
+		}
 	}
 	else
 	{
 		wasControllingPlayer_ = false;
-		if (playerInput)
-		{
-			playerInput->ResetInputState(); // Editor操作やDebugCamera中は以前の移動・Action要求を残さない。
-		}
+		if (playerInput) playerInput->ResetInputState();
 	}
 
 	Ken4lowEngine::PlayerActor::Update(deltaTime);
@@ -69,13 +62,8 @@ void TestActor::Update(float deltaTime)
 void TestActor::PostPhysicsUpdate(float deltaTime)
 {
 	Ken4lowEngine::PlayerActor::PostPhysicsUpdate(deltaTime);
-
-	// Collider補正後のPlayer Root位置を反映した後で、Player Cameraをそのフレーム最後のMain Camera状態へ確定する。
 	if (!Ken4lowEngine::CameraManager::GetInstance()->IsUsingDebugCamera())
 	{
-		if (Ken4lowEngine::PlayerCameraComponent* camera = GetPlayerCameraComponent())
-		{
-			camera->SyncToMainCameraNow();
-		}
+		if (Ken4lowEngine::PlayerCameraComponent* camera = GetPlayerCameraComponent()) camera->SyncToMainCameraNow();
 	}
 }
