@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "ResultMenu.h"
 #include "DirectXCommon.h"
 #include "GameViewportConstants.h"
@@ -10,6 +11,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <Windows.h>
 
 using namespace Ken4lowEngine;
 
@@ -261,12 +263,13 @@ ResultMenuCommand ResultMenu::Update(Input* input)
 		return ResultMenuCommand::None;
 	}
 
-	if (input->TriggerKey(DIK_W) || input->TriggerKey(DIK_UP))
+	// Result中はEditorがゲーム入力を解放するため、UI操作はRawキーで受け取る。
+	if (input->TriggerRawKey(DIK_W) || input->TriggerRawKey(DIK_UP))
 	{
 		selectedIndex_ = (selectedIndex_ + visibleCount - 1) % visibleCount;
 		selectionAnimTime_ = 0.0f;
 	}
-	if (input->TriggerKey(DIK_S) || input->TriggerKey(DIK_DOWN))
+	if (input->TriggerRawKey(DIK_S) || input->TriggerRawKey(DIK_DOWN))
 	{
 		selectedIndex_ = (selectedIndex_ + 1) % visibleCount;
 		selectionAnimTime_ = 0.0f;
@@ -283,10 +286,14 @@ ResultMenuCommand ResultMenu::Update(Input* input)
 	RefreshButtonVisuals();
 
 	const bool decideByKey =
-		input->TriggerKey(DIK_RETURN) ||
-		input->TriggerKey(DIK_NUMPADENTER) ||
-		input->TriggerKey(DIK_SPACE);
-	const bool decideByMouse = (hoverIndex >= 0) && input->TriggerMouse(0);
+		input->TriggerRawKey(DIK_RETURN) ||
+		input->TriggerRawKey(DIK_NUMPADENTER) ||
+		input->TriggerRawKey(DIK_SPACE);
+	static bool wasLeftMouseDown = false;
+	const bool leftMouseDown = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+	const bool leftMouseTriggered = leftMouseDown && !wasLeftMouseDown;
+	wasLeftMouseDown = leftMouseDown;
+	const bool decideByMouse = (hoverIndex >= 0) && leftMouseTriggered;
 
 	if (decideByKey || decideByMouse)
 	{
