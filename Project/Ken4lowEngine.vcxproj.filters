@@ -2850,6 +2850,7 @@
     <ClInclude Include="ApplicationLayer\Character\Player\Actor\WeaponComponent.h">
       <Filter>ApplicationLayer\Character\Player\Actor</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\LevelDataValidation.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

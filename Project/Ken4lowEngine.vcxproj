@@ -875,6 +875,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Character\Player\Actor\PlayerMovementComponent.h" />
     <ClInclude Include="ApplicationLayer\Character\Player\Actor\WeaponComponent.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugActorRegistration.h" />
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\LevelDataValidation.h" />
     <ClInclude Include="ApplicationLayer\UISystem\UiSpriteFactory.h" />
     <ClInclude Include="Engine\Editor\ActorWorldEditorBridge.h" />
     <ClInclude Include="Engine\Editor\EditorActorStateRegistry.h" />

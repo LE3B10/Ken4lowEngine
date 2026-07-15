@@ -152,7 +152,7 @@ private:
 		if (!levelData_) return;
 
 		constexpr std::size_t kPreviewCount = 10;
-		const std::size_t previewCount = std::min(kPreviewCount, levelData_->objects.size());
+		const std::size_t previewCount = (std::min)(kPreviewCount, levelData_->objects.size());
 		std::clog << "  ObjectPreview(first " << previewCount << "):\n";
 		for (std::size_t index = 0; index < previewCount; ++index)
 		{
