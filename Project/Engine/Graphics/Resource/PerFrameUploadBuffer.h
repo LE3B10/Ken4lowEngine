@@ -46,6 +46,20 @@ namespace Ken4lowEngine
 			frames_.clear();
 		}
 
+		void WriteFrame(uint32_t frameIndex, const T& value)
+		{
+			T* mappedData = GetMappedData(frameIndex);
+			if (mappedData) *mappedData = value;
+		}
+
+		void WriteAll(const T& value)
+		{
+			for (FrameBuffer& frame : frames_)
+			{
+				if (frame.mappedData) *frame.mappedData = value;
+			}
+		}
+
 		T* GetMappedData(uint32_t frameIndex)
 		{
 			return frames_.empty() ? nullptr : frames_[ResolveIndex(frameIndex)].mappedData;
