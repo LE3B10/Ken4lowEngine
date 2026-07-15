@@ -127,7 +127,7 @@ namespace Ken4lowEngine
 			ImGui::SliderFloat("Blink速度", &blinkSpeed_, 1.0f, 60.0f, "%.2f");
 			ImGui::SliderFloat("Blink時間", &blinkDuration_, 0.01f, 1.0f, "%.3f");
 			ImGui::SliderFloat("Blinkクールダウン", &blinkCooldown_, 0.0f, 5.0f, "%.2f");
-			const Actor* owner = GetOwner();
+			Actor* owner = GetOwner();
 			const WeaponComponent* weapon = owner ? owner->GetComponent<WeaponComponent>() : nullptr;
 			ImGui::Text("入力: %.2f, %.2f / Sprint: %s / Reload: %s / Blink: %s", moveInputX_, moveInputZ_, sprintHeld_ ? "Yes" : "No", weapon && weapon->IsReloading() ? "Yes" : "No", IsBlinking() ? "Yes" : "No");
 			ImGui::Text("Grounded: %s", IsGrounded() ? "Yes" : "No");
