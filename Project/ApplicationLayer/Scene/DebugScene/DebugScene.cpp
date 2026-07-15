@@ -93,17 +93,30 @@ void DebugScene::Update()
 #endif // _DEBUG
 
 	const float deltaTime = K4E::GameTimer::GetInstance()->GetDeltaTime();
+	performancePhaseValidation_.BeginFrame(deltaTime);
 	ProcessActorWorldValidationRequests();
 	enemyMigrationValidation_.Update(deltaTime);
 	bossMigrationValidation_.Update();
 
+	performancePhaseValidation_.BeginPhase(PerformancePhaseValidation::Phase::ActorWorldUpdate);
 	actorWorld_.Update(deltaTime);
+	performancePhaseValidation_.EndPhase(PerformancePhaseValidation::Phase::ActorWorldUpdate);
 
 	// ActorComponent由来のCollider同士を判定・イベント更新する
+	performancePhaseValidation_.BeginPhase(PerformancePhaseValidation::Phase::PhysicsWorldUpdate);
 	actorPhysicsWorld_.Update(deltaTime);
+	performancePhaseValidation_.EndPhase(PerformancePhaseValidation::Phase::PhysicsWorldUpdate);
 
 	// PhysicsWorldの結果をActor/Component側のTransformへ反映する
+	performancePhaseValidation_.BeginPhase(PerformancePhaseValidation::Phase::PostPhysicsUpdate);
 	actorWorld_.PostPhysicsUpdate(deltaTime);
+	performancePhaseValidation_.EndPhase(PerformancePhaseValidation::Phase::PostPhysicsUpdate);
+
+	performancePhaseValidation_.SetPhysicsState(
+		actorWorld_.GetActors().size(),
+		actorPhysicsWorld_.GetColliderCount(),
+		actorPhysicsWorld_.GetContactCount(),
+		actorPhysicsWorld_.GetLastSubStepCount());
 }
 
 void DebugScene::UpdateEditor(float deltaTime)
@@ -119,10 +132,14 @@ void DebugScene::UpdateEditor(float deltaTime)
 /// -------------------------------------------------------------
 void DebugScene::Draw3DObjects()
 {
+	performancePhaseValidation_.BeginPhase(PerformancePhaseValidation::Phase::ActorDraw);
 	actorWorld_.Draw();
+	performancePhaseValidation_.EndPhase(PerformancePhaseValidation::Phase::ActorDraw);
 
 	// ActorComponent由来のColliderをWireframe表示する
+	performancePhaseValidation_.BeginPhase(PerformancePhaseValidation::Phase::PhysicsDebugDraw);
 	actorPhysicsDebugDraw_.Draw(actorPhysicsWorld_);
+	performancePhaseValidation_.EndPhase(PerformancePhaseValidation::Phase::PhysicsDebugDraw);
 
 #ifdef _DEBUG
 	// ワイヤーフレームの描画
@@ -135,7 +152,9 @@ void DebugScene::Draw3DObjects()
 /// -------------------------------------------------------------
 void DebugScene::DrawShadowObjects()
 {
+	performancePhaseValidation_.BeginPhase(PerformancePhaseValidation::Phase::ShadowDraw);
 	actorWorld_.DrawShadow();
+	performancePhaseValidation_.EndPhase(PerformancePhaseValidation::Phase::ShadowDraw);
 }
 
 /// -------------------------------------------------------------
@@ -150,7 +169,9 @@ void DebugScene::Draw2DSprites()
 
 #pragma region UIの描画
 	// Actorに追加されたScreen Space Spriteを3D描画後にまとめて描画する
+	performancePhaseValidation_.BeginPhase(PerformancePhaseValidation::Phase::ScreenSpaceUI);
 	actorWorld_.DrawScreenSpaceUI();
+	performancePhaseValidation_.EndPhase(PerformancePhaseValidation::Phase::ScreenSpaceUI);
 #pragma endregion
 }
 
@@ -183,12 +204,11 @@ void DebugScene::DrawImGui()
 	DrawActorWorldValidationImGui();
 	levelDataValidation_.DrawImGui(); // Blender JSONからLevelDataへの読み込み結果を画面上で確認する。
 	levelImportValidation_.DrawImGui(); // BlenderSceneDataからActor/Component用Levelへの変換結果を確認する。
+	performancePhaseValidation_.DrawImGui(); // 実フレームとDebugScene各PhaseのCPU時間を比較する。
 	enemyMigrationValidation_.DrawImGui();
 	bossMigrationValidation_.DrawImGui();
 
-	actorPhysicsDebugDraw_.GetSettings().drawPhysicsDebug = true;
-	actorPhysicsDebugDraw_.GetSettings().drawColliders = true;
-	actorPhysicsDebugDraw_.DrawImGui(actorPhysicsWorld_);
+	actorPhysicsDebugDraw_.DrawImGui(actorPhysicsWorld_); // Debug描画はユーザー設定を尊重し、毎フレーム強制ONしない。
 #endif // USE_IMGUI
 }
 
@@ -218,7 +238,6 @@ void DebugScene::ProcessActorWorldValidationRequests()
 			actor.AddTag("ActorWorldValidation");
 			validation.lastMessage = "DebugPlayerをActorWorld経由で生成しました。";
 			validation.lastSucceeded = true;
-			target = &actor;
 		}
 	}
 
