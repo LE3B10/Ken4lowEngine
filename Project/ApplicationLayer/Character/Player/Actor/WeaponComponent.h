@@ -12,7 +12,7 @@
 
 namespace Ken4lowEngine
 {
-	/// Playerの射撃・リロード状態と弾薬を所有し、入力要求を具体的な武器状態へ変換するComponent。
+	/// Playerの射撃・リロード・発射モードと弾薬を所有し、入力要求を具体的な武器状態へ変換するComponent。
 	class WeaponComponent final : public ActorComponent
 	{
 	public:
@@ -24,9 +24,15 @@ namespace Ken4lowEngine
 
 			if (!weaponEnabled_)
 			{
-				fireRequested_ = false;
-				reloadRequested_ = false;
+				ClearTransientRequests();
+				triggerHeld_ = false;
 				return;
+			}
+
+			if (toggleFireModeRequested_)
+			{
+				toggleFireModeRequested_ = false;
+				automaticFireMode_ = !automaticFireMode_;
 			}
 
 			if (isReloading_)
@@ -46,6 +52,11 @@ namespace Ken4lowEngine
 				fireRequested_ = false;
 				TryFire();
 			}
+
+			if (automaticFireMode_ && triggerHeld_)
+			{
+				TryFire(); // AUTOはTrigger保持中だけCooldownに従って継続発射する。
+			}
 		}
 
 		/// 武器状態と弾数をDebug表示する。
@@ -56,15 +67,14 @@ namespace Ken4lowEngine
 			ImGui::Text("Weapon ID: %d", weaponId_);
 			ImGui::Text("Ammo: %d / %d  Reserve: %d", magazineAmmo_, magazineCapacity_, reserveAmmo_);
 			ImGui::Text("State: %s", isReloading_ ? "Reloading" : "Ready");
+			ImGui::Text("Fire Mode: %s / Trigger: %s", automaticFireMode_ ? "AUTO" : "SEMI", triggerHeld_ ? "Held" : "Released");
 			ImGui::Text("Damage: %.1f / Range: %.1f / Fire Interval: %.3f", damage_, range_, fireInterval_);
 			ImGui::Text("Shot Revision: %u", shotRevision_);
 #endif
 		}
 
-		/// JSON保存・復元で使用するComponent識別名を返す。
 		std::string GetClassTypeName() const override { return "WeaponComponent"; }
 
-		/// 武器設定と弾薬状態をActor JSONへ保存する。
 		void ToJson(nlohmann::json& outJson) const override
 		{
 			ActorComponent::ToJson(outJson);
@@ -76,10 +86,10 @@ namespace Ken4lowEngine
 			outJson["Damage"] = damage_;
 			outJson["Range"] = range_;
 			outJson["FireInterval"] = fireInterval_;
+			outJson["AutomaticFireMode"] = automaticFireMode_;
 			outJson["WeaponEnabled"] = weaponEnabled_;
 		}
 
-		/// Actor JSONから武器設定と弾薬状態を復元する。
 		void FromJson(const nlohmann::json& inJson) override
 		{
 			ActorComponent::FromJson(inJson);
@@ -95,44 +105,32 @@ namespace Ken4lowEngine
 			if (!std::isfinite(damage_) || damage_ < 0.0f) damage_ = 25.0f;
 			if (!std::isfinite(range_) || range_ <= 0.0f) range_ = 200.0f;
 			if (!std::isfinite(fireInterval_) || fireInterval_ < 0.01f) fireInterval_ = 0.12f;
+			automaticFireMode_ = inJson.value("AutomaticFireMode", automaticFireMode_);
 			weaponEnabled_ = inJson.value("WeaponEnabled", weaponEnabled_);
-			isReloading_ = false;
-			reloadTimer_ = 0.0f;
-			fireCooldownRemaining_ = 0.0f;
-			fireRequested_ = false;
-			reloadRequested_ = false;
+			ResetTransientState();
 		}
 
-		/// 入力Componentから1回分の射撃要求を受け取る。
 		void RequestFire() { fireRequested_ = true; }
-
-		/// 入力Componentからリロード要求を受け取る。
 		void RequestReload() { reloadRequested_ = true; }
-
-		/// Inventoryから現在装備中の武器IDを受け取る。
+		void RequestToggleFireMode() { toggleFireModeRequested_ = true; }
+		void SetTriggerHeld(bool held) { triggerHeld_ = held; }
 		void SetWeaponId(int weaponId) { weaponId_ = weaponId; }
 
-		/// 死亡やEditor停止時に武器要求の受付を切り替える。
 		void SetWeaponEnabled(bool enabled)
 		{
 			weaponEnabled_ = enabled;
 			if (!enabled)
 			{
-				fireRequested_ = false;
-				reloadRequested_ = false;
+				ClearTransientRequests();
+				triggerHeld_ = false;
 			}
 		}
 
-		/// Debug検証用に弾薬と一時状態を初期化する。
 		void ResetWeapon()
 		{
 			magazineAmmo_ = magazineCapacity_;
 			reserveAmmo_ = defaultReserveAmmo_;
-			isReloading_ = false;
-			reloadTimer_ = 0.0f;
-			fireCooldownRemaining_ = 0.0f;
-			fireRequested_ = false;
-			reloadRequested_ = false;
+			ResetTransientState();
 			weaponEnabled_ = true;
 		}
 
@@ -145,13 +143,14 @@ namespace Ken4lowEngine
 		float GetFireInterval() const { return fireInterval_; }
 		bool IsReloading() const { return isReloading_; }
 		bool IsWeaponEnabled() const { return weaponEnabled_; }
+		bool IsAutomaticFireMode() const { return automaticFireMode_; }
 		unsigned int GetShotRevision() const { return shotRevision_; }
 
 	private:
 		bool TryFire()
 		{
 			if (isReloading_ || magazineAmmo_ <= 0 || fireCooldownRemaining_ > 0.0f) return false;
-			--magazineAmmo_; // 実際のHit判定はCamera中心Rayを扱うゲームプレイ層へ通知し、このComponentは発射成立状態を確定する。
+			--magazineAmmo_; // Hit判定はCamera中心Rayを扱うゲームプレイ層へ通知し、このComponentは発射成立状態を確定する。
 			fireCooldownRemaining_ = fireInterval_;
 			++shotRevision_;
 			return true;
@@ -175,6 +174,22 @@ namespace Ken4lowEngine
 			reloadTimer_ = 0.0f;
 		}
 
+		void ClearTransientRequests()
+		{
+			fireRequested_ = false;
+			reloadRequested_ = false;
+			toggleFireModeRequested_ = false;
+		}
+
+		void ResetTransientState()
+		{
+			isReloading_ = false;
+			reloadTimer_ = 0.0f;
+			fireCooldownRemaining_ = 0.0f;
+			triggerHeld_ = false;
+			ClearTransientRequests();
+		}
+
 	private:
 		int weaponId_ = 1;
 		int magazineCapacity_ = 30;
@@ -189,8 +204,11 @@ namespace Ken4lowEngine
 		float fireCooldownRemaining_ = 0.0f;
 		bool weaponEnabled_ = true;
 		bool isReloading_ = false;
+		bool automaticFireMode_ = true;
+		bool triggerHeld_ = false;
 		bool fireRequested_ = false;
 		bool reloadRequested_ = false;
+		bool toggleFireModeRequested_ = false;
 		unsigned int shotRevision_ = 0;
 	};
 } // namespace Ken4lowEngine
