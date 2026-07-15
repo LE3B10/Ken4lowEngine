@@ -128,10 +128,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	{
 		if (!weaponLoaded_) return;
 		WeaponRuntimeState& state = weaponSys_.Weapon().StateMutable();
-		state.magAmmo = std::clamp(magazineAmmo, 0, std::max(0, GetMagazineCapacity()));
-		state.reserveAmmo = std::max(0, reserveAmmo);
+		state.magAmmo = (std::clamp)(magazineAmmo, 0, (std::max)(0, GetMagazineCapacity()));
+		state.reserveAmmo = (std::max)(0, reserveAmmo);
 		state.isReloading = isReloading;
-		state.reloadTimer = std::max(0.0f, reloadTimer);
+		state.reloadTimer = (std::max)(0.0f, reloadTimer);
 		UpdateSelectedAmmoViewCache();
 	}
 

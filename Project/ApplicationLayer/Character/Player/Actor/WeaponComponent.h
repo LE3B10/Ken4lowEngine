@@ -128,9 +128,9 @@ namespace Ken4lowEngine
 
 		void ConfigureAmmoState(int magazineCapacity, int magazineAmmo, int reserveAmmo)
 		{
-			magazineCapacity_ = std::max(1, magazineCapacity);
-			magazineAmmo_ = std::clamp(magazineAmmo, 0, magazineCapacity_);
-			reserveAmmo_ = std::max(0, reserveAmmo);
+			magazineCapacity_ = (std::max)(1, magazineCapacity);
+			magazineAmmo_ = (std::clamp)(magazineAmmo, 0, magazineCapacity_);
+			reserveAmmo_ = (std::max)(0, reserveAmmo);
 			defaultReserveAmmo_ = reserveAmmo_;
 			ResetTransientState(); // GamePlay投入時は旧Playerの初期弾数だけ継承し、一時要求は持ち込まない。
 		}
@@ -138,7 +138,7 @@ namespace Ken4lowEngine
 		int AddReserveAmmo(int amount)
 		{
 			const int before = reserveAmmo_;
-			reserveAmmo_ = std::max(0, reserveAmmo_ + amount);
+			reserveAmmo_ = (std::max)(0, reserveAmmo_ + amount);
 			return reserveAmmo_ - before;
 		}
 
