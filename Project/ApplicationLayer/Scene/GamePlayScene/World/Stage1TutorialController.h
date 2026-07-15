@@ -2,6 +2,7 @@
 
 #include "CharacterWorld.h"
 #include "ItemType.h"
+#include "ApplicationLayer/Character/Player/Migration/PlayerTutorialRestrictionBridge.h"
 #include <Object3D.h>
 
 #include <functional>
@@ -30,6 +31,24 @@ namespace Ken4lowEngine
 class Stage1TutorialController
 {
 public:
+	Stage1TutorialController()
+	{
+		PlayerTutorialRestrictionBridge::SetProvider([this]()
+			{
+				PlayerTutorialRestrictionBridge::State state{};
+				state.enabled = IsGameplayBlocked();
+				state.allowMove = AllowsPlayerMove();
+				state.allowShoot = AllowsPlayerShoot();
+				state.allowReload = AllowsReload();
+				return state; // P11中は旧Tutorialの許可状態を新Player入力へ同じフレームで渡す。
+			});
+	}
+
+	~Stage1TutorialController()
+	{
+		PlayerTutorialRestrictionBridge::ClearProvider();
+	}
+
 	/// <summary>
 	/// チュートリアル更新に必要な外部システム参照をまとめた構造体。
 	/// 所有権は持たず、GamePlayWorldが所有している各管理クラスを一時的に参照する。
