@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Actor.h>
+#include <Camera.h>
 #include <CameraComponent.h>
 #include <SceneComponent.h>
 
@@ -114,7 +115,7 @@ namespace Ken4lowEngine
 			yaw_ = std::remainder(yaw_, std::numbers::pi_v<float> * 2.0f);
 			aimFovMultiplier_ = std::clamp(aimFovMultiplier_, 0.4f, 1.0f);
 			sprintFovMultiplier_ = std::clamp(sprintFovMultiplier_, 1.0f, 1.5f);
-			fovTransitionSpeed_ = std::max(0.1f, fovTransitionSpeed_);
+			fovTransitionSpeed_ = (std::max)(0.1f, fovTransitionSpeed_);
 			pendingYawDelta_ = 0.0f;
 			pendingPitchDelta_ = 0.0f;
 			EnsureAttachedToOwnerRoot();
@@ -190,7 +191,7 @@ namespace Ken4lowEngine
 		{
 			CaptureBaseFovFromCamera();
 			const float targetFov = aimHeld_ ? baseFovY_ * aimFovMultiplier_ : (sprintHeld_ ? baseFovY_ * sprintFovMultiplier_ : baseFovY_);
-			const float blend = std::clamp(std::max(0.0f, deltaTime) * fovTransitionSpeed_, 0.0f, 1.0f);
+			const float blend = std::clamp((std::max)(0.0f, deltaTime) * fovTransitionSpeed_, 0.0f, 1.0f);
 			currentFovY_ += (targetFov - currentFovY_) * blend;
 			ApplyCurrentFov();
 		}

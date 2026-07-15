@@ -2862,7 +2862,12 @@
     <ClInclude Include="Engine\Scene\Actor\Character\HumanoidCharacterActor.h">
       <Filter>Engine\Scene\Actor\Character</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\IPlayerRuntime.h" />
+    <ClInclude Include="ApplicationLayer\Character\Player\Actor\PlayerHudPresenterComponent.h">
+      <Filter>ApplicationLayer\Character\Player\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\IPlayerRuntime.h">
+      <Filter>ApplicationLayer\Character\Player\Actor</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">

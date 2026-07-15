@@ -27,7 +27,7 @@ namespace Ken4lowEngine
 	public:
 		void Update(float deltaTime) override
 		{
-			damageFlashRemaining_ = std::max(0.0f, damageFlashRemaining_ - std::max(0.0f, deltaTime));
+			damageFlashRemaining_ = (std::max)(0.0f, damageFlashRemaining_ - (std::max)(0.0f, deltaTime));
 			SyncHealth();
 			SyncWeapon();
 			ApplyCrosshairState(); // HUDの見た目更新をPlayerActorのゲームロジックから切り離す。

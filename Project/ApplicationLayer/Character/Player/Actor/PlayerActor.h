@@ -329,7 +329,7 @@ namespace Ken4lowEngine
 		void UpdateDeathLifecycle(float deltaTime)
 		{
 			if (!CharacterActor::IsDead()) return;
-			deathTimer_ += std::max(0.0f, deltaTime);
+			deathTimer_ += (std::max)(0.0f, deltaTime);
 			if (deathTimer_ >= gameOverDelay_) gameOverReady_ = true; // 死亡演出用の最小待機後にGamePlayへ遷移可能状態を公開する。
 		}
 

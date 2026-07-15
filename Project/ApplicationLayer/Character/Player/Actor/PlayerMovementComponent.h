@@ -30,7 +30,7 @@ namespace Ken4lowEngine
 
 		void Update(float deltaTime) override
 		{
-			const float safeDeltaTime = std::max(0.0f, deltaTime);
+			const float safeDeltaTime = (std::max)(0.0f, deltaTime);
 			float x = moveInputX_;
 			float z = moveInputZ_;
 			const float lengthSq = x * x + z * z;
@@ -59,7 +59,7 @@ namespace Ken4lowEngine
 			float worldX = right.x * x + forward.x * z;
 			float worldZ = right.z * x + forward.z * z;
 
-			blinkCooldownRemaining_ = std::max(0.0f, blinkCooldownRemaining_ - safeDeltaTime);
+			blinkCooldownRemaining_ = (std::max)(0.0f, blinkCooldownRemaining_ - safeDeltaTime);
 			if (blinkRequested_ && blinkCooldownRemaining_ <= 0.0f && blinkRemaining_ <= 0.0f)
 			{
 				Vector3 requestedDirection{ worldX, 0.0f, worldZ };
@@ -74,7 +74,7 @@ namespace Ken4lowEngine
 			{
 				worldX = blinkDirection_.x * blinkSpeed_;
 				worldZ = blinkDirection_.z * blinkSpeed_;
-				blinkRemaining_ = std::max(0.0f, blinkRemaining_ - safeDeltaTime);
+				blinkRemaining_ = (std::max)(0.0f, blinkRemaining_ - safeDeltaTime);
 			}
 			else
 			{
@@ -167,19 +167,19 @@ namespace Ken4lowEngine
 			if (!std::isfinite(blinkSpeed_)) blinkSpeed_ = 18.0f;
 			if (!std::isfinite(blinkDuration_)) blinkDuration_ = 0.15f;
 			if (!std::isfinite(blinkCooldown_)) blinkCooldown_ = 0.75f;
-			moveSpeed_ = std::max(0.0f, moveSpeed_);
-			sprintSpeedMultiplier_ = std::max(1.0f, sprintSpeedMultiplier_);
-			jumpSpeed_ = std::max(0.0f, jumpSpeed_);
-			blinkSpeed_ = std::max(0.0f, blinkSpeed_);
-			blinkDuration_ = std::max(0.01f, blinkDuration_);
-			blinkCooldown_ = std::max(0.0f, blinkCooldown_);
+			moveSpeed_ = (std::max)(0.0f, moveSpeed_);
+			sprintSpeedMultiplier_ = (std::max)(1.0f, sprintSpeedMultiplier_);
+			jumpSpeed_ = (std::max)(0.0f, jumpSpeed_);
+			blinkSpeed_ = (std::max)(0.0f, blinkSpeed_);
+			blinkDuration_ = (std::max)(0.01f, blinkDuration_);
+			blinkCooldown_ = (std::max)(0.0f, blinkCooldown_);
 			ResetTransientMovementState();
 		}
 
 		void SetMoveInput(float x, float z)
 		{
-			moveInputX_ = std::clamp(x, -1.0f, 1.0f);
-			moveInputZ_ = std::clamp(z, -1.0f, 1.0f);
+			moveInputX_ = (std::clamp)(x, -1.0f, 1.0f);
+			moveInputZ_ = (std::clamp)(z, -1.0f, 1.0f);
 		}
 		void SetSprintHeld(bool held) { sprintHeld_ = held; }
 		void RequestJump() { jumpRequested_ = true; }
