@@ -2,6 +2,8 @@
 
 #include "Vector4.h"
 
+#include <cstddef>
+
 namespace Ken4lowEngine
 {
 	class Collider;
@@ -21,6 +23,7 @@ namespace Ken4lowEngine
 		bool drawVelocity = true;
 		bool drawSleeping = true;
 		bool drawEvents = true;
+		std::size_t maxColliderDrawCount = 64;
 		float normalLength = 1.5f;
 		float velocityScale = 0.25f;
 	};
@@ -66,5 +69,4 @@ namespace Ken4lowEngine
 	private:
 		PhysicsDebugDrawSettings settings_{};
 	};
-
 } // namespace Ken4lowEngine
