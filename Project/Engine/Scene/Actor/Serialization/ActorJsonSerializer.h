@@ -19,6 +19,7 @@ namespace Ken4lowEngine
 		static std::unique_ptr<Actor> CreateActorFromJson(std::string_view filePath, const ActorSpawnOptions& options = {});
 
 		static nlohmann::json SerializeActor(const Actor& actor);
+		static bool ValidateActorDefinition(const nlohmann::json& actorJson); // World差し替え前にActor/ComponentのFactory登録不足を副作用なしで検証する。
 		static bool LoadActorFromJson(Actor& actor, const nlohmann::json& actorJson);
 		static std::unique_ptr<Actor> CreateActorFromJson(const nlohmann::json& actorJson, const ActorSpawnOptions& options = {});
 	};
