@@ -51,20 +51,24 @@ public:
 	/// CharacterのShadow描画は各ActorのComponent DrawShadow経路へ統一する。
 	void DrawShadow()
 	{
-		if (player_) player_->DrawShadow();
+		if (player_ && !legacyPlayerProxyMode_) player_->DrawShadow();
 		for (auto& enemy : enemies_) if (enemy) enemy->DrawShadow();
 	}
 
 	/// Light行列の明示同期が必要な旧描画呼び出しも、各Characterの共通表示経路へ渡す。
 	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
 	{
-		if (player_) player_->UpdateShadowMatrix(lightViewProjection);
+		if (player_ && !legacyPlayerProxyMode_) player_->UpdateShadowMatrix(lightViewProjection);
 		for (auto& enemy : enemies_) if (enemy) enemy->UpdateShadowMatrix(lightViewProjection);
 	}
 
-	// 新しいGamePlay依存は、可能な範囲から巨大な具象Playerではなく最小Runtime境界を参照する。
-	IPlayerRuntime* GetPlayerRuntime() { return player_.get(); }
-	const IPlayerRuntime* GetPlayerRuntime() const { return player_.get(); }
+	// P10中は新PlayerActorをRuntime正本へ差し替え、旧Player参照を壊さず段階移行する。
+	void SetPlayerRuntimeOverride(IPlayerRuntime* runtime) { playerRuntimeOverride_ = runtime; }
+	void SetLegacyPlayerProxyMode(bool enabled) { legacyPlayerProxyMode_ = enabled; }
+	bool IsLegacyPlayerProxyMode() const { return legacyPlayerProxyMode_; }
+
+	IPlayerRuntime* GetPlayerRuntime() { return playerRuntimeOverride_ ? playerRuntimeOverride_ : player_.get(); }
+	const IPlayerRuntime* GetPlayerRuntime() const { return playerRuntimeOverride_ ? playerRuntimeOverride_ : player_.get(); }
 
 	// 旧式の具象Player参照は、新しいRuntime境界へ移行し終えるまで互換入口として残す。
 	Player* GetPlayer() { return player_.get(); }
@@ -96,6 +100,8 @@ private:
 	std::function<void(const K4E::Vector3&)> onEnemyKilled_{};
 	std::unordered_set<const EnemyBase*> notifiedKilledEnemies_;
 	std::array<int, 2> spawnedEnemyCounts_{};
+	IPlayerRuntime* playerRuntimeOverride_ = nullptr;
+	bool legacyPlayerProxyMode_ = false;
 	bool isDebug_ = false;
 	EnemyType debugSpawnEnemyType_ = EnemyType::Melee;
 };
