@@ -11,9 +11,6 @@
 #include <imgui.h>
 #endif
 
-#include "WorldCollisionResolver.h"
-#include "AudioManager.h"
-
 using namespace Ken4lowEngine;
 
 namespace
@@ -32,27 +29,15 @@ namespace
 void CharacterWorld::Initialize(GameContext& ctx)
 {
 	ctx_ = ctx;
-	playerRuntimeOverride_ = nullptr;
-	legacyPlayerProxyMode_ = false;
-	playerMigrationRuntime_ = std::make_unique<GamePlayPlayerMigrationRuntime>();
+	playerRuntimeController_ = std::make_unique<GamePlayPlayerMigrationRuntime>();
 	enemyParticleEffectSystem_.Initialize();
 
 	actorWorld_.SetPhysicsWorld(&physicsWorld_);
 	physicsWorld_.SetUseFixedStep(false);
-	actorWorld_.Initialize(); // P12以降のPlayer/Enemy/BossはCharacterWorld所有のActorWorldへ集約する。
+	actorWorld_.Initialize(); // P13以降のPlayerActorはCharacterWorld所有ActorWorldだけが所有する。
 
-	player_ = std::make_unique<Player>();
-	InjectPlayerDeps(*player_);
-	player_->Initialize();
-	// 旧BaseCharacterが持っていた初期Y=2.25を復元し、PlayerSpawnPointが無いStageでも地面へ半分埋まらないようにする。
-	player_->SetSpawnPosition({ 0.0f, 2.25f, 0.0f });
-	player_->SetSpawnOffset({ 0.0f, 0.0f, 0.0f });
-
-	if (ctx_.collisionManager_)
-	{
-		ctx_.collisionManager_->AddCollider(player_->GetCollisionPrimitive()); // Playerは共通CharacterColliderComponentだけを登録する。
-	}
-
+	playerSpawnPosition_ = { 0.0f, 2.25f, 0.0f };
+	playerCollisionBridgeRegistered_ = false;
 	enemies_.clear();
 	notifiedKilledEnemies_.clear();
 	spawnedEnemyCounts_.fill(0);
@@ -61,70 +46,75 @@ void CharacterWorld::Initialize(GameContext& ctx)
 void CharacterWorld::Finalize()
 {
 	ClearEnemies();
+	UnregisterPlayerCollisionBridge();
 
-	if (playerMigrationRuntime_)
+	if (playerRuntimeController_)
 	{
-		playerMigrationRuntime_->Finalize();
-		playerMigrationRuntime_.reset(); // 外部Stage Collider参照を解除してからActorWorld本体を破棄する。
+		playerRuntimeController_->Finalize();
+		playerRuntimeController_.reset();
 	}
-	playerRuntimeOverride_ = nullptr;
-	legacyPlayerProxyMode_ = false;
 
-	actorWorld_.Finalize(); // 新PlayerActorの所有権とPhysics Component登録はCharacterWorld側で一括終了する。
-
-	if (ctx_.collisionManager_ && player_)
-	{
-		ctx_.collisionManager_->RemoveCollider(player_->GetCollisionPrimitive());
-	}
-	player_.reset();
+	actorWorld_.Finalize();
 	ctx_ = GameContext{};
 }
 
-void CharacterWorld::EnsurePlayerMigrationRuntime()
+void CharacterWorld::SetPlayerSpawnPosition(const K4E::Vector3& position)
 {
-	if (!enablePlayerMigrationRuntime_ || legacyPlayerProxyMode_ || !player_ || !ctx_.bulletManager_) return;
+	playerSpawnPosition_ = position;
+	if (K4E::PlayerActor* player = GetPlayer()) player->ResetForValidation(playerSpawnPosition_);
+}
+
+void CharacterWorld::EnsurePlayerRuntime()
+{
+	if (playerRuntimeController_ && playerRuntimeController_->IsActive()) return;
 	K4E::Stage* stage = K4E::Stage::GetActiveRuntimeStage();
 	if (!stage) return;
-	if (!playerMigrationRuntime_) playerMigrationRuntime_ = std::make_unique<GamePlayPlayerMigrationRuntime>();
-	if (!playerMigrationRuntime_->Initialize(player_.get(), ctx_.bulletManager_, stage, &actorWorld_, &physicsWorld_)) return;
+	if (!playerRuntimeController_) playerRuntimeController_ = std::make_unique<GamePlayPlayerMigrationRuntime>();
+	if (!playerRuntimeController_->Initialize(ctx_.bulletManager_, stage, &actorWorld_, &physicsWorld_, playerSpawnPosition_)) return;
+	RegisterPlayerCollisionBridge(); // Legacy CollisionManagerを使うEnemy/Boss/Itemにも新Player Colliderを同じ正本として公開する。
+}
 
-	SetPlayerRuntimeOverride(playerMigrationRuntime_->GetPlayerRuntime());
-	SetLegacyPlayerProxyMode(true); // 新Playerを正本にした後もEnemy/Boss等の旧Player参照はP13まで位置同期Proxyとして維持する。
+void CharacterWorld::RegisterPlayerCollisionBridge()
+{
+	if (playerCollisionBridgeRegistered_ || !ctx_.collisionManager_) return;
+	IPlayerRuntime* player = GetPlayerRuntime();
+	K4E::Collider* collider = player ? player->GetCollisionPrimitive() : nullptr;
+	if (!collider) return;
+	ctx_.collisionManager_->AddCollider(collider);
+	playerCollisionBridgeRegistered_ = true;
+}
+
+void CharacterWorld::UnregisterPlayerCollisionBridge()
+{
+	if (!playerCollisionBridgeRegistered_ || !ctx_.collisionManager_)
+	{
+		playerCollisionBridgeRegistered_ = false;
+		return;
+	}
+	IPlayerRuntime* player = GetPlayerRuntime();
+	if (player && player->GetCollisionPrimitive()) ctx_.collisionManager_->RemoveCollider(player->GetCollisionPrimitive());
+	playerCollisionBridgeRegistered_ = false;
 }
 
 void CharacterWorld::UpdateActivePlayer(float deltaTime)
 {
-	EnsurePlayerMigrationRuntime();
-	if (playerMigrationRuntime_ && playerMigrationRuntime_->IsActive())
-	{
-		playerMigrationRuntime_->SyncAfterLegacyCollision();
-		playerMigrationRuntime_->Update(deltaTime);
-		return;
-	}
-	if (player_) player_->Update(deltaTime);
-}
-
-void CharacterWorld::InjectPlayerDeps(Player& player)
-{
-	player.SetCollisionManager(ctx_.collisionManager_);
-	player.SetBulletManager(ctx_.bulletManager_);
-	player.SetOnHitSECallback([]() { AudioManager::GetInstance()->PlaySE("enemy_hit.mp3", 0.2f); });
-	player.SetOnFireSECallback([]() { AudioManager::GetInstance()->PlaySE("player_fire.mp3", 0.1f); });
-	player.SetOnReloadSECallback([]() { AudioManager::GetInstance()->PlaySE("enemy_reload.mp3", 0.2f); });
-	player.SetOnDeathSECallback([]() { AudioManager::GetInstance()->PlaySE("enemy_death.mp3", 0.2f); });
+	EnsurePlayerRuntime();
+	if (playerRuntimeController_ && playerRuntimeController_->IsActive()) playerRuntimeController_->Update(deltaTime);
 }
 
 void CharacterWorld::InjectEnemyDeps(EnemyBase& enemy)
 {
 	if (dynamic_cast<MidRangeEnemy*>(&enemy) == nullptr) enemy.SetParticleEffectSystem(&enemyParticleEffectSystem_);
 
+	EnsurePlayerRuntime();
+	K4E::Collider* playerCollider = GetPlayerRuntime() ? GetPlayerRuntime()->GetCollisionPrimitive() : nullptr;
 	if (auto* meleeEnemy = dynamic_cast<MeleeEnemy*>(&enemy))
 	{
-		if (player_) meleeEnemy->SetTarget(player_.get());
+		meleeEnemy->SetTarget(playerCollider);
 	}
 	else if (auto* midRangeEnemy = dynamic_cast<MidRangeEnemy*>(&enemy))
 	{
-		if (player_) midRangeEnemy->SetTarget(player_.get());
+		midRangeEnemy->SetTarget(playerCollider);
 	}
 }
 
@@ -145,7 +135,7 @@ EnemyBase& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 
 	if (ctx_.collisionManager_)
 	{
-		ctx_.collisionManager_->AddCollider(enemy->GetCollisionPrimitive()); // Enemy自身ではなく共通Component所有Colliderだけを登録する。
+		ctx_.collisionManager_->AddCollider(enemy->GetCollisionPrimitive());
 	}
 
 	enemies_.push_back(std::move(enemy));
@@ -232,21 +222,19 @@ void CharacterWorld::UpdatePlayerOnly(float deltaTime)
 
 void CharacterWorld::WarmupStartGameplayVisuals()
 {
-	EnsurePlayerMigrationRuntime();
-	if (playerMigrationRuntime_ && playerMigrationRuntime_->IsActive()) playerMigrationRuntime_->Update(0.0f, false);
-	else if (player_) player_->WarmupStartGameplayVisuals();
+	EnsurePlayerRuntime();
+	if (playerRuntimeController_ && playerRuntimeController_->IsActive()) playerRuntimeController_->Update(0.0f, false);
 	for (auto& enemy : enemies_) if (enemy) enemy->Update(0.0f);
 }
 
 void CharacterWorld::SetStartGameplayVisualsVisible(bool visible)
 {
-	if (!legacyPlayerProxyMode_ && player_) player_->SetStartGameplayVisualsVisible(visible);
+	(void)visible; // 新Playerは一人称Weapon Viewを通常Runtime側で管理し、旧Player表示切替には依存しない。
 }
 
 void CharacterWorld::Draw()
 {
-	if (playerMigrationRuntime_ && playerMigrationRuntime_->IsActive()) actorWorld_.Draw();
-	else if (player_) player_->Draw();
+	if (playerRuntimeController_ && playerRuntimeController_->IsActive()) actorWorld_.Draw();
 	for (auto& enemy : enemies_) if (enemy) enemy->Draw();
 }
 
@@ -261,28 +249,22 @@ void CharacterWorld::DrawImGui()
 void CharacterWorld::DrawPlayerDebugImGui()
 {
 #ifdef USE_IMGUI
-	if (!player_)
-	{
-		ImGui::TextUnformatted("Player: N/A");
-		return;
-	}
-
-	ImGui::SeparatorText("P12 Character ActorWorld");
-	ImGui::Text("New Player Runtime: %s", playerMigrationRuntime_ && playerMigrationRuntime_->IsActive() ? "ACTIVE" : "WAITING");
-	ImGui::Text("Legacy Proxy Mode: %s", legacyPlayerProxyMode_ ? "ON" : "OFF");
+	ImGui::SeparatorText("P13 Player Runtime");
+	ImGui::Text("Player Runtime: %s", playerRuntimeController_ && playerRuntimeController_->IsActive() ? "ACTIVE" : "WAITING");
+	ImGui::Text("Legacy Player Instance: NONE");
 	ImGui::Text("ActorWorld Owned Actors: %d", static_cast<int>(actorWorld_.GetActors().size()));
-	if (playerMigrationRuntime_)
+	if (playerRuntimeController_)
 	{
 		ImGui::Text("Stage Colliders: %d / %d active",
-			static_cast<int>(playerMigrationRuntime_->GetRegisteredStageColliderCount()),
-			static_cast<int>(playerMigrationRuntime_->GetTotalStageColliderCount()));
+			static_cast<int>(playerRuntimeController_->GetRegisteredStageColliderCount()),
+			static_cast<int>(playerRuntimeController_->GetTotalStageColliderCount()));
 	}
-	if (const K4E::PlayerActor* migrated = GetMigratedPlayerActor())
+	if (const K4E::PlayerActor* player = GetPlayer())
 	{
-		const K4E::Vector3 position = migrated->GetRootComponent() ? migrated->GetRootComponent()->GetWorldPosition() : K4E::Vector3{};
-		ImGui::Text("New Player Pos: %.2f, %.2f, %.2f", position.x, position.y, position.z);
-		ImGui::Text("New Player HP: %.1f / %.1f", migrated->GetHP(), migrated->GetMaxHP());
-		for (const auto& componentOwner : migrated->GetComponents())
+		const K4E::Vector3 position = player->GetWorldPosition();
+		ImGui::Text("Player Pos: %.2f, %.2f, %.2f", position.x, position.y, position.z);
+		ImGui::Text("Player HP: %.1f / %.1f", player->GetHP(), player->GetMaxHP());
+		for (const auto& componentOwner : player->GetComponents())
 		{
 			if (!componentOwner) continue;
 			K4E::ActorComponent* component = componentOwner.get();
@@ -292,9 +274,6 @@ void CharacterWorld::DrawPlayerDebugImGui()
 			ImGui::PopID();
 		}
 	}
-
-	ImGui::SeparatorText("Legacy Player Proxy");
-	player_->DrawPlayerDebugImGui();
 #endif
 }
 
@@ -339,9 +318,9 @@ void CharacterWorld::DrawEnemyDebugImGui()
 		debugSpawnEnemyType_ = static_cast<EnemyType>(debugSpawnEnemyTypeIndex);
 	}
 
-	if (player_ && ImGui::Button("選択した敵を生成"))
+	if (const K4E::PlayerActor* player = GetPlayer(); player && ImGui::Button("選択した敵を生成"))
 	{
-		const Vector3 spawnPosition = player_->GetCenterPosition() + Vector3{ 0.0f, 0.0f, 3.0f };
+		const Vector3 spawnPosition = player->GetWorldPosition() + Vector3{ 0.0f, 0.0f, 3.0f };
 		SpawnEnemyAt(spawnPosition, debugSpawnEnemyType_);
 	}
 	ImGui::Separator();
