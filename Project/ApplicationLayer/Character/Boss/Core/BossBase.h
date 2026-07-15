@@ -4,6 +4,7 @@
 #include "BossTypes.h"
 #include "AABB.h"
 #include "WorldCollisionResolver.h"
+#include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
 #include <Vector3.h>
 
 #include "BossBrain.h"
@@ -21,7 +22,6 @@
 
 namespace K4E = ::Ken4lowEngine;
 
-/// デバッグ用の簡易ヒット部位。正式な部位所有はHumanoidVisualComponent側に置く。
 enum class BossHitPart
 {
 	None,
@@ -33,7 +33,6 @@ enum class BossHitPart
 	RightLeg
 };
 
-/// Bossの簡易部位ヒット結果。
 struct BossHitResult
 {
 	bool isHit = false;
@@ -42,9 +41,7 @@ struct BossHitResult
 	float damageMultiplier = 1.0f;
 };
 
-class Player;
-
-/// Boss固有AI/攻撃を保持しつつ、HP・Movement・Collider・Animation・人型表示は共通Actor/Componentへ接続する基底。
+/// Boss固有AI/攻撃を保持しつつ、Target PlayerはIPlayerRuntime越しに参照する基底。
 class BossBase : public BaseCharacter
 {
 public:
@@ -58,27 +55,22 @@ public:
 	void DrawImGui() override;
 	virtual void Finalize();
 
-	/// 人型Bossは標準HumanoidVisualComponent構成をそのまま使用する。
 	virtual void BuildBossParts() { BaseCharacter::Initialize(); }
 	virtual void SetupAttacks() = 0;
 	virtual void SetupBoss()
 	{
-		if (auto* visual = GetHumanoidVisualComponent()) visual->SetAllPartsVisible(true); // 共通人型表示をBossの初期表示状態へ揃える。
+		if (auto* visual = GetHumanoidVisualComponent()) visual->SetAllPartsVisible(true);
 	}
 
 	virtual void ApplyParameters();
 	void ForceSyncWorldTransform();
 	bool MoveWithWorldCollision(const K4E::Vector3& desiredPosition);
 	void ClearRootParentKeepingWorldPosition();
-
-	/// 既存の登場演出が参照するRoot Transform情報を共通HumanoidVisualのBodyから返す。
 	bool HasRootParent() const { return GetBody().transform.parent_ != nullptr; }
 	K4E::Vector3 GetRootLocalPosition() const { return GetBody().transform.translate_; }
 	K4E::Vector3 GetRootWorldPosition() const { return GetBody().transform.worldTranslate_; }
 
-	/// 個別BossがCollider種別ごとの処理を実装する。
 	virtual void OnCollision(K4E::Collider* other) override = 0;
-
 	virtual void OnDamaged(float damage);
 	virtual void OnBulletDamaged(float damage);
 	virtual bool ApplyDamageToTargetPlayer(float damage, const K4E::Vector3* attackPosition = nullptr);
@@ -98,7 +90,6 @@ public:
 
 	void SetPosition(const K4E::Vector3& position) { SetCenterPosition(position); }
 	K4E::Vector3 GetPosition() const { return GetCenterPosition(); }
-
 	void SetYaw(float yaw)
 	{
 		auto rotation = GetBody().transform.rotate_;
@@ -114,8 +105,8 @@ public:
 	float GetDistanceToTargetXZ() const;
 	bool IsTargetInAttackRange() const;
 
-	void SetTargetPlayer(Player* player) { targetPlayer_ = player; }
-	Player* GetTargetPlayer() const { return targetPlayer_; }
+	void SetTargetPlayer(IPlayerRuntime* player) { targetPlayer_ = player; }
+	IPlayerRuntime* GetTargetPlayer() const { return targetPlayer_; }
 
 	void SetStageObstacleAABBs(const std::vector<K4E::AABB>* aabbs) { stageObstacleAABBs_ = aabbs; }
 	const std::vector<K4E::AABB>* GetStageObstacleAABBs() const { return stageObstacleAABBs_; }
@@ -137,14 +128,8 @@ public:
 	const BossAnimationComponent* GetAnimationComponent() const { return animationComponent_.get(); }
 	BossMovementComponent* GetMovementComponent() { return movementComponent_.get(); }
 	const BossMovementComponent* GetMovementComponent() const { return movementComponent_.get(); }
-	K4E::CharacterMovementComponent* GetCharacterMovementComponent()
-	{
-		return movementComponent_ ? movementComponent_->GetCharacterMovementComponent() : nullptr;
-	}
-	const K4E::CharacterMovementComponent* GetCharacterMovementComponent() const
-	{
-		return movementComponent_ ? movementComponent_->GetCharacterMovementComponent() : nullptr;
-	}
+	K4E::CharacterMovementComponent* GetCharacterMovementComponent() { return movementComponent_ ? movementComponent_->GetCharacterMovementComponent() : nullptr; }
+	const K4E::CharacterMovementComponent* GetCharacterMovementComponent() const { return movementComponent_ ? movementComponent_->GetCharacterMovementComponent() : nullptr; }
 	BossStateMachine* GetStateMachine() { return stateMachine_.get(); }
 	const BossStateMachine* GetStateMachine() const { return stateMachine_.get(); }
 	BossStatusComponent* GetStatusComponent() { return statusComponent_.get(); }
@@ -153,8 +138,6 @@ public:
 	const BossBrain* GetBrain() const { return brain_.get(); }
 
 	void SetDamageCallback(std::function<void(float)> callback) { damageCallback_ = std::move(callback); }
-
-	/// 攻撃アニメーションが使う腕のローカル回転を共通Visualの部位へ適用する。
 	void SetLeftArmLocalRotate(const K4E::Vector3& rotate)
 	{
 		auto& parts = GetBodyParts();
@@ -167,14 +150,15 @@ public:
 		const auto index = GetPartIndices().rightArm;
 		if (index < parts.size()) parts[index].transform.rotate_ = rotate;
 	}
-
 	K4E::Vector3 GetLeftArmRootWorldPosition()
 	{
-		return GetPartWorldPosition(GetPartIndices().leftArm);
+		const auto index = GetPartIndices().leftArm;
+		return GetPartWorldPosition(index);
 	}
 	K4E::Vector3 GetRightArmRootWorldPosition()
 	{
-		return GetPartWorldPosition(GetPartIndices().rightArm);
+		const auto index = GetPartIndices().rightArm;
+		return GetPartWorldPosition(index);
 	}
 
 	BossHitResult CheckDebugHitSphere(const K4E::Vector3& attackCenter, float attackRadius);
@@ -192,16 +176,15 @@ protected:
 
 protected:
 	std::unique_ptr<BossBrain> brain_;
-	std::unique_ptr<BossStatusComponent> statusComponent_; // HP値は持たず、共通CharacterHealthComponentへのBoss API窓口だけを提供する。
+	std::unique_ptr<BossStatusComponent> statusComponent_;
 	std::unique_ptr<BossStateMachine> stateMachine_;
 	std::unique_ptr<BossMovementComponent> movementComponent_;
 	std::unique_ptr<BossAnimationComponent> animationComponent_;
 	std::unique_ptr<BossAttackComponent> attackComponent_;
-
 	BossState state_ = BossState::Intro;
 	BossPhase phase_ = BossPhase::Phase1;
 	K4E::Vector3 targetPosition_{};
-	Player* targetPlayer_ = nullptr;
+	IPlayerRuntime* targetPlayer_ = nullptr;
 	const std::vector<K4E::AABB>* stageObstacleAABBs_ = nullptr;
 	K4E::WorldCollisionSettings worldCollisionSettings_{};
 	float attackRange_ = 3.0f;
