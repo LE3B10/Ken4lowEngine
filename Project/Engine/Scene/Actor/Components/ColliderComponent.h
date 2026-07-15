@@ -6,6 +6,8 @@
 
 #include <functional>
 #include <memory>
+#include <string>
+#include <string_view>
 #include <vector>
 
 namespace Ken4lowEngine
@@ -77,7 +79,6 @@ namespace Ken4lowEngine
 		/// </summary>
 		void SetRadius(float radius);
 
-		/// <summary>
 		/// PhysicsWorldへ登録するColliderを取得する
 		Collider* GetCollider() { return collider_.get(); }
 		const Collider* GetCollider() const { return collider_.get(); }
@@ -124,6 +125,22 @@ namespace Ken4lowEngine
 				collider_->SetTrigger(isTrigger_); // ColliderのTrigger設定を反映する
 			}
 		}
+
+		/// Blender Level由来のcollision_type_idなど、既存識別IDをComponent経由で保持する。
+		void SetCollisionTypeId(uint32_t typeId)
+		{
+			collisionTypeId_ = typeId;
+			if (collider_) collider_->SetTypeID(collisionTypeId_);
+		}
+		uint32_t GetCollisionTypeId() const { return collisionTypeId_; }
+
+		/// Blender Level由来のFloor/Obstacle/Fenceなどの用途名を保持する。
+		void SetCollisionTag(std::string_view tag)
+		{
+			collisionTag_ = std::string(tag);
+			if (collider_) collider_->SetCollisionTag(collisionTag_);
+		}
+		const std::string& GetCollisionTag() const { return collisionTag_; }
 
 		std::vector<ComponentProperty> CreateProperties();
 
@@ -180,6 +197,10 @@ namespace Ken4lowEngine
 
 		// PhysicsWorld用のCollisionLayer
 		uint32_t collisionLayer_ = 0;
+
+		// Level由来の既存Collision識別情報をActor/Component化後も保持する。
+		uint32_t collisionTypeId_ = 0;
+		std::string collisionTag_;
 
 		// SphereColliderとして扱う半径
 		float radius_ = 1.0f;
