@@ -4,6 +4,7 @@
 #include "EnemyFactory.h"
 #include "MeleeEnemy.h"
 #include "MidRangeEnemy.h"
+#include <Stage.h>
 #include <algorithm>
 
 #ifdef USE_IMGUI
@@ -33,6 +34,7 @@ void CharacterWorld::Initialize(GameContext& ctx)
 	ctx_ = ctx;
 	playerRuntimeOverride_ = nullptr;
 	legacyPlayerProxyMode_ = false;
+	playerMigrationRuntime_ = std::make_unique<GamePlayPlayerMigrationRuntime>();
 	enemyParticleEffectSystem_.Initialize();
 
 	player_ = std::make_unique<Player>();
@@ -56,14 +58,44 @@ void CharacterWorld::Finalize()
 {
 	ClearEnemies();
 
+	if (playerMigrationRuntime_)
+	{
+		playerMigrationRuntime_->Finalize();
+		playerMigrationRuntime_.reset(); // Stageや旧Playerを破棄する前に新Player側の非所有参照を解除する。
+	}
+	playerRuntimeOverride_ = nullptr;
+	legacyPlayerProxyMode_ = false;
+
 	if (ctx_.collisionManager_ && player_)
 	{
 		ctx_.collisionManager_->RemoveCollider(player_->GetCollisionPrimitive());
 	}
-	playerRuntimeOverride_ = nullptr;
-	legacyPlayerProxyMode_ = false;
 	player_.reset();
 	ctx_ = GameContext{};
+}
+
+void CharacterWorld::EnsurePlayerMigrationRuntime()
+{
+	if (!enablePlayerMigrationRuntime_ || legacyPlayerProxyMode_ || !player_ || !ctx_.bulletManager_) return;
+	K4E::Stage* stage = K4E::Stage::GetActiveRuntimeStage();
+	if (!stage) return;
+	if (!playerMigrationRuntime_) playerMigrationRuntime_ = std::make_unique<GamePlayPlayerMigrationRuntime>();
+	if (!playerMigrationRuntime_->Initialize(player_.get(), ctx_.bulletManager_, stage)) return;
+
+	SetPlayerRuntimeOverride(playerMigrationRuntime_->GetPlayerRuntime());
+	SetLegacyPlayerProxyMode(true); // 新Playerを正本にした後もEnemy/Boss等の旧Player参照は位置同期Proxyとして維持する。
+}
+
+void CharacterWorld::UpdateActivePlayer(float deltaTime)
+{
+	EnsurePlayerMigrationRuntime();
+	if (playerMigrationRuntime_ && playerMigrationRuntime_->IsActive())
+	{
+		playerMigrationRuntime_->SyncAfterLegacyCollision();
+		playerMigrationRuntime_->Update(deltaTime);
+		return;
+	}
+	if (player_) player_->Update(deltaTime);
 }
 
 void CharacterWorld::InjectPlayerDeps(Player& player)
@@ -161,7 +193,7 @@ bool CharacterWorld::RemoveEnemy(EnemyBase* enemy)
 
 void CharacterWorld::Update(float deltaTime)
 {
-	if (player_ && !legacyPlayerProxyMode_) player_->Update(deltaTime);
+	UpdateActivePlayer(deltaTime);
 
 	const float enemyDeltaTime = std::clamp(deltaTime, 0.0f, EnemyBase::GetMaxUpdateDeltaTime());
 	for (auto& enemy : enemies_)
@@ -189,23 +221,26 @@ void CharacterWorld::Update(float deltaTime)
 
 void CharacterWorld::UpdatePlayerOnly(float deltaTime)
 {
-	if (player_ && !legacyPlayerProxyMode_) player_->Update(deltaTime);
+	UpdateActivePlayer(deltaTime);
 }
 
 void CharacterWorld::WarmupStartGameplayVisuals()
 {
-	if (player_ && !legacyPlayerProxyMode_) player_->WarmupStartGameplayVisuals();
+	EnsurePlayerMigrationRuntime();
+	if (playerMigrationRuntime_ && playerMigrationRuntime_->IsActive()) playerMigrationRuntime_->Update(0.0f, false);
+	else if (player_) player_->WarmupStartGameplayVisuals();
 	for (auto& enemy : enemies_) if (enemy) enemy->Update(0.0f);
 }
 
 void CharacterWorld::SetStartGameplayVisualsVisible(bool visible)
 {
-	if (player_ && !legacyPlayerProxyMode_) player_->SetStartGameplayVisualsVisible(visible);
+	if (!legacyPlayerProxyMode_ && player_) player_->SetStartGameplayVisualsVisible(visible);
 }
 
 void CharacterWorld::Draw()
 {
-	if (player_ && !legacyPlayerProxyMode_) player_->Draw();
+	if (playerMigrationRuntime_ && playerMigrationRuntime_->IsActive()) playerMigrationRuntime_->Draw();
+	else if (player_) player_->Draw();
 	for (auto& enemy : enemies_) if (enemy) enemy->Draw();
 }
 
@@ -226,25 +261,26 @@ void CharacterWorld::DrawPlayerDebugImGui()
 		return;
 	}
 
-	ImGui::SeparatorText("Actor / Components");
-	ImGui::TextUnformatted("GamePlay PlayerはHumanoidCharacterActor由来のActorです。");
+	ImGui::SeparatorText("P10 Player Migration");
+	ImGui::Text("New Player Runtime: %s", playerMigrationRuntime_ && playerMigrationRuntime_->IsActive() ? "ACTIVE" : "WAITING");
 	ImGui::Text("Legacy Proxy Mode: %s", legacyPlayerProxyMode_ ? "ON" : "OFF");
-	ImGui::TextUnformatted("以下のComponent値は実行中のPlayer実体へ直接反映されます。");
-
-	for (const auto& componentOwner : player_->GetComponents())
+	if (const K4E::PlayerActor* migrated = GetMigratedPlayerActor())
 	{
-		if (!componentOwner) continue;
-		ActorComponent* component = componentOwner.get();
-		const std::string label = component->GetName().empty() ? component->GetClassTypeName() : component->GetName();
-		ImGui::PushID(component);
-		if (ImGui::CollapsingHeader(label.c_str()))
+		const K4E::Vector3 position = migrated->GetRootComponent() ? migrated->GetRootComponent()->GetWorldPosition() : K4E::Vector3{};
+		ImGui::Text("New Player Pos: %.2f, %.2f, %.2f", position.x, position.y, position.z);
+		ImGui::Text("New Player HP: %.1f / %.1f", migrated->GetHP(), migrated->GetMaxHP());
+		for (const auto& componentOwner : migrated->GetComponents())
 		{
-			component->DrawImGui(); // GamePlaySceneでもActor/Component側の標準調整値を直接編集する。
+			if (!componentOwner) continue;
+			K4E::ActorComponent* component = componentOwner.get();
+			const std::string label = component->GetName().empty() ? component->GetClassTypeName() : component->GetName();
+			ImGui::PushID(component);
+			if (ImGui::CollapsingHeader(label.c_str())) component->DrawImGui();
+			ImGui::PopID();
 		}
-		ImGui::PopID();
 	}
 
-	ImGui::SeparatorText("Legacy Player Runtime");
+	ImGui::SeparatorText("Legacy Player Proxy");
 	player_->DrawPlayerDebugImGui();
 #endif
 }
