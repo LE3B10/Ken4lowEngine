@@ -17,37 +17,25 @@ namespace Ken4lowEngine
 
 namespace K4E = ::Ken4lowEngine;
 
+class IPlayerRuntime;
 class CharacterWorld;
 class CollisionManager;
 class CrystalManager;
 class GamePlayStageContext;
 class HUDManager;
-class Player;
 
-/// -------------------------------------------------------------
-/// ボス撃破後に出現するクリア用アイテム。
-///
-/// BossBattleControllerが生成・所有し、取得後は判定を無効化して
-/// ゲームクリア進行へ通知するための小さなCollider。
-/// -------------------------------------------------------------
 class BossClearItem : public K4E::Collider
 {
 public:
-	// ボス位置を基準に表示モデルとItem判定を生成する。CollisionManager登録は呼び出し側が行う。
 	void Initialize(const K4E::Vector3& position);
-	// 浮遊・回転演出とCollider中心を同期する。
 	void Update(float deltaTime);
-	// 未取得かつ生成済みのときだけモデルを描画する。
 	void Draw();
-	// プレイヤー中心との距離で取得可能か判定する。実取得処理はController側で行う。
-	bool CheckPickup(const Player& player) const;
-	// 取得済みにして判定を遠方へ逃がす。CollisionManagerからの削除は呼び出し側が行う。
+	bool CheckPickup(const IPlayerRuntime& player) const;
 	void MarkCollected();
 
 	bool IsSpawned() const { return spawned_; }
 	bool IsCollected() const { return collected_; }
 	const K4E::Vector3& GetPosition() const { return position_; }
-
 	void OnCollision(K4E::Collider* other) override;
 	K4E::Vector3 GetCenterPosition() const override { return position_; }
 	void SetCenterPosition(const K4E::Vector3& pos) override { position_ = pos; }
@@ -64,16 +52,10 @@ private:
 	bool collected_ = false;
 };
 
-/// -------------------------------------------------------------
-/// ボス戦の出現、登場演出、撃破後クリアアイテムを管理するクラス。
-///
-/// GamePlayWorldからボス専用の状態と処理を切り離し、World本体が
-/// 通常更新・描画・各Manager連携に集中できるようにする。
-/// -------------------------------------------------------------
+/// ボス出現、登場演出、Runtime Playerへの攻撃、撃破後クリアItemを管理する。
 class BossBattleController
 {
 public:
-	/// GamePlayWorld側が所有しているManager群への一時参照。
 	struct Dependencies
 	{
 		CharacterWorld* characters = nullptr;
@@ -88,13 +70,12 @@ public:
 
 	void Initialize(GamePlayStageContext& stageContext, bool stage1BeginnerBalanceEnabled);
 	void Finalize(const Dependencies& deps);
-
 	void UpdateSpawnProgress(const Dependencies& deps);
 	void UpdateIntro(const Dependencies& deps, float deltaTime);
 	void UpdateRuntime(const Dependencies& deps, float deltaTime);
 	void UpdatePausedWorld(const Dependencies& deps, float deltaTime);
 	void UpdateHud(const Dependencies& deps, float deltaTime);
-	void UpdateBossGuideHud(Player& player, HUDManager& hudManager) const;
+	void UpdateBossGuideHud(IPlayerRuntime& player, HUDManager& hudManager) const;
 
 	void DrawBoss();
 	void DrawClearItem();
@@ -102,7 +83,6 @@ public:
 	void DrawShadow();
 	void DrawBossIntroShadow();
 	void DrawImGui(const Dependencies& deps, bool bossIntroPresentationActive);
-
 	void ResetIntroForDebug(const Dependencies& deps);
 	void SetBossDefeated(bool defeated) { bossDefeated_ = defeated; }
 
@@ -124,13 +104,13 @@ public:
 private:
 	void SpawnGuardianBoss(const Dependencies& deps, bool registerCollider);
 	void RegisterGuardianBossCollider(const Dependencies& deps);
-	void AlignPlayerViewToBossAfterIntro(Player& player) const;
+	void AlignPlayerViewToBossAfterIntro(IPlayerRuntime& player) const;
 	void UpdateBossClearProgress(const Dependencies& deps, float deltaTime);
 	void SpawnClearItem(const Dependencies& deps, const K4E::Vector3& bossPosition);
 	void CollectClearItem(const Dependencies& deps);
 	void HandleBossPhasePresentation(const Dependencies& deps);
 	void StartCameraShake(float duration, float amplitude, float frequency);
-	void UpdateCameraShake(float deltaTime, Player* player);
+	void UpdateCameraShake(float deltaTime, IPlayerRuntime* player);
 	K4E::Vector3 BuildCameraShakeOffset() const;
 	static bool CalcLookAnglesToTarget(const K4E::Vector3& from, const K4E::Vector3& target, float& outPitch, float& outYaw);
 
