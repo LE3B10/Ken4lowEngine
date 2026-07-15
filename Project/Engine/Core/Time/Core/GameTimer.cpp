@@ -20,6 +20,7 @@ namespace Ken4lowEngine
 		// 指定された目標FPSでFPSCounterをリセットし、計測開始できる状態にする。
 		targetFPS_ = targetFPS;
 		fpsCounter_.Reset(targetFPS_);
+		updatePhaseActive_ = false;
 		initialized_ = true;
 	}
 
@@ -29,11 +30,12 @@ namespace Ken4lowEngine
 	void GameTimer::Finalize()
 	{
 		// 終了後に各Begin/End計測が動かないように初期化フラグを落とす。
+		updatePhaseActive_ = false;
 		initialized_ = false;
 	}
 
 	/// ----------------------------------------------
-	///				フレーム開始処理
+	///			フレーム開始処理
 	/// ----------------------------------------------
 	void GameTimer::BeginFrame()
 	{
@@ -43,17 +45,26 @@ namespace Ken4lowEngine
 			Initialize(targetFPS_);
 		}
 
+		updatePhaseActive_ = false;
 		fpsCounter_.StartFrame();
 	}
 
 	/// ----------------------------------------------
-	///				フレーム終了処理
+	///			フレーム終了処理
 	/// ----------------------------------------------
 	void GameTimer::EndFrame()
 	{
 		// 初期化されていない場合は、FPS計算やログ出力を行わない。
 		if (!initialized_)
 		{
+			return;
+		}
+
+		if (updatePhaseActive_)
+		{
+			// 旧GameApplicationがUpdate末尾でEndFrameしている間は、Update終了として扱いフレームを確定しない。
+			fpsCounter_.EndUpdate();
+			updatePhaseActive_ = false;
 			return;
 		}
 
@@ -67,14 +78,16 @@ namespace Ken4lowEngine
 	{
 		// Update区間の開始時刻を記録する。
 		if (!initialized_) return;
+		updatePhaseActive_ = true;
 		fpsCounter_.BeginUpdate();
 	}
 
 	void GameTimer::EndUpdate()
 	{
 		// Update区間の経過時間を確定する。
-		if (!initialized_) return;
+		if (!initialized_ || !updatePhaseActive_) return;
 		fpsCounter_.EndUpdate();
+		updatePhaseActive_ = false;
 	}
 
 	void GameTimer::BeginDraw()
