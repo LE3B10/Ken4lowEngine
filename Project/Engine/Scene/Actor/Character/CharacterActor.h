@@ -2,6 +2,7 @@
 
 #include "Actor.h"
 #include "CharacterDamage.h"
+#include "SceneComponent.h"
 
 #include <cstdint>
 #include <functional>
@@ -26,6 +27,14 @@ namespace Ken4lowEngine
 		using DeathListenerId = std::uint64_t;
 		using DeathListener = std::function<void(const CharacterDeathEvent&)>;
 
+		/// Editor InspectorがActor RootのTransformを旧WorldTransform風に読み取るための軽量Snapshot。
+		struct WorldTransformSnapshot
+		{
+			Vector3 translate_{};
+			Vector3 rotate_{};
+			Vector3 scale_{ 1.0f, 1.0f, 1.0f };
+		};
+
 	public:
 		/// Characterの既定Componentを不足分だけ生成し、処理本体は各Componentへ委譲する。
 		void Initialize() override;
@@ -46,6 +55,18 @@ namespace Ken4lowEngine
 
 		/// Target ComponentのWorld座標を返し、未設定時はRoot座標へフォールバックする。
 		Vector3 GetTargetPosition() const;
+
+		/// Editorの読み取り専用Inspector向けにRoot TransformのSnapshotを返す。
+		WorldTransformSnapshot* GetWorldTransform()
+		{
+			RefreshWorldTransformSnapshot();
+			return &worldTransformSnapshot_;
+		}
+		const WorldTransformSnapshot* GetWorldTransform() const
+		{
+			RefreshWorldTransformSnapshot();
+			return &worldTransformSnapshot_;
+		}
 
 		CharacterHealthComponent* GetHealthComponent();
 		const CharacterHealthComponent* GetHealthComponent() const;
@@ -107,6 +128,21 @@ namespace Ken4lowEngine
 		virtual void OnDeath(const CharacterDeathEvent& deathEvent) { (void)deathEvent; }
 
 	private:
+		/// RootComponentの現在値からEditor用Snapshotを更新する。
+		void RefreshWorldTransformSnapshot() const
+		{
+			const SceneComponent* root = GetRootComponent();
+			if (!root)
+			{
+				worldTransformSnapshot_ = {};
+				worldTransformSnapshot_.scale_ = { 1.0f, 1.0f, 1.0f };
+				return;
+			}
+			worldTransformSnapshot_.translate_ = root->GetWorldPosition();
+			worldTransformSnapshot_.rotate_ = root->GetWorldRotation();
+			worldTransformSnapshot_.scale_ = root->GetWorldScale();
+		}
+
 		/// 派生処理と登録Listenerへ死亡イベントを一度だけ通知する。
 		void NotifyDeath(const CharacterDamageInfo& damageInfo, const CharacterDamageResult& damageResult);
 
@@ -120,5 +156,6 @@ namespace Ken4lowEngine
 		std::vector<DeathListenerEntry> deathListeners_;
 		DeathListenerId nextDeathListenerId_ = 1;
 		bool deathNotificationSent_ = false;
+		mutable WorldTransformSnapshot worldTransformSnapshot_{};
 	};
 } // namespace Ken4lowEngine
