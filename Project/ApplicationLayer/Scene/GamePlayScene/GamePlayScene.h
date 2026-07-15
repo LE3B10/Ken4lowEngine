@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <BaseScene.h>
 
 #include "GamePlayFlow.h"
@@ -34,6 +34,9 @@ namespace K4E = ::Ken4lowEngine;
 /// -------------------------------------------------------------
 class GamePlayScene : public K4E::BaseScene
 {
+private:
+	using Player = K4E::PlayerActor; // P13移行中の既存Inspector内Player名を新PlayerActorへ解決する。
+
 public: /// ---------- BaseScene override ---------- ///
 
 	// エンジン入力やフェード管理を準備し、段階ロード前の空のゲームプレイ状態へ戻す。
