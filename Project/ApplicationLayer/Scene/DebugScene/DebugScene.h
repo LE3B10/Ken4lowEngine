@@ -3,6 +3,7 @@
 #include "Validation/EnemyMigrationValidation.h"
 #include "Validation/BossMigrationValidation.h"
 #include "Validation/LevelDataValidation.h"
+#include "Validation/LevelImportValidation.h"
 
 #include <ActorWorld.h>
 #include <Editor/ActorWorldEditorBridge.h>
@@ -90,6 +91,7 @@ private:
 	} actorWorldValidation_;
 
 	LevelDataValidation levelDataValidation_;
+	LevelImportValidation levelImportValidation_;
 	EnemyMigrationValidation enemyMigrationValidation_;
 	BossMigrationValidation bossMigrationValidation_;
 };
