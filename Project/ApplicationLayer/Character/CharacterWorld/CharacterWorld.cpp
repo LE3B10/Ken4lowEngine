@@ -4,6 +4,7 @@
 #include "EnemyFactory.h"
 #include "MeleeEnemy.h"
 #include "MidRangeEnemy.h"
+#include "ApplicationLayer/Character/Enemy/Projectile/MidRangeBombProjectile.h"
 #include <Stage.h>
 #include <algorithm>
 
@@ -46,6 +47,7 @@ void CharacterWorld::Initialize(GameContext& ctx)
 void CharacterWorld::Finalize()
 {
 	ClearEnemies();
+	MidRangeBombProjectile::SetTargetPlayerRuntime(nullptr);
 	UnregisterPlayerCollisionBridge();
 
 	if (playerRuntimeController_)
@@ -71,7 +73,8 @@ void CharacterWorld::EnsurePlayerRuntime()
 	if (!stage) return;
 	if (!playerRuntimeController_) playerRuntimeController_ = std::make_unique<GamePlayPlayerMigrationRuntime>();
 	if (!playerRuntimeController_->Initialize(ctx_.bulletManager_, stage, &actorWorld_, &physicsWorld_, playerSpawnPosition_)) return;
-	RegisterPlayerCollisionBridge(); // Legacy CollisionManagerを使うEnemy/Boss/Itemにも新Player Colliderを同じ正本として公開する。
+	RegisterPlayerCollisionBridge();
+	MidRangeBombProjectile::SetTargetPlayerRuntime(GetPlayerRuntime()); // 中距離Bombも旧Player Owner判定を経由せず同じRuntime正本へDamageを適用する。
 }
 
 void CharacterWorld::RegisterPlayerCollisionBridge()
