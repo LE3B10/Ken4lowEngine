@@ -62,6 +62,11 @@ public:
 		for (auto& enemy : enemies_) if (enemy) enemy->UpdateShadowMatrix(lightViewProjection);
 	}
 
+	// 新しいGamePlay依存は、可能な範囲から巨大な具象Playerではなく最小Runtime境界を参照する。
+	IPlayerRuntime* GetPlayerRuntime() { return player_.get(); }
+	const IPlayerRuntime* GetPlayerRuntime() const { return player_.get(); }
+
+	// 旧式の具象Player参照は、新しいRuntime境界へ移行し終えるまで互換入口として残す。
 	Player* GetPlayer() { return player_.get(); }
 	const Player* GetPlayer() const { return player_.get(); }
 	const std::vector<std::unique_ptr<EnemyBase>>& GetEnemies() const { return enemies_; }
