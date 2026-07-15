@@ -19,8 +19,8 @@ namespace Ken4lowEngine
 		/// 射撃・リロード要求とCooldown・リロード時間を1フレーム進める。
 		void Update(float deltaTime) override
 		{
-			const float safeDeltaTime = std::max(0.0f, deltaTime);
-			fireCooldownRemaining_ = std::max(0.0f, fireCooldownRemaining_ - safeDeltaTime);
+			const float safeDeltaTime = (std::max)(0.0f, deltaTime);
+			fireCooldownRemaining_ = (std::max)(0.0f, fireCooldownRemaining_ - safeDeltaTime);
 
 			if (!weaponEnabled_)
 			{
@@ -94,9 +94,9 @@ namespace Ken4lowEngine
 		{
 			ActorComponent::FromJson(inJson);
 			weaponId_ = inJson.value("WeaponId", weaponId_);
-			magazineCapacity_ = std::max(1, inJson.value("MagazineCapacity", magazineCapacity_));
-			magazineAmmo_ = std::clamp(inJson.value("MagazineAmmo", magazineAmmo_), 0, magazineCapacity_);
-			reserveAmmo_ = std::max(0, inJson.value("ReserveAmmo", reserveAmmo_));
+			magazineCapacity_ = (std::max)(1, inJson.value("MagazineCapacity", magazineCapacity_));
+			magazineAmmo_ = (std::clamp)(inJson.value("MagazineAmmo", magazineAmmo_), 0, magazineCapacity_);
+			reserveAmmo_ = (std::max)(0, inJson.value("ReserveAmmo", reserveAmmo_));
 			reloadDuration_ = inJson.value("ReloadDuration", reloadDuration_);
 			damage_ = inJson.value("Damage", damage_);
 			range_ = inJson.value("Range", range_);
@@ -167,7 +167,7 @@ namespace Ken4lowEngine
 		void FinishReload()
 		{
 			const int required = magazineCapacity_ - magazineAmmo_;
-			const int loaded = std::min(required, reserveAmmo_);
+			const int loaded = (std::min)(required, reserveAmmo_);
 			magazineAmmo_ += loaded;
 			reserveAmmo_ -= loaded;
 			isReloading_ = false;

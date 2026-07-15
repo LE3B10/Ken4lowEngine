@@ -37,12 +37,18 @@
         },
         {
             "Active": true,
+            "BlinkCooldown": 0.75,
+            "BlinkDuration": 0.15000000596046448,
+            "BlinkSpeed": 18.0,
             "Class": "PlayerMovementComponent",
             "DrawOrder": 0,
             "JumpSpeed": 7.0,
+            "MaxBrakingForce": 120.0,
+            "MaxDriveForce": 80.0,
             "MoveSpeed": 6.0,
             "MovementEnabled": true,
             "Name": "Player Movement",
+            "SprintSpeedMultiplier": 1.5499999523162842,
             "Type": "ActorComponent",
             "UpdateOrder": -90,
             "Velocity": [
@@ -53,11 +59,15 @@
         },
         {
             "Active": true,
+            "AutomaticFireMode": true,
             "Class": "WeaponComponent",
+            "Damage": 25.0,
             "DrawOrder": 0,
+            "FireInterval": 0.11999999731779099,
             "MagazineAmmo": 30,
             "MagazineCapacity": 30,
             "Name": "Player Weapon",
+            "Range": 200.0,
             "ReloadDuration": 1.5,
             "ReserveAmmo": 90,
             "Type": "ActorComponent",
@@ -88,7 +98,8 @@
                 "Parts": [
                     {
                         "Id": "Body",
-                        "Model": "Characters/body.gltf"
+                        "Model": "Characters/body.gltf",
+                        "Visible": false
                     },
                     {
                         "Id": "Head",
@@ -129,7 +140,8 @@
                             -0.25,
                             -0.75,
                             0.0
-                        ]
+                        ],
+                        "Visible": false
                     },
                     {
                         "Id": "RightLeg",
@@ -139,7 +151,8 @@
                             0.25,
                             -0.75,
                             0.0
-                        ]
+                        ],
+                        "Visible": false
                     }
                 ]
             },
@@ -163,12 +176,12 @@
             "Name": "Player Humanoid Visual",
             "Parent": "Player Root",
             "PartVisibility": {
-                "Body": true,
+                "Body": false,
                 "Head": false,
                 "LeftArm": true,
-                "LeftLeg": true,
+                "LeftLeg": false,
                 "RightArm": true,
-                "RightLeg": true
+                "RightLeg": false
             },
             "SkinTexturePath": "Characters/steve.dds",
             "Type": "SceneComponent",
@@ -176,9 +189,11 @@
         },
         {
             "Active": true,
-            "AutoRegisterMainCamera": true,
+            "AimFovMultiplier": 0.7200000286102295,
+            "AutoRegisterMainCamera": false,
             "Class": "PlayerCameraComponent",
             "DrawOrder": 0,
+            "FovTransitionSpeed": 12.0,
             "InheritParentRotation": false,
             "LocalPosition": [
                 0.0,
@@ -198,6 +213,7 @@
             "Name": "Player Camera",
             "Parent": "Player Root",
             "Pitch": 0.0,
+            "SprintFovMultiplier": 1.100000023841858,
             "Type": "SceneComponent",
             "UpdateOrder": 10,
             "Yaw": 0.0
@@ -277,19 +293,19 @@
             "CollisionLayer": 1,
             "DrawOrder": 0,
             "HalfSize": [
-                0.699999988079071,
-                1.7999999523162842,
-                0.699999988079071
+                0.44999998807907104,
+                0.8999999761581421,
+                0.44999998807907104
             ],
             "IsTrigger": false,
             "LocalPosition": [
-                3.725290298461914e-09,
-                -0.4000000059604645,
+                0.0,
+                0.0,
                 0.0
             ],
             "LocalRotation": [
                 0.0,
-                -0.0,
+                0.0,
                 0.0
             ],
             "LocalScale": [
@@ -303,6 +319,248 @@
             "ShapeType": "AABB",
             "Type": "SceneComponent",
             "UpdateOrder": -60
+        },
+        {
+            "Active": true,
+            "Class": "PlayerHudPresenterComponent",
+            "DrawOrder": 0,
+            "Name": "Player HUD Presenter",
+            "Type": "ActorComponent",
+            "UpdateOrder": 50
+        },
+        {
+            "Active": true,
+            "CastShadow": false,
+            "Class": "ModelComponent",
+            "DrawOrder": 5,
+            "LocalPosition": [
+                0.2800000011920929,
+                -0.30000001192092896,
+                0.550000011920929
+            ],
+            "LocalRotation": [
+                1.5707999467849731,
+                1.5707999467849731,
+                0.0
+            ],
+            "LocalScale": [
+                0.550000011920929,
+                0.550000011920929,
+                0.550000011920929
+            ],
+            "ModelPath": "Sources/Weapons/primary_rifle.gltf",
+            "Name": "Player Weapon View",
+            "Parent": "Player Camera",
+            "Type": "SceneComponent",
+            "UpdateOrder": 15,
+            "Visible": true
+        },
+        {
+            "Active": true,
+            "BackgroundColor": [
+                0.05000000074505806,
+                0.05000000074505806,
+                0.05000000074505806,
+                0.8199999928474426
+            ],
+            "BorderColor": [
+                1.0,
+                1.0,
+                1.0,
+                0.8999999761581421
+            ],
+            "BorderThickness": 2.0,
+            "Class": "GaugeComponent",
+            "DrawOrder": 100,
+            "FillColor": [
+                0.20000000298023224,
+                0.8199999928474426,
+                0.3199999928474426,
+                1.0
+            ],
+            "FillDirection": "LeftToRight",
+            "MaxValue": 100.0,
+            "Name": "Player HP Gauge",
+            "Position": [
+                36.0,
+                1026.0
+            ],
+            "Size": [
+                300.0,
+                24.0
+            ],
+            "Type": "ActorComponent",
+            "UpdateOrder": 0,
+            "Value": 100.0,
+            "Visible": true
+        },
+        {
+            "Active": true,
+            "Anchor": [
+                0.0,
+                0.0
+            ],
+            "Class": "TextComponent",
+            "Color": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+            ],
+            "DrawOrder": 101,
+            "FontName": "DotGothic16",
+            "FontSize": 22.0,
+            "Name": "Player HP Label",
+            "Position": [
+                36.0,
+                998.0
+            ],
+            "Text": "PLAYER HP 100 / 100",
+            "Type": "ActorComponent",
+            "UpdateOrder": 0,
+            "Visible": true
+        },
+        {
+            "Active": true,
+            "Anchor": [
+                1.0,
+                0.0
+            ],
+            "Class": "TextComponent",
+            "Color": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+            ],
+            "DrawOrder": 101,
+            "FontName": "DotGothic16",
+            "FontSize": 22.0,
+            "Name": "Player Ammo Text",
+            "Position": [
+                1884.0,
+                1022.0
+            ],
+            "Text": "AMMO 30 / 30   RESERVE 90   AUTO",
+            "Type": "ActorComponent",
+            "UpdateOrder": 0,
+            "Visible": true
+        },
+        {
+            "Active": true,
+            "Anchor": [
+                0.5,
+                0.5
+            ],
+            "Class": "SpriteComponent",
+            "Color": [
+                1.0,
+                1.0,
+                1.0,
+                0.9200000166893005
+            ],
+            "DrawOrder": 110,
+            "Name": "Player Crosshair Left",
+            "Position": [
+                950.0,
+                540.0
+            ],
+            "Rotation": 0.0,
+            "Size": [
+                8.0,
+                2.0
+            ],
+            "TexturePath": "Effects/white.dds",
+            "Type": "ActorComponent",
+            "UpdateOrder": 0,
+            "Visible": true
+        },
+        {
+            "Active": true,
+            "Anchor": [
+                0.5,
+                0.5
+            ],
+            "Class": "SpriteComponent",
+            "Color": [
+                1.0,
+                1.0,
+                1.0,
+                0.9200000166893005
+            ],
+            "DrawOrder": 110,
+            "Name": "Player Crosshair Right",
+            "Position": [
+                970.0,
+                540.0
+            ],
+            "Rotation": 0.0,
+            "Size": [
+                8.0,
+                2.0
+            ],
+            "TexturePath": "Effects/white.dds",
+            "Type": "ActorComponent",
+            "UpdateOrder": 0,
+            "Visible": true
+        },
+        {
+            "Active": true,
+            "Anchor": [
+                0.5,
+                0.5
+            ],
+            "Class": "SpriteComponent",
+            "Color": [
+                1.0,
+                1.0,
+                1.0,
+                0.9200000166893005
+            ],
+            "DrawOrder": 110,
+            "Name": "Player Crosshair Top",
+            "Position": [
+                960.0,
+                530.0
+            ],
+            "Rotation": 0.0,
+            "Size": [
+                2.0,
+                8.0
+            ],
+            "TexturePath": "Effects/white.dds",
+            "Type": "ActorComponent",
+            "UpdateOrder": 0,
+            "Visible": true
+        },
+        {
+            "Active": true,
+            "Anchor": [
+                0.5,
+                0.5
+            ],
+            "Class": "SpriteComponent",
+            "Color": [
+                1.0,
+                1.0,
+                1.0,
+                0.9200000166893005
+            ],
+            "DrawOrder": 110,
+            "Name": "Player Crosshair Bottom",
+            "Position": [
+                960.0,
+                550.0
+            ],
+            "Rotation": 0.0,
+            "Size": [
+                2.0,
+                8.0
+            ],
+            "TexturePath": "Effects/white.dds",
+            "Type": "ActorComponent",
+            "UpdateOrder": 0,
+            "Visible": true
         }
     ],
     "Layer": "Player",
