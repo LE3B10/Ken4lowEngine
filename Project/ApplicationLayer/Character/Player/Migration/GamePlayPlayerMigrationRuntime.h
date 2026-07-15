@@ -130,6 +130,7 @@ public:
 		RefreshNearbyStageColliders(false);
 		physicsWorld_->Update(deltaTime);
 		actorWorld_->PostPhysicsUpdate(deltaTime);
+		AdvanceLegacyDeathCompatibility(deltaTime);
 		SyncLegacyProxyTransform();
 		SyncLegacyProxyWeaponState();
 		SpawnBridgedShots();
@@ -292,6 +293,14 @@ private:
 			}
 		}
 		activeStageColliders_.clear();
+	}
+
+	void AdvanceLegacyDeathCompatibility(float deltaTime)
+	{
+		if (!player_ || !legacyPlayer_ || !player_->IsDeathActive() || !legacyPlayer_->IsDeathActive()) return;
+		legacyPlayer_->SetDebugCamera(false);
+		legacyPlayer_->Update(deltaTime);
+		legacyPlayer_->SetStartGameplayVisualsVisible(false); // P12中は旧死亡タイマーだけ進め、表示と操作の正本は新Playerに維持する。
 	}
 
 	void SyncLegacyProxyTransform()
