@@ -11,6 +11,7 @@
 #include <PhysicsWorld.h>
 #include <PhysicsDebugDraw.h>
 
+#include <algorithm>
 #include <cstdint>
 #include <functional>
 #include <memory>
@@ -51,6 +52,10 @@ public:
 		{
 			editorObjectCache_.clear();
 			K4E::CollectActorWorldEditorObjects(actorWorld_, editorObjectCache_, "DebugScene");
+			std::erase_if(editorObjectCache_, [](const K4E::EditorObjectInfo& object)
+				{
+					return object.typeName == "StageColliderComponent"; // 417個のStage ColliderはPhysicsには残し、Outlinerの個別行だけ省略する。
+				});
 			editorObjectCacheFingerprint_ = fingerprint;
 			editorObjectCacheValid_ = true; // Actor/Component構造が変わらないフレームでは重いEditor情報生成を再利用する。
 		}
