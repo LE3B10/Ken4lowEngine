@@ -133,9 +133,9 @@ public: /// ---------- メンバ関数 ---------- ///
 		state.isReloading = isReloading;
 		if (isReloading)
 		{
-			const float sourceDuration = std::max(0.0001f, sourceReloadDuration);
-			const float progress01 = std::clamp(reloadTimer / sourceDuration, 0.0f, 1.0f);
-			const float proxyDuration = std::max(0.0f, weaponSys_.Weapon().GetCurrentReloadDurationSec());
+			const float sourceDuration = (std::max)(0.0001f, sourceReloadDuration);
+			const float progress01 = (std::clamp)(reloadTimer / sourceDuration, 0.0f, 1.0f);
+			const float proxyDuration = (std::max)(0.0f, weaponSys_.Weapon().GetCurrentReloadDurationSec());
 			state.reloadTimer = progress01 * proxyDuration;
 		}
 		else
