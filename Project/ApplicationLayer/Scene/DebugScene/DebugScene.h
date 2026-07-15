@@ -91,7 +91,7 @@ private:
 	} actorWorldValidation_;
 
 	LevelDataValidation levelDataValidation_;
-	LevelImportValidation levelImportValidation_;
+	LevelImportValidation levelImportValidation_{ &actorWorld_ };
 	EnemyMigrationValidation enemyMigrationValidation_;
 	BossMigrationValidation bossMigrationValidation_;
 };
