@@ -3,6 +3,7 @@
 
 #include "../Core/MeleeEnemy.h"
 #include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
+#include "Actor.h"
 #include "MathUtil.h"
 
 #include <algorithm>
@@ -13,9 +14,7 @@ namespace K4E = ::Ken4lowEngine;
 namespace
 {
 	constexpr float kEpsilon = 0.0001f;
-
 	float LengthXZ(const K4E::Vector3& v) { return K4E::Vector3::LengthXZ(v); }
-
 	K4E::Vector3 NormalizeXZ(const K4E::Vector3& v)
 	{
 		const float len = LengthXZ(v);
@@ -164,10 +163,11 @@ void MeleeAttackController::ProcessStepHit(MeleeEnemy& owner, const MeleeAttackS
 	if (hitDist > step.radius) return;
 
 	lastHitSuccess_ = true;
-	if (IPlayerRuntime* player = target->GetOwner<IPlayerRuntime>())
+	K4E::Actor* targetActor = target->GetOwner<K4E::Actor>();
+	if (auto* player = dynamic_cast<IPlayerRuntime*>(targetActor))
 	{
 		const K4E::Vector3 attackerPosition = owner.GetCenterPosition();
-		player->ApplyDamage(static_cast<float>(step.damage), &attackerPosition); // P13では近接敵Damageを新Player Runtimeへ直接適用する。
+		player->ApplyDamage(static_cast<float>(step.damage), &attackerPosition); // ActorからRuntimeへdynamic_castし、多重継承のポインタ補正を安全に行う。
 	}
 }
 
