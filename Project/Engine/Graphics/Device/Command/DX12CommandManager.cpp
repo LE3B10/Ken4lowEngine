@@ -1,16 +1,29 @@
 #include "DX12CommandManager.h"
 #include "DX12FenceManager.h"
 
+#include <chrono>
+
 namespace Ken4lowEngine
 {
 
+	namespace
+	{
+		using Clock = std::chrono::steady_clock;
+
+		float ToMilliseconds(const Clock::time_point& begin)
+		{
+			return std::chrono::duration<float, std::milli>(Clock::now() - begin).count();
+		}
+	}
+
 	/// -------------------------------------------------------------
-	///						　初期化処理
+	///　　　　　　　　　　　　初期化処理
 	/// -------------------------------------------------------------
 	void DX12CommandManager::Initialize(ID3D12Device* device)
 	{
 		HRESULT hr{};
 		commandListSubmitted_ = false;
+		performanceTiming_ = {};
 
 		//コマンドロケータを生成する
 		hr = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&commandAllocator_));
@@ -42,7 +55,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///				　リソースの状態遷移を行う
+	///　　　　　　　　リソースの状態遷移を行う
 	/// -------------------------------------------------------------
 	void DX12CommandManager::ResourceTransition(ID3D12Resource* resource, D3D12_RESOURCE_STATES stateBefore, D3D12_RESOURCE_STATES stateAfter)
 	{
@@ -59,7 +72,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///				　コマンド実行と待機
+	///　　　　　　　　コマンド実行と待機
 	/// -------------------------------------------------------------
 	void DX12CommandManager::ExecuteAndWait()
 	{
@@ -72,12 +85,18 @@ namespace Ken4lowEngine
 		assert(!commandListSubmitted_ && "WaitAndReset must complete before submitting the command list again.");
 		if (commandListSubmitted_) return;
 
+		performanceTiming_ = {}; // 1フレーム分の送信・待機時間を新しい計測として開始する。
+
+		const auto closeBegin = Clock::now();
 		const HRESULT hr = commandList_->Close();
+		performanceTiming_.commandListCloseMs = ToMilliseconds(closeBegin);
 		assert(SUCCEEDED(hr));
 		if (FAILED(hr)) return;
 
 		ID3D12CommandList* commandLists[] = { commandList_.Get() };
+		const auto executeBegin = Clock::now();
 		commandQueue_->ExecuteCommandLists(1, commandLists);
+		performanceTiming_.executeCommandListsMs = ToMilliseconds(executeBegin);
 		commandListSubmitted_ = true; // GPU参照中はAllocatorとCommandListをResetしない。
 	}
 
@@ -87,13 +106,23 @@ namespace Ken4lowEngine
 		assert(fenceManager_ && "A fence manager is required before reusing a submitted command allocator.");
 		if (!fenceManager_) return;
 
+		const auto signalBegin = Clock::now();
 		fenceManager_->Signal(commandQueue_.Get());
-		fenceManager_->Wait();
+		performanceTiming_.fenceSignalMs = ToMilliseconds(signalBegin);
 
+		const auto waitBegin = Clock::now();
+		fenceManager_->Wait();
+		performanceTiming_.fenceWaitMs = ToMilliseconds(waitBegin);
+
+		const auto allocatorResetBegin = Clock::now();
 		const HRESULT allocatorResult = commandAllocator_->Reset();
+		performanceTiming_.allocatorResetMs = ToMilliseconds(allocatorResetBegin);
 		assert(SUCCEEDED(allocatorResult));
 		if (FAILED(allocatorResult)) return;
+
+		const auto commandListResetBegin = Clock::now();
 		const HRESULT commandListResult = commandList_->Reset(commandAllocator_.Get(), nullptr);
+		performanceTiming_.commandListResetMs = ToMilliseconds(commandListResetBegin);
 		assert(SUCCEEDED(commandListResult));
 		if (SUCCEEDED(commandListResult)) commandListSubmitted_ = false;
 	}
