@@ -5,6 +5,8 @@
 #include <BlenderSceneLoader.h>
 #include <CameraManager.h>
 #include <ModelComponent.h>
+#include <PhysicsWorld.h>
+#include <StageColliderComponent.h>
 
 #include <algorithm>
 #include <string>
@@ -15,12 +17,12 @@
 
 namespace K4E = ::Ken4lowEngine;
 
-/// DebugSceneだけでBlenderSceneData -> Ken4lowLevel変換とStage Actor実体生成を確認する診断。
+/// DebugSceneだけでBlenderSceneData -> Ken4lowLevel変換、Stage Actor生成、Physics登録を確認する診断。
 class LevelImportValidation
 {
 public:
-	explicit LevelImportValidation(K4E::ActorWorld* actorWorld = nullptr)
-		: actorWorld_(actorWorld)
+	explicit LevelImportValidation(K4E::ActorWorld* actorWorld = nullptr, K4E::PhysicsWorld* physicsWorld = nullptr)
+		: actorWorld_(actorWorld), physicsWorld_(physicsWorld)
 	{
 		Reload();
 		RefreshSpawnState();
@@ -43,6 +45,7 @@ public:
 		options.stageModelPath = stageModelPath_;
 		options.stageActorName = importedActorName_;
 		options.stageActorId = "ImportedStageActor";
+		options.importStageColliders = true;
 		importResult_ = K4E::BlenderLevelImporter::Import(blenderResult_.scene, options);
 		lastMessage_ = importResult_.message;
 	}
@@ -72,11 +75,13 @@ public:
 		ImGui::Text("Source Object: %zu", importResult_.sourceObjectCount);
 		ImGui::Text("Source Mesh: %zu", importResult_.sourceMeshCount);
 		ImGui::Text("Source Collider: %zu", importResult_.sourceColliderCount);
+		ImGui::Text("Imported StageColliderComponent: %zu", importResult_.importedColliderComponentCount);
+		ImGui::Text("Unsupported Collider: %zu", importResult_.unsupportedColliderCount);
 		ImGui::Text("Source Properties: %zu", importResult_.sourcePropertyCount);
 		ImGui::Text("Source PlayerSpawn: %zu", importResult_.sourcePlayerSpawnCount);
 		ImGui::Text("Imported Actor: %zu", importResult_.importedActorCount);
-		ImGui::Text("Import Mode: IntegratedStageModel");
-		ImGui::TextDisabled("一体型GLTFは1つのActor + ModelComponentで表現し、Blender側の詳細情報はImportSourceへ保持します。");
+		ImGui::Text("Import Mode: IntegratedStageModel + StageColliderComponents");
+		ImGui::TextDisabled("一体型GLTFをRoot ModelComponent、各BOX Colliderを子StageColliderComponentとして同じActorに保持します。");
 
 		if (!importResult_.succeeded)
 		{
@@ -113,6 +118,7 @@ private:
 			return;
 		}
 
+		physicsColliderCountBeforeSpawn_ = physicsWorld_ ? physicsWorld_->GetColliderCount() : 0;
 		const nlohmann::json& actorData = importResult_.levelJson["Actors"][0]["Data"];
 		K4E::Actor* actor = actorWorld_->SpawnActorFromJsonData(actorData);
 		if (!actor)
@@ -128,7 +134,7 @@ private:
 			modelComponent->SetCamera(K4E::CameraManager::GetInstance()->GetMainCamera());
 		}
 
-		spawnMessage_ = "実ステージActorをActorWorldへ1体生成しました。";
+		spawnMessage_ = "実ステージActorとStageColliderComponent群をActorWorldへ生成しました。";
 		RefreshSpawnState();
 	}
 
@@ -150,7 +156,7 @@ private:
 
 		const bool destroyed = actorWorld_->DestroyActor(actor);
 		spawnMessage_ = destroyed
-			? "ImportedStageActorの安全な遅延削除を予約しました。"
+			? "ImportedStageActorとCollider群の安全な遅延削除を予約しました。"
 			: "ImportedStageActorの削除予約に失敗しました。";
 		RefreshSpawnState();
 	}
@@ -159,6 +165,10 @@ private:
 	{
 		stageActorExists_ = false;
 		modelComponentExists_ = false;
+		spawnedStageColliderComponentCount_ = 0;
+		spawnedStageColliderRuntimeCount_ = 0;
+		registeredStageColliderDelta_ = 0;
+		physicsColliderCountCurrent_ = physicsWorld_ ? physicsWorld_->GetColliderCount() : 0;
 		if (!actorWorld_) return;
 
 		K4E::Actor* actor = actorWorld_->FindActorByName(importedActorName_);
@@ -166,6 +176,16 @@ private:
 
 		stageActorExists_ = true;
 		modelComponentExists_ = actor->GetComponent<K4E::ModelComponent>() != nullptr;
+		const auto stageColliders = actor->GetComponents<K4E::StageColliderComponent>();
+		spawnedStageColliderComponentCount_ = stageColliders.size();
+		for (const K4E::StageColliderComponent* collider : stageColliders)
+		{
+			if (collider && collider->GetCollider()) ++spawnedStageColliderRuntimeCount_;
+		}
+		if (physicsColliderCountCurrent_ >= physicsColliderCountBeforeSpawn_)
+		{
+			registeredStageColliderDelta_ = physicsColliderCountCurrent_ - physicsColliderCountBeforeSpawn_;
+		}
 	}
 
 #ifdef USE_IMGUI
@@ -202,26 +222,39 @@ private:
 
 	void DrawSpawnValidation()
 	{
-		ImGui::SeparatorText("Actor生成確認");
+		ImGui::SeparatorText("Actor / Collider生成確認");
 		ImGui::Text("ActorWorld接続: %s", actorWorld_ ? "OK" : "未接続");
+		ImGui::Text("PhysicsWorld接続: %s", physicsWorld_ ? "OK" : "未接続");
 		ImGui::Text("ImportedStageActor: %s", stageActorExists_ ? "存在" : "未生成");
 		ImGui::Text("ModelComponent: %s", modelComponentExists_ ? "存在" : "未確認");
+		ImGui::Text("StageColliderComponent: %zu / 期待 %zu", spawnedStageColliderComponentCount_, importResult_.importedColliderComponentCount);
+		ImGui::Text("Collider実体生成: %zu / 期待 %zu", spawnedStageColliderRuntimeCount_, importResult_.importedColliderComponentCount);
+		ImGui::Text("Physics Collider 生成前: %zu", physicsColliderCountBeforeSpawn_);
+		ImGui::Text("Physics Collider 現在: %zu", physicsColliderCountCurrent_);
+		ImGui::Text("Stage Collider 登録増分: %zu / 期待 %zu", registeredStageColliderDelta_, importResult_.importedColliderComponentCount);
 		ImGui::Text("期待ModelPath: %s", stageModelPath_.c_str());
+
+		const bool colliderSucceeded = stageActorExists_ &&
+			spawnedStageColliderComponentCount_ == importResult_.importedColliderComponentCount &&
+			spawnedStageColliderRuntimeCount_ == importResult_.importedColliderComponentCount &&
+			registeredStageColliderDelta_ >= importResult_.importedColliderComponentCount;
+		ImGui::TextColored(colliderSucceeded ? ImVec4(0.35f, 1.0f, 0.45f, 1.0f) : ImVec4(1.0f, 0.72f, 0.25f, 1.0f),
+			"Collider Phase: %s", colliderSucceeded ? "登録成功" : "未確認");
 
 		if (!stageActorExists_)
 		{
-			if (ImGui::Button("Stage Actor生成")) SpawnImportedStageActor();
+			if (ImGui::Button("Stage Actor + Collider生成")) SpawnImportedStageActor();
 		}
 		else
 		{
-			if (ImGui::Button("Stage Actor削除")) DestroyImportedStageActor();
+			if (ImGui::Button("Stage Actor + Collider削除")) DestroyImportedStageActor();
 		}
 		ImGui::SameLine();
 		ImGui::TextColored(
 			stageActorExists_ && modelComponentExists_ ? ImVec4(0.35f, 1.0f, 0.45f, 1.0f) : ImVec4(1.0f, 0.72f, 0.25f, 1.0f),
 			"%s",
 			spawnMessage_.empty() ? "未実行" : spawnMessage_.c_str());
-		ImGui::TextDisabled("Level全体の置換は行わず、生成済みActor Dataだけを既存ActorWorldへ追加します。");
+		ImGui::TextDisabled("Level全体の置換は行わず、1つのStage Actor内へModelComponentとCollider群を追加します。");
 	}
 
 	void DrawLevelSummary() const
@@ -232,6 +265,7 @@ private:
 		ImGui::Text("Version: %d", level.value("Version", 0));
 		ImGui::Text("Name: %s", level.value("Name", std::string{}).c_str());
 		ImGui::Text("Actors: %zu", level["Actors"].size());
+		ImGui::Text("Actor Components: %zu", level["Actors"][0]["Data"]["Components"].size());
 		ImGui::Text("Source Manifest Objects: %zu", level["ImportSource"]["Objects"].size());
 		ImGui::Text("ImportSource Stage: %s", level["ImportSource"]["Stage"].empty() ? "未保持" : "保持");
 		ImGui::Text("ImportSource Entities: %s", level["ImportSource"]["Entities"].empty() ? "未保持" : "保持");
@@ -250,9 +284,9 @@ private:
 			DrawKeyValueRow("Actor Class", actorData.value("Class", std::string{}));
 			DrawKeyValueRow("Actor Name", actorData.value("Name", std::string{}));
 			DrawKeyValueRow("Layer", actorData.value("Layer", std::string{}));
-			DrawKeyValueRow("Component Class", components[0].value("Class", std::string{}));
-			DrawKeyValueRow("Component Type", components[0].value("Type", std::string{}));
+			DrawKeyValueRow("Root Component", components[0].value("Class", std::string{}));
 			DrawKeyValueRow("ModelPath", components[0].value("ModelPath", std::string{}));
+			DrawKeyValueRow("Collider Component Class", importResult_.importedColliderComponentCount > 0 ? "StageColliderComponent" : "なし");
 			ImGui::EndTable();
 		}
 	}
@@ -286,6 +320,7 @@ private:
 
 private:
 	K4E::ActorWorld* actorWorld_ = nullptr;
+	K4E::PhysicsWorld* physicsWorld_ = nullptr;
 	std::string sourceJsonPath_ = "stages/hajimarinoheigen.json";
 	std::string stageModelPath_ = "Stages/hajimarinoheigen.gltf";
 	std::string importedActorName_ = "Imported_hajimarinoheigen";
@@ -293,6 +328,11 @@ private:
 	std::string spawnMessage_;
 	bool stageActorExists_ = false;
 	bool modelComponentExists_ = false;
+	std::size_t spawnedStageColliderComponentCount_ = 0;
+	std::size_t spawnedStageColliderRuntimeCount_ = 0;
+	std::size_t physicsColliderCountBeforeSpawn_ = 0;
+	std::size_t physicsColliderCountCurrent_ = 0;
+	std::size_t registeredStageColliderDelta_ = 0;
 	K4E::BlenderSceneLoader::Result blenderResult_;
 	K4E::BlenderLevelImporter::Result importResult_;
 };
