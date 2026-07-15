@@ -133,6 +133,9 @@ namespace Ken4lowEngine
 		// Initialize済みかどうかを管理し、未初期化状態での計測呼び出しを防ぐ。
 		bool initialized_ = false;
 
+		// Update区間が開いたままEndFrameされた旧呼び出し経路を安全にEndUpdateへ補正する。
+		bool updatePhaseActive_ = false;
+
 	private: /// ---------- コピー禁止 ---------- ///
 
 		// シングルトンとして扱うため、外部からの生成・破棄・コピーを禁止する。
