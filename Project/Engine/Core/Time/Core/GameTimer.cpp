@@ -21,6 +21,7 @@ namespace Ken4lowEngine
 		targetFPS_ = targetFPS;
 		fpsCounter_.Reset(targetFPS_);
 		updatePhaseActive_ = false;
+		completedFrameTiming_ = {};
 		initialized_ = true;
 	}
 
@@ -69,6 +70,11 @@ namespace Ken4lowEngine
 		}
 
 		fpsCounter_.EndFrame();
+		completedFrameTiming_.frameIntervalMs = fpsCounter_.GetDeltaTime() * 1000.0f;
+		completedFrameTiming_.updateMs = fpsCounter_.GetUpdateMs();
+		completedFrameTiming_.drawMs = fpsCounter_.GetDrawMs();
+		completedFrameTiming_.presentMs = fpsCounter_.GetPresentMs();
+		completedFrameTiming_.totalFrameMs = fpsCounter_.GetTotalFrameMs(); // 完了後の値を退避し、次フレームのUIから参照する。
 	}
 
 	/// ----------------------------------------------
@@ -117,4 +123,4 @@ namespace Ken4lowEngine
 		if (!initialized_) return;
 		fpsCounter_.EndPresent();
 	}
-}
+} // namespace Ken4lowEngine
