@@ -6,6 +6,7 @@
 #include "SRVManager.h"
 
 #include <cassert>
+#include <chrono>
 
 namespace Ken4lowEngine
 {
@@ -18,6 +19,12 @@ namespace Ken4lowEngine
 	{
 		/// 設定ミス防止用の最小サイズ
 		constexpr uint32_t kMinShadowMapSize = 1;
+		using Clock = std::chrono::steady_clock;
+
+		float ToMilliseconds(const Clock::time_point& begin)
+		{
+			return std::chrono::duration<float, std::milli>(Clock::now() - begin).count();
+		}
 	}
 
 	/// -------------------------------------------------------------
@@ -36,6 +43,7 @@ namespace Ken4lowEngine
 	{
 		clientWidth_ = width;
 		clientHeight_ = height;
+		endDrawPerformanceTiming_ = {};
 
 		InitializeCoreObjects();
 		InitializeCoreSystems(winApp, width, height);
@@ -161,7 +169,6 @@ namespace Ken4lowEngine
 		mainRenderTarget_->Begin(commandManager_->GetCommandList(), backBufferIndex_);
 	}
 
-
 	/// -------------------------------------------------------------
 	///			Release/Game描画前のバックバッファRTV設定
 	/// -------------------------------------------------------------
@@ -186,7 +193,6 @@ namespace Ken4lowEngine
 
 		mainRenderTarget_->Begin(commandManager_->GetCommandList(), backBufferIndex_);
 	}
-
 
 	/// -------------------------------------------------------------
 	///		Release/GameのHUD描画前バックバッファ再バインド
@@ -213,7 +219,6 @@ namespace Ken4lowEngine
 		mainRenderTarget_->Bind(commandManager_->GetCommandList(), backBufferIndex_);
 	}
 
-
 	/// -------------------------------------------------------------
 	///							描画終了処理
 	/// -------------------------------------------------------------
@@ -224,11 +229,17 @@ namespace Ken4lowEngine
 			return;
 		}
 
+		endDrawPerformanceTiming_ = {};
+		const auto totalBegin = Clock::now();
+
 		backBufferIndex_ = swapChain_->GetSwapChain()->GetCurrentBackBufferIndex();
 		auto backBuffer = GetBackBuffer(backBufferIndex_);
 
+		const auto renderTargetEndBegin = Clock::now();
 		mainRenderTarget_->End(commandManager_->GetCommandList());
+		endDrawPerformanceTiming_.renderTargetEndMs = ToMilliseconds(renderTargetEndBegin);
 
+		const auto transitionBegin = Clock::now();
 		// BackBufferの記録状態を元にPresentへ戻し、メインRTの状態管理を一箇所に寄せる
 		const D3D12_RESOURCE_STATES beforeState = swapChain_->GetBackBufferState(backBufferIndex_);
 		ResourceTransition(
@@ -237,11 +248,26 @@ namespace Ken4lowEngine
 			D3D12_RESOURCE_STATE_PRESENT
 		);
 		swapChain_->SetBackBufferState(backBufferIndex_, D3D12_RESOURCE_STATE_PRESENT);
+		endDrawPerformanceTiming_.transitionToPresentMs = ToMilliseconds(transitionBegin);
 
 		// GPUへ先に送信してからPresentし、VBlank後にAllocator再利用待ちを行う。
 		commandManager_->Execute();
+
+		const auto presentBegin = Clock::now();
 		const HRESULT presentResult = swapChain_->GetSwapChain()->Present(1, 0);
+		endDrawPerformanceTiming_.presentMs = ToMilliseconds(presentBegin);
+
 		commandManager_->WaitAndReset(); // GPU完了前のResource破棄とAllocator Resetは引き続き禁止する。
+
+		const DX12CommandManager::PerformanceTiming& commandTiming = commandManager_->GetPerformanceTiming();
+		endDrawPerformanceTiming_.commandListCloseMs = commandTiming.commandListCloseMs;
+		endDrawPerformanceTiming_.executeCommandListsMs = commandTiming.executeCommandListsMs;
+		endDrawPerformanceTiming_.fenceSignalMs = commandTiming.fenceSignalMs;
+		endDrawPerformanceTiming_.fenceWaitMs = commandTiming.fenceWaitMs;
+		endDrawPerformanceTiming_.allocatorResetMs = commandTiming.allocatorResetMs;
+		endDrawPerformanceTiming_.commandListResetMs = commandTiming.commandListResetMs;
+		endDrawPerformanceTiming_.totalMs = ToMilliseconds(totalBegin); // EndDraw全体と各内訳の差から未計測部分も確認できる。
+
 		assert(SUCCEEDED(presentResult));
 	}
 
