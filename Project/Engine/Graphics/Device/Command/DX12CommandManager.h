@@ -12,6 +12,17 @@ class DX12FenceManager;
 /// -------------------------------------------------------------
 class DX12CommandManager
 {
+public:
+	struct PerformanceTiming
+	{
+		float commandListCloseMs = 0.0f;
+		float executeCommandListsMs = 0.0f;
+		float fenceSignalMs = 0.0f;
+		float fenceWaitMs = 0.0f;
+		float allocatorResetMs = 0.0f;
+		float commandListResetMs = 0.0f;
+	};
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	/// <summary>
@@ -88,6 +99,8 @@ public: /// ---------- ゲッター ---------- ///
 	/// <returns>内部で保持している ID3D12CommandQueue。</returns>
 	ID3D12CommandQueue* GetCommandQueue() const { return commandQueue_.Get(); }
 
+	const PerformanceTiming& GetPerformanceTiming() const { return performanceTiming_; }
+
 private: /// ---------- メンバ変数 ---------- ///
 
 	DX12FenceManager* fenceManager_ = nullptr; // フェンスマネージャーのポインタ
@@ -95,9 +108,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	// コマンド周りの基本オブジェクト
 	ComPtr<ID3D12CommandAllocator> commandAllocator_; // コマンドアロケータ
 	ComPtr<ID3D12GraphicsCommandList> commandList_;   // グラフィックスコマンドリスト
-	ComPtr<ID3D12CommandQueue> commandQueue_;		  // コマンドキュー
-	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};	  // コマンドキューの設定情報
-	bool commandListSubmitted_ = false;               // Present前送信と完了待ちを安全に分離する状態。
+	ComPtr<ID3D12CommandQueue> commandQueue_;          // コマンドキュー
+	D3D12_COMMAND_QUEUE_DESC commandQueueDesc{};       // コマンドキューの設定情報
+	bool commandListSubmitted_ = false;                // Present前送信と完了待ちを安全に分離する状態。
+	PerformanceTiming performanceTiming_{};
 };
 
 } // namespace Ken4lowEngine
