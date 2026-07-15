@@ -25,6 +25,21 @@ namespace Ken4lowEngine
 	/// 初期化順とフレーム進行を統括する。
 	class DirectXCommon
 	{
+	public:
+		struct EndDrawPerformanceTiming
+		{
+			float renderTargetEndMs = 0.0f;
+			float transitionToPresentMs = 0.0f;
+			float commandListCloseMs = 0.0f;
+			float executeCommandListsMs = 0.0f;
+			float presentMs = 0.0f;
+			float fenceSignalMs = 0.0f;
+			float fenceWaitMs = 0.0f;
+			float allocatorResetMs = 0.0f;
+			float commandListResetMs = 0.0f;
+			float totalMs = 0.0f;
+		};
+
 	public: /// ---------- メンバ関数 ---------- ///
 
 		/// ---------------------------------------------------------
@@ -95,6 +110,7 @@ namespace Ken4lowEngine
 		DX12CommandManager* GetCommandManager() { return commandManager_.get(); }
 		DX12FenceManager* GetFenceManager() { return fenceManager_.get(); }
 		DXGI_SWAP_CHAIN_DESC1& GetSwapChainDesc() const { return swapChain_->GetSwapChainDesc(); }
+		const EndDrawPerformanceTiming& GetEndDrawPerformanceTiming() const { return endDrawPerformanceTiming_; }
 
 		/// 指定インデックスのバックバッファを取得
 		ComPtr<ID3D12Resource> GetBackBuffer(uint32_t index);
@@ -166,6 +182,7 @@ namespace Ken4lowEngine
 		std::unique_ptr<ShadowMapRenderTarget> shadowMapRenderTarget_;
 
 		UINT backBufferIndex_ = 0;
+		EndDrawPerformanceTiming endDrawPerformanceTiming_{};
 
 	private: /// ---------- コピー禁止 ---------- ///
 
