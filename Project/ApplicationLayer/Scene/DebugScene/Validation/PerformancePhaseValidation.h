@@ -1,6 +1,8 @@
 #pragma once
 
+#include <ActorWorld.h>
 #include <GameTimer.h>
+#include <PhysicsWorld.h>
 #include <RenderPipelineController.h>
 
 #include <algorithm>
@@ -15,6 +17,13 @@
 class PerformancePhaseValidation
 {
 public:
+	PerformancePhaseValidation(
+		Ken4lowEngine::ActorWorld* actorWorld = nullptr,
+		Ken4lowEngine::PhysicsWorld* physicsWorld = nullptr)
+		: actorWorld_(actorWorld), physicsWorld_(physicsWorld)
+	{
+	}
+
 	enum class Phase : std::size_t
 	{
 		ActorWorldUpdate,
@@ -69,6 +78,8 @@ public:
 	void DrawImGui()
 	{
 #ifdef USE_IMGUI
+		RefreshWorldState(); // Editor停止中でもActor/Collider数を現在のWorldから直接取得する。
+
 		const Ken4lowEngine::GameTimer::CompletedFrameTiming& completed = Ken4lowEngine::GameTimer::GetInstance()->GetCompletedFrameTiming();
 		const float displayFrameIntervalMs = completed.frameIntervalMs > 0.0f ? completed.frameIntervalMs : frameIntervalMs_;
 		const float displayInstantFps = displayFrameIntervalMs > 0.0f ? 1000.0f / displayFrameIntervalMs : instantFps_;
@@ -162,6 +173,16 @@ private:
 		return static_cast<std::size_t>(phase);
 	}
 
+	void RefreshWorldState()
+	{
+		if (!actorWorld_ || !physicsWorld_) return;
+		SetPhysicsState(
+			actorWorld_->GetActors().size(),
+			physicsWorld_->GetColliderCount(),
+			physicsWorld_->GetContactCount(),
+			physicsWorld_->GetLastSubStepCount());
+	}
+
 	const Metric& GetMetric(Phase phase) const
 	{
 		return metrics_[ToIndex(phase)];
@@ -184,6 +205,8 @@ private:
 #endif // USE_IMGUI
 
 private:
+	Ken4lowEngine::ActorWorld* actorWorld_ = nullptr;
+	Ken4lowEngine::PhysicsWorld* physicsWorld_ = nullptr;
 	std::array<Metric, kPhaseCount> metrics_{};
 	std::array<Clock::time_point, kPhaseCount> phaseBegin_{};
 	float frameIntervalMs_ = 0.0f;
