@@ -13,6 +13,7 @@
 #include "../Character/CharacterTargetComponent.h"
 #include "../Character/HumanoidVisualComponent.h"
 #include "ColliderComponent.h"
+#include "StageColliderComponent.h"
 #include "GaugeComponent.h"
 #include "GpuParticleComponent.h"
 #include "InstancedModelComponent.h"
@@ -114,6 +115,9 @@ namespace Ken4lowEngine
 
 			MakeComponentTypeInfo<ColliderComponent>("ColliderComponent", true, "コライダーコンポーネント", "物理", "Actorに衝突判定用の形状と当たり判定設定を追加します。"),
 
+			// Blender Level由来の用途名とTypeIdを失わず、通常ColliderComponentの物理経路を再利用する。
+			MakeComponentTypeInfo<StageColliderComponent>("StageColliderComponent", true, "ステージコライダー", "物理", "Blender LevelのFloorやObstacleなどの識別情報を保持するステージ用Colliderです。"),
+
 			MakeComponentTypeInfo<RigidbodyComponent>("RigidbodyComponent", false, "剛体コンポーネント", "物理", "Actorに速度や重力などの物理挙動を追加します。"),
 
 			MakeComponentTypeInfo<SpriteComponent>("SpriteComponent", true, "スプライトコンポーネント", "UI", "画面上に2D画像を表示するためのComponentです。"),
@@ -130,7 +134,7 @@ namespace Ken4lowEngine
 
 			MakeComponentTypeInfo<AudioComponent>("AudioComponent", true, "オーディオコンポーネント", "オーディオ", "Actorに音声再生機能を持たせるためのComponentです。"),
 
-			MakeComponentTypeInfo<WorldAudioComponent>("WorldAudioComponent", true, "ワールドオーディオコンポーネント", "オーディオ", "Actorの3D位置に基づいて距離減衰する音声を再生するためのComponentです。"),
+			MakeComponentTypeInfo<WorldAudioComponent>("WorldAudioComponent", true, "ワールドオーディオコンポーネント", "オーディオ", "Actorの3D位置に基づいて距離減衰する音声を再生するComponentです。"),
 
 			MakeComponentTypeInfo<GpuParticleComponent>("GpuParticleComponent", true, "GPUパーティクルコンポーネント", "演出", "ActorにGPUパーティクル演出を持たせるためのComponentです。"),
 			};
@@ -216,5 +220,4 @@ namespace Ken4lowEngine
 
 		return nullptr; // 一致するComponent情報がない場合はnullptrを返す
 	}
-
-}
+} // namespace Ken4lowEngine
