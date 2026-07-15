@@ -123,15 +123,25 @@ public: /// ---------- メンバ関数 ---------- ///
 	int GetMaxReserveAmmo() const;
 	bool AddCurrentWeaponAmmo(int amount);
 
-	// P11移行中は新WeaponComponentの状態を旧Playerへ写し、既存Tutorial/HUDの参照先を壊さず維持する。
-	void ApplyMigrationProxyState(int magazineAmmo, int reserveAmmo, bool isReloading, float reloadTimer)
+	// P11移行中は新WeaponComponentの進捗を旧Playerのリロード時間へ正規化し、既存HUDの円表示を一致させる。
+	void ApplyMigrationProxyState(int magazineAmmo, int reserveAmmo, bool isReloading, float reloadTimer, float sourceReloadDuration = 1.5f)
 	{
 		if (!weaponLoaded_) return;
 		WeaponRuntimeState& state = weaponSys_.Weapon().StateMutable();
 		state.magAmmo = std::clamp(magazineAmmo, 0, std::max(0, GetMagazineCapacity()));
 		state.reserveAmmo = std::max(0, reserveAmmo);
 		state.isReloading = isReloading;
-		state.reloadTimer = std::max(0.0f, reloadTimer);
+		if (isReloading)
+		{
+			const float sourceDuration = std::max(0.0001f, sourceReloadDuration);
+			const float progress01 = std::clamp(reloadTimer / sourceDuration, 0.0f, 1.0f);
+			const float proxyDuration = std::max(0.0f, weaponSys_.Weapon().GetCurrentReloadDurationSec());
+			state.reloadTimer = progress01 * proxyDuration;
+		}
+		else
+		{
+			state.reloadTimer = 0.0f;
+		}
 		UpdateSelectedAmmoViewCache();
 	}
 
