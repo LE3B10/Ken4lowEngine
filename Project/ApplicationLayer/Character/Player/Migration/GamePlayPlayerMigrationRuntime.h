@@ -3,7 +3,6 @@
 #include "ApplicationLayer/Character/Player/Actor/PlayerActor.h"
 #include "ApplicationLayer/Character/Player/Migration/PlayerTutorialRestrictionBridge.h"
 #include "BulletManager.h"
-#include "Player.h"
 #include "Stage.h"
 
 #include <ActorWorld.h>
@@ -17,67 +16,53 @@
 
 #include <algorithm>
 #include <cmath>
-#include <limits>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
-/// P12中はCharacterWorld所有のActorWorld/PhysicsWorldを使い、旧Player互換だけを担当する移行ランタイム。
+/// P13以降はCharacterWorld所有のPlayerActorをGamePlay入力・Physics・Bulletへ接続するRuntime Controller。
 class GamePlayPlayerMigrationRuntime
 {
 public:
 	bool Initialize(
-		Player* legacyPlayer,
 		BulletManager* bulletManager,
 		K4E::Stage* stage,
 		K4E::ActorWorld* actorWorld,
-		K4E::PhysicsWorld* physicsWorld)
+		K4E::PhysicsWorld* physicsWorld,
+		const K4E::Vector3& spawnPosition)
 	{
 		Finalize();
-		legacyPlayer_ = legacyPlayer;
 		bulletManager_ = bulletManager;
 		stage_ = stage;
 		actorWorld_ = actorWorld;
 		physicsWorld_ = physicsWorld;
-		if (!legacyPlayer_ || !stage_ || !actorWorld_ || !physicsWorld_) return false;
+		if (!stage_ || !actorWorld_ || !physicsWorld_) return false;
 
 		K4E::PlayerActor& player = actorWorld_->SpawnActor<K4E::PlayerActor>();
 		player.SetName("GamePlayPlayer");
 		player.SetLayer("Player");
 		player.AddTag("Player");
-		player.AddTag("P12ActorWorldOwned");
+		player.AddTag("P13Runtime");
 		player_ = &player;
 
 		stageColliders_ = stage_->GetWorldColliderPointers();
-		player_->ResetForValidation(legacyPlayer_->GetCenterPosition());
+		player_->ResetForValidation(spawnPosition);
 		if (K4E::WeaponComponent* weapon = player_->GetWeaponComponent())
 		{
-			weapon->ConfigureAmmoState(
-				legacyPlayer_->GetCurrentWeaponMagazineCapacity(),
-				legacyPlayer_->GetCurrentWeaponMagazineAmmo(),
-				legacyPlayer_->GetCurrentWeaponReserveAmmo()); // P12でも既存GamePlayの武器残弾だけを新Playerへ引き継ぐ。
+			weapon->ConfigureAmmoState(30, 30, 90, 120); // 旧Playerを生成せず、現行Primaryの初期弾数を新Weapon側で正本化する。
 		}
 		RefreshNearbyStageColliders(true);
-		player_->SetGameplayHudVisible(false);
+		player_->SetGameplayHudVisible(true);
 		if (auto* visual = player_->GetHumanoidVisualComponent()) visual->SetActive(false);
 
-		if (K4E::PlayerCameraComponent* cameraComponent = player_->GetPlayerCameraComponent())
+		if (K4E::Camera* camera = GetCamera())
 		{
-			if (K4E::Camera* camera = cameraComponent->GetCamera())
-			{
-				camera->SetFarClip(1600.0f);
-				K4E::CameraManager::GetInstance()->SetMainCamera(camera);
-			}
+			camera->SetFarClip(1600.0f);
+			K4E::CameraManager::GetInstance()->SetMainCamera(camera);
 		}
 
-		legacyPlayer_->SetDebugCamera(true);
-		legacyPlayer_->SetStartGameplayVisualsVisible(false);
-		lastLegacyHp_ = legacyPlayer_->GetHP();
-		lastLegacyReserveAmmo_ = legacyPlayer_->GetCurrentWeaponReserveAmmo();
 		lastShotRevision_ = player_->GetWeaponComponent() ? player_->GetWeaponComponent()->GetShotRevision() : 0u;
 		active_ = true;
-		SyncLegacyProxyTransform();
-		SyncLegacyProxyWeaponState();
 		return true;
 	}
 
@@ -87,13 +72,10 @@ public:
 		ClearNearbyStageColliders();
 		stageColliders_.clear();
 		player_ = nullptr;
-		legacyPlayer_ = nullptr;
 		bulletManager_ = nullptr;
 		stage_ = nullptr;
 		actorWorld_ = nullptr;
 		physicsWorld_ = nullptr;
-		lastLegacyHp_ = 0.0f;
-		lastLegacyReserveAmmo_ = 0;
 		lastShotRevision_ = 0u;
 		lastStageRefreshPosition_ = {};
 		hasStageRefreshPosition_ = false;
@@ -130,43 +112,12 @@ public:
 		RefreshNearbyStageColliders(false);
 		physicsWorld_->Update(deltaTime);
 		actorWorld_->PostPhysicsUpdate(deltaTime);
-		AdvanceLegacyDeathCompatibility(deltaTime);
-		SyncLegacyProxyTransform();
-		SyncLegacyProxyWeaponState();
 		SpawnBridgedShots();
 
 		if (!K4E::CameraManager::GetInstance()->IsUsingDebugCamera())
 		{
 			if (K4E::Camera* camera = GetCamera()) K4E::CameraManager::GetInstance()->SetMainCamera(camera);
 		}
-	}
-
-	void SyncAfterLegacyCollision()
-	{
-		if (!active_ || !player_ || !legacyPlayer_) return;
-
-		const float legacyHp = legacyPlayer_->GetHP();
-		const float hpDelta = legacyHp - lastLegacyHp_;
-		if (hpDelta < -0.001f)
-		{
-			player_->ApplyPlayerDamage(-hpDelta);
-		}
-		else if (hpDelta > 0.001f)
-		{
-			player_->HealPlayer(hpDelta);
-		}
-		lastLegacyHp_ = legacyHp;
-
-		const int legacyReserveAmmo = legacyPlayer_->GetCurrentWeaponReserveAmmo();
-		const int reserveDelta = legacyReserveAmmo - lastLegacyReserveAmmo_;
-		if (reserveDelta != 0)
-		{
-			if (K4E::WeaponComponent* weapon = player_->GetWeaponComponent())
-			{
-				weapon->AddReserveAmmo(reserveDelta);
-			}
-		}
-		lastLegacyReserveAmmo_ = legacyReserveAmmo;
 	}
 
 	void PrepareRenderState()
@@ -201,18 +152,8 @@ public:
 	size_t GetRegisteredStageColliderCount() const { return activeStageColliders_.size(); }
 	size_t GetTotalStageColliderCount() const { return stageColliders_.size(); }
 
-	K4E::Camera* GetCamera() const
-	{
-		if (!player_) return nullptr;
-		const K4E::PlayerCameraComponent* cameraComponent = player_->GetPlayerCameraComponent();
-		return cameraComponent ? cameraComponent->GetCamera() : nullptr;
-	}
-
-	K4E::Vector3 GetPlayerPosition() const
-	{
-		if (!player_ || !player_->GetRootComponent()) return {};
-		return player_->GetRootComponent()->GetWorldPosition();
-	}
+	K4E::Camera* GetCamera() const { return player_ ? player_->GetCamera() : nullptr; }
+	K4E::Vector3 GetPlayerPosition() const { return player_ ? player_->GetWorldPosition() : K4E::Vector3{}; }
 
 private:
 	static float DistanceSquaredPointToAabbXZ(const K4E::Vector3& point, const K4E::AABB& bounds)
@@ -239,10 +180,7 @@ private:
 		{
 			if (!collider || !collider->IsCollisionEnabledForQuery()) continue;
 			const float distanceSq = DistanceSquaredPointToAabbXZ(playerPosition, collider->GetAABB());
-			if (distanceSq <= kStageActivationRadius * kStageActivationRadius)
-			{
-				candidates.emplace_back(distanceSq, collider);
-			}
+			if (distanceSq <= kStageActivationRadius * kStageActivationRadius) candidates.emplace_back(distanceSq, collider);
 		}
 
 		if (candidates.size() > kMaxActiveStageColliders)
@@ -273,10 +211,7 @@ private:
 		}
 		for (K4E::Collider* collider : desired)
 		{
-			if (activeStageColliders_.insert(collider).second)
-			{
-				physicsWorld_->RegisterCollider(collider);
-			}
+			if (activeStageColliders_.insert(collider).second) physicsWorld_->RegisterCollider(collider);
 		}
 
 		lastStageRefreshPosition_ = playerPosition;
@@ -287,46 +222,9 @@ private:
 	{
 		if (physicsWorld_)
 		{
-			for (K4E::Collider* collider : activeStageColliders_)
-			{
-				physicsWorld_->UnregisterCollider(collider);
-			}
+			for (K4E::Collider* collider : activeStageColliders_) physicsWorld_->UnregisterCollider(collider);
 		}
 		activeStageColliders_.clear();
-	}
-
-	void AdvanceLegacyDeathCompatibility(float deltaTime)
-	{
-		if (!player_ || !legacyPlayer_ || !player_->IsDeathActive() || !legacyPlayer_->IsDeathActive()) return;
-		legacyPlayer_->SetDebugCamera(false);
-		legacyPlayer_->Update(deltaTime);
-		legacyPlayer_->SetStartGameplayVisualsVisible(false); // P12中は旧死亡タイマーだけ進め、表示と操作の正本は新Playerに維持する。
-	}
-
-	void SyncLegacyProxyTransform()
-	{
-		if (!player_ || !legacyPlayer_) return;
-		legacyPlayer_->ApplyPhysicsCorrectedPosition(GetPlayerPosition());
-		if (const K4E::PlayerCameraComponent* camera = player_->GetPlayerCameraComponent())
-		{
-			legacyPlayer_->SetViewLookAngles(camera->GetPitch(), camera->GetYaw());
-			legacyPlayer_->SyncViewToPlayer();
-		}
-	}
-
-	void SyncLegacyProxyWeaponState()
-	{
-		if (!player_ || !legacyPlayer_) return;
-		K4E::WeaponComponent* weapon = player_->GetWeaponComponent();
-		if (!weapon) return;
-
-		legacyPlayer_->GetWeaponComponent().ApplyMigrationProxyState(
-			weapon->GetMagazineAmmo(),
-			weapon->GetReserveAmmo(),
-			weapon->IsReloading(),
-			weapon->GetReloadTimer(),
-			weapon->GetReloadDuration());
-		lastLegacyReserveAmmo_ = weapon->GetReserveAmmo();
 	}
 
 	void SpawnBridgedShots()
@@ -358,14 +256,11 @@ private:
 	K4E::ActorWorld* actorWorld_ = nullptr;
 	K4E::PhysicsWorld* physicsWorld_ = nullptr;
 	K4E::PlayerActor* player_ = nullptr;
-	Player* legacyPlayer_ = nullptr;
 	BulletManager* bulletManager_ = nullptr;
 	K4E::Stage* stage_ = nullptr;
 	std::vector<K4E::Collider*> stageColliders_{};
 	std::unordered_set<K4E::Collider*> activeStageColliders_{};
 	K4E::Vector3 lastStageRefreshPosition_{};
-	float lastLegacyHp_ = 0.0f;
-	int lastLegacyReserveAmmo_ = 0;
 	unsigned int lastShotRevision_ = 0u;
 	bool hasStageRefreshPosition_ = false;
 	bool active_ = false;
