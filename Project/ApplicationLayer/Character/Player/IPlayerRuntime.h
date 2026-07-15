@@ -25,7 +25,12 @@ public:
 	virtual Ken4lowEngine::Vector3 GetWorldPosition() const { return {}; }
 	virtual Ken4lowEngine::Collider* GetCollisionPrimitive() { return nullptr; }
 	virtual const Ken4lowEngine::Collider* GetCollisionPrimitive() const { return nullptr; }
-	virtual Ken4lowEngine::Camera* GetCamera() const { return nullptr; }
+	Ken4lowEngine::Camera* GetCamera()
+	{
+		// 非const呼び出しもconst仮想関数へ集約し、旧PlayerとPlayerActorの既存Camera APIを共存させる。
+		return const_cast<Ken4lowEngine::Camera*>(static_cast<const IPlayerRuntime*>(this)->GetCamera());
+	}
+	virtual const Ken4lowEngine::Camera* GetCamera() const { return nullptr; }
 
 	virtual float ApplyRuntimeDamage(float amount)
 	{
