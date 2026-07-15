@@ -9,7 +9,6 @@
 #include "Engine/Graphics/Culling/BoundingVolume.h"
 #include "Model.h"
 #include "ObjectIdPipeline.h"
-#include <PerFrameUploadBuffer.h>
 
 #include <cstdint>
 #include <fstream>
@@ -62,11 +61,18 @@ namespace Ken4lowEngine
 
 		void DrawEditorObjectId(uint32_t objectId)
 		{
-			if (!dxCommon_ || !model_ || objectId == 0) return;
+			if (!dxCommon_ || !model_ || objectId == 0)
+			{
+				return;
+			}
+
 			ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 			ObjectIdPipeline::GetInstance()->BindStatic(commandList, objectId);
 			worldTransform_.SetPipeline(0);
-			for (auto& mesh : model_->GetMeshes()) mesh.Draw();
+			for (auto& mesh : model_->GetMeshes())
+			{
+				mesh.Draw();
+			}
 		}
 
 		void SetModel(const std::string& filePath);
@@ -95,9 +101,9 @@ namespace Ken4lowEngine
 		bool IsIgnoreStageChunkCulling() const { return ignoreStageChunkCulling_; }
 		bool HasWorldBoundsForCulling() const { return HasWorldBounds(); }
 
-		void SetDissolveThreshold(float threshold) { dissolveSettingCpu_.threshold = threshold; }
-		void SetDissolveEdgeThickness(float thickness) { dissolveSettingCpu_.edgeThickness = thickness; }
-		void SetDissolveEdgeColor(const Vector4& color) { dissolveSettingCpu_.edgeColor = color; }
+		void SetDissolveThreshold(float threshold) { dissolveSetting_->threshold = threshold; }
+		void SetDissolveEdgeThickness(float thickness) { dissolveSetting_->edgeThickness = thickness; }
+		void SetDissolveEdgeColor(const Vector4& color) { dissolveSetting_->edgeColor = color; }
 
 	private:
 		void InitializeCameraResource();
@@ -105,8 +111,6 @@ namespace Ken4lowEngine
 		void InitializeShadowResource();
 		void InitializeShadowParameterResource();
 		void AcquireShadowMapHandle();
-		uint32_t GetCurrentFrameIndex() const;
-		void UploadCurrentFrameConstants();
 		BoundingSphere GetWorldBounds() const;
 		BoundingSphere GetMeshWorldBounds(size_t meshIndex) const;
 		BoundingSphere TransformLocalBounds(const BoundingSphere& localBounds) const;
@@ -124,21 +128,19 @@ namespace Ken4lowEngine
 		MaterialTextureSlots materialTextureSlots_{};
 		WorldTransform worldTransform_;
 		WorldTransform shadowWorldTransform_;
-
-		CameraForGPU cameraCpu_{};
-		TransformationMatrix shadowTransformCpu_{};
-		DissolveSetting dissolveSettingCpu_{};
-		ShadowParameterForGPU shadowParameterCpu_{};
-		PerFrameUploadBuffer<CameraForGPU> cameraBuffers_;
-		PerFrameUploadBuffer<TransformationMatrix> shadowTransformBuffers_;
-		PerFrameUploadBuffer<DissolveSetting> dissolveBuffers_;
-		PerFrameUploadBuffer<ShadowParameterForGPU> shadowParameterBuffers_;
-
+		ComPtr<ID3D12Resource> cameraResource;
+		CameraForGPU* cameraData = nullptr;
+		ComPtr<ID3D12Resource> shadowTransformResource_;
+		TransformationMatrix* shadowTransformData_ = nullptr;
 		float alpha = 1.0f;
 		std::vector<D3D12_GPU_DESCRIPTOR_HANDLE> materialSRVs_;
 		std::vector<bool> materialUsePointSampling_;
 		D3D12_GPU_DESCRIPTOR_HANDLE environmentMapHandle_{};
 		D3D12_GPU_DESCRIPTOR_HANDLE dissolveMaskHandle_{};
+		Microsoft::WRL::ComPtr<ID3D12Resource> constantBuffer_;
+		DissolveSetting* dissolveSetting_ = nullptr;
+		ComPtr<ID3D12Resource> shadowParameterResource_;
+		ShadowParameterForGPU* shadowParameterData_ = nullptr;
 		D3D12_GPU_DESCRIPTOR_HANDLE shadowMapHandle_{};
 		bool frustumCullingEnabled_ = true;
 		bool isStageObjectCullingUnit_ = false;
