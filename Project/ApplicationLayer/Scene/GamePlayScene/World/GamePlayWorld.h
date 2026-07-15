@@ -19,6 +19,7 @@
 #include "AmmoRecoveryItemSpawner.h"
 #include "WorldDebugView.h"
 #include "BulletEnemyCollisionSoA.h"
+#include "GamePlayPlayerMigrationRuntime.h"
 
 #include <memory>
 
@@ -128,6 +129,7 @@ private: /// ---------- メンバ関数 ---------- ///
 	void InitializeHUD();
 	void InitializeStageAndPhysics(const GamePlayStageContext::StageAssetPaths& stageAssets);
 	void InitializePlayerSpawn(GamePlayStageContext& stageContext);
+	void InitializePlayerMigrationRuntime();
 	void InitializeWaveSystem(GamePlayStageContext& stageContext);
 	void InitializeBossState(GamePlayStageContext& stageContext);
 	void InitializeStage1Crystals();
@@ -151,6 +153,8 @@ private: /// ---------- メンバ関数 ---------- ///
 	void UpdateWaveRuntime(float deltaTime);
 	void UpdateStageObjectiveRuntime(float deltaTime);
 
+	K4E::Camera* GetActivePlayerCamera() const;
+	K4E::Vector3 GetActivePlayerPosition() const;
 	void CollisionUpdate();
 	GameplayPhysicsDebugController::Dependencies BuildGameplayPhysicsDebugDependencies();
 	void UpdateShadowLightViewProjection();
@@ -160,12 +164,12 @@ private: /// ---------- メンバ関数 ---------- ///
 	BossBattleController::Dependencies BuildBossBattleDependencies();
 	WorldDebugView::Dependencies BuildWorldDebugDependencies();
 
-
 private: /// ---------- メンバ変数 ---------- ///
 
 	std::unique_ptr<CollisionManager> collisionManager_;
 	std::unique_ptr<BulletManager> bulletManager_;
 	CharacterWorld characters_;
+	GamePlayPlayerMigrationRuntime playerMigrationRuntime_{}; // P10では新PlayerActorを正本、旧Playerを互換Proxyとして並行稼働する。
 
 	std::unique_ptr<K4E::SkyBox> skyBox_ = nullptr;
 	K4E::SkyBoxPresetCollection skyBoxPresets_{};
@@ -203,6 +207,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	K4E::BulletEnemyCollisionSoA::FrameStats lastBulletEnemySoAStats_{};
 	bool enableBulletEnemySoAProbe_ = true;
 	float bulletEnemySoACellSize_ = 2.0f;
+	bool enablePlayerMigrationRuntime_ = true;
 	bool stage1BeginnerBalanceEnabled_ = false;
 	bool skipStage1Tutorial_ = false;
 	Stage1TutorialController stage1TutorialController_{}; // ステージ1専用チュートリアルの状態と進行をWorld本体から分離する。
