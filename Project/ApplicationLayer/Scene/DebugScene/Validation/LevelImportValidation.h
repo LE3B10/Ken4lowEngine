@@ -38,7 +38,7 @@ public:
 		}
 
 		K4E::BlenderLevelImporter::Options options{};
-		options.levelName = "fps_stage00_import_preview";
+		options.levelName = "hajimarinoheigen_import_preview";
 		options.sourceJsonPath = sourceJsonPath_;
 		options.stageModelPath = stageModelPath_;
 		options.stageActorName = importedActorName_;
@@ -66,13 +66,17 @@ public:
 			"%s",
 			lastMessage_.c_str());
 
-		ImGui::SeparatorText("Phase 3 変換結果");
+		DrawRealStageCompatibility();
+
+		ImGui::SeparatorText("変換結果");
 		ImGui::Text("Source Object: %zu", importResult_.sourceObjectCount);
 		ImGui::Text("Source Mesh: %zu", importResult_.sourceMeshCount);
+		ImGui::Text("Source Collider: %zu", importResult_.sourceColliderCount);
+		ImGui::Text("Source Properties: %zu", importResult_.sourcePropertyCount);
+		ImGui::Text("Source PlayerSpawn: %zu", importResult_.sourcePlayerSpawnCount);
 		ImGui::Text("Imported Actor: %zu", importResult_.importedActorCount);
 		ImGui::Text("Import Mode: IntegratedStageModel");
-		ImGui::TextDisabled("現行Stageと同じく一体型GLTFを1つのActor + ModelComponentで表現します。");
-		ImGui::TextDisabled("BlenderのObject / Mesh情報はImportSource Manifestへ保持します。");
+		ImGui::TextDisabled("一体型GLTFは1つのActor + ModelComponentで表現し、Blender側の詳細情報はImportSourceへ保持します。");
 
 		if (!importResult_.succeeded)
 		{
@@ -80,7 +84,7 @@ public:
 			return;
 		}
 
-		DrawPhase4SpawnValidation();
+		DrawSpawnValidation();
 		DrawLevelSummary();
 		DrawActorPreview();
 		DrawImportManifestPreview();
@@ -124,7 +128,7 @@ private:
 			modelComponent->SetCamera(K4E::CameraManager::GetInstance()->GetMainCamera());
 		}
 
-		spawnMessage_ = "ImportedStageActorをActorWorldへ1体生成しました。";
+		spawnMessage_ = "実ステージActorをActorWorldへ1体生成しました。";
 		RefreshSpawnState();
 	}
 
@@ -165,9 +169,40 @@ private:
 	}
 
 #ifdef USE_IMGUI
-	void DrawPhase4SpawnValidation()
+	void DrawRealStageCompatibility() const
 	{
-		ImGui::SeparatorText("Phase 4 Actor生成確認");
+		ImGui::SeparatorText("実ステージ入力保持確認");
+		if (!blenderResult_.succeeded)
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0.4f, 0.35f, 1.0f), "BlenderSceneDataを読み込めていません。");
+			return;
+		}
+
+		const K4E::BlenderSceneData& scene = blenderResult_.scene;
+		ImGui::Text("SchemaVersion: %d", scene.schemaVersion);
+		ImGui::Text("Scene Name: %s", scene.name.c_str());
+		ImGui::Text("Stage Id: %s", scene.stage.id.empty() ? "未設定" : scene.stage.id.c_str());
+		ImGui::Text("Stage Mode: %s", scene.stage.mode.empty() ? "未設定" : scene.stage.mode.c_str());
+		ImGui::Text("Entity Groups: %zu", importResult_.entityGroupCount);
+		ImGui::Text("Entity Entries: %zu", importResult_.entityEntryCount);
+		ImGui::TextColored(!scene.stage.raw.empty() ? ImVec4(0.35f, 1.0f, 0.45f, 1.0f) : ImVec4(1.0f, 0.72f, 0.25f, 1.0f),
+			"stage: %s", !scene.stage.raw.empty() ? "保持" : "未検出");
+		ImGui::TextColored(!scene.entities.empty() ? ImVec4(0.35f, 1.0f, 0.45f, 1.0f) : ImVec4(1.0f, 0.72f, 0.25f, 1.0f),
+			"entities: %s", !scene.entities.empty() ? "保持" : "未検出");
+
+		if (scene.entities.is_object() && !scene.entities.empty() && ImGui::TreeNode("Entity Group Preview"))
+		{
+			for (const auto& [groupName, value] : scene.entities.items())
+			{
+				ImGui::BulletText("%s : %zu", groupName.c_str(), (value.is_array() || value.is_object()) ? value.size() : 1u);
+			}
+			ImGui::TreePop();
+		}
+	}
+
+	void DrawSpawnValidation()
+	{
+		ImGui::SeparatorText("Actor生成確認");
 		ImGui::Text("ActorWorld接続: %s", actorWorld_ ? "OK" : "未接続");
 		ImGui::Text("ImportedStageActor: %s", stageActorExists_ ? "存在" : "未生成");
 		ImGui::Text("ModelComponent: %s", modelComponentExists_ ? "存在" : "未確認");
@@ -186,7 +221,7 @@ private:
 			stageActorExists_ && modelComponentExists_ ? ImVec4(0.35f, 1.0f, 0.45f, 1.0f) : ImVec4(1.0f, 0.72f, 0.25f, 1.0f),
 			"%s",
 			spawnMessage_.empty() ? "未実行" : spawnMessage_.c_str());
-		ImGui::TextDisabled("SceneLevelLoaderのWorld全消去は使わず、生成済みActor Dataだけを既存ActorWorldへ追加します。");
+		ImGui::TextDisabled("Level全体の置換は行わず、生成済みActor Dataだけを既存ActorWorldへ追加します。");
 	}
 
 	void DrawLevelSummary() const
@@ -198,6 +233,8 @@ private:
 		ImGui::Text("Name: %s", level.value("Name", std::string{}).c_str());
 		ImGui::Text("Actors: %zu", level["Actors"].size());
 		ImGui::Text("Source Manifest Objects: %zu", level["ImportSource"]["Objects"].size());
+		ImGui::Text("ImportSource Stage: %s", level["ImportSource"]["Stage"].empty() ? "未保持" : "保持");
+		ImGui::Text("ImportSource Entities: %s", level["ImportSource"]["Entities"].empty() ? "未保持" : "保持");
 	}
 
 	void DrawActorPreview() const
@@ -207,7 +244,7 @@ private:
 		const nlohmann::json& components = actorData["Components"];
 
 		ImGui::SeparatorText("Actor / Component Preview");
-		if (ImGui::BeginTable("Phase3ActorPreview", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
+		if (ImGui::BeginTable("ImportedActorPreview", 2, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg))
 		{
 			DrawKeyValueRow("Actor Id", actorEntry.value("Id", std::string{}));
 			DrawKeyValueRow("Actor Class", actorData.value("Class", std::string{}));
@@ -224,7 +261,7 @@ private:
 	{
 		const nlohmann::json& objects = importResult_.levelJson["ImportSource"]["Objects"];
 		ImGui::SeparatorText("ImportSource Manifest Preview");
-		ImGui::BeginChild("Phase3ImportManifest", ImVec2(0.0f, 260.0f), true);
+		ImGui::BeginChild("ImportManifestPreview", ImVec2(0.0f, 260.0f), true);
 		const std::size_t previewCount = (std::min)(static_cast<std::size_t>(12), objects.size());
 		for (std::size_t index = 0; index < previewCount; ++index)
 		{
@@ -249,9 +286,9 @@ private:
 
 private:
 	K4E::ActorWorld* actorWorld_ = nullptr;
-	std::string sourceJsonPath_ = "stages/fps_stage00.json";
-	std::string stageModelPath_ = "Stages/fps_stage00.gltf";
-	std::string importedActorName_ = "Imported_fps_stage00";
+	std::string sourceJsonPath_ = "stages/hajimarinoheigen.json";
+	std::string stageModelPath_ = "Stages/hajimarinoheigen.gltf";
+	std::string importedActorName_ = "Imported_hajimarinoheigen";
 	std::string lastMessage_;
 	std::string spawnMessage_;
 	bool stageActorExists_ = false;
