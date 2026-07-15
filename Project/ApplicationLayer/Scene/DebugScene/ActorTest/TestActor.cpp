@@ -1,4 +1,5 @@
 #include "TestActor.h"
+#include "../Validation/PlayerMigrationValidationComponent.h"
 
 #include <ActorJsonSerializer.h>
 #include <CameraManager.h>
@@ -21,6 +22,13 @@ void TestActor::Initialize()
 	}
 
 	Ken4lowEngine::PlayerActor::Initialize();
+	if (!GetComponent<Ken4lowEngine::PlayerMigrationValidationComponent>())
+	{
+		auto& validation = AddComponent<Ken4lowEngine::PlayerMigrationValidationComponent>();
+		validation.SetName("Player P9 Validation");
+		validation.SetUpdateOrder(200); // Player本体の各Component更新後にフレーム跨ぎの検証結果を判定する。
+	}
+
 	SetName("DebugPlayer");
 	wasControllingPlayer_ = false;
 	if (!hadSavedComposition && !loadedFromPrefab) ResetForValidation({ 0.0f, 1.5f, 0.0f });
@@ -31,11 +39,14 @@ void TestActor::Update(float deltaTime)
 	auto* input = Ken4lowEngine::Input::GetInstance();
 	auto* playerInput = GetPlayerInputComponent();
 	auto* cameraManager = Ken4lowEngine::CameraManager::GetInstance();
+	auto* validation = GetComponent<Ken4lowEngine::PlayerMigrationValidationComponent>();
 
 	if (input && input->IsGameInputEnabled() && cameraManager->IsUsingDebugCamera()) cameraManager->SetUseDebugCamera(false);
+	if (input && input->TriggerKey(DIK_F10) && validation) validation->RequestRunFullValidation();
 
 	const bool useDebugCamera = cameraManager->IsUsingDebugCamera();
-	const bool canControlPlayer = input && playerInput && input->IsGameInputEnabled() && !useDebugCamera;
+	const bool validationLocksInput = validation && validation->IsInputLocked();
+	const bool canControlPlayer = input && playerInput && input->IsGameInputEnabled() && !useDebugCamera && !validationLocksInput;
 	if (canControlPlayer)
 	{
 		const InputSnapshot inputSnapshot = Ken4lowEngine::BuildInputSnapshot(*input);
