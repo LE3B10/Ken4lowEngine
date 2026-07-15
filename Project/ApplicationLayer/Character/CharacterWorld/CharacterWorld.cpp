@@ -37,6 +37,10 @@ void CharacterWorld::Initialize(GameContext& ctx)
 	playerMigrationRuntime_ = std::make_unique<GamePlayPlayerMigrationRuntime>();
 	enemyParticleEffectSystem_.Initialize();
 
+	actorWorld_.SetPhysicsWorld(&physicsWorld_);
+	physicsWorld_.SetUseFixedStep(false);
+	actorWorld_.Initialize(); // P12以降のPlayer/Enemy/BossはCharacterWorld所有のActorWorldへ集約する。
+
 	player_ = std::make_unique<Player>();
 	InjectPlayerDeps(*player_);
 	player_->Initialize();
@@ -61,10 +65,12 @@ void CharacterWorld::Finalize()
 	if (playerMigrationRuntime_)
 	{
 		playerMigrationRuntime_->Finalize();
-		playerMigrationRuntime_.reset(); // Stageや旧Playerを破棄する前に新Player側の非所有参照を解除する。
+		playerMigrationRuntime_.reset(); // 外部Stage Collider参照を解除してからActorWorld本体を破棄する。
 	}
 	playerRuntimeOverride_ = nullptr;
 	legacyPlayerProxyMode_ = false;
+
+	actorWorld_.Finalize(); // 新PlayerActorの所有権とPhysics Component登録はCharacterWorld側で一括終了する。
 
 	if (ctx_.collisionManager_ && player_)
 	{
@@ -80,10 +86,10 @@ void CharacterWorld::EnsurePlayerMigrationRuntime()
 	K4E::Stage* stage = K4E::Stage::GetActiveRuntimeStage();
 	if (!stage) return;
 	if (!playerMigrationRuntime_) playerMigrationRuntime_ = std::make_unique<GamePlayPlayerMigrationRuntime>();
-	if (!playerMigrationRuntime_->Initialize(player_.get(), ctx_.bulletManager_, stage)) return;
+	if (!playerMigrationRuntime_->Initialize(player_.get(), ctx_.bulletManager_, stage, &actorWorld_, &physicsWorld_)) return;
 
 	SetPlayerRuntimeOverride(playerMigrationRuntime_->GetPlayerRuntime());
-	SetLegacyPlayerProxyMode(true); // 新Playerを正本にした後もEnemy/Boss等の旧Player参照は位置同期Proxyとして維持する。
+	SetLegacyPlayerProxyMode(true); // 新Playerを正本にした後もEnemy/Boss等の旧Player参照はP13まで位置同期Proxyとして維持する。
 }
 
 void CharacterWorld::UpdateActivePlayer(float deltaTime)
@@ -239,7 +245,7 @@ void CharacterWorld::SetStartGameplayVisualsVisible(bool visible)
 
 void CharacterWorld::Draw()
 {
-	if (playerMigrationRuntime_ && playerMigrationRuntime_->IsActive()) playerMigrationRuntime_->Draw();
+	if (playerMigrationRuntime_ && playerMigrationRuntime_->IsActive()) actorWorld_.Draw();
 	else if (player_) player_->Draw();
 	for (auto& enemy : enemies_) if (enemy) enemy->Draw();
 }
@@ -261,9 +267,16 @@ void CharacterWorld::DrawPlayerDebugImGui()
 		return;
 	}
 
-	ImGui::SeparatorText("P10 Player Migration");
+	ImGui::SeparatorText("P12 Character ActorWorld");
 	ImGui::Text("New Player Runtime: %s", playerMigrationRuntime_ && playerMigrationRuntime_->IsActive() ? "ACTIVE" : "WAITING");
 	ImGui::Text("Legacy Proxy Mode: %s", legacyPlayerProxyMode_ ? "ON" : "OFF");
+	ImGui::Text("ActorWorld Owned Actors: %d", static_cast<int>(actorWorld_.GetActors().size()));
+	if (playerMigrationRuntime_)
+	{
+		ImGui::Text("Stage Colliders: %d / %d active",
+			static_cast<int>(playerMigrationRuntime_->GetRegisteredStageColliderCount()),
+			static_cast<int>(playerMigrationRuntime_->GetTotalStageColliderCount()));
+	}
 	if (const K4E::PlayerActor* migrated = GetMigratedPlayerActor())
 	{
 		const K4E::Vector3 position = migrated->GetRootComponent() ? migrated->GetRootComponent()->GetWorldPosition() : K4E::Vector3{};
