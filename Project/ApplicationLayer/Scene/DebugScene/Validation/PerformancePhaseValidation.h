@@ -69,7 +69,7 @@ public:
 	void DrawImGui()
 	{
 #ifdef USE_IMGUI
-		const K4E::GameTimer::CompletedFrameTiming& completed = K4E::GameTimer::GetInstance()->GetCompletedFrameTiming();
+		const Ken4lowEngine::GameTimer::CompletedFrameTiming& completed = Ken4lowEngine::GameTimer::GetInstance()->GetCompletedFrameTiming();
 		const float displayFrameIntervalMs = completed.frameIntervalMs > 0.0f ? completed.frameIntervalMs : frameIntervalMs_;
 		const float displayInstantFps = displayFrameIntervalMs > 0.0f ? 1000.0f / displayFrameIntervalMs : instantFps_;
 
@@ -137,7 +137,7 @@ public:
 
 		ImGui::End();
 
-		if (K4E::RenderPipelineController* renderPipeline = K4E::RenderPipelineController::GetActiveController())
+		if (Ken4lowEngine::RenderPipelineController* renderPipeline = Ken4lowEngine::RenderPipelineController::GetActiveController())
 		{
 			renderPipeline->DrawPerformanceImGui(); // 同じ診断タイミングで描画PassとPresent待ちも別ウィンドウへ表示する。
 		}
