@@ -2850,7 +2850,21 @@
     <ClInclude Include="ApplicationLayer\Character\Player\Actor\WeaponComponent.h">
       <Filter>ApplicationLayer\Character\Player\Actor</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\LevelDataValidation.h" />
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\LevelDataValidation.h">
+      <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\LevelImportValidation.h">
+      <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\PerformancePhaseValidation.h">
+      <Filter>ApplicationLayer\Scene\DebugScene\Validation</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Components\StageColliderComponent.h">
+      <Filter>Engine\Scene\Actor\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Actor\Character\HumanoidCharacterActor.h">
+      <Filter>Engine\Scene\Actor\Character</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
