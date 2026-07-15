@@ -143,6 +143,8 @@ private:
 		std::size_t sampleCount = 0;
 	};
 
+	static constexpr std::size_t kPhaseCount = static_cast<std::size_t>(Phase::Count);
+
 	static constexpr std::size_t ToIndex(Phase phase)
 	{
 		return static_cast<std::size_t>(phase);
@@ -170,8 +172,8 @@ private:
 #endif // USE_IMGUI
 
 private:
-	std::array<Metric, ToIndex(Phase::Count)> metrics_{};
-	std::array<Clock::time_point, ToIndex(Phase::Count)> phaseBegin_{};
+	std::array<Metric, kPhaseCount> metrics_{};
+	std::array<Clock::time_point, kPhaseCount> phaseBegin_{};
 	float frameIntervalMs_ = 0.0f;
 	float instantFps_ = 0.0f;
 	std::size_t actorCount_ = 0;
