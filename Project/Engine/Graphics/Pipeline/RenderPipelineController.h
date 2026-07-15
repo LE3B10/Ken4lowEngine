@@ -1,5 +1,8 @@
 #pragma once
 
+#include <array>
+#include <chrono>
+#include <cstddef>
 #include <functional>
 
 namespace Ken4lowEngine
@@ -36,6 +39,41 @@ namespace Ken4lowEngine
 			std::function<void()> drawGameUIToBackBuffer;
 		};
 
+		enum class PerformancePhase : std::size_t
+		{
+			BeginDraw,
+			ShadowPrepare,
+			ShadowRender,
+			EditorUiBuild,
+			EditorPicking,
+			MainWorldRender,
+			PostEffect,
+			SelectionOutline,
+			SceneOverlay,
+			ImGuiRender,
+			BackBufferPostEffect,
+			BackBufferRebind,
+			GameUi,
+			Count,
+		};
+
+		struct PerformanceMetric
+		{
+			float lastMs = 0.0f;
+			float averageMs = 0.0f;
+			float maxMs = 0.0f;
+			std::size_t sampleCount = 0;
+		};
+
+		struct FrameTimingSummary
+		{
+			float frameIntervalMs = 0.0f;
+			float updateMs = 0.0f;
+			float drawMs = 0.0f;
+			float presentMs = 0.0f;
+			float totalFrameMs = 0.0f;
+		};
+
 		/// <summary>
 		/// DirectXCommonを保持し、低レベル描画APIを呼ぶための入口を設定します。<br/>
 		/// リソース生成やCommandList所有はDirectXCommon側に残します。
@@ -48,7 +86,28 @@ namespace Ken4lowEngine
 		/// </summary>
 		void ExecuteFrame(bool editorModeEnabled, const FrameCallbacks& callbacks);
 
+		/// 完了済みフレームのUpdate/Draw/Present計測値を保持し、次フレームのEditor UIから参照できるようにする。
+		void SetFrameTimingSummary(const FrameTimingSummary& summary) { frameTimingSummary_ = summary; }
+
+		/// RenderPipeline各Passと完了済みフレームのCPU時間をEditorへ表示する。
+		void DrawPerformanceImGui();
+
+		const PerformanceMetric& GetPerformanceMetric(PerformancePhase phase) const;
+		const FrameTimingSummary& GetFrameTimingSummary() const { return frameTimingSummary_; }
+
 	private:
+		using Clock = std::chrono::steady_clock;
+		static constexpr std::size_t kPerformancePhaseCount = static_cast<std::size_t>(PerformancePhase::Count);
+
+		static constexpr std::size_t ToIndex(PerformancePhase phase)
+		{
+			return static_cast<std::size_t>(phase);
+		}
+
+		void MeasurePhase(PerformancePhase phase, const std::function<void()>& callback);
+		void UpdatePerformanceMetric(PerformancePhase phase, float elapsedMs);
+		static const char* GetPerformancePhaseName(PerformancePhase phase);
+
 		/// <summary>
 		/// ShadowMapへ深度を書き込む既存パスを実行します。<br/>
 		/// 通常3D描画より先に行うことで、後段のライティングがShadowMapを参照できる順序を維持します。
@@ -68,5 +127,7 @@ namespace Ken4lowEngine
 		void ExecuteGameFrame(const FrameCallbacks& callbacks);
 
 		DirectXCommon* dxCommon_ = nullptr;
+		std::array<PerformanceMetric, kPerformancePhaseCount> performanceMetrics_{};
+		FrameTimingSummary frameTimingSummary_{};
 	};
 } // namespace Ken4lowEngine
