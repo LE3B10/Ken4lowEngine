@@ -65,7 +65,7 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 			ImGui::SeparatorText("武器");
 			ImGui::Text("Weapon ID: %d", weaponId_);
-			ImGui::Text("Ammo: %d / %d  Reserve: %d", magazineAmmo_, magazineCapacity_, reserveAmmo_);
+			ImGui::Text("Ammo: %d / %d  Reserve: %d / %d", magazineAmmo_, magazineCapacity_, reserveAmmo_, maxReserveAmmo_);
 			ImGui::Text("State: %s", isReloading_ ? "Reloading" : "Ready");
 			ImGui::Text("Fire Mode: %s / Trigger: %s", automaticFireMode_ ? "AUTO" : "SEMI", triggerHeld_ ? "Held" : "Released");
 			ImGui::Text("Damage: %.1f / Range: %.1f / Fire Interval: %.3f", damage_, range_, fireInterval_);
@@ -82,6 +82,7 @@ namespace Ken4lowEngine
 			outJson["MagazineCapacity"] = magazineCapacity_;
 			outJson["MagazineAmmo"] = magazineAmmo_;
 			outJson["ReserveAmmo"] = reserveAmmo_;
+			outJson["MaxReserveAmmo"] = maxReserveAmmo_;
 			outJson["ReloadDuration"] = reloadDuration_;
 			outJson["Damage"] = damage_;
 			outJson["Range"] = range_;
@@ -96,7 +97,8 @@ namespace Ken4lowEngine
 			weaponId_ = inJson.value("WeaponId", weaponId_);
 			magazineCapacity_ = (std::max)(1, inJson.value("MagazineCapacity", magazineCapacity_));
 			magazineAmmo_ = (std::clamp)(inJson.value("MagazineAmmo", magazineAmmo_), 0, magazineCapacity_);
-			reserveAmmo_ = (std::max)(0, inJson.value("ReserveAmmo", reserveAmmo_));
+			maxReserveAmmo_ = (std::max)(0, inJson.value("MaxReserveAmmo", maxReserveAmmo_));
+			reserveAmmo_ = (std::clamp)(inJson.value("ReserveAmmo", reserveAmmo_), 0, maxReserveAmmo_);
 			reloadDuration_ = inJson.value("ReloadDuration", reloadDuration_);
 			damage_ = inJson.value("Damage", damage_);
 			range_ = inJson.value("Range", range_);
@@ -126,26 +128,27 @@ namespace Ken4lowEngine
 			}
 		}
 
-		void ConfigureAmmoState(int magazineCapacity, int magazineAmmo, int reserveAmmo)
+		void ConfigureAmmoState(int magazineCapacity, int magazineAmmo, int reserveAmmo, int maxReserveAmmo = 120)
 		{
 			magazineCapacity_ = (std::max)(1, magazineCapacity);
 			magazineAmmo_ = (std::clamp)(magazineAmmo, 0, magazineCapacity_);
-			reserveAmmo_ = (std::max)(0, reserveAmmo);
+			maxReserveAmmo_ = (std::max)(reserveAmmo, maxReserveAmmo);
+			reserveAmmo_ = (std::clamp)(reserveAmmo, 0, maxReserveAmmo_);
 			defaultReserveAmmo_ = reserveAmmo_;
-			ResetTransientState(); // GamePlay投入時は旧Playerの初期弾数だけ継承し、一時要求は持ち込まない。
+			ResetTransientState(); // GamePlay投入時は初期弾数だけを設定し、一時要求は持ち込まない。
 		}
 
 		int AddReserveAmmo(int amount)
 		{
 			const int before = reserveAmmo_;
-			reserveAmmo_ = (std::max)(0, reserveAmmo_ + amount);
+			reserveAmmo_ = (std::clamp)(reserveAmmo_ + amount, 0, maxReserveAmmo_);
 			return reserveAmmo_ - before;
 		}
 
 		void ResetWeapon()
 		{
 			magazineAmmo_ = magazineCapacity_;
-			reserveAmmo_ = defaultReserveAmmo_;
+			reserveAmmo_ = (std::clamp)(defaultReserveAmmo_, 0, maxReserveAmmo_);
 			ResetTransientState();
 			weaponEnabled_ = true;
 		}
@@ -154,6 +157,7 @@ namespace Ken4lowEngine
 		int GetMagazineAmmo() const { return magazineAmmo_; }
 		int GetMagazineCapacity() const { return magazineCapacity_; }
 		int GetReserveAmmo() const { return reserveAmmo_; }
+		int GetMaxReserveAmmo() const { return maxReserveAmmo_; }
 		float GetDamage() const { return damage_; }
 		float GetRange() const { return range_; }
 		float GetFireInterval() const { return fireInterval_; }
@@ -213,6 +217,7 @@ namespace Ken4lowEngine
 		int magazineCapacity_ = 30;
 		int magazineAmmo_ = 30;
 		int reserveAmmo_ = 90;
+		int maxReserveAmmo_ = 120;
 		int defaultReserveAmmo_ = 90;
 		float reloadDuration_ = 1.5f;
 		float reloadTimer_ = 0.0f;
