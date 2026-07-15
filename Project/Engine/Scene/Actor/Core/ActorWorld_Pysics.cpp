@@ -47,7 +47,7 @@ namespace Ken4lowEngine
 			PhysicsCollisionLayer::WorldStatic,
 			CollisionResponseType::Block); // 動くActorと床は物理的に衝突させる。
 
-		// 静的ステージ同士は毎フレーム接触判定する必要がないためBroadPhase前に除外する。
+		// 静的ステージ同士は毎フレーム接触判定する必要がないためNarrowPhaseへ送らない。
 		physicsWorld_->GetResponseMatrix().SetResponse(
 			PhysicsCollisionLayer::WorldStatic,
 			PhysicsCollisionLayer::WorldStatic,
@@ -59,6 +59,12 @@ namespace Ken4lowEngine
 		if (!physicsWorld_ || !actor.IsActive() || actor.IsPendingDestroy())
 		{
 			UnregisterPhysicsComponents(actor);
+			return;
+		}
+
+		// 一度登録済みの静的World Actorは、417個規模のCollider登録確認を毎フレーム繰り返さない。
+		if (actor.IsPhysicsRegistered() && actor.GetLayer() == "WorldStatic")
+		{
 			return;
 		}
 
