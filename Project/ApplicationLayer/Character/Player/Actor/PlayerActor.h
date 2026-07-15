@@ -27,7 +27,7 @@
 
 namespace Ken4lowEngine
 {
-	/// 共通Character機能とPlayer専用Componentを束ね、外部へ最小Runtime境界だけを公開するActor。
+	/// 共通Character機能とPlayer専用Componentを束ね、GamePlayへIPlayerRuntimeを公開するActor。
 	class PlayerActor : public CharacterActor, public ::IPlayerRuntime
 	{
 	public:
@@ -209,6 +209,65 @@ namespace Ken4lowEngine
 		}
 		bool IsDeathActive() const override { return CharacterActor::IsDead(); }
 
+		Vector3 GetWorldPosition() const override
+		{
+			const SceneComponent* root = GetRootComponent();
+			return root ? root->GetWorldPosition() : Vector3{};
+		}
+		Collider* GetCollisionPrimitive() override { return CharacterActor::GetCollisionPrimitive(); }
+		const Collider* GetCollisionPrimitive() const override { return CharacterActor::GetCollisionPrimitive(); }
+		Camera* GetCamera() const override
+		{
+			const PlayerCameraComponent* camera = GetPlayerCameraComponent();
+			return camera ? camera->GetCamera() : nullptr;
+		}
+		float ApplyRuntimeDamage(float amount) override { return ApplyPlayerDamage(amount).appliedDamage; }
+		float HealRuntime(float amount) override { return HealPlayer(amount); }
+		int AddReserveAmmo(int amount) override
+		{
+			WeaponComponent* weapon = GetWeaponComponent();
+			return weapon ? weapon->AddReserveAmmo(amount) : 0;
+		}
+		int GetMagazineAmmo() const override
+		{
+			const WeaponComponent* weapon = GetWeaponComponent();
+			return weapon ? weapon->GetMagazineAmmo() : 0;
+		}
+		int GetMagazineCapacity() const override
+		{
+			const WeaponComponent* weapon = GetWeaponComponent();
+			return weapon ? weapon->GetMagazineCapacity() : 0;
+		}
+		int GetReserveAmmo() const override
+		{
+			const WeaponComponent* weapon = GetWeaponComponent();
+			return weapon ? weapon->GetReserveAmmo() : 0;
+		}
+		int GetMaxReserveAmmo() const override
+		{
+			const WeaponComponent* weapon = GetWeaponComponent();
+			return weapon ? weapon->GetMaxReserveAmmo() : 0;
+		}
+		bool IsReloading() const override
+		{
+			const WeaponComponent* weapon = GetWeaponComponent();
+			return weapon && weapon->IsReloading();
+		}
+		float GetReloadTimer() const override
+		{
+			const WeaponComponent* weapon = GetWeaponComponent();
+			return weapon ? weapon->GetReloadTimer() : 0.0f;
+		}
+		float GetReloadDuration() const override
+		{
+			const WeaponComponent* weapon = GetWeaponComponent();
+			return weapon ? weapon->GetReloadDuration() : 0.0f;
+		}
+		void SetViewLookAngles(float pitch, float yaw) override
+		{
+			if (PlayerCameraComponent* camera = GetPlayerCameraComponent()) camera->ResetLook(pitch, yaw);
+		}
+
 		void SetCrosshairTargeted(bool targeted)
 		{
 			if (PlayerHudPresenterComponent* hud = GetPlayerHudPresenterComponent()) hud->SetCrosshairTargeted(targeted);
@@ -330,13 +389,13 @@ namespace Ken4lowEngine
 		{
 			if (!CharacterActor::IsDead()) return;
 			deathTimer_ += (std::max)(0.0f, deltaTime);
-			if (deathTimer_ >= gameOverDelay_) gameOverReady_ = true; // 死亡演出用の最小待機後にGamePlayへ遷移可能状態を公開する。
+			if (deathTimer_ >= gameOverDelay_) gameOverReady_ = true; // 新Player自身の死亡演出完了をGameOver遷移の正本にする。
 		}
 
 	private:
 		std::function<void()> onDamageTaken_{};
 		float deathTimer_ = 0.0f;
-		float gameOverDelay_ = 1.0f;
+		float gameOverDelay_ = 1.25f;
 		bool gameOverReady_ = false;
 	};
 } // namespace Ken4lowEngine
