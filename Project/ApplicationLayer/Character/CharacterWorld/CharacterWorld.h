@@ -6,6 +6,9 @@
 #include <string>
 #include <unordered_set>
 
+#include <ActorWorld.h>
+#include <PhysicsWorld.h>
+
 #include "Player.h"
 #include "ApplicationLayer/Character/Player/Migration/GamePlayPlayerMigrationRuntime.h"
 #include "EnemyBase.h"
@@ -49,7 +52,7 @@ public:
 	void DrawPlayerDebugImGui();
 	void DrawEnemyDebugImGui();
 
-	/// CharacterのShadow描画は各ActorのComponent DrawShadow経路へ統一する。
+	/// CharacterのShadow描画は新ActorWorldと旧Enemy互換経路を順番に描画する。
 	void DrawShadow()
 	{
 		if (playerMigrationRuntime_ && playerMigrationRuntime_->IsActive()) playerMigrationRuntime_->DrawShadow();
@@ -57,7 +60,7 @@ public:
 		for (auto& enemy : enemies_) if (enemy) enemy->DrawShadow();
 	}
 
-	/// Light行列の明示同期が必要な旧描画呼び出しも、各Characterの共通表示経路へ渡す。
+	/// Light行列の明示同期が必要な旧描画呼び出しも、新ActorWorldの描画状態同期へ渡す。
 	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
 	{
 		if (playerMigrationRuntime_ && playerMigrationRuntime_->IsActive()) playerMigrationRuntime_->PrepareRenderState();
@@ -65,7 +68,7 @@ public:
 		for (auto& enemy : enemies_) if (enemy) enemy->UpdateShadowMatrix(lightViewProjection);
 	}
 
-	// P10中は新PlayerActorをRuntime正本へ差し替え、旧Player参照を壊さず段階移行する。
+	// P12では新PlayerActorの所有権をCharacterWorld内ActorWorldへ統一し、旧Player参照はP13まで互換Proxyとして残す。
 	void SetPlayerRuntimeOverride(IPlayerRuntime* runtime) { playerRuntimeOverride_ = runtime; }
 	void SetLegacyPlayerProxyMode(bool enabled) { legacyPlayerProxyMode_ = enabled; }
 	bool IsLegacyPlayerProxyMode() const { return legacyPlayerProxyMode_; }
@@ -75,7 +78,13 @@ public:
 	IPlayerRuntime* GetPlayerRuntime() { return playerRuntimeOverride_ ? playerRuntimeOverride_ : player_.get(); }
 	const IPlayerRuntime* GetPlayerRuntime() const { return playerRuntimeOverride_ ? playerRuntimeOverride_ : player_.get(); }
 
-	// 旧式の具象Player参照は、新しいRuntime境界へ移行し終えるまで互換入口として残す。
+	// P12以降のPlayer/Enemy/Boss移行先となるGamePlayキャラクター用Worldを公開する。
+	K4E::ActorWorld& GetActorWorld() { return actorWorld_; }
+	const K4E::ActorWorld& GetActorWorld() const { return actorWorld_; }
+	K4E::PhysicsWorld& GetPhysicsWorld() { return physicsWorld_; }
+	const K4E::PhysicsWorld& GetPhysicsWorld() const { return physicsWorld_; }
+
+	// 旧式の具象Player参照は、新しいRuntime境界へ移行し終えるP13まで互換入口として残す。
 	Player* GetPlayer() { return player_.get(); }
 	const Player* GetPlayer() const { return player_.get(); }
 	const std::vector<std::unique_ptr<EnemyBase>>& GetEnemies() const { return enemies_; }
@@ -101,6 +110,8 @@ private:
 
 private:
 	GameContext ctx_{};
+	K4E::PhysicsWorld physicsWorld_{}; // ActorWorldより先に構築し、破棄順ではActorWorldを先に終了させる。
+	K4E::ActorWorld actorWorld_{};
 	std::unique_ptr<Player> player_;
 	std::unique_ptr<GamePlayPlayerMigrationRuntime> playerMigrationRuntime_;
 	std::vector<std::unique_ptr<EnemyBase>> enemies_;
