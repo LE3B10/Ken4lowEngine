@@ -84,6 +84,59 @@ private:
 			object.hasBossPhaseTriggerProps;
 	}
 
+	static void WriteObjectTransformToLog(std::size_t index, const K4E::ObjectData& object)
+	{
+		std::clog
+			<< "  [" << index << "]"
+			<< " Name=" << object.name
+			<< " Type=" << object.type
+			<< " Model=" << object.modelName
+			<< " Pos=(" << object.position.x << ", " << object.position.y << ", " << object.position.z << ")"
+			<< " Rot=(" << object.rotation.x << ", " << object.rotation.y << ", " << object.rotation.z << ")"
+			<< " Scale=(" << object.scale.x << ", " << object.scale.y << ", " << object.scale.z << ")"
+			<< " Collider=" << (object.collider.enabled ? "true" : "false")
+			<< '\n';
+	}
+
+	static void WriteSpecialObjectToLog(const K4E::ObjectData& object)
+	{
+		std::clog << "    Name=" << object.name << " Type=" << object.type;
+
+		if (object.collider.enabled)
+		{
+			std::clog
+				<< " Collider{Type=" << object.collider.type
+				<< ", CollisionType=" << object.collider.collisionType
+				<< ", Id=" << object.collider.collisionTypeId
+				<< ", Center=(" << object.collider.center.x << ", " << object.collider.center.y << ", " << object.collider.center.z << ")"
+				<< ", Size=(" << object.collider.size.x << ", " << object.collider.size.y << ", " << object.collider.size.z << ")"
+				<< ", Rotation=(" << object.collider.rotation.x << ", " << object.collider.rotation.y << ", " << object.collider.rotation.z << ")}";
+		}
+
+		if (object.hasSpawnProps)
+		{
+			std::clog
+				<< " SpawnProps{Wave=" << object.spawnProps.wave
+				<< ", Group=" << object.spawnProps.group
+				<< ", Count=" << object.spawnProps.count
+				<< ", Archetype=" << object.spawnProps.archetype
+				<< ", EnemyType=" << object.spawnProps.enemyType << "}";
+		}
+		if (object.hasIntroCameraProps)
+		{
+			std::clog
+				<< " IntroCameraProps{Order=" << object.introCameraProps.order
+				<< ", Duration=" << object.introCameraProps.duration
+				<< ", Fov=" << object.introCameraProps.fov
+				<< ", Target=" << object.introCameraProps.targetName << "}";
+		}
+		if (object.hasDeviceObjectiveProps) std::clog << " DeviceObjectiveProps=true";
+		if (object.hasDefenseTargetProps) std::clog << " DefenseTargetProps=true";
+		if (object.hasEscapePointProps) std::clog << " EscapePointProps=true";
+		if (object.hasBossPhaseTriggerProps) std::clog << " BossPhaseTriggerProps=true";
+		std::clog << '\n';
+	}
+
 	void WriteSummaryToLog() const
 	{
 		std::clog
@@ -100,19 +153,19 @@ private:
 
 		constexpr std::size_t kPreviewCount = 10;
 		const std::size_t previewCount = std::min(kPreviewCount, levelData_->objects.size());
+		std::clog << "  ObjectPreview(first " << previewCount << "):\n";
 		for (std::size_t index = 0; index < previewCount; ++index)
 		{
-			const K4E::ObjectData& object = levelData_->objects[index];
-			std::clog
-				<< "  [" << index << "]"
-				<< " Name=" << object.name
-				<< " Type=" << object.type
-				<< " Model=" << object.modelName
-				<< " Pos=(" << object.position.x << ", " << object.position.y << ", " << object.position.z << ")"
-				<< " Rot=(" << object.rotation.x << ", " << object.rotation.y << ", " << object.rotation.z << ")"
-				<< " Scale=(" << object.scale.x << ", " << object.scale.y << ", " << object.scale.z << ")"
-				<< " Collider=" << (object.collider.enabled ? "true" : "false")
-				<< '\n';
+			WriteObjectTransformToLog(index, levelData_->objects[index]);
+		}
+
+		std::clog << "  ColliderAndKnownPropsPreview(first " << kPreviewCount << "):\n";
+		std::size_t specialCount = 0;
+		for (const K4E::ObjectData& object : levelData_->objects)
+		{
+			if (!object.collider.enabled && !HasKnownProperties(object)) continue;
+			WriteSpecialObjectToLog(object);
+			if (++specialCount >= kPreviewCount) break;
 		}
 	}
 
