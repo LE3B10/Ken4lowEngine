@@ -82,6 +82,7 @@ namespace Ken4lowEngine
 				frameInput_.weaponSwitch);
 			ImGui::Text("Restrictions: %s  Move:%s Shoot:%s Reload:%s",
 				restrictionsEnabled_ ? "ON" : "OFF", allowMove_ ? "ON" : "OFF", allowShoot_ ? "ON" : "OFF", allowReload_ ? "ON" : "OFF");
+			ImGui::SliderFloat("ADS感度倍率", &adsLookSensitivityMultiplier_, 0.1f, 1.0f, "%.2f");
 #endif
 		}
 
@@ -91,12 +92,14 @@ namespace Ken4lowEngine
 		{
 			ActorComponent::ToJson(outJson);
 			outJson["InputEnabled"] = inputEnabled_;
+			outJson["AdsLookSensitivityMultiplier"] = adsLookSensitivityMultiplier_;
 		}
 
 		void FromJson(const nlohmann::json& inJson) override
 		{
 			ActorComponent::FromJson(inJson);
 			inputEnabled_ = inJson.value("InputEnabled", inputEnabled_);
+			adsLookSensitivityMultiplier_ = std::clamp(inJson.value("AdsLookSensitivityMultiplier", adsLookSensitivityMultiplier_), 0.1f, 1.0f);
 			ResetInputState();
 		}
 
@@ -116,9 +119,11 @@ namespace Ken4lowEngine
 
 			if (allowLookInput)
 			{
-				const float yawDelta = -filtered.lookMouseX * mouseLookSensitivity;
-				const float pitchDelta = filtered.lookMouseY * mouseLookSensitivity;
-				if (yawDelta != 0.0f || pitchDelta != 0.0f) RequestLook(yawDelta, pitchDelta);
+				const float sensitivityMultiplier = filtered.aimHeld ? adsLookSensitivityMultiplier_ : 1.0f;
+				const float effectiveSensitivity = mouseLookSensitivity * sensitivityMultiplier;
+				const float yawDelta = -filtered.lookMouseX * effectiveSensitivity;
+				const float pitchDelta = filtered.lookMouseY * effectiveSensitivity;
+				if (yawDelta != 0.0f || pitchDelta != 0.0f) RequestLook(yawDelta, pitchDelta); // ADS中だけ視点感度を落とし、通常時の操作感は維持する。
 			}
 
 			if (filtered.jumpPressed) RequestJump();
@@ -178,6 +183,7 @@ namespace Ken4lowEngine
 		bool IsMeleeRequested() const { return meleeRequested_; }
 		int GetWeaponSwitchRequested() const { return frameInput_.weaponSwitch; }
 		bool IsToggleFireModeRequested() const { return frameInput_.toggleFireModePressed; }
+		float GetAdsLookSensitivityMultiplier() const { return adsLookSensitivityMultiplier_; }
 
 	private:
 		void ApplyRestrictions(::InputSnapshot& input) const
@@ -226,6 +232,7 @@ namespace Ken4lowEngine
 		float moveZ_ = 0.0f;
 		float lookYawDelta_ = 0.0f;
 		float lookPitchDelta_ = 0.0f;
+		float adsLookSensitivityMultiplier_ = 0.55f;
 		bool jumpRequested_ = false;
 		bool blinkRequested_ = false;
 		bool fireRequested_ = false;
