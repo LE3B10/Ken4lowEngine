@@ -7,6 +7,7 @@
 #include <unordered_set>
 
 #include "Player.h"
+#include "ApplicationLayer/Character/Player/Migration/GamePlayPlayerMigrationRuntime.h"
 #include "EnemyBase.h"
 #include "EnemyType.h"
 #include "EnemyParticleEffectSystem.h"
@@ -51,14 +52,16 @@ public:
 	/// CharacterのShadow描画は各ActorのComponent DrawShadow経路へ統一する。
 	void DrawShadow()
 	{
-		if (player_ && !legacyPlayerProxyMode_) player_->DrawShadow();
+		if (playerMigrationRuntime_ && playerMigrationRuntime_->IsActive()) playerMigrationRuntime_->DrawShadow();
+		else if (player_) player_->DrawShadow();
 		for (auto& enemy : enemies_) if (enemy) enemy->DrawShadow();
 	}
 
 	/// Light行列の明示同期が必要な旧描画呼び出しも、各Characterの共通表示経路へ渡す。
 	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
 	{
-		if (player_ && !legacyPlayerProxyMode_) player_->UpdateShadowMatrix(lightViewProjection);
+		if (playerMigrationRuntime_ && playerMigrationRuntime_->IsActive()) playerMigrationRuntime_->PrepareRenderState();
+		else if (player_) player_->UpdateShadowMatrix(lightViewProjection);
 		for (auto& enemy : enemies_) if (enemy) enemy->UpdateShadowMatrix(lightViewProjection);
 	}
 
@@ -66,6 +69,8 @@ public:
 	void SetPlayerRuntimeOverride(IPlayerRuntime* runtime) { playerRuntimeOverride_ = runtime; }
 	void SetLegacyPlayerProxyMode(bool enabled) { legacyPlayerProxyMode_ = enabled; }
 	bool IsLegacyPlayerProxyMode() const { return legacyPlayerProxyMode_; }
+	K4E::PlayerActor* GetMigratedPlayerActor() { return playerMigrationRuntime_ ? playerMigrationRuntime_->GetPlayer() : nullptr; }
+	const K4E::PlayerActor* GetMigratedPlayerActor() const { return playerMigrationRuntime_ ? playerMigrationRuntime_->GetPlayer() : nullptr; }
 
 	IPlayerRuntime* GetPlayerRuntime() { return playerRuntimeOverride_ ? playerRuntimeOverride_ : player_.get(); }
 	const IPlayerRuntime* GetPlayerRuntime() const { return playerRuntimeOverride_ ? playerRuntimeOverride_ : player_.get(); }
@@ -89,12 +94,15 @@ public:
 	bool IsDebug() const { return isDebug_; }
 
 private:
+	void EnsurePlayerMigrationRuntime();
+	void UpdateActivePlayer(float dt);
 	void InjectPlayerDeps(Player& p);
 	void InjectEnemyDeps(EnemyBase& e);
 
 private:
 	GameContext ctx_{};
 	std::unique_ptr<Player> player_;
+	std::unique_ptr<GamePlayPlayerMigrationRuntime> playerMigrationRuntime_;
 	std::vector<std::unique_ptr<EnemyBase>> enemies_;
 	EnemyParticleEffectSystem enemyParticleEffectSystem_;
 	std::function<void(const K4E::Vector3&)> onEnemyKilled_{};
@@ -102,6 +110,7 @@ private:
 	std::array<int, 2> spawnedEnemyCounts_{};
 	IPlayerRuntime* playerRuntimeOverride_ = nullptr;
 	bool legacyPlayerProxyMode_ = false;
+	bool enablePlayerMigrationRuntime_ = true;
 	bool isDebug_ = false;
 	EnemyType debugSpawnEnemyType_ = EnemyType::Melee;
 };
