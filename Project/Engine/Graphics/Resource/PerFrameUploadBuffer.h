@@ -70,6 +70,11 @@ namespace Ken4lowEngine
 			return frames_.empty() ? nullptr : frames_[ResolveIndex(frameIndex)].mappedData;
 		}
 
+		Microsoft::WRL::ComPtr<ID3D12Resource> GetResource(uint32_t frameIndex) const
+		{
+			return frames_.empty() ? nullptr : frames_[ResolveIndex(frameIndex)].resource;
+		}
+
 		D3D12_GPU_VIRTUAL_ADDRESS GetGpuAddress(uint32_t frameIndex) const
 		{
 			if (frames_.empty()) return 0;
