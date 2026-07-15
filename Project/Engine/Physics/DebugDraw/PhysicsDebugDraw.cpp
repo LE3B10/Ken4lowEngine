@@ -26,12 +26,20 @@ namespace Ken4lowEngine
 
 		if (settings_.drawColliders)
 		{
+			std::size_t drawnColliderCount = 0;
 			for (const Collider* collider : physicsWorld.GetColliders())
 			{
-				if (collider)
+				if (!collider)
 				{
-					DrawCollider(*collider, GetColliderColor(*collider));
+					continue;
 				}
+				if (drawnColliderCount >= settings_.maxColliderDrawCount)
+				{
+					break; // 大量のStage Colliderを毎フレーム全描画してEditorを重くしない。
+				}
+
+				DrawCollider(*collider, GetColliderColor(*collider));
+				++drawnColliderCount;
 			}
 		}
 
@@ -70,11 +78,19 @@ namespace Ken4lowEngine
 			ImGui::Checkbox("Draw Velocity", &settings_.drawVelocity);
 			ImGui::Checkbox("Draw Sleeping", &settings_.drawSleeping);
 			ImGui::Checkbox("Draw Events", &settings_.drawEvents);
+
+			int maxColliderDrawCount = static_cast<int>((std::min)(settings_.maxColliderDrawCount, static_cast<std::size_t>(4096)));
+			if (ImGui::DragInt("Max Collider Draw Count", &maxColliderDrawCount, 1.0f, 0, 4096))
+			{
+				settings_.maxColliderDrawCount = static_cast<std::size_t>((std::max)(maxColliderDrawCount, 0));
+			}
+
 			ImGui::DragFloat("Normal Length", &settings_.normalLength, 0.05f, 0.0f, 10.0f);
 			ImGui::DragFloat("Velocity Scale", &settings_.velocityScale, 0.01f, 0.0f, 5.0f);
 
 			ImGui::SeparatorText("PhysicsWorld State");
 			ImGui::Text("Collider Count: %zu", physicsWorld.GetColliderCount());
+			ImGui::Text("Collider Draw Limit: %zu", settings_.maxColliderDrawCount);
 			ImGui::Text("Rigidbody Count: %zu", physicsWorld.GetRigidbodies().size());
 			ImGui::Text("Contact Count: %zu", physicsWorld.GetContactCount());
 			ImGui::Text("Event Count: %zu", physicsWorld.GetEvents().size());
@@ -240,17 +256,17 @@ namespace Ken4lowEngine
 	{
 		if (!rigidbody)
 		{
-			return "Static";
+			return "None";
 		}
 
 		switch (rigidbody->GetBodyType())
 		{
 		case BodyType::Static:
 			return "Static";
-		case BodyType::Dynamic:
-			return "Dynamic";
 		case BodyType::Kinematic:
 			return "Kinematic";
+		case BodyType::Dynamic:
+			return "Dynamic";
 		default:
 			return "Unknown";
 		}
@@ -266,15 +282,14 @@ namespace Ken4lowEngine
 			return "CollisionStay";
 		case PhysicsEventType::CollisionExit:
 			return "CollisionExit";
-		case PhysicsEventType::TriggerEnter:
-			return "TriggerEnter";
-		case PhysicsEventType::TriggerStay:
-			return "TriggerStay";
-		case PhysicsEventType::TriggerExit:
-			return "TriggerExit";
+		case PhysicsEventType::OverlapBegin:
+			return "OverlapBegin";
+		case PhysicsEventType::OverlapStay:
+			return "OverlapStay";
+		case PhysicsEventType::OverlapEnd:
+			return "OverlapEnd";
 		default:
 			return "Unknown";
 		}
 	}
-
 } // namespace Ken4lowEngine
