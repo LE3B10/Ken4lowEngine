@@ -2862,6 +2862,7 @@
     <ClInclude Include="Engine\Scene\Actor\Character\HumanoidCharacterActor.h">
       <Filter>Engine\Scene\Actor\Character</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\IPlayerRuntime.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
