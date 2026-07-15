@@ -8,6 +8,16 @@ namespace Ken4lowEngine
 	/// ---------------------------------------------------------------
 	class GameTimer
 	{
+	public:
+		struct CompletedFrameTiming
+		{
+			float frameIntervalMs = 0.0f;
+			float updateMs = 0.0f;
+			float drawMs = 0.0f;
+			float presentMs = 0.0f;
+			float totalFrameMs = 0.0f;
+		};
+
 	public: /// ---------- メンバ関数 ---------- ///
 
 		/// <summary>
@@ -109,6 +119,9 @@ namespace Ken4lowEngine
 		/// </summary>
 		float GetTotalFrameMs() const { return fpsCounter_.GetTotalFrameMs(); }
 
+		/// 完了済みフレームの値を返し、次フレーム開始時のFPSCounterリセット後も参照できるようにする。
+		const CompletedFrameTiming& GetCompletedFrameTiming() const { return completedFrameTiming_; }
+
 	public: /// ---------- Setter ---------- ///
 
 		/// <summary>
@@ -136,6 +149,9 @@ namespace Ken4lowEngine
 		// Update区間が開いたままEndFrameされた旧呼び出し経路を安全にEndUpdateへ補正する。
 		bool updatePhaseActive_ = false;
 
+		// 前回最後まで完了したフレームの計測値をEditor診断用に保持する。
+		CompletedFrameTiming completedFrameTiming_{};
+
 	private: /// ---------- コピー禁止 ---------- ///
 
 		// シングルトンとして扱うため、外部からの生成・破棄・コピーを禁止する。
@@ -145,4 +161,4 @@ namespace Ken4lowEngine
 		GameTimer& operator=(const GameTimer&) = delete;
 
 	};
-}
+} // namespace Ken4lowEngine
