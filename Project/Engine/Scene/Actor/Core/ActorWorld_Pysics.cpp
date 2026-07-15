@@ -36,16 +36,22 @@ namespace Ken4lowEngine
 			return; // PhysicsWorldが設定されていない場合は何もしない
 		}
 
-		// ActorComponent物理では、まず同一Layer同士をBLockにして衝突確認をしやすくする
+		// 動的Actor同士は物理的に衝突させる。
 		physicsWorld_->GetResponseMatrix().SetResponse(
 			PhysicsCollisionLayer::DynamicActor,
 			PhysicsCollisionLayer::DynamicActor,
-			CollisionResponseType::Block); // 動くActor同士は物理的に衝突させる。
+			CollisionResponseType::Block);
 
 		physicsWorld_->GetResponseMatrix().SetResponse(
 			PhysicsCollisionLayer::DynamicActor,
 			PhysicsCollisionLayer::WorldStatic,
 			CollisionResponseType::Block); // 動くActorと床は物理的に衝突させる。
+
+		// 静的ステージ同士は毎フレーム接触判定する必要がないためBroadPhase前に除外する。
+		physicsWorld_->GetResponseMatrix().SetResponse(
+			PhysicsCollisionLayer::WorldStatic,
+			PhysicsCollisionLayer::WorldStatic,
+			CollisionResponseType::Ignore);
 	}
 
 	void ActorWorld::RegisterPhysicsComponents(Actor& actor)
@@ -122,4 +128,4 @@ namespace Ken4lowEngine
 
 		actor.SetPhysicsRegistered(false);
 	}
-}
+} // namespace Ken4lowEngine
