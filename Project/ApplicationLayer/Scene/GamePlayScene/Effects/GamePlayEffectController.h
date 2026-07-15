@@ -50,7 +50,8 @@ public:
 	{
 		if (hpPostEffectController_)
 		{
-			hpPostEffectController_->Update(deltaTime, world ? world->GetCharacters().GetPlayer() : nullptr);
+			// 読み取り専用のHP連携から先に具象Player依存を外し、旧コールバック経路は安定するまで残す。
+			hpPostEffectController_->Update(deltaTime, world ? world->GetCharacters().GetPlayerRuntime() : nullptr);
 		}
 	}
 
