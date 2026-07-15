@@ -6,6 +6,10 @@
 #include "HUDManager.h"
 #include "Player.h"
 
+#ifdef USE_IMGUI
+#include <Editor/EditorPlayController.h>
+#endif
+
 using namespace Ken4lowEngine;
 
 namespace
@@ -18,10 +22,17 @@ namespace
 		input->SetLockCursor(fpsCapture);
 		input->SetCursorVisible(!fpsCapture);
 	}
+
+	void RestoreEditorGameCapture()
+	{
+#ifdef USE_IMGUI
+		EditorPlayController::GetInstance()->CaptureGameInput(); // Pause/Resultからゲームへ戻る時はEditor側の入力モードもGameCapturedへ戻す。
+#endif
+	}
 }
 
 /// -------------------------------------------------------------
-///				　			　初期化処理
+///				　				 初期化処理
 /// -------------------------------------------------------------
 void GamePlayFlow::Initialize()
 {
@@ -39,7 +50,7 @@ void GamePlayFlow::Initialize()
 }
 
 /// -------------------------------------------------------------
-///				　			　終了処理
+///				　				 終了処理
 /// -------------------------------------------------------------
 void GamePlayFlow::Finalize()
 {
@@ -64,10 +75,20 @@ void GamePlayFlow::ResetForNewGame(bool startIntro)
 
 	// 状態を判定
 	state_ = startIntro ? State::Intro : State::Playing;
+
+	if (!startIntro)
+	{
+		if (Input* input = Input::GetInstance())
+		{
+			input->SetGameInputEnabled(true);
+			ApplyGameCursorMode(input, true);
+		}
+		RestoreEditorGameCapture();
+	}
 }
 
 /// -------------------------------------------------------------
-///				　			　ゲームプレイ開始
+///				　				 ゲームプレイ開始
 /// -------------------------------------------------------------
 void GamePlayFlow::StartPlaying()
 {
@@ -79,10 +100,16 @@ void GamePlayFlow::StartPlaying()
 
 	// 状態を Playing にする
 	state_ = State::Playing;
+	if (Input* input = Input::GetInstance())
+	{
+		input->SetGameInputEnabled(true);
+		ApplyGameCursorMode(input, true);
+	}
+	RestoreEditorGameCapture();
 }
 
 /// -------------------------------------------------------------
-///				　			　ポーズ開始
+///				　				 ポーズ開始
 /// -------------------------------------------------------------
 void GamePlayFlow::EnterPause(Ken4lowEngine::Input* input)
 {
@@ -99,7 +126,7 @@ void GamePlayFlow::EnterPause(Ken4lowEngine::Input* input)
 }
 
 /// -------------------------------------------------------------
-///				　			　ポーズ解除
+///				　				 ポーズ解除
 /// -------------------------------------------------------------
 void GamePlayFlow::ExitPause(Ken4lowEngine::Input* input, bool lockCursorOnResume)
 {
@@ -111,11 +138,13 @@ void GamePlayFlow::ExitPause(Ken4lowEngine::Input* input, bool lockCursorOnResum
 	// ポーズメニューを閉じる
 	if (pauseMenu_) pauseMenu_->Close();
 
+	if (input) input->SetGameInputEnabled(true);
 	ApplyGameCursorMode(input, lockCursorOnResume);
+	RestoreEditorGameCapture();
 }
 
 /// -------------------------------------------------------------
-///				　			　ポーズキャンセル
+///				　				 ポーズキャンセル
 /// -------------------------------------------------------------
 void GamePlayFlow::CancelPause()
 {
@@ -158,7 +187,7 @@ void GamePlayFlow::EnterGameClear(Ken4lowEngine::Input* input, const std::functi
 }
 
 /// -------------------------------------------------------------
-///				　		  ゲームオーバー開始
+///				　			  ゲームオーバー開始
 /// -------------------------------------------------------------
 void GamePlayFlow::EnterGameOver(Ken4lowEngine::Input* input)
 {
@@ -191,6 +220,7 @@ void GamePlayFlow::UpdatePaused(const PausedUpdateContext& ctx)
 		return;
 	}
 
+	ctx.input->SetGameInputEnabled(true); // EditorがGameReleasedでもPause UIのViewport座標と入力だけは有効にする。
 	const PauseMenuCommand cmd = pauseMenu_->Update(ctx.input);
 
 	switch (cmd)
@@ -240,6 +270,7 @@ void GamePlayFlow::UpdateResult(const ResultUpdateContext& ctx)
 		return;
 	}
 
+	ctx.input->SetGameInputEnabled(true); // Result UIもEditorのGameReleased状態に依存せずHover/Click/決定を受け取る。
 	ResultMenuCommand cmd = ResultMenuCommand::None;
 	if (resultMenu_)
 	{
@@ -280,7 +311,7 @@ void GamePlayFlow::UpdateResult(const ResultUpdateContext& ctx)
 		break;
 	}
 
-	if (ctx.input->TriggerKey(DIK_R))
+	if (ctx.input->TriggerRawKey(DIK_R))
 	{
 		if (ctx.onRetry)
 		{
@@ -289,7 +320,7 @@ void GamePlayFlow::UpdateResult(const ResultUpdateContext& ctx)
 		return;
 	}
 
-	if (ctx.input->TriggerKey(DIK_T))
+	if (ctx.input->TriggerRawKey(DIK_T))
 	{
 		if (ctx.sceneManager)
 		{
@@ -300,7 +331,7 @@ void GamePlayFlow::UpdateResult(const ResultUpdateContext& ctx)
 }
 
 /// -------------------------------------------------------------
-///				　			　UIの描画
+///				　				 UIの描画
 /// -------------------------------------------------------------
 void GamePlayFlow::DrawUI()
 {
