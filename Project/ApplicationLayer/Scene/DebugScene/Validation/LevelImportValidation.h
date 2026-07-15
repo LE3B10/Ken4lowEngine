@@ -3,6 +3,7 @@
 #include <BlenderLevelImporter.h>
 #include <BlenderSceneLoader.h>
 
+#include <algorithm>
 #include <string>
 
 #ifdef USE_IMGUI
