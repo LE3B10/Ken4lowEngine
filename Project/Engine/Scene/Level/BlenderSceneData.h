@@ -20,6 +20,14 @@ namespace Ken4lowEngine
 		nlohmann::json raw = nlohmann::json::object();
 	};
 
+	/// Blender JSONのstage情報を入力データのまま保持する。
+	struct BlenderStageMetadata
+	{
+		std::string id;
+		std::string mode;
+		nlohmann::json raw = nlohmann::json::object();
+	};
+
 	/// Blender JSONに書かれたローカルTransformを入力座標系のまま保持する。
 	struct BlenderTransformData
 	{
@@ -53,7 +61,9 @@ namespace Ken4lowEngine
 		int schemaVersion = 0;
 		std::string name;
 		BlenderSceneMetadata metadata;
+		BlenderStageMetadata stage;
 		std::vector<BlenderObjectData> objects;
+		nlohmann::json entities = nlohmann::json::object();
 		nlohmann::json raw = nlohmann::json::object();
 	};
 } // namespace Ken4lowEngine
