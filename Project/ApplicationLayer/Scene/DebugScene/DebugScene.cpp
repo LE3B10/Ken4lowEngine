@@ -182,6 +182,7 @@ void DebugScene::DrawImGui()
 	actorWorld_.DrawImGui();
 	DrawActorWorldValidationImGui();
 	levelDataValidation_.DrawImGui(); // Blender JSONからLevelDataへの読み込み結果を画面上で確認する。
+	levelImportValidation_.DrawImGui(); // BlenderSceneDataからActor/Component用Levelへの変換結果を確認する。
 	enemyMigrationValidation_.DrawImGui();
 	bossMigrationValidation_.DrawImGui();
 
