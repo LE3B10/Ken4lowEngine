@@ -9,12 +9,12 @@
 
 namespace K4E = ::Ken4lowEngine;
 
+class IPlayerRuntime;
 class BulletManager;
 class CollisionManager;
 class CrystalManager;
 class HUDManager;
 class ItemManager;
-class Player;
 class EnemyBase;
 namespace Ken4lowEngine
 {
@@ -22,12 +22,7 @@ namespace Ken4lowEngine
 	class Stage;
 }
 
-/// -------------------------------------------------------------
-/// ステージ1の初心者向けチュートリアル進行を管理するクラス。
-///
-/// GamePlayWorldからステージ1専用の説明・操作制限・練習用敵/アイテム生成を切り離し、
-/// World本体が通常ゲーム進行に集中できるようにする。
-/// -------------------------------------------------------------
+/// ステージ1の初心者向けチュートリアル進行を管理する。
 class Stage1TutorialController
 {
 public:
@@ -40,19 +35,12 @@ public:
 				state.allowMove = AllowsPlayerMove();
 				state.allowShoot = AllowsPlayerShoot();
 				state.allowReload = AllowsReload();
-				return state; // P11中は旧Tutorialの許可状態を新Player入力へ同じフレームで渡す。
+				return state; // P13でも入力制限の正本はTutorial状態とし、PlayerActorへ直接反映する。
 			});
 	}
 
-	~Stage1TutorialController()
-	{
-		PlayerTutorialRestrictionBridge::ClearProvider();
-	}
+	~Stage1TutorialController() { PlayerTutorialRestrictionBridge::ClearProvider(); }
 
-	/// <summary>
-	/// チュートリアル更新に必要な外部システム参照をまとめた構造体。
-	/// 所有権は持たず、GamePlayWorldが所有している各管理クラスを一時的に参照する。
-	/// </summary>
 	struct Dependencies
 	{
 		CharacterWorld* characters = nullptr;
@@ -98,13 +86,13 @@ private:
 	bool AllowsPlayerMove() const;
 	bool AllowsPlayerShoot() const;
 	bool AllowsReload() const;
-	void PrepareReloadPractice(Player& player);
+	void PrepareReloadPractice(IPlayerRuntime& player);
 	void ApplyPlayerRestrictions(const Dependencies& deps);
 	void SpawnTutorialEnemy(const Dependencies& deps);
 	void ClearTutorialEnemy(const Dependencies& deps);
 	void SpawnTutorialItems(const Dependencies& deps);
 	void UpdateTutorialHud(const Dependencies& deps);
-	void AlignPlayerViewToFirstCrystal(const Dependencies& deps, Player& player);
+	void AlignPlayerViewToFirstCrystal(const Dependencies& deps, IPlayerRuntime& player);
 	void UpdatePresentation(const Dependencies& deps, float deltaTime, float tutorialAlpha);
 
 	bool beginnerBalanceEnabled_ = false;
@@ -133,7 +121,7 @@ private:
 	bool reloadStarted_ = false;
 	bool reloadWasReloading_ = false;
 	bool tutorialCompletionNotified_ = false;
-	bool tutorialSeen_ = false; // 同じ起動中にチュートリアル完了済みかを保持し、次回スキップ解放に使う。
+	bool tutorialSeen_ = false;
 	float tutorialCompleteTimer_ = 0.0f;
 	float tutorialCompleteHoldTime_ = 1.4f;
 };
