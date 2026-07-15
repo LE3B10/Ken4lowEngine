@@ -2,8 +2,10 @@
 
 #include "BlenderSceneData.h"
 
+#include <exception>
 #include <fstream>
 #include <string>
+#include <utility>
 
 namespace Ken4lowEngine
 {
