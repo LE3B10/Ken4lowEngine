@@ -123,11 +123,47 @@ namespace Ken4lowEngine
 		ImGui::Text("Frame Interval: %.2f ms", frameTimingSummary_.frameIntervalMs);
 		ImGui::Text("Update: %.3f ms", frameTimingSummary_.updateMs);
 		ImGui::Text("Draw: %.3f ms", frameTimingSummary_.drawMs);
-		ImGui::Text("Present / GPU Wait: %.3f ms", frameTimingSummary_.presentMs);
+		ImGui::Text("EndDraw / Present Block: %.3f ms", frameTimingSummary_.presentMs);
 		ImGui::Text("Total Frame: %.3f ms", frameTimingSummary_.totalFrameMs);
 
 		const float accountedMs = frameTimingSummary_.updateMs + frameTimingSummary_.drawMs + frameTimingSummary_.presentMs;
 		ImGui::Text("Unaccounted: %.3f ms", (std::max)(0.0f, frameTimingSummary_.frameIntervalMs - accountedMs));
+
+		DirectXCommon::EndDrawPerformanceTiming endDrawTiming{};
+		if (dxCommon_)
+		{
+			endDrawTiming = dxCommon_->GetEndDrawPerformanceTiming();
+		}
+
+		ImGui::SeparatorText("EndDraw CPU Detail");
+		if (ImGui::BeginTable("##EndDrawPerformanceTable", 2,
+			ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchSame))
+		{
+			ImGui::TableSetupColumn("Phase");
+			ImGui::TableSetupColumn("Last ms");
+			ImGui::TableHeadersRow();
+
+			auto drawEndDrawRow = [](const char* label, float value)
+				{
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::TextUnformatted(label);
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Text("%.3f", value);
+				};
+
+			drawEndDrawRow("RenderTarget End", endDrawTiming.renderTargetEndMs);
+			drawEndDrawRow("Transition To Present", endDrawTiming.transitionToPresentMs);
+			drawEndDrawRow("CommandList Close", endDrawTiming.commandListCloseMs);
+			drawEndDrawRow("ExecuteCommandLists", endDrawTiming.executeCommandListsMs);
+			drawEndDrawRow("SwapChain Present", endDrawTiming.presentMs);
+			drawEndDrawRow("Fence Signal", endDrawTiming.fenceSignalMs);
+			drawEndDrawRow("Fence Wait", endDrawTiming.fenceWaitMs);
+			drawEndDrawRow("Allocator Reset", endDrawTiming.allocatorResetMs);
+			drawEndDrawRow("CommandList Reset", endDrawTiming.commandListResetMs);
+			drawEndDrawRow("EndDraw Total", endDrawTiming.totalMs);
+			ImGui::EndTable();
+		}
 
 		ImGui::SeparatorText("Render Pipeline CPU Pass");
 		if (ImGui::BeginTable("##RenderPipelinePerformanceTable", 4,
@@ -157,18 +193,21 @@ namespace Ken4lowEngine
 		}
 
 		ImGui::SeparatorText("判定");
-		const float presentMs = frameTimingSummary_.presentMs;
 		const float editorUiMs = GetPerformanceMetric(PerformancePhase::EditorUiBuild).averageMs;
 		const float mainWorldMs = GetPerformanceMetric(PerformancePhase::MainWorldRender).averageMs;
 		const float shadowMs = GetPerformanceMetric(PerformancePhase::ShadowRender).averageMs;
 
-		if (presentMs > 8.0f)
+		if (endDrawTiming.fenceWaitMs > 4.0f)
 		{
-			ImGui::TextColored(ImVec4(1.0f, 0.72f, 0.25f, 1.0f), "Present/GPU待ちが大きいです。GPU側またはVSync/同期を優先して調査します。");
+			ImGui::TextColored(ImVec4(1.0f, 0.72f, 0.25f, 1.0f), "Fence Waitが大きいです。GPU完了待ちが主因なのでGPU Passまたはフレーム同期方式を調査します。");
+		}
+		else if (endDrawTiming.presentMs > 4.0f)
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0.72f, 0.25f, 1.0f), "SwapChain Presentが大きいです。VSyncとSwapChain設定を優先して調査します。");
 		}
 		else if (editorUiMs > 8.0f)
 		{
-			ImGui::TextColored(ImVec4(1.0f, 0.72f, 0.25f, 1.0f), "Editor UI Buildが重いです。Outliner/Inspectorの全件再構築を優先して調査します。");
+			ImGui::TextColored(ImVec4(1.0f, 0.72f, 0.25f, 1.0f), "Editor UI Buildが重いです。Outliner/Inspectorの構築処理を優先して調査します。");
 		}
 		else if (mainWorldMs + shadowMs > 8.0f)
 		{
@@ -176,7 +215,7 @@ namespace Ken4lowEngine
 		}
 		else
 		{
-			ImGui::TextDisabled("大きなCPU Passが見えない場合はGPUタイムスタンプ計測を次に追加します。");
+			ImGui::TextDisabled("CPU側で大きな待ちが見えない場合はGPU Timestamp Queryを次に追加します。");
 		}
 
 		ImGui::End();
