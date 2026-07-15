@@ -89,6 +89,12 @@ namespace Ken4lowEngine
 		return actorJson;
 	}
 
+	bool ActorJsonSerializer::ValidateActorDefinition(const nlohmann::json& actorJson)
+	{
+		if (!ValidateActorJson(actorJson) || !actorJson.contains("Class") || !actorJson["Class"].is_string()) return false;
+		return ActorFactory::IsRegistered(actorJson["Class"].get<std::string>()); // World破棄前にActorと全ComponentのFactory登録を検証する。
+	}
+
 	bool ActorJsonSerializer::SaveActorToFile(const Actor& actor, std::string_view filePath)
 	{
 		try
@@ -193,7 +199,7 @@ namespace Ken4lowEngine
 		std::unique_ptr<Actor> actor;
 		try
 		{
-			if (!ValidateActorJson(actorJson) || !actorJson.contains("Class") || !actorJson["Class"].is_string()) return nullptr;
+			if (!ValidateActorDefinition(actorJson)) return nullptr;
 
 			actor = ActorFactory::CreateActor(actorJson["Class"].get<std::string>());
 			if (!actor) return nullptr;
