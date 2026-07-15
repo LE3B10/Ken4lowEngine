@@ -2,6 +2,7 @@
 
 #include "InventoryComponent.h"
 #include "PlayerCameraComponent.h"
+#include "PlayerInputSnapshot.h"
 #include "PlayerMovementComponent.h"
 #include "WeaponComponent.h"
 
@@ -66,18 +67,27 @@ namespace Ken4lowEngine
 			ImGui::SeparatorText("プレイヤー入力要求");
 			ImGui::Text("Enabled: %s", inputEnabled_ ? "ON" : "OFF");
 			ImGui::Text("Move: %.2f, %.2f", moveX_, moveZ_);
+			ImGui::Text("Sprint: %s / Aim: %s / Fire Held: %s",
+				sprintHeld_ ? "Yes" : "No",
+				aimHeld_ ? "Yes" : "No",
+				fireHeld_ ? "Yes" : "No");
 			ImGui::Text("Jump: %s / Fire: %s / Reload: %s / Slot: %d",
 				jumpRequested_ ? "Yes" : "No",
 				fireRequested_ ? "Yes" : "No",
 				reloadRequested_ ? "Yes" : "No",
 				inventorySlotRequested_);
+			ImGui::Text("Restrictions: %s  Move:%s Shoot:%s Reload:%s",
+				restrictionsEnabled_ ? "ON" : "OFF",
+				allowMove_ ? "ON" : "OFF",
+				allowShoot_ ? "ON" : "OFF",
+				allowReload_ ? "ON" : "OFF");
 #endif
 		}
 
 		/// JSON保存・復元で使用するComponent識別名を返す。
 		std::string GetClassTypeName() const override { return "PlayerInputComponent"; }
 
-		/// 入力受付の有効状態だけをActor JSONへ保存し、フレーム要求は保存しない。
+		/// 入力受付状態だけをActor JSONへ保存し、フレーム要求と一時的な操作制限は保存しない。
 		void ToJson(nlohmann::json& outJson) const override
 		{
 			ActorComponent::ToJson(outJson);
@@ -89,9 +99,51 @@ namespace Ken4lowEngine
 		{
 			ActorComponent::FromJson(inJson);
 			inputEnabled_ = inJson.value("InputEnabled", inputEnabled_);
-			moveX_ = 0.0f;
-			moveZ_ = 0.0f;
-			ClearTransientRequests();
+			ResetInputState();
+		}
+
+		/// 旧Playerと同じInputSnapshotを受け取り、新Actor用の要求へ変換する段階移行入口。
+		void ApplyInputSnapshot(const ::InputSnapshot& snapshot, float mouseLookSensitivity, bool allowLookInput = true)
+		{
+			if (!inputEnabled_)
+			{
+				ResetInputState();
+				return;
+			}
+
+			::InputSnapshot filtered = snapshot;
+			ApplyRestrictions(filtered);
+
+			RequestMove(filtered.moveX, filtered.moveZ);
+			sprintHeld_ = filtered.sprintHeld;
+			aimHeld_ = filtered.aimHeld;
+			fireHeld_ = filtered.fireHeld;
+
+			if (allowLookInput)
+			{
+				const float yawDelta = -filtered.lookMouseX * mouseLookSensitivity;
+				const float pitchDelta = filtered.lookMouseY * mouseLookSensitivity;
+				if (yawDelta != 0.0f || pitchDelta != 0.0f) RequestLook(yawDelta, pitchDelta);
+			}
+
+			if (filtered.jumpPressed) RequestJump();
+			if (filtered.fireHeld) RequestFire();
+			if (filtered.reloadPressed) RequestReload();
+			if (filtered.weaponSlotPressed > 0) RequestInventorySlot(filtered.weaponSlotPressed - 1);
+
+			blinkRequested_ = filtered.blinkPressed;
+			meleeRequested_ = filtered.meleePressed;
+			weaponSwitchRequested_ = filtered.weaponSwitch;
+			toggleFireModeRequested_ = filtered.toggleFireModePressed;
+		}
+
+		/// 旧Tutorial制限と同じ意味で、移動・射撃・リロードの受付可否を設定する。
+		void SetInputRestrictions(bool enabled, bool allowMove, bool allowShoot, bool allowReload)
+		{
+			restrictionsEnabled_ = enabled;
+			allowMove_ = allowMove;
+			allowShoot_ = allowShoot;
+			allowReload_ = allowReload;
 		}
 
 		/// 移動要求を更新する。値は配送されるまで保持する。
@@ -120,23 +172,64 @@ namespace Ken4lowEngine
 		/// Inventoryのスロット選択要求を予約する。
 		void RequestInventorySlot(int slotIndex) { inventorySlotRequested_ = slotIndex; }
 
+		/// Editor操作や再配置時に、保持入力と未配送要求をすべて初期化する。
+		void ResetInputState()
+		{
+			moveX_ = 0.0f;
+			moveZ_ = 0.0f;
+			sprintHeld_ = false;
+			aimHeld_ = false;
+			fireHeld_ = false;
+			ClearTransientRequests();
+		}
+
 		/// 死亡や操作ロック時の入力受付を切り替える。
 		void SetInputEnabled(bool enabled)
 		{
 			inputEnabled_ = enabled;
-			if (!enabled)
-			{
-				moveX_ = 0.0f;
-				moveZ_ = 0.0f;
-				ClearTransientRequests();
-			}
+			if (!enabled) ResetInputState();
 		}
 
 		bool IsInputEnabled() const { return inputEnabled_; }
 		float GetMoveX() const { return moveX_; }
 		float GetMoveZ() const { return moveZ_; }
+		bool IsSprintHeld() const { return sprintHeld_; }
+		bool IsAimHeld() const { return aimHeld_; }
+		bool IsFireHeld() const { return fireHeld_; }
+		bool IsBlinkRequested() const { return blinkRequested_; }
+		bool IsMeleeRequested() const { return meleeRequested_; }
+		int GetWeaponSwitchRequested() const { return weaponSwitchRequested_; }
+		bool IsToggleFireModeRequested() const { return toggleFireModeRequested_; }
 
 	private:
+		void ApplyRestrictions(::InputSnapshot& input) const
+		{
+			if (!restrictionsEnabled_) return;
+
+			input.weaponSwitch = 0;
+			input.weaponSlotPressed = 0;
+			input.toggleFireModePressed = false;
+			input.meleePressed = false;
+
+			if (!allowMove_)
+			{
+				input.moveX = 0.0f;
+				input.moveZ = 0.0f;
+				input.sprintHeld = false;
+				input.jumpHeld = false;
+				input.jumpPressed = false;
+				input.blinkPressed = false;
+			}
+			if (!allowShoot_)
+			{
+				input.aimHeld = false;
+				input.aimPressed = false;
+				input.fireHeld = false;
+				input.firePressed = false;
+			}
+			if (!allowReload_) input.reloadPressed = false;
+		}
+
 		void ClearTransientRequests()
 		{
 			lookYawDelta_ = 0.0f;
@@ -145,6 +238,10 @@ namespace Ken4lowEngine
 			fireRequested_ = false;
 			reloadRequested_ = false;
 			inventorySlotRequested_ = -1;
+			blinkRequested_ = false;
+			meleeRequested_ = false;
+			weaponSwitchRequested_ = 0;
+			toggleFireModeRequested_ = false;
 		}
 
 	private:
@@ -152,10 +249,21 @@ namespace Ken4lowEngine
 		float moveZ_ = 0.0f;
 		float lookYawDelta_ = 0.0f;
 		float lookPitchDelta_ = 0.0f;
+		bool sprintHeld_ = false;
+		bool aimHeld_ = false;
+		bool fireHeld_ = false;
 		bool jumpRequested_ = false;
 		bool fireRequested_ = false;
 		bool reloadRequested_ = false;
+		bool blinkRequested_ = false;
+		bool meleeRequested_ = false;
 		int inventorySlotRequested_ = -1;
+		int weaponSwitchRequested_ = 0;
+		bool toggleFireModeRequested_ = false;
 		bool inputEnabled_ = true;
+		bool restrictionsEnabled_ = false;
+		bool allowMove_ = true;
+		bool allowShoot_ = true;
+		bool allowReload_ = true;
 	};
 } // namespace Ken4lowEngine
