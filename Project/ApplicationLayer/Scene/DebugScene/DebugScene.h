@@ -93,7 +93,7 @@ private:
 
 	LevelDataValidation levelDataValidation_;
 	LevelImportValidation levelImportValidation_{ &actorWorld_, &actorPhysicsWorld_ };
-	PerformancePhaseValidation performancePhaseValidation_;
+	PerformancePhaseValidation performancePhaseValidation_{ &actorWorld_, &actorPhysicsWorld_ };
 	EnemyMigrationValidation enemyMigrationValidation_;
 	BossMigrationValidation bossMigrationValidation_;
 };
