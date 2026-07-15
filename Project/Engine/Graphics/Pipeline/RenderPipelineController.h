@@ -95,6 +95,9 @@ namespace Ken4lowEngine
 		const PerformanceMetric& GetPerformanceMetric(PerformancePhase phase) const;
 		const FrameTimingSummary& GetFrameTimingSummary() const { return frameTimingSummary_; }
 
+		/// 現在GameApplicationが使用しているControllerをDebugSceneの診断UIから参照する。
+		static RenderPipelineController* GetActiveController() { return activeController_; }
+
 	private:
 		using Clock = std::chrono::steady_clock;
 		static constexpr std::size_t kPerformancePhaseCount = static_cast<std::size_t>(PerformancePhase::Count);
@@ -126,6 +129,7 @@ namespace Ken4lowEngine
 		/// </summary>
 		void ExecuteGameFrame(const FrameCallbacks& callbacks);
 
+		static RenderPipelineController* activeController_;
 		DirectXCommon* dxCommon_ = nullptr;
 		std::array<PerformanceMetric, kPerformancePhaseCount> performanceMetrics_{};
 		FrameTimingSummary frameTimingSummary_{};
