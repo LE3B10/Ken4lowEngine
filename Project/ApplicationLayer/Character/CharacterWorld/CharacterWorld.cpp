@@ -31,6 +31,8 @@ namespace
 void CharacterWorld::Initialize(GameContext& ctx)
 {
 	ctx_ = ctx;
+	playerRuntimeOverride_ = nullptr;
+	legacyPlayerProxyMode_ = false;
 	enemyParticleEffectSystem_.Initialize();
 
 	player_ = std::make_unique<Player>();
@@ -58,6 +60,8 @@ void CharacterWorld::Finalize()
 	{
 		ctx_.collisionManager_->RemoveCollider(player_->GetCollisionPrimitive());
 	}
+	playerRuntimeOverride_ = nullptr;
+	legacyPlayerProxyMode_ = false;
 	player_.reset();
 	ctx_ = GameContext{};
 }
@@ -157,7 +161,7 @@ bool CharacterWorld::RemoveEnemy(EnemyBase* enemy)
 
 void CharacterWorld::Update(float deltaTime)
 {
-	if (player_) player_->Update(deltaTime);
+	if (player_ && !legacyPlayerProxyMode_) player_->Update(deltaTime);
 
 	const float enemyDeltaTime = std::clamp(deltaTime, 0.0f, EnemyBase::GetMaxUpdateDeltaTime());
 	for (auto& enemy : enemies_)
@@ -185,23 +189,23 @@ void CharacterWorld::Update(float deltaTime)
 
 void CharacterWorld::UpdatePlayerOnly(float deltaTime)
 {
-	if (player_) player_->Update(deltaTime);
+	if (player_ && !legacyPlayerProxyMode_) player_->Update(deltaTime);
 }
 
 void CharacterWorld::WarmupStartGameplayVisuals()
 {
-	if (player_) player_->WarmupStartGameplayVisuals();
+	if (player_ && !legacyPlayerProxyMode_) player_->WarmupStartGameplayVisuals();
 	for (auto& enemy : enemies_) if (enemy) enemy->Update(0.0f);
 }
 
 void CharacterWorld::SetStartGameplayVisualsVisible(bool visible)
 {
-	if (player_) player_->SetStartGameplayVisualsVisible(visible);
+	if (player_ && !legacyPlayerProxyMode_) player_->SetStartGameplayVisualsVisible(visible);
 }
 
 void CharacterWorld::Draw()
 {
-	if (player_) player_->Draw();
+	if (player_ && !legacyPlayerProxyMode_) player_->Draw();
 	for (auto& enemy : enemies_) if (enemy) enemy->Draw();
 }
 
@@ -224,6 +228,7 @@ void CharacterWorld::DrawPlayerDebugImGui()
 
 	ImGui::SeparatorText("Actor / Components");
 	ImGui::TextUnformatted("GamePlay PlayerはHumanoidCharacterActor由来のActorです。");
+	ImGui::Text("Legacy Proxy Mode: %s", legacyPlayerProxyMode_ ? "ON" : "OFF");
 	ImGui::TextUnformatted("以下のComponent値は実行中のPlayer実体へ直接反映されます。");
 
 	for (const auto& componentOwner : player_->GetComponents())
