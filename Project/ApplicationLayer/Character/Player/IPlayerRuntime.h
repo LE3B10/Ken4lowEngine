@@ -27,6 +27,11 @@ public:
 
 	virtual float ApplyRuntimeDamage(float amount) = 0;
 	virtual float HealRuntime(float amount) = 0;
+	virtual void ApplyDamage(float amount, const Ken4lowEngine::Vector3* attackPosition = nullptr)
+	{
+		(void)attackPosition;
+		ApplyRuntimeDamage(amount); // 旧Boss攻撃の位置付きDamage呼び出しをRuntime境界へ吸収する。
+	}
 
 	virtual int AddReserveAmmo(int amount) = 0;
 	virtual int GetMagazineAmmo() const = 0;
