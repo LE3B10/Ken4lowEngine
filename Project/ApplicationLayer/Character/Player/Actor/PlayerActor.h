@@ -1,7 +1,9 @@
 #pragma once
 
+#include "../IPlayerRuntime.h"
 #include "InventoryComponent.h"
 #include "PlayerCameraComponent.h"
+#include "PlayerHudPresenterComponent.h"
 #include "PlayerInputComponent.h"
 #include "PlayerMovementComponent.h"
 #include "WeaponComponent.h"
@@ -20,16 +22,15 @@
 #include <SpriteComponent.h>
 #include <TextComponent.h>
 
-#include <cstdio>
+#include <functional>
 #include <string_view>
 
 namespace Ken4lowEngine
 {
-	/// 共通Character機能とPlayer専用の入力・移動・武器・Inventory・Camera・Rigidbody・HUDを束ねるActor。
-	class PlayerActor : public CharacterActor
+	/// 共通Character機能とPlayer専用Componentを束ね、外部へ最小Runtime境界だけを公開するActor。
+	class PlayerActor : public CharacterActor, public ::IPlayerRuntime
 	{
 	public:
-		/// 必要なPlayer専用Componentを不足分だけ生成し、共通Character ComponentとPhysicsへ接続する。
 		void Initialize() override
 		{
 			SceneComponent* root = GetRootComponent();
@@ -44,28 +45,31 @@ namespace Ken4lowEngine
 			{
 				auto& input = AddComponent<PlayerInputComponent>();
 				input.SetName("Player Input");
-				input.SetUpdateOrder(-95); // 入力要求の配送を移動・武器・Inventory・Cameraの更新より先に行う。
+				input.SetUpdateOrder(-95);
 			}
-
 			if (!GetPlayerMovementComponent())
 			{
 				auto& movement = AddComponent<PlayerMovementComponent>();
 				movement.SetName("Player Movement");
 				movement.SetUpdateOrder(-90);
 			}
-
 			if (!GetWeaponComponent())
 			{
 				auto& weapon = AddComponent<WeaponComponent>();
 				weapon.SetName("Player Weapon");
 				weapon.SetUpdateOrder(-80);
 			}
-
 			if (!GetInventoryComponent())
 			{
 				auto& inventory = AddComponent<InventoryComponent>();
 				inventory.SetName("Player Inventory");
 				inventory.SetUpdateOrder(-75);
+			}
+			if (!GetPlayerHudPresenterComponent())
+			{
+				auto& hud = AddComponent<PlayerHudPresenterComponent>();
+				hud.SetName("Player HUD Presenter");
+				hud.SetUpdateOrder(50); // 状態更新後にHP・弾薬・Crosshairを同期する。
 			}
 
 			auto* visual = GetHumanoidVisualComponent();
@@ -85,8 +89,8 @@ namespace Ken4lowEngine
 				camera = &AddComponent<PlayerCameraComponent>();
 				camera->SetName("Player Camera");
 				camera->SetUpdateOrder(10);
-				camera->SetLocalPosition({ 0.0f, 1.6f, 0.0f });
-				camera->SetAutoRegisterMainCamera(true); // DebugSceneでもPlayerActorのCameraを通常ゲーム視点として使用する。
+				camera->SetLocalPosition({ 0.0f, 1.2f, 0.2f });
+				camera->SetAutoRegisterMainCamera(true);
 				camera->AttachTo(root);
 			}
 
@@ -100,14 +104,13 @@ namespace Ken4lowEngine
 				weaponView.SetLocalPosition({ 0.28f, -0.30f, 0.55f });
 				weaponView.SetLocalRotation({ 1.5708f, 1.5708f, 0.0f });
 				weaponView.SetLocalScale({ 0.55f, 0.55f, 0.55f });
-				weaponView.SetCastShadowEnabled(false); // 一人称ViewModelの影をWorldへ落とさず、旧FPS表示に近い見え方へ寄せる。
+				weaponView.SetCastShadowEnabled(false);
 				weaponView.AttachTo(camera);
 			}
 
 			CreateGameplayHudComponents();
 
-			const bool hadRigidbody = GetRigidbodyComponent() != nullptr;
-			if (!hadRigidbody)
+			if (!GetRigidbodyComponent())
 			{
 				auto& rigidbody = AddComponent<RigidbodyComponent>();
 				rigidbody.SetName("Player Rigidbody");
@@ -122,27 +125,17 @@ namespace Ken4lowEngine
 			}
 
 			const bool hadHealth = GetHealthComponent() != nullptr;
-			const bool hadCollider = GetColliderComponent() != nullptr;
 			CharacterActor::Initialize();
-
 			if (!hadHealth)
 			{
 				if (CharacterHealthComponent* health = GetHealthComponent()) health->ResetHealth(100.0f);
 			}
-			if (!hadCollider)
-			{
-				if (CharacterColliderComponent* collider = GetColliderComponent())
-				{
-					collider->SetShapeType(ECollisionShapeType::AABB);
-					collider->SetHalfSize({ 0.45f, 0.9f, 0.45f });
-					collider->SetCollisionLayer(PhysicsCollisionLayer::DynamicActor);
-				}
-			}
 			if (visual && visual->GetSkinTexturePath().empty()) visual->ApplySkinToAllParts("Characters/steve.dds");
-			SyncGameplayHud();
+			deathTimer_ = 0.0f;
+			gameOverReady_ = false;
+			if (PlayerHudPresenterComponent* hud = GetPlayerHudPresenterComponent()) hud->ResetPresentation();
 		}
 
-		/// ViewModelとゲーム用HUDをPlayerの現在状態へ同期する。
 		void Update(float deltaTime) override
 		{
 			if (ModelComponent* weaponView = GetWeaponViewComponent())
@@ -150,13 +143,11 @@ namespace Ken4lowEngine
 				if (PlayerCameraComponent* camera = GetPlayerCameraComponent()) weaponView->SetCamera(camera->GetCamera());
 			}
 			CharacterActor::Update(deltaTime);
-			SyncGameplayHud(); // HP・弾薬はImGuiではなくScreen Space UI Componentへ毎フレーム反映する。
+			UpdateDeathLifecycle(deltaTime);
 		}
 
-		/// JSON保存・復元で使用するActor識別名を返す。
 		std::string GetClassTypeName() const override { return "PlayerActor"; }
 
-		/// DebugSceneや移行確認から同じ個体を再利用できる初期状態へ戻す。
 		void ResetForValidation(const Vector3& worldPosition)
 		{
 			SetActive(true);
@@ -170,36 +161,61 @@ namespace Ken4lowEngine
 			if (PlayerInputComponent* input = GetPlayerInputComponent()) input->SetInputEnabled(true);
 			if (PlayerMovementComponent* movement = GetPlayerMovementComponent()) movement->ResetMovement();
 			if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(true);
-			if (RigidbodyComponent* rigidbody = GetRigidbodyComponent()) rigidbody->SetVelocity({}); // 再配置時に以前の落下・移動速度を持ち越さない。
+			if (RigidbodyComponent* rigidbody = GetRigidbodyComponent()) rigidbody->SetVelocity({});
 			if (WeaponComponent* weapon = GetWeaponComponent()) weapon->ResetWeapon();
 			if (InventoryComponent* inventory = GetInventoryComponent()) inventory->ResetInventory();
 			if (PlayerCameraComponent* camera = GetPlayerCameraComponent()) camera->ResetLook();
 			if (CharacterAnimationComponent* animation = GetAnimationComponent()) animation->Play("Idle", 1.0f, true);
-			SetGameplayHudVisible(true);
-			SetCrosshairTargeted(false);
-			SyncGameplayHud();
+			deathTimer_ = 0.0f;
+			gameOverReady_ = false;
+			if (PlayerHudPresenterComponent* hud = GetPlayerHudPresenterComponent()) hud->ResetPresentation();
 		}
 
-		/// 照準対象の有無をCrosshair用Sprite Componentの色へ反映する。
+		CharacterDamageResult ApplyPlayerDamage(float amount)
+		{
+			const CharacterDamageResult result = CharacterActor::ApplyDamage(amount);
+			if (result.accepted && result.appliedDamage > 0.0f)
+			{
+				if (PlayerHudPresenterComponent* hud = GetPlayerHudPresenterComponent()) hud->NotifyDamageTaken();
+				if (onDamageTaken_) onDamageTaken_();
+			}
+			return result;
+		}
+
+		float HealPlayer(float amount)
+		{
+			CharacterHealthComponent* health = GetHealthComponent();
+			return health ? health->Heal(amount) : 0.0f;
+		}
+
+		void SetOnDamageTakenCallback(std::function<void()> callback) { onDamageTaken_ = std::move(callback); }
+
+		float GetHP() const override
+		{
+			const CharacterHealthComponent* health = GetHealthComponent();
+			return health ? health->GetCurrentHealth() : 0.0f;
+		}
+		float GetMaxHP() const override
+		{
+			const CharacterHealthComponent* health = GetHealthComponent();
+			return health ? health->GetMaxHealth() : 0.0f;
+		}
+		bool IsGameOverReady() const override { return gameOverReady_; }
+		bool ConsumeGameOverReady() override
+		{
+			const bool ready = gameOverReady_;
+			gameOverReady_ = false;
+			return ready;
+		}
+		bool IsDeathActive() const override { return CharacterActor::IsDead(); }
+
 		void SetCrosshairTargeted(bool targeted)
 		{
-			const Vector4 color = targeted ? Vector4{ 1.0f, 0.25f, 0.25f, 1.0f } : Vector4{ 1.0f, 1.0f, 1.0f, 0.92f };
-			for (SpriteComponent* sprite : GetComponents<SpriteComponent>())
-			{
-				if (sprite && sprite->GetName().starts_with("Player Crosshair ")) sprite->SetColor(color);
-			}
+			if (PlayerHudPresenterComponent* hud = GetPlayerHudPresenterComponent()) hud->SetCrosshairTargeted(targeted);
 		}
-
-		/// Player固定HUDの表示をまとめて切り替える。
 		void SetGameplayHudVisible(bool visible)
 		{
-			if (GaugeComponent* gauge = GetPlayerHealthGaugeComponent()) gauge->SetVisible(visible);
-			if (TextComponent* label = GetPlayerHealthLabelComponent()) label->SetVisible(visible);
-			if (TextComponent* ammo = GetAmmoTextComponent()) ammo->SetVisible(visible);
-			for (SpriteComponent* sprite : GetComponents<SpriteComponent>())
-			{
-				if (sprite && sprite->GetName().starts_with("Player Crosshair ")) sprite->SetVisible(visible);
-			}
+			if (PlayerHudPresenterComponent* hud = GetPlayerHudPresenterComponent()) hud->SetHudVisible(visible);
 		}
 
 		PlayerInputComponent* GetPlayerInputComponent() { return GetCharacterComponent<PlayerInputComponent>(); }
@@ -212,6 +228,8 @@ namespace Ken4lowEngine
 		const InventoryComponent* GetInventoryComponent() const { return GetCharacterComponent<InventoryComponent>(); }
 		PlayerCameraComponent* GetPlayerCameraComponent() { return GetCharacterComponent<PlayerCameraComponent>(); }
 		const PlayerCameraComponent* GetPlayerCameraComponent() const { return GetCharacterComponent<PlayerCameraComponent>(); }
+		PlayerHudPresenterComponent* GetPlayerHudPresenterComponent() { return GetCharacterComponent<PlayerHudPresenterComponent>(); }
+		const PlayerHudPresenterComponent* GetPlayerHudPresenterComponent() const { return GetCharacterComponent<PlayerHudPresenterComponent>(); }
 		ModelComponent* GetWeaponViewComponent() { return FindNamedComponent<ModelComponent>("Player Weapon View"); }
 		const ModelComponent* GetWeaponViewComponent() const { return FindNamedComponent<ModelComponent>("Player Weapon View"); }
 		HumanoidVisualComponent* GetHumanoidVisualComponent() { return GetCharacterComponent<HumanoidVisualComponent>(); }
@@ -220,10 +238,11 @@ namespace Ken4lowEngine
 		const RigidbodyComponent* GetRigidbodyComponent() const { return GetCharacterComponent<RigidbodyComponent>(); }
 
 	protected:
-		/// 死亡時は入力・移動・武器・Collider・Rigidbodyを停止し、共通Healthの死亡状態を各機能へ反映する。
 		void OnDeath(const CharacterDeathEvent& deathEvent) override
 		{
 			(void)deathEvent;
+			deathTimer_ = 0.0f;
+			gameOverReady_ = false;
 			if (PlayerInputComponent* input = GetPlayerInputComponent()) input->SetInputEnabled(false);
 			if (PlayerMovementComponent* movement = GetPlayerMovementComponent())
 			{
@@ -234,27 +253,20 @@ namespace Ken4lowEngine
 			if (RigidbodyComponent* rigidbody = GetRigidbodyComponent()) rigidbody->SetVelocity({});
 			if (WeaponComponent* weapon = GetWeaponComponent()) weapon->SetWeaponEnabled(false);
 			if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(false);
-			SyncGameplayHud();
+			if (PlayerHudPresenterComponent* hud = GetPlayerHudPresenterComponent()) hud->SetCrosshairTargeted(false);
 		}
 
 	private:
 		template<class T>
 		T* FindNamedComponent(std::string_view name)
 		{
-			for (T* component : GetComponents<T>())
-			{
-				if (component && component->GetName() == name) return component;
-			}
+			for (T* component : GetComponents<T>()) if (component && component->GetName() == name) return component;
 			return nullptr;
 		}
-
 		template<class T>
 		const T* FindNamedComponent(std::string_view name) const
 		{
-			for (const T* component : GetComponents<T>())
-			{
-				if (component && component->GetName() == name) return component;
-			}
+			for (const T* component : GetComponents<T>()) if (component && component->GetName() == name) return component;
 			return nullptr;
 		}
 
@@ -266,7 +278,6 @@ namespace Ken4lowEngine
 		{
 			constexpr float screenWidth = static_cast<float>(GameViewportConstants::Width);
 			constexpr float screenHeight = static_cast<float>(GameViewportConstants::Height);
-
 			if (!GetPlayerHealthGaugeComponent())
 			{
 				auto& gauge = AddComponent<GaugeComponent>();
@@ -279,7 +290,6 @@ namespace Ken4lowEngine
 				gauge.SetBorderColor({ 1.0f, 1.0f, 1.0f, 0.90f });
 				gauge.SetBorderThickness(2.0f);
 			}
-
 			if (!GetPlayerHealthLabelComponent())
 			{
 				auto& label = AddComponent<TextComponent>();
@@ -289,7 +299,6 @@ namespace Ken4lowEngine
 				label.SetPosition({ 36.0f, screenHeight - 82.0f });
 				label.SetFontSize(22.0f);
 			}
-
 			if (!GetAmmoTextComponent())
 			{
 				auto& ammo = AddComponent<TextComponent>();
@@ -299,12 +308,10 @@ namespace Ken4lowEngine
 				ammo.SetAnchor({ 1.0f, 0.0f });
 				ammo.SetFontSize(22.0f);
 			}
-
 			CreateCrosshairBar("Player Crosshair Left", { screenWidth * 0.5f - 10.0f, screenHeight * 0.5f }, { 8.0f, 2.0f });
 			CreateCrosshairBar("Player Crosshair Right", { screenWidth * 0.5f + 10.0f, screenHeight * 0.5f }, { 8.0f, 2.0f });
 			CreateCrosshairBar("Player Crosshair Top", { screenWidth * 0.5f, screenHeight * 0.5f - 10.0f }, { 2.0f, 8.0f });
 			CreateCrosshairBar("Player Crosshair Bottom", { screenWidth * 0.5f, screenHeight * 0.5f + 10.0f }, { 2.0f, 8.0f });
-			SetCrosshairTargeted(false);
 		}
 
 		void CreateCrosshairBar(std::string_view name, const Vector2& position, const Vector2& size)
@@ -319,28 +326,17 @@ namespace Ken4lowEngine
 			sprite.SetAnchor({ 0.5f, 0.5f });
 		}
 
-		void SyncGameplayHud()
+		void UpdateDeathLifecycle(float deltaTime)
 		{
-			if (CharacterHealthComponent* health = GetHealthComponent())
-			{
-				if (GaugeComponent* gauge = GetPlayerHealthGaugeComponent())
-				{
-					gauge->SetMaxValue(health->GetMaxHealth());
-					gauge->SetValue(health->GetCurrentHealth());
-				}
-			}
-
-			if (WeaponComponent* weapon = GetWeaponComponent())
-			{
-				if (TextComponent* ammo = GetAmmoTextComponent())
-				{
-					char text[96]{};
-					std::snprintf(text, sizeof(text), "AMMO %d / %d   RESERVE %d%s",
-						weapon->GetMagazineAmmo(), weapon->GetMagazineCapacity(), weapon->GetReserveAmmo(),
-						weapon->IsReloading() ? "   RELOADING" : "");
-					ammo->SetText(text);
-				}
-			}
+			if (!CharacterActor::IsDead()) return;
+			deathTimer_ += std::max(0.0f, deltaTime);
+			if (deathTimer_ >= gameOverDelay_) gameOverReady_ = true; // 死亡演出用の最小待機後にGamePlayへ遷移可能状態を公開する。
 		}
+
+	private:
+		std::function<void()> onDamageTaken_{};
+		float deathTimer_ = 0.0f;
+		float gameOverDelay_ = 1.0f;
+		bool gameOverReady_ = false;
 	};
 } // namespace Ken4lowEngine
