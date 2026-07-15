@@ -1,5 +1,4 @@
 #include "Material.h"
-#include "ResourceManager.h"
 #include "DirectXCommon.h"
 #include "TextureManager.h"
 
@@ -33,7 +32,6 @@ namespace Ken4lowEngine
 	void MaterialTextureSlots::ApplyDesc(const MaterialDesc& desc)
 	{
 		Reset();
-
 		const std::string& baseColorPath = desc.preferPbrWorkflow
 			? desc.pbr.baseColorTexturePath
 			: desc.legacy.baseColorTexturePath;
@@ -42,28 +40,11 @@ namespace Ken4lowEngine
 			baseColor_ = LoadTextureHandle(baseColorPath);
 			hasBaseColorOverride_ = true;
 		}
-
-		if (!desc.preferPbrWorkflow)
-		{
-			return; // Legacy Materialは従来どおりBaseColorだけを使用する。
-		}
-
-		if (!desc.pbr.metallicRoughnessTexturePath.empty())
-		{
-			metallicRoughness_ = LoadTextureHandle(desc.pbr.metallicRoughnessTexturePath);
-		}
-		if (!desc.pbr.normalTexturePath.empty())
-		{
-			normal_ = LoadTextureHandle(desc.pbr.normalTexturePath);
-		}
-		if (!desc.pbr.occlusionTexturePath.empty())
-		{
-			occlusion_ = LoadTextureHandle(desc.pbr.occlusionTexturePath);
-		}
-		if (!desc.pbr.emissiveTexturePath.empty())
-		{
-			emissive_ = LoadTextureHandle(desc.pbr.emissiveTexturePath);
-		}
+		if (!desc.preferPbrWorkflow) return;
+		if (!desc.pbr.metallicRoughnessTexturePath.empty()) metallicRoughness_ = LoadTextureHandle(desc.pbr.metallicRoughnessTexturePath);
+		if (!desc.pbr.normalTexturePath.empty()) normal_ = LoadTextureHandle(desc.pbr.normalTexturePath);
+		if (!desc.pbr.occlusionTexturePath.empty()) occlusion_ = LoadTextureHandle(desc.pbr.occlusionTexturePath);
+		if (!desc.pbr.emissiveTexturePath.empty()) emissive_ = LoadTextureHandle(desc.pbr.emissiveTexturePath);
 	}
 
 	void MaterialTextureSlots::Reset()
@@ -99,49 +80,36 @@ namespace Ken4lowEngine
 		UINT occlusionRootIndex,
 		UINT emissiveRootIndex) const
 	{
-		if (!commandList)
-		{
-			return;
-		}
-
+		if (!commandList) return;
 		commandList->SetGraphicsRootDescriptorTable(metallicRoughnessRootIndex, metallicRoughness_);
 		commandList->SetGraphicsRootDescriptorTable(normalRootIndex, normal_);
 		commandList->SetGraphicsRootDescriptorTable(occlusionRootIndex, occlusion_);
 		commandList->SetGraphicsRootDescriptorTable(emissiveRootIndex, emissive_);
 	}
 
-	/// -------------------------------------------------------------
-	///				　		 初期化処理
-	/// -------------------------------------------------------------
 	void Material::Initialize()
 	{
-		ID3D12Device* device = DirectXCommon::GetInstance()->GetDevice();
-
-		// マテリアル用定数バッファを 1 つ分確保して、CPU から書き込めるようにマップする
-		materialResource_ = ResourceManager::CreateBufferResource(device, sizeof(MaterialCBData));
-		materialResource_->Map(0, nullptr, reinterpret_cast<void**>(&materialData_));
-
-		ResetToDefault(); // 初期化とMaterial Binding解除で同じ既定値を使用する。
+		DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+		const uint32_t frameCount = dxCommon->GetCommandManager()->GetFrameResourceCount();
+		materialBuffers_.Initialize(dxCommon->GetDevice(), frameCount);
+		materialData_ = &materialCpuData_;
+		ResetToDefault();
+		materialBuffers_.WriteAll(materialCpuData_); // Frames in Flight切替直後でも全Frameが同じMaterial値から開始する。
 	}
 
 	void Material::ResetToDefault()
 	{
-		if (!materialData_)
-		{
-			return;
-		}
-
-		// 既存Forward描画と同じ値へ戻し、Material未指定Actorの見た目を維持する。
-		materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };			 // 白
-		materialData_->shininess = 32.0f;							 // 光沢度
-		materialData_->pbrEnabled = 0.0f;							 // 既存Legacy描画を初期状態として維持する
-		materialData_->metallic = 0.0f;								 // Metallic/Roughness Texture未接続時は非金属へfallback
-		materialData_->normalScale = 1.0f;							 // NormalMap未設定時は頂点法線をそのまま使う
-		materialData_->reflection = 0.0f;							 // 反射なし
-		materialData_->uvTransform = Matrix4x4::MakeIdentity();		 // UV はそのまま
-		materialData_->roughness = 0.5f;							 // 中程度の粗さ
-		materialData_->usePointSampling = 0.0f;					 // 既定は従来どおり Linear
-		materialData_->occlusionStrength = 1.0f;					 // AO Texture未接続時も暗くなりすぎないfallback
+		if (!materialData_) return;
+		materialData_->color = { 1.0f, 1.0f, 1.0f, 1.0f };
+		materialData_->shininess = 32.0f;
+		materialData_->pbrEnabled = 0.0f;
+		materialData_->metallic = 0.0f;
+		materialData_->normalScale = 1.0f;
+		materialData_->reflection = 0.0f;
+		materialData_->uvTransform = Matrix4x4::MakeIdentity();
+		materialData_->roughness = 0.5f;
+		materialData_->usePointSampling = 0.0f;
+		materialData_->occlusionStrength = 1.0f;
 		materialData_->emissiveFactor = { 0.0f, 0.0f, 0.0f, 1.0f };
 		materialData_->textureFlags = 0;
 		materialData_->padding[0] = materialData_->padding[1] = materialData_->padding[2] = 0.0f;
@@ -149,11 +117,7 @@ namespace Ken4lowEngine
 
 	void Material::ApplyDesc(const MaterialDesc& desc)
 	{
-		if (!materialData_)
-		{
-			return;
-		}
-
+		if (!materialData_) return;
 		const bool usePbr = desc.preferPbrWorkflow;
 		materialData_->color = usePbr ? desc.pbr.baseColorFactor : desc.legacy.color;
 		materialData_->shininess = desc.legacy.shininess;
@@ -167,73 +131,50 @@ namespace Ken4lowEngine
 		materialData_->occlusionStrength = desc.pbr.occlusionStrength;
 		materialData_->emissiveFactor = desc.pbr.emissiveFactor;
 		materialData_->textureFlags = 0;
-		if (usePbr && !desc.pbr.metallicRoughnessTexturePath.empty()) { materialData_->textureFlags |= 1u << 0; }
-		if (usePbr && !desc.pbr.normalTexturePath.empty()) { materialData_->textureFlags |= 1u << 1; }
-		if (usePbr && !desc.pbr.occlusionTexturePath.empty()) { materialData_->textureFlags |= 1u << 2; }
-		if (usePbr && !desc.pbr.emissiveTexturePath.empty()) { materialData_->textureFlags |= 1u << 3; }
+		if (usePbr && !desc.pbr.metallicRoughnessTexturePath.empty()) materialData_->textureFlags |= 1u << 0;
+		if (usePbr && !desc.pbr.normalTexturePath.empty()) materialData_->textureFlags |= 1u << 1;
+		if (usePbr && !desc.pbr.occlusionTexturePath.empty()) materialData_->textureFlags |= 1u << 2;
+		if (usePbr && !desc.pbr.emissiveTexturePath.empty()) materialData_->textureFlags |= 1u << 3;
 	}
 
-
-	/// -------------------------------------------------------------
-	///				　			更新処理
-	/// -------------------------------------------------------------
 	void Material::Update()
 	{
-		if (materialData_)
-		{
-			materialData_->color = this->materialData_->color;					 // 色
-			materialData_->shininess = this->materialData_->shininess;		 // シェーディングの強さ
-			materialData_->pbrEnabled = this->materialData_->pbrEnabled;		 // Legacy/PBR切り替え
-			materialData_->metallic = this->materialData_->metallic;			 // PBR metallic fallback
-			materialData_->normalScale = this->materialData_->normalScale;		 // NormalMap scale fallback
-			materialData_->reflection = this->materialData_->reflection;			 // シェーディングの強さ
-			materialData_->uvTransform = this->materialData_->uvTransform;		 // UV変換行列
-			materialData_->roughness = this->materialData_->roughness;			 // 粗さ
-			materialData_->usePointSampling = this->materialData_->usePointSampling;
-			materialData_->occlusionStrength = this->materialData_->occlusionStrength;
-			materialData_->emissiveFactor = this->materialData_->emissiveFactor;
-			materialData_->textureFlags = this->materialData_->textureFlags;
-		}
+		DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+		const uint32_t frameIndex = dxCommon->GetCommandManager()->GetCurrentFrameIndex();
+		materialBuffers_.WriteFrame(frameIndex, materialCpuData_);
 	}
 
-
-	/// -------------------------------------------------------------
-	///				　			パイプラインの設定
-	/// -------------------------------------------------------------
 	void Material::SetPipeline(UINT rootParameterIndex) const
 	{
-		ID3D12GraphicsCommandList* commandList = DirectXCommon::GetInstance()->GetCommandManager()->GetCommandList();
+		DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+		auto* commandManager = dxCommon->GetCommandManager();
+		const uint32_t frameIndex = commandManager->GetCurrentFrameIndex();
+		materialBuffers_.WriteFrame(frameIndex, materialCpuData_);
 
-		// 有効な定数バッファがある場合のみ、指定されたルートパラメータにバインドする
-		if (materialResource_)
+		const D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = materialBuffers_.GetGpuAddress(frameIndex);
+		if (gpuAddress != 0)
 		{
-			commandList->SetGraphicsRootConstantBufferView(rootParameterIndex, materialResource_->GetGPUVirtualAddress());
+			commandManager->GetCommandList()->SetGraphicsRootConstantBufferView(rootParameterIndex, gpuAddress);
 		}
 	}
 
+	ComPtr<ID3D12Resource> Material::GetMaterialResource()
+	{
+		DirectXCommon* dxCommon = DirectXCommon::GetInstance();
+		return materialBuffers_.GetResource(dxCommon->GetCommandManager()->GetCurrentFrameIndex());
+	}
 
-	/// -------------------------------------------------------------
-	///				　			ImGuiの描画
-	/// -------------------------------------------------------------
 	void Material::DrawImGui()
 	{
 #ifdef USE_IMGUI
 		if (ImGui::CollapsingHeader("Material Settings"))
 		{
-			// ベースカラー
 			ImGui::ColorEdit4("Color", &materialData_->color.x);
-			// 光沢度（スペキュラの鋭さ）
 			ImGui::DragFloat("Shininess", &materialData_->shininess, 1.0f, 1.0f, 256.0f);
-			// 反射率
 			ImGui::DragFloat("Reflectivity", &materialData_->reflection, 0.01f, 0.0f, 1.0f);
-			// 粗さ
 			ImGui::DragFloat("Roughness", &materialData_->roughness, 0.01f, 0.0f, 1.0f);
-			// PBRは既存Legacy描画と共存させ、Material単位で明示的にONにしたときだけCook-Torrance経路を使う。
 			bool pbrEnabled = materialData_->pbrEnabled > 0.5f;
-			if (ImGui::Checkbox("Use PBR##Material", &pbrEnabled))
-			{
-				materialData_->pbrEnabled = pbrEnabled ? 1.0f : 0.0f;
-			}
+			if (ImGui::Checkbox("Use PBR##Material", &pbrEnabled)) materialData_->pbrEnabled = pbrEnabled ? 1.0f : 0.0f;
 			ImGui::DragFloat("Metallic##Material", &materialData_->metallic, 0.01f, 0.0f, 1.0f);
 			ImGui::DragFloat("Normal Scale##Material", &materialData_->normalScale, 0.01f, 0.0f, 2.0f);
 			ImGui::DragFloat("AO Strength##Material", &materialData_->occlusionStrength, 0.01f, 0.0f, 1.0f);
