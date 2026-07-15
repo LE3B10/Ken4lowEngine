@@ -1,5 +1,8 @@
 #pragma once
 
+#include <GameTimer.h>
+#include <RenderPipelineController.h>
+
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -66,6 +69,10 @@ public:
 	void DrawImGui()
 	{
 #ifdef USE_IMGUI
+		const K4E::GameTimer::CompletedFrameTiming& completed = K4E::GameTimer::GetInstance()->GetCompletedFrameTiming();
+		const float displayFrameIntervalMs = completed.frameIntervalMs > 0.0f ? completed.frameIntervalMs : frameIntervalMs_;
+		const float displayInstantFps = displayFrameIntervalMs > 0.0f ? 1000.0f / displayFrameIntervalMs : instantFps_;
+
 		if (!ImGui::Begin("Performance Phase 検証"))
 		{
 			ImGui::End();
@@ -78,8 +85,8 @@ public:
 		}
 
 		ImGui::SeparatorText("実フレーム");
-		ImGui::Text("Frame Interval: %.2f ms", frameIntervalMs_);
-		ImGui::Text("Instant FPS: %.1f", instantFps_);
+		ImGui::Text("Frame Interval: %.2f ms", displayFrameIntervalMs);
+		ImGui::Text("Instant FPS: %.1f", displayInstantFps);
 
 		const float measuredSceneMs =
 			GetMetric(Phase::ActorWorldUpdate).lastMs +
@@ -90,7 +97,7 @@ public:
 			GetMetric(Phase::ShadowDraw).lastMs +
 			GetMetric(Phase::ScreenSpaceUI).lastMs;
 		ImGui::Text("Measured DebugScene CPU: %.2f ms", measuredSceneMs);
-		ImGui::Text("Unmeasured / Other: %.2f ms", (std::max)(0.0f, frameIntervalMs_ - measuredSceneMs));
+		ImGui::Text("Unmeasured / Other: %.2f ms", (std::max)(0.0f, displayFrameIntervalMs - measuredSceneMs));
 		ImGui::TextDisabled("OtherにはEditor UI、PostEffect、GPU待ち、Present、Framework共通処理などが含まれます。");
 
 		ImGui::SeparatorText("Physics State");
@@ -129,6 +136,11 @@ public:
 		}
 
 		ImGui::End();
+
+		if (K4E::RenderPipelineController* renderPipeline = K4E::RenderPipelineController::GetActiveController())
+		{
+			renderPipeline->DrawPerformanceImGui(); // 同じ診断タイミングで描画PassとPresent待ちも別ウィンドウへ表示する。
+		}
 #endif // USE_IMGUI
 	}
 
