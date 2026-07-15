@@ -2,6 +2,8 @@
 
 #include "ColliderComponent.h"
 
+#include <algorithm>
+
 namespace Ken4lowEngine
 {
 	/// Blender Level由来のcollision_type / collision_type_idを保持するStage専用ColliderComponent。
