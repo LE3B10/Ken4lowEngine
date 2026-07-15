@@ -1,7 +1,10 @@
 #pragma once
 
+#include <ActorWorld.h>
 #include <BlenderLevelImporter.h>
 #include <BlenderSceneLoader.h>
+#include <CameraManager.h>
+#include <ModelComponent.h>
 
 #include <algorithm>
 #include <string>
@@ -12,13 +15,37 @@
 
 namespace K4E = ::Ken4lowEngine;
 
-/// DebugSceneだけでBlenderSceneData -> Ken4lowLevel変換結果を確認する読み取り専用診断。
+/// DebugSceneだけでBlenderSceneData -> Ken4lowLevel変換とStage Actor実体生成を確認する診断。
 class LevelImportValidation
 {
 public:
 	LevelImportValidation()
 	{
 		Reload();
+	}
+
+	void Initialize(K4E::ActorWorld& actorWorld)
+	{
+		actorWorld_ = &actorWorld;
+		RefreshSpawnState();
+	}
+
+	void Update()
+	{
+		if (!actorWorld_) return;
+
+		if (requestSpawn_)
+		{
+			requestSpawn_ = false;
+			SpawnImportedStageActor();
+		}
+		if (requestDestroy_)
+		{
+			requestDestroy_ = false;
+			DestroyImportedStageActor();
+		}
+
+		RefreshSpawnState();
 	}
 
 	void Reload()
@@ -36,7 +63,7 @@ public:
 		options.levelName = "fps_stage00_import_preview";
 		options.sourceJsonPath = sourceJsonPath_;
 		options.stageModelPath = stageModelPath_;
-		options.stageActorName = "Imported_fps_stage00";
+		options.stageActorName = importedActorName_;
 		options.stageActorId = "ImportedStageActor";
 		importResult_ = K4E::BlenderLevelImporter::Import(blenderResult_.scene, options);
 		lastMessage_ = importResult_.message;
@@ -53,7 +80,7 @@ public:
 
 		ImGui::Text("Source JSON: %s", sourceJsonPath_.c_str());
 		ImGui::Text("Stage Model: %s", stageModelPath_.c_str());
-		if (ImGui::Button("Phase 3 再変換")) Reload();
+		if (ImGui::Button("再変換")) Reload();
 		ImGui::SameLine();
 		ImGui::TextColored(
 			importResult_.succeeded ? ImVec4(0.35f, 1.0f, 0.45f, 1.0f) : ImVec4(1.0f, 0.4f, 0.35f, 1.0f),
@@ -66,7 +93,7 @@ public:
 		ImGui::Text("Imported Actor: %zu", importResult_.importedActorCount);
 		ImGui::Text("Import Mode: IntegratedStageModel");
 		ImGui::TextDisabled("現行Stageと同じく一体型GLTFを1つのActor + ModelComponentで表現します。");
-		ImGui::TextDisabled("Blenderの55 Object / 28 MeshはImportSource Manifestへ保持し、Phase 4ではまだ生成しません。");
+		ImGui::TextDisabled("BlenderのObject / Mesh情報はImportSource Manifestへ保持します。");
 
 		if (!importResult_.succeeded)
 		{
@@ -74,6 +101,7 @@ public:
 			return;
 		}
 
+		DrawPhase4SpawnValidation();
 		DrawLevelSummary();
 		DrawActorPreview();
 		DrawImportManifestPreview();
@@ -84,7 +112,104 @@ public:
 	const K4E::BlenderLevelImporter::Result& GetImportResult() const noexcept { return importResult_; }
 
 private:
+	void SpawnImportedStageActor()
+	{
+		if (!actorWorld_)
+		{
+			spawnMessage_ = "ActorWorldが接続されていません。";
+			return;
+		}
+		if (!importResult_.succeeded || !importResult_.levelJson.contains("Actors") || importResult_.levelJson["Actors"].empty())
+		{
+			spawnMessage_ = "生成可能なImport結果がありません。";
+			return;
+		}
+		if (actorWorld_->FindActorByName(importedActorName_) != nullptr)
+		{
+			spawnMessage_ = "ImportedStageActorは既にActorWorldへ存在します。";
+			return;
+		}
+
+		const nlohmann::json& actorData = importResult_.levelJson["Actors"][0]["Data"];
+		K4E::Actor* actor = actorWorld_->SpawnActorFromJsonData(actorData);
+		if (!actor)
+		{
+			spawnMessage_ = "Ken4lowLevelのActor DataからStage Actorを生成できませんでした。";
+			RefreshSpawnState();
+			return;
+		}
+
+		// Runtime生成後のModelComponentにも現在のMain Cameraを明示的に接続する。
+		if (K4E::ModelComponent* modelComponent = actor->GetComponent<K4E::ModelComponent>())
+		{
+			modelComponent->SetCamera(K4E::CameraManager::GetInstance()->GetMainCamera());
+		}
+
+		spawnMessage_ = "ImportedStageActorをActorWorldへ1体生成しました。";
+		RefreshSpawnState();
+	}
+
+	void DestroyImportedStageActor()
+	{
+		if (!actorWorld_)
+		{
+			spawnMessage_ = "ActorWorldが接続されていません。";
+			return;
+		}
+
+		K4E::Actor* actor = actorWorld_->FindActorByName(importedActorName_);
+		if (!actor)
+		{
+			spawnMessage_ = "削除対象のImportedStageActorがありません。";
+			RefreshSpawnState();
+			return;
+		}
+
+		const bool destroyed = actorWorld_->DestroyActor(actor);
+		spawnMessage_ = destroyed
+			? "ImportedStageActorの安全な遅延削除を予約しました。"
+			: "ImportedStageActorの削除予約に失敗しました。";
+		RefreshSpawnState();
+	}
+
+	void RefreshSpawnState()
+	{
+		stageActorExists_ = false;
+		modelComponentExists_ = false;
+		if (!actorWorld_) return;
+
+		K4E::Actor* actor = actorWorld_->FindActorByName(importedActorName_);
+		if (!actor || actor->IsPendingDestroy()) return;
+
+		stageActorExists_ = true;
+		modelComponentExists_ = actor->GetComponent<K4E::ModelComponent>() != nullptr;
+	}
+
 #ifdef USE_IMGUI
+	void DrawPhase4SpawnValidation()
+	{
+		ImGui::SeparatorText("Phase 4 Actor生成確認");
+		ImGui::Text("ActorWorld接続: %s", actorWorld_ ? "OK" : "未接続");
+		ImGui::Text("ImportedStageActor: %s", stageActorExists_ ? "存在" : "未生成");
+		ImGui::Text("ModelComponent: %s", modelComponentExists_ ? "存在" : "未確認");
+		ImGui::Text("期待ModelPath: %s", stageModelPath_.c_str());
+
+		if (!stageActorExists_)
+		{
+			if (ImGui::Button("Stage Actor生成")) requestSpawn_ = true;
+		}
+		else
+		{
+			if (ImGui::Button("Stage Actor削除")) requestDestroy_ = true;
+		}
+		ImGui::SameLine();
+		ImGui::TextColored(
+			stageActorExists_ && modelComponentExists_ ? ImVec4(0.35f, 1.0f, 0.45f, 1.0f) : ImVec4(1.0f, 0.72f, 0.25f, 1.0f),
+			"%s",
+			spawnMessage_.empty() ? "未実行" : spawnMessage_.c_str());
+		ImGui::TextDisabled("生成要求は次のUpdateで処理し、DebugPlayerや既存ActorWorldをリセットしません。");
+	}
+
 	void DrawLevelSummary() const
 	{
 		const nlohmann::json& level = importResult_.levelJson;
@@ -144,9 +269,16 @@ private:
 #endif // USE_IMGUI
 
 private:
+	K4E::ActorWorld* actorWorld_ = nullptr;
 	std::string sourceJsonPath_ = "stages/fps_stage00.json";
 	std::string stageModelPath_ = "Stages/fps_stage00.gltf";
+	std::string importedActorName_ = "Imported_fps_stage00";
 	std::string lastMessage_;
+	std::string spawnMessage_;
+	bool requestSpawn_ = false;
+	bool requestDestroy_ = false;
+	bool stageActorExists_ = false;
+	bool modelComponentExists_ = false;
 	K4E::BlenderSceneLoader::Result blenderResult_;
 	K4E::BlenderLevelImporter::Result importResult_;
 };
