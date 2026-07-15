@@ -9,9 +9,9 @@ The legacy runtime remains available until the new runtime is verified in DebugS
 
 | Responsibility | Current legacy owner | New target | Status |
 |---|---|---|---|
-| Raw input snapshot | `BuildInputSnapshot` / `Player` | `PlayerInputComponent` | In progress |
+| Raw input snapshot | `BuildInputSnapshot` / `Player` | `PlayerInputComponent` | Shared snapshot path added |
 | Tutorial input restrictions | `Player` | `PlayerInputComponent` | Compatibility path added |
-| Movement | `PlayerMotorComponent` / `Player` | `PlayerMovementComponent` | Needs parity work |
+| Movement | `PlayerMotorComponent` / `Player` | `PlayerMovementComponent` | Stabilization in progress |
 | Camera / look | `PlayerViewComponent` | `PlayerCameraComponent` | Needs parity work |
 | Health | `PlayerDamageComponent` | `CharacterHealthComponent` | Needs parity work |
 | Damage feedback | `Player` / `PlayerVfx` / HUD | Player damage presentation boundary | Not started |
@@ -21,7 +21,7 @@ The legacy runtime remains available until the new runtime is verified in DebugS
 | Combat coordination | `PlayerCombatComponent` / FSM API | dedicated combat components | Not started |
 | Melee | `PlayerMeleeComponent` | dedicated melee component | Not started |
 | HUD state | `Player` / `HUDManager` | runtime state interface / UI controller | In progress |
-| Physics body | `Player` owned Rigidbody/Collider | `RigidbodyComponent` / `CharacterColliderComponent` | Needs parity work |
+| Physics body | `Player` owned Rigidbody/Collider | `RigidbodyComponent` / `CharacterColliderComponent` | Collider layout normalized |
 | Ladder | `Player` / `PlayerMotorComponent` | movement / interaction component | Not started |
 | Shadow / visual body | `BaseCharacter` compatibility path | `HumanoidVisualComponent` | Partially migrated |
 | Runtime ownership | `CharacterWorld::unique_ptr<Player>` | `ActorWorld` | Final migration phase |
@@ -48,8 +48,17 @@ The legacy runtime remains available until the new runtime is verified in DebugS
 - Do not run legacy and new gameplay implementations simultaneously for the same responsibility.
 - Prefer small runtime interfaces over adding new direct dependencies on the concrete `Player` class.
 - New input code should consume the same `InputSnapshot` contract as the legacy runtime so key mappings do not diverge during migration.
+- Saved validation prefabs must not silently restore obsolete Player physics dimensions after the new runtime has defined a stable body layout.
+
+## Movement stabilization convention
+
+The Actor/Component Character path treats the `Character Root` as the physical body center.
+`PlayerMovementComponent` therefore normalizes the new Player collider to the Root center with an AABB half size of `(0.45, 0.90, 0.45)` and the `DynamicActor` physics layer during initialization.
+This intentionally overrides stale DebugPlayer prefab collider dimensions such as the previous half height `1.8` and local Y offset `-0.4`.
+Camera height and final visual offsets remain a separate P5 responsibility.
 
 ## Current step
 
 P1 and P2 are recorded in this table.
-P3 is in progress: `PlayerInputComponent` can now consume the shared `InputSnapshot`, preserve held/action state needed by later components, and apply tutorial-style input restrictions while DebugScene uses the same snapshot builder as the legacy Player.
+P3 has a shared `InputSnapshot` path for the legacy and Actor/Component Player validation routes.
+P4 is in progress: the new Player collider layout is now normalized before simulation, and the Movement debug panel exposes Root Y, Collider center, bottom, and center offset so remaining grounding errors can be measured instead of guessed.
