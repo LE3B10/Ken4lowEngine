@@ -51,14 +51,9 @@ public:
 		const std::uint64_t fingerprint = BuildEditorObjectFingerprint();
 		if (!editorObjectCacheValid_ || fingerprint != editorObjectCacheFingerprint_)
 		{
-			editorObjectCache_.clear();
-			K4E::CollectActorWorldEditorObjects(actorWorld_, editorObjectCache_, "DebugScene");
-			std::erase_if(editorObjectCache_, [](const K4E::EditorObjectInfo& object)
-				{
-					return object.typeName == "StageColliderComponent"; // 417個のStage ColliderはPhysicsには残し、Outlinerの個別行だけ省略する。
-				});
+			RebuildEditorObjectCache();
 			editorObjectCacheFingerprint_ = fingerprint;
-			editorObjectCacheValid_ = true; // Actor/Component構造が変わらないフレームでは重いEditor情報生成を再利用する。
+			editorObjectCacheValid_ = true; // 構造が変化しないフレームでは重いEditorObjectとCallback群を再生成しない。
 		}
 
 		outObjects.reserve(outObjects.size() + editorObjectCache_.size());
@@ -85,6 +80,48 @@ private:
 	void DrawActorWorldValidationImGui();
 	K4E::Actor* FindActorWorldValidationTarget() const;
 
+	void RebuildEditorObjectCache()
+	{
+		editorObjectCache_.clear();
+		K4E::CollectActorWorldEditorObjects(actorWorld_, editorObjectCache_, "DebugScene");
+
+		std::size_t stageColliderCount = 0;
+		std::uint64_t stageColliderParentId = 0;
+		std::string stageColliderSceneName = "DebugScene";
+		int stageColliderSortOrder = 0;
+		for (const K4E::EditorObjectInfo& object : editorObjectCache_)
+		{
+			if (object.typeName != "StageColliderComponent") continue;
+			if (stageColliderCount == 0)
+			{
+				stageColliderParentId = object.parentId;
+				stageColliderSceneName = object.sceneName;
+				stageColliderSortOrder = object.sortOrder;
+			}
+			++stageColliderCount;
+		}
+
+		std::erase_if(editorObjectCache_, [](const K4E::EditorObjectInfo& object)
+			{
+				return object.typeName == "StageColliderComponent"; // 物理実体は保持し、Editorの417行だけを集約する。
+			});
+
+		if (stageColliderCount > 0)
+		{
+			K4E::EditorObjectInfo group{};
+			group.id = K4E::MakeStableEditorObjectId(stageColliderSceneName + "/StageColliderGroup/" + std::to_string(stageColliderParentId));
+			group.parentId = stageColliderParentId;
+			group.sortOrder = stageColliderSortOrder;
+			group.displayName = "Stage Colliders (" + std::to_string(stageColliderCount) + ")";
+			group.typeName = "StageColliderGroup";
+			group.sceneName = stageColliderSceneName;
+			group.icon = "[C]";
+			group.objectKind = K4E::EditorObjectKind::Component;
+			group.inspectorHint = "Blender Levelから生成された静的Colliderをまとめて表示しています。";
+			editorObjectCache_.push_back(std::move(group));
+		}
+	}
+
 	std::uint64_t BuildEditorObjectFingerprint() const
 	{
 		std::uint64_t hash = 1469598103934665603ull;
@@ -100,13 +137,12 @@ private:
 			if (!actor) continue;
 			mix(reinterpret_cast<std::uintptr_t>(actor.get()));
 			mix(stringHasher(actor->GetName()));
-			mix(actor->IsActive() ? 1ull : 0ull);
+			mix(actor->GetComponents().size());
 			for (const auto& component : actor->GetComponents())
 			{
 				if (!component) continue;
 				mix(reinterpret_cast<std::uintptr_t>(component.get()));
 				mix(stringHasher(component->GetName()));
-				mix(component->IsActive() ? 1ull : 0ull);
 			}
 		}
 		return hash;
