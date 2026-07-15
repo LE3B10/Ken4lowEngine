@@ -135,7 +135,7 @@ private:
 	void DrawObjectPreview() const
 	{
 		constexpr std::size_t kPreviewCount = 10;
-		const std::size_t previewCount = std::min(kPreviewCount, levelData_->objects.size());
+		const std::size_t previewCount = (std::min)(kPreviewCount, levelData_->objects.size());
 
 		ImGui::SeparatorText("Object Preview");
 		if (ImGui::BeginTable("LevelDataObjectPreview", 6,
