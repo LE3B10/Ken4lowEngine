@@ -29,11 +29,13 @@
 - TutorialのMove / Shoot / Reload制限
 - Tutorial進行
 - Item取得のRuntime接続
+- EnemyのTarget Colliderを新Playerへ直接接続
+- BossのTarget / Damageを `IPlayerRuntime` へ直接接続
 - GamePlay実ステージ投入
 - CharacterWorld所有ActorWorld / PhysicsWorldへのPlayerActor所有統一
 - Pause / Result UIの入力復旧
 
-## P13でGamePlay経路から外す旧式
+## P13でGamePlay経路から外した旧式
 
 - `CharacterWorld::player_` の旧 `Player` 所有
 - Legacy Player ProxyのTransform同期
@@ -42,6 +44,7 @@
 - Legacy Player死亡シーケンスをGameOver判定に使う経路
 - Enemy / Boss / Item / Tutorialから具象 `Player*` を参照する経路
 - GamePlay HUDが旧 `Player` を直接参照する経路
+- 旧PlayerWeaponComponentへWeapon Masterを即時反映するDebug経路
 
 ## まだ新式へ完全移行していない機能
 
@@ -57,6 +60,7 @@
 
 - Primary以外の武器カテゴリ完全Parity
 - 旧WeaponMaster / WeaponRuntimeSystem由来の全パラメータ
+- Weapon Master Editor変更の新Weaponへの即時Runtime反映
 - 旧WeaponSlotの6スロット完全Parity
 - 武器固有Reticle設定
 - NoAmmo UIの完全Parity
@@ -78,12 +82,19 @@
 - 旧PlayerのFire / Reload / Hit / Death SEの全イベント移行
 - 武器ごとのSE差し替え
 
+### Debug / Validation
+
+- 旧Player専用のGameplay Physics床判定・押し戻し比較DebugはP13で停止中
+- CharacterWorld所有 `PhysicsWorld` を直接可視化する新Gameplay Physics Debugへの再接続
+- Bullet × Enemy SoA観測プローブのRuntime再接続
+
 ### Cleanup
 
 - `Player.cpp / Player.h` と旧Player Component群の参照0確認
 - 未使用になった `PlayerDeathComponent` など旧Componentの削除
 - `GamePlayPlayerMigrationRuntime` の名称変更または通常Runtime Controllerへの昇格
 - `PlayerTutorialRestrictionBridge` をTutorial APIへ正式統合
+- Intro Directorの旧装備イントロ互換入口を正式な新Weapon演出へ置換
 - Debug用 `TestActor / DebugPlayer.json` の最終整理
 
 ## 削除条件
