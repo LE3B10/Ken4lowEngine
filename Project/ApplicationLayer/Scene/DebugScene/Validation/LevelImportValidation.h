@@ -19,32 +19,10 @@ namespace K4E = ::Ken4lowEngine;
 class LevelImportValidation
 {
 public:
-	LevelImportValidation()
+	explicit LevelImportValidation(K4E::ActorWorld* actorWorld = nullptr)
+		: actorWorld_(actorWorld)
 	{
 		Reload();
-	}
-
-	void Initialize(K4E::ActorWorld& actorWorld)
-	{
-		actorWorld_ = &actorWorld;
-		RefreshSpawnState();
-	}
-
-	void Update()
-	{
-		if (!actorWorld_) return;
-
-		if (requestSpawn_)
-		{
-			requestSpawn_ = false;
-			SpawnImportedStageActor();
-		}
-		if (requestDestroy_)
-		{
-			requestDestroy_ = false;
-			DestroyImportedStageActor();
-		}
-
 		RefreshSpawnState();
 	}
 
@@ -72,6 +50,7 @@ public:
 	void DrawImGui()
 	{
 #ifdef USE_IMGUI
+		RefreshSpawnState();
 		if (!ImGui::Begin("LevelImport 検証"))
 		{
 			ImGui::End();
@@ -196,18 +175,18 @@ private:
 
 		if (!stageActorExists_)
 		{
-			if (ImGui::Button("Stage Actor生成")) requestSpawn_ = true;
+			if (ImGui::Button("Stage Actor生成")) SpawnImportedStageActor();
 		}
 		else
 		{
-			if (ImGui::Button("Stage Actor削除")) requestDestroy_ = true;
+			if (ImGui::Button("Stage Actor削除")) DestroyImportedStageActor();
 		}
 		ImGui::SameLine();
 		ImGui::TextColored(
 			stageActorExists_ && modelComponentExists_ ? ImVec4(0.35f, 1.0f, 0.45f, 1.0f) : ImVec4(1.0f, 0.72f, 0.25f, 1.0f),
 			"%s",
 			spawnMessage_.empty() ? "未実行" : spawnMessage_.c_str());
-		ImGui::TextDisabled("生成要求は次のUpdateで処理し、DebugPlayerや既存ActorWorldをリセットしません。");
+		ImGui::TextDisabled("SceneLevelLoaderのWorld全消去は使わず、生成済みActor Dataだけを既存ActorWorldへ追加します。");
 	}
 
 	void DrawLevelSummary() const
@@ -275,8 +254,6 @@ private:
 	std::string importedActorName_ = "Imported_fps_stage00";
 	std::string lastMessage_;
 	std::string spawnMessage_;
-	bool requestSpawn_ = false;
-	bool requestDestroy_ = false;
 	bool stageActorExists_ = false;
 	bool modelComponentExists_ = false;
 	K4E::BlenderSceneLoader::Result blenderResult_;
