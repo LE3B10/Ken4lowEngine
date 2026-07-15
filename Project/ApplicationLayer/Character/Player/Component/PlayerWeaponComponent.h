@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <array>
 #include <filesystem>
 #include <string>
@@ -122,6 +123,18 @@ public: /// ---------- メンバ関数 ---------- ///
 	int GetMaxReserveAmmo() const;
 	bool AddCurrentWeaponAmmo(int amount);
 
+	// P11移行中は新WeaponComponentの状態を旧Playerへ写し、既存Tutorial/HUDの参照先を壊さず維持する。
+	void ApplyMigrationProxyState(int magazineAmmo, int reserveAmmo, bool isReloading, float reloadTimer)
+	{
+		if (!weaponLoaded_) return;
+		WeaponRuntimeState& state = weaponSys_.Weapon().StateMutable();
+		state.magAmmo = std::clamp(magazineAmmo, 0, std::max(0, GetMagazineCapacity()));
+		state.reserveAmmo = std::max(0, reserveAmmo);
+		state.isReloading = isReloading;
+		state.reloadTimer = std::max(0.0f, reloadTimer);
+		UpdateSelectedAmmoViewCache();
+	}
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	void TickWeapon(float dt);
@@ -156,4 +169,3 @@ private: /// ---------- メンバ変数 ---------- ///
 
 	std::unordered_map<int32_t, SavedWeaponState> savedWeaponStates_;
 };
-

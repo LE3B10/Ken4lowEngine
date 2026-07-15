@@ -126,6 +126,22 @@ namespace Ken4lowEngine
 			}
 		}
 
+		void ConfigureAmmoState(int magazineCapacity, int magazineAmmo, int reserveAmmo)
+		{
+			magazineCapacity_ = std::max(1, magazineCapacity);
+			magazineAmmo_ = std::clamp(magazineAmmo, 0, magazineCapacity_);
+			reserveAmmo_ = std::max(0, reserveAmmo);
+			defaultReserveAmmo_ = reserveAmmo_;
+			ResetTransientState(); // GamePlay投入時は旧Playerの初期弾数だけ継承し、一時要求は持ち込まない。
+		}
+
+		int AddReserveAmmo(int amount)
+		{
+			const int before = reserveAmmo_;
+			reserveAmmo_ = std::max(0, reserveAmmo_ + amount);
+			return reserveAmmo_ - before;
+		}
+
 		void ResetWeapon()
 		{
 			magazineAmmo_ = magazineCapacity_;
@@ -141,6 +157,8 @@ namespace Ken4lowEngine
 		float GetDamage() const { return damage_; }
 		float GetRange() const { return range_; }
 		float GetFireInterval() const { return fireInterval_; }
+		float GetReloadTimer() const { return reloadTimer_; }
+		float GetReloadDuration() const { return reloadDuration_; }
 		bool IsReloading() const { return isReloading_; }
 		bool IsWeaponEnabled() const { return weaponEnabled_; }
 		bool IsAutomaticFireMode() const { return automaticFireMode_; }
