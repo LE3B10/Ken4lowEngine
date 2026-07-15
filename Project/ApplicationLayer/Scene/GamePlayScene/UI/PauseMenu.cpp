@@ -9,6 +9,7 @@
 #include "GameViewportConstants.h"
 
 #include <algorithm>
+#include <Windows.h>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -104,12 +105,12 @@ PauseMenuCommand PauseMenu::Update(Ken4lowEngine::Input* input)
 			if (selectedIndex_ >= itemCount) { selectedIndex_ = 0; }
 		};
 
-	// 上下移動（W/S, 矢印キー）
-	if (input->TriggerKey(DIK_W) || input->TriggerKey(DIK_UP))
+	// Pause中はEditorがゲーム入力を解放するため、UI操作はRawキーで受け取る。
+	if (input->TriggerRawKey(DIK_W) || input->TriggerRawKey(DIK_UP))
 	{
 		moveCursor(-1);
 	}
-	if (input->TriggerKey(DIK_S) || input->TriggerKey(DIK_DOWN))
+	if (input->TriggerRawKey(DIK_S) || input->TriggerRawKey(DIK_DOWN))
 	{
 		moveCursor(+1);
 	}
@@ -124,13 +125,17 @@ PauseMenuCommand PauseMenu::Update(Ken4lowEngine::Input* input)
 
 	ApplyVisualState();
 
-	// 決定（Enter / NumpadEnter / Space / 左クリック）
+	// 決定入力もEditorのgameInputEnabledに依存させず、UI自身でRaw状態を読む。
 	const bool decideByKey =
-		input->TriggerKey(DIK_RETURN) ||
-		input->TriggerKey(DIK_NUMPADENTER) ||
-		input->TriggerKey(DIK_SPACE);
+		input->TriggerRawKey(DIK_RETURN) ||
+		input->TriggerRawKey(DIK_NUMPADENTER) ||
+		input->TriggerRawKey(DIK_SPACE);
 
-	const bool decideByMouse = (hoverIndex >= 0) && input->TriggerMouse(0);
+	static bool wasLeftMouseDown = false;
+	const bool leftMouseDown = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+	const bool leftMouseTriggered = leftMouseDown && !wasLeftMouseDown;
+	wasLeftMouseDown = leftMouseDown;
+	const bool decideByMouse = (hoverIndex >= 0) && leftMouseTriggered;
 
 	if (!(decideByKey || decideByMouse))
 	{
@@ -325,8 +330,8 @@ void PauseMenu::DrawTexts()
 		const float centerX = (b.rect.left + b.rect.right) * 0.5f;
 		const float centerY = (b.rect.top + b.rect.bottom) * 0.5f;
 
-		textDrawer_->SetColor(selected ? K4E::Vector4{ 1.0f, 0.94f, 0.50f, 1.0f } : K4E::Vector4{ 0.78f, 0.76f, 0.70f, 1.0f });
-		textDrawer_->DrawTextCentered(items_[i], { centerX, centerY - 8.0f });
+		textDrawer_->SetColor(selected ? K4E::Vector4{ 1.0f, 0.96f, 0.78f, 1.0f } : K4E::Vector4{ 0.78f, 0.76f, 0.70f, 1.0f });
+		textDrawer_->DrawTextCentered(items_[i], { centerX, centerY - 7.0f });
 	}
 
 	textDrawer_->SetScale(0.50f);
