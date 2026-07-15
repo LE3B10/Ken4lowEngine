@@ -19,6 +19,7 @@ public:
 	virtual bool IsGameOverReady() const = 0;
 	virtual bool ConsumeGameOverReady() = 0;
 	virtual bool IsDeathActive() const = 0;
+	bool IsDeathSequenceFinished() const { return IsGameOverReady(); }
 
 	virtual Ken4lowEngine::Vector3 GetWorldPosition() const = 0;
 	virtual Ken4lowEngine::Collider* GetCollisionPrimitive() = 0;
