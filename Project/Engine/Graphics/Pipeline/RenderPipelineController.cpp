@@ -16,42 +16,27 @@ namespace Ken4lowEngine
 
 	void RenderPipelineController::Initialize(DirectXCommon* dxCommon)
 	{
-		// ControllerはDX12リソースを所有せず、既存DirectXCommonのフレーム入口だけを参照する。
 		dxCommon_ = dxCommon;
 		activeController_ = this;
 	}
 
 	void RenderPipelineController::ExecuteFrame(bool editorModeEnabled, const FrameCallbacks& callbacks)
 	{
-		if (!dxCommon_)
-		{
-			return;
-		}
+		if (!dxCommon_) return;
 
 		MeasurePhase(PerformancePhase::BeginDraw, [this]()
 			{
-				dxCommon_->BeginDraw(); // BackBuffer index確定を含むCPU待ち時間も独立して計測する。
+				dxCommon_->BeginDraw();
 			});
 
 		ExecuteShadowMapPass(callbacks);
-
-		if (editorModeEnabled)
-		{
-			ExecuteEditorFrame(callbacks);
-		}
-		else
-		{
-			ExecuteGameFrame(callbacks);
-		}
+		if (editorModeEnabled) ExecuteEditorFrame(callbacks);
+		else ExecuteGameFrame(callbacks);
 	}
 
 	void RenderPipelineController::MeasurePhase(PerformancePhase phase, const std::function<void()>& callback)
 	{
-		if (!callback)
-		{
-			return;
-		}
-
+		if (!callback) return;
 		const auto begin = Clock::now();
 		callback();
 		const float elapsedMs = std::chrono::duration<float, std::milli>(Clock::now() - begin).count();
@@ -62,9 +47,7 @@ namespace Ken4lowEngine
 	{
 		PerformanceMetric& metric = performanceMetrics_[ToIndex(phase)];
 		metric.lastMs = (std::max)(0.0f, elapsedMs);
-		metric.averageMs = metric.sampleCount == 0
-			? metric.lastMs
-			: metric.averageMs * 0.9f + metric.lastMs * 0.1f;
+		metric.averageMs = metric.sampleCount == 0 ? metric.lastMs : metric.averageMs * 0.9f + metric.lastMs * 0.1f;
 		metric.maxMs = (std::max)(metric.maxMs, metric.lastMs);
 		++metric.sampleCount;
 	}
@@ -113,9 +96,24 @@ namespace Ken4lowEngine
 
 		if (ImGui::Button("最大値リセット"))
 		{
-			for (PerformanceMetric& metric : performanceMetrics_)
+			for (PerformanceMetric& metric : performanceMetrics_) metric.maxMs = metric.lastMs;
+		}
+
+		if (dxCommon_)
+		{
+			bool framesInFlightEnabled = dxCommon_->IsFramesInFlightEnabled();
+			if (ImGui::Checkbox("Experimental Frames in Flight", &framesInFlightEnabled))
 			{
-				metric.maxMs = metric.lastMs;
+				dxCommon_->SetFramesInFlightEnabled(framesInFlightEnabled);
+			}
+			ImGui::Text("Frame Resources: %u", dxCommon_->GetCommandManager()->GetFrameResourceCount());
+			if (framesInFlightEnabled)
+			{
+				ImGui::TextColored(ImVec4(1.0f, 0.72f, 0.25f, 1.0f), "検証用ON: 単一Upload/ConstantBufferのPer-Frame化が未完了です。");
+			}
+			else
+			{
+				ImGui::TextDisabled("安全互換モード: 毎フレームGPU完了待ちを維持しています。");
 			}
 		}
 
@@ -130,10 +128,7 @@ namespace Ken4lowEngine
 		ImGui::Text("Unaccounted: %.3f ms", (std::max)(0.0f, frameTimingSummary_.frameIntervalMs - accountedMs));
 
 		DirectXCommon::EndDrawPerformanceTiming endDrawTiming{};
-		if (dxCommon_)
-		{
-			endDrawTiming = dxCommon_->GetEndDrawPerformanceTiming();
-		}
+		if (dxCommon_) endDrawTiming = dxCommon_->GetEndDrawPerformanceTiming();
 
 		ImGui::SeparatorText("EndDraw CPU Detail");
 		if (ImGui::BeginTable("##EndDrawPerformanceTable", 2,
@@ -199,7 +194,7 @@ namespace Ken4lowEngine
 
 		if (endDrawTiming.fenceWaitMs > 4.0f)
 		{
-			ImGui::TextColored(ImVec4(1.0f, 0.72f, 0.25f, 1.0f), "Fence Waitが大きいです。GPU完了待ちが主因なのでGPU Passまたはフレーム同期方式を調査します。");
+			ImGui::TextColored(ImVec4(1.0f, 0.72f, 0.25f, 1.0f), "Fence Waitが大きいです。Per-Frame GPU Buffer移行後にFrames in Flightを常用します。");
 		}
 		else if (endDrawTiming.presentMs > 4.0f)
 		{
@@ -225,10 +220,8 @@ namespace Ken4lowEngine
 	void RenderPipelineController::ExecuteShadowMapPass(const FrameCallbacks& callbacks)
 	{
 		MeasurePhase(PerformancePhase::ShadowPrepare, callbacks.prepareShadowPass);
-
 		MeasurePhase(PerformancePhase::ShadowRender, [&callbacks]()
 			{
-				// 通常描画より前という順序は維持し、選択ライトに応じたSlice描画時間をまとめて計測する。
 				LightManager::GetInstance()->ExecuteShadowPasses(callbacks.drawShadowObjects);
 			});
 	}
@@ -240,14 +233,12 @@ namespace Ken4lowEngine
 		MeasurePhase(PerformancePhase::MainWorldRender, callbacks.drawGameWorldToSceneTarget);
 		MeasurePhase(PerformancePhase::PostEffect, callbacks.renderPostEffectToGameRenderTarget);
 		MeasurePhase(PerformancePhase::SelectionOutline, callbacks.renderEditorSelectionOutline);
-
 		MeasurePhase(PerformancePhase::SceneOverlay, [&callbacks]()
 			{
 				if (callbacks.beginGameRenderTargetOverlay) callbacks.beginGameRenderTargetOverlay();
 				if (callbacks.drawScene2DOverlay) callbacks.drawScene2DOverlay();
 				if (callbacks.endGameRenderTargetOverlay) callbacks.endGameRenderTargetOverlay();
 			});
-
 		MeasurePhase(PerformancePhase::ImGuiRender, callbacks.drawImGuiOverlay);
 	}
 
@@ -258,4 +249,5 @@ namespace Ken4lowEngine
 		MeasurePhase(PerformancePhase::BackBufferRebind, callbacks.rebindBackBufferForGameOverlay);
 		MeasurePhase(PerformancePhase::GameUi, callbacks.drawGameUIToBackBuffer);
 	}
+
 } // namespace Ken4lowEngine
