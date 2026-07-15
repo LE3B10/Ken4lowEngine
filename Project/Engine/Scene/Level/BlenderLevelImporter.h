@@ -29,6 +29,11 @@ namespace Ken4lowEngine
 			nlohmann::json levelJson = nlohmann::json::object();
 			std::size_t sourceObjectCount = 0;
 			std::size_t sourceMeshCount = 0;
+			std::size_t sourceColliderCount = 0;
+			std::size_t sourcePropertyCount = 0;
+			std::size_t sourcePlayerSpawnCount = 0;
+			std::size_t entityGroupCount = 0;
+			std::size_t entityEntryCount = 0;
 			std::size_t importedActorCount = 0;
 			std::string message;
 		};
@@ -47,6 +52,7 @@ namespace Ken4lowEngine
 			{
 				AppendSourceObject(object, std::string{}, 0, sourceObjects, result);
 			}
+			CountEntities(source.entities, result);
 
 			const nlohmann::json stageActor = BuildIntegratedStageActor(options);
 			result.levelJson = {
@@ -57,6 +63,9 @@ namespace Ken4lowEngine
 					{ "ImportMode", "IntegratedStageModel" },
 					{ "SourceJson", options.sourceJsonPath },
 					{ "StageModelPath", options.stageModelPath },
+					{ "SourceSchemaVersion", source.schemaVersion },
+					{ "SourceStageId", source.stage.id },
+					{ "SourceStageMode", source.stage.mode },
 				} },
 				{ "Actors", nlohmann::json::array({ stageActor }) },
 				{ "Lighting", nlohmann::json::object() },
@@ -65,22 +74,30 @@ namespace Ken4lowEngine
 				{ "ImportSource", {
 					{ "SchemaVersion", source.schemaVersion },
 					{ "SceneName", source.name },
+					{ "Metadata", source.metadata.raw },
+					{ "Stage", source.stage.raw },
+					{ "Entities", source.entities },
 					{ "ObjectCount", result.sourceObjectCount },
 					{ "MeshCount", result.sourceMeshCount },
+					{ "ColliderCount", result.sourceColliderCount },
+					{ "PropertyCount", result.sourcePropertyCount },
+					{ "PlayerSpawnCount", result.sourcePlayerSpawnCount },
+					{ "EntityGroupCount", result.entityGroupCount },
+					{ "EntityEntryCount", result.entityEntryCount },
 					{ "Objects", std::move(sourceObjects) },
 				} },
 			};
 
 			result.importedActorCount = result.levelJson["Actors"].size();
 			result.succeeded = true;
-			result.message = "BlenderSceneDataを一体型Stage ActorのKen4lowLevelデータへ変換しました。";
+			result.message = "実ステージのstage/entitiesを保持したまま一体型Stage ActorのKen4lowLevelデータへ変換しました。";
 			return result;
 		}
 
 	private:
 		static nlohmann::json BuildIntegratedStageActor(const Options& options)
 		{
-			// 現行Stageと同じく一体型GLTFを1回だけ描画し、28個のMESHごとの重複描画を防ぐ。
+			// 現行Stageと同じく一体型GLTFを1回だけ描画し、Blender MESHごとの重複描画を防ぐ。
 			const nlohmann::json modelComponent = {
 				{ "Active", true },
 				{ "Class", "ModelComponent" },
@@ -115,6 +132,17 @@ namespace Ken4lowEngine
 			};
 		}
 
+		static void CountEntities(const nlohmann::json& entities, Result& result)
+		{
+			if (!entities.is_object()) return;
+			result.entityGroupCount = entities.size();
+			for (const auto& [unusedName, value] : entities.items())
+			{
+				(void)unusedName;
+				if (value.is_array() || value.is_object()) result.entityEntryCount += value.size();
+			}
+		}
+
 		static void AppendSourceObject(
 			const BlenderObjectData& object,
 			const std::string& parentPath,
@@ -124,6 +152,9 @@ namespace Ken4lowEngine
 		{
 			++result.sourceObjectCount;
 			if (object.type == "MESH" || object.type == "StaticMesh") ++result.sourceMeshCount;
+			if (!object.collider.empty()) ++result.sourceColliderCount;
+			if (!object.properties.empty()) ++result.sourcePropertyCount;
+			if (object.type == "PlayerSpawn" || object.type == "PlayerSpawnPoint") ++result.sourcePlayerSpawnCount;
 
 			const std::string objectPath = parentPath.empty() ? object.name : parentPath + "/" + object.name;
 			nlohmann::json record = {
