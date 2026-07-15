@@ -14,95 +14,107 @@
 
 namespace Ken4lowEngine
 {
-	/// Playerの視点角度を所有し、共通CameraComponentへTransform同期を委譲するComponent。
+	/// Playerの視点角度とADS/Sprint FOVを所有し、共通CameraComponentへTransform同期を委譲するComponent。
 	class PlayerCameraComponent final : public CameraComponent
 	{
 	public:
-		/// Player視点では親回転を継承せず、自身のPitch/Yawを使用する。
 		void Initialize() override
 		{
-			EnsureAttachedToOwnerRoot(); // JSON復元やPIE複製後もPlayer Rootへの追従関係を必ず復元する。
+			EnsureAttachedToOwnerRoot();
 			SetInheritParentRotation(false);
-			SetAutoRegisterMainCamera(true); // PlayerCameraはゲーム用Cameraなので、PIE生成時の一時的な自動登録解除より優先する。
+			SetAutoRegisterMainCamera(true);
 			SetLocalRotation({ pitch_, yaw_, 0.0f });
-			SyncOwnerFacingToYaw(); // Player生成直後から体の水平向きをCameraのYawへ合わせる。
+			SyncOwnerFacingToYaw();
 			CameraComponent::Initialize();
+			CaptureBaseFovFromCamera(); // 保存済みCamera設定を通常FOVの正本として初回だけ取り込む。
+			ApplyCurrentFov();
 			ActivateAsMainCameraDriver();
 		}
 
-		/// 入力Componentから配送された視点要求を角度へ反映してから共通Camera更新を行う。
 		void Update(float deltaTime) override
 		{
-			EnsureGameplayCameraEnabled(); // ActorWorldのJSON Spawn経路で一度OFFにされてもPlay中は必ず復旧する。
+			EnsureGameplayCameraEnabled();
 			EnsureAttachedToOwnerRoot();
 			yaw_ += pendingYawDelta_;
 			pitch_ = std::clamp(pitch_ + pendingPitchDelta_, -maxPitch_, maxPitch_);
 			pendingYawDelta_ = 0.0f;
 			pendingPitchDelta_ = 0.0f;
-
-			// 長時間操作でも角度が巨大化しないようYawを[-pi, pi]へ正規化する。
 			yaw_ = std::remainder(yaw_, std::numbers::pi_v<float> * 2.0f);
 			SetLocalRotation({ pitch_, yaw_, 0.0f });
-			SyncOwnerFacingToYaw(); // 視点の上下はCameraだけ、左右のYawはPlayer全身にも同期する。
+			SyncOwnerFacingToYaw();
+			UpdateFov(deltaTime);
 			ActivateAsMainCameraDriver();
 			CameraComponent::Update(deltaTime);
 		}
 
-		/// PhysicsでPlayer Rootが補正された後、最終位置をMain Cameraへ必ず反映する。
 		void PostPhysicsUpdate(float deltaTime) override
 		{
 			EnsureGameplayCameraEnabled();
 			EnsureAttachedToOwnerRoot();
 			SyncOwnerFacingToYaw();
-			RefreshWorldTransform(); // Collider補正後のRoot位置を子CameraのWorld位置へ確実に伝播させる。
+			RefreshWorldTransform();
+			ApplyCurrentFov();
 			ActivateAsMainCameraDriver();
 			CameraComponent::PostPhysicsUpdate(deltaTime);
 		}
 
-		/// Actor側の最終PostPhysics地点から、Player Cameraをそのフレームの描画Cameraへ確定する。
 		void SyncToMainCameraNow()
 		{
 			EnsureGameplayCameraEnabled();
 			EnsureAttachedToOwnerRoot();
 			SyncOwnerFacingToYaw();
 			RefreshWorldTransform();
+			ApplyCurrentFov();
 			ActivateAsMainCameraDriver();
 			CameraComponent::PostPhysicsUpdate(0.0f);
 		}
 
-		/// Player視点角度をDebug表示する。
 		void DrawImGui() override
 		{
 			CameraComponent::DrawImGui();
 #ifdef USE_IMGUI
 			ImGui::SeparatorText("プレイヤーカメラ");
 			ImGui::Text("Pitch: %.3f / Yaw: %.3f", pitch_, yaw_);
+			ImGui::Text("Aim: %s / Sprint: %s", aimHeld_ ? "Yes" : "No", sprintHeld_ ? "Yes" : "No");
+			ImGui::Text("FOV(rad): %.3f / Base: %.3f", currentFovY_, baseFovY_);
+			ImGui::SliderFloat("ADS FOV倍率", &aimFovMultiplier_, 0.4f, 1.0f, "%.2f");
+			ImGui::SliderFloat("Sprint FOV倍率", &sprintFovMultiplier_, 1.0f, 1.5f, "%.2f");
+			ImGui::SliderFloat("FOV追従速度", &fovTransitionSpeed_, 1.0f, 30.0f, "%.2f");
 			ImGui::Text("Parent: %s", GetParent() ? GetParent()->GetName().c_str() : "None");
 			ImGui::Text("World Position: %.2f, %.2f, %.2f", GetWorldPosition().x, GetWorldPosition().y, GetWorldPosition().z);
 #endif
 		}
 
-		/// JSON保存・復元で使用するComponent識別名を返す。
 		std::string GetClassTypeName() const override { return "PlayerCameraComponent"; }
 
-		/// Player固有の視点角度をActor JSONへ保存する。
 		void ToJson(nlohmann::json& outJson) const override
 		{
 			CameraComponent::ToJson(outJson);
 			outJson["Pitch"] = pitch_;
 			outJson["Yaw"] = yaw_;
+			outJson["AimFovMultiplier"] = aimFovMultiplier_;
+			outJson["SprintFovMultiplier"] = sprintFovMultiplier_;
+			outJson["FovTransitionSpeed"] = fovTransitionSpeed_;
 		}
 
-		/// Actor JSONからPlayer固有の視点角度を復元する。
 		void FromJson(const nlohmann::json& inJson) override
 		{
 			CameraComponent::FromJson(inJson);
 			pitch_ = inJson.value("Pitch", pitch_);
 			yaw_ = inJson.value("Yaw", yaw_);
+			aimFovMultiplier_ = inJson.value("AimFovMultiplier", aimFovMultiplier_);
+			sprintFovMultiplier_ = inJson.value("SprintFovMultiplier", sprintFovMultiplier_);
+			fovTransitionSpeed_ = inJson.value("FovTransitionSpeed", fovTransitionSpeed_);
 			if (!std::isfinite(pitch_)) pitch_ = 0.0f;
 			if (!std::isfinite(yaw_)) yaw_ = 0.0f;
+			if (!std::isfinite(aimFovMultiplier_)) aimFovMultiplier_ = 0.72f;
+			if (!std::isfinite(sprintFovMultiplier_)) sprintFovMultiplier_ = 1.10f;
+			if (!std::isfinite(fovTransitionSpeed_)) fovTransitionSpeed_ = 12.0f;
 			pitch_ = std::clamp(pitch_, -maxPitch_, maxPitch_);
 			yaw_ = std::remainder(yaw_, std::numbers::pi_v<float> * 2.0f);
+			aimFovMultiplier_ = std::clamp(aimFovMultiplier_, 0.4f, 1.0f);
+			sprintFovMultiplier_ = std::clamp(sprintFovMultiplier_, 1.0f, 1.5f);
+			fovTransitionSpeed_ = std::max(0.1f, fovTransitionSpeed_);
 			pendingYawDelta_ = 0.0f;
 			pendingPitchDelta_ = 0.0f;
 			EnsureAttachedToOwnerRoot();
@@ -110,20 +122,24 @@ namespace Ken4lowEngine
 			SyncOwnerFacingToYaw();
 		}
 
-		/// 入力Componentから1フレーム分の視点回転要求を受け取る。
 		void RequestLook(float yawDelta, float pitchDelta)
 		{
 			if (std::isfinite(yawDelta)) pendingYawDelta_ += yawDelta;
 			if (std::isfinite(pitchDelta)) pendingPitchDelta_ += pitchDelta;
 		}
 
-		/// Debug検証用に視点角度と未処理要求を初期化する。
+		void SetAimHeld(bool held) { aimHeld_ = held; }
+		void SetSprintHeld(bool held) { sprintHeld_ = held; }
+
 		void ResetLook(float pitch = 0.0f, float yaw = 0.0f)
 		{
 			pitch_ = std::clamp(pitch, -maxPitch_, maxPitch_);
 			yaw_ = std::isfinite(yaw) ? std::remainder(yaw, std::numbers::pi_v<float> * 2.0f) : 0.0f;
 			pendingYawDelta_ = 0.0f;
 			pendingPitchDelta_ = 0.0f;
+			aimHeld_ = false;
+			sprintHeld_ = false;
+			currentFovY_ = baseFovY_;
 			EnsureGameplayCameraEnabled();
 			EnsureAttachedToOwnerRoot();
 			SetLocalRotation({ pitch_, yaw_, 0.0f });
@@ -133,15 +149,12 @@ namespace Ken4lowEngine
 
 		float GetPitch() const { return pitch_; }
 		float GetYaw() const { return yaw_; }
+		bool IsAiming() const { return aimHeld_; }
+		float GetCurrentFovY() const { return currentFovY_; }
 
 	private:
-		/// PlayerCameraは通常の配置用Cameraと違い、Play中のゲーム視点として常にMain Cameraへ接続する。
-		void EnsureGameplayCameraEnabled()
-		{
-			SetAutoRegisterMainCamera(true);
-		}
+		void EnsureGameplayCameraEnabled() { SetAutoRegisterMainCamera(true); }
 
-		/// Player CameraがPIE複製やJSON復元後も必ず所有PlayerのRootを親に持つよう補修する。
 		void EnsureAttachedToOwnerRoot()
 		{
 			Actor* owner = GetOwner();
@@ -150,23 +163,56 @@ namespace Ken4lowEngine
 			AttachTo(root);
 		}
 
-		/// CameraのYawだけをPlayer Rootへ反映し、体全体を視点の水平方向へ向ける。
 		void SyncOwnerFacingToYaw()
 		{
 			Actor* owner = GetOwner();
 			SceneComponent* root = owner ? owner->GetRootComponent() : nullptr;
 			if (!root || root == this) return;
-
 			Vector3 rootRotation = root->GetLocalRotation();
-			rootRotation.y = yaw_; // PitchはCameraだけに残し、Player本体は水平回転だけ追従させる。
+			rootRotation.y = yaw_;
 			root->SetLocalRotation(rootRotation);
 			root->RefreshWorldTransform();
 		}
 
+		void CaptureBaseFovFromCamera()
+		{
+			if (fovInitialized_) return;
+			if (Camera* camera = GetCamera())
+			{
+				baseFovY_ = camera->GetFovY();
+				if (!std::isfinite(baseFovY_) || baseFovY_ <= 0.0f) baseFovY_ = std::numbers::pi_v<float> / 3.0f;
+				currentFovY_ = baseFovY_;
+				fovInitialized_ = true;
+			}
+		}
+
+		void UpdateFov(float deltaTime)
+		{
+			CaptureBaseFovFromCamera();
+			const float targetFov = aimHeld_ ? baseFovY_ * aimFovMultiplier_ : (sprintHeld_ ? baseFovY_ * sprintFovMultiplier_ : baseFovY_);
+			const float blend = std::clamp(std::max(0.0f, deltaTime) * fovTransitionSpeed_, 0.0f, 1.0f);
+			currentFovY_ += (targetFov - currentFovY_) * blend;
+			ApplyCurrentFov();
+		}
+
+		void ApplyCurrentFov()
+		{
+			if (Camera* camera = GetCamera()) camera->SetFovY(currentFovY_);
+		}
+
+	private:
 		float pitch_ = 0.0f;
 		float yaw_ = 0.0f;
 		float pendingPitchDelta_ = 0.0f;
 		float pendingYawDelta_ = 0.0f;
 		float maxPitch_ = std::numbers::pi_v<float> * 0.49f;
+		float baseFovY_ = std::numbers::pi_v<float> / 3.0f;
+		float currentFovY_ = std::numbers::pi_v<float> / 3.0f;
+		float aimFovMultiplier_ = 0.72f;
+		float sprintFovMultiplier_ = 1.10f;
+		float fovTransitionSpeed_ = 12.0f;
+		bool aimHeld_ = false;
+		bool sprintHeld_ = false;
+		bool fovInitialized_ = false;
 	};
 } // namespace Ken4lowEngine
