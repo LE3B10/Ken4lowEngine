@@ -282,12 +282,12 @@ namespace Ken4lowEngine
 			return "CollisionStay";
 		case PhysicsEventType::CollisionExit:
 			return "CollisionExit";
-		case PhysicsEventType::OverlapBegin:
-			return "OverlapBegin";
-		case PhysicsEventType::OverlapStay:
-			return "OverlapStay";
-		case PhysicsEventType::OverlapEnd:
-			return "OverlapEnd";
+		case PhysicsEventType::TriggerEnter:
+			return "TriggerEnter";
+		case PhysicsEventType::TriggerStay:
+			return "TriggerStay";
+		case PhysicsEventType::TriggerExit:
+			return "TriggerExit";
 		default:
 			return "Unknown";
 		}
