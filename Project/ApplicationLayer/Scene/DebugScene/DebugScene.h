@@ -4,6 +4,7 @@
 #include "Validation/BossMigrationValidation.h"
 #include "Validation/LevelDataValidation.h"
 #include "Validation/LevelImportValidation.h"
+#include "Validation/PerformancePhaseValidation.h"
 
 #include <ActorWorld.h>
 #include <Editor/ActorWorldEditorBridge.h>
@@ -92,6 +93,7 @@ private:
 
 	LevelDataValidation levelDataValidation_;
 	LevelImportValidation levelImportValidation_{ &actorWorld_, &actorPhysicsWorld_ };
+	PerformancePhaseValidation performancePhaseValidation_;
 	EnemyMigrationValidation enemyMigrationValidation_;
 	BossMigrationValidation bossMigrationValidation_;
 };
