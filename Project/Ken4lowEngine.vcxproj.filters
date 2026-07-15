@@ -268,9 +268,6 @@
     <ClCompile Include="ApplicationLayer\Scene\StageSelectScene\StageSelectScene.cpp">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\BaseCharacter\BaseCharacter.cpp">
-      <Filter>ApplicationLayer\Character\BaseCharacter</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\EffectLayer\ModelParticle.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
