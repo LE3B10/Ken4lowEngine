@@ -3,6 +3,7 @@
 #include <ActorJsonSerializer.h>
 #include <CameraManager.h>
 #include <Input.h>
+#include <InputSnapshot.h>
 
 namespace
 {
@@ -48,38 +49,17 @@ void TestActor::Update(float deltaTime)
 
 	if (canControlPlayer)
 	{
-		float moveX = 0.0f;
-		float moveZ = 0.0f;
-		if (input->PushKey(DIK_A)) moveX -= 1.0f;
-		if (input->PushKey(DIK_D)) moveX += 1.0f;
-		if (input->PushKey(DIK_S)) moveZ -= 1.0f;
-		if (input->PushKey(DIK_W)) moveZ += 1.0f;
-		playerInput->RequestMove(moveX, moveZ);
-
-		// Camera座標系ではYaw正方向が左、Pitch正方向が下なので、マウス操作は画面上の直感方向へ符号を合わせる。
-		if (wasControllingPlayer_)
-		{
-			const float yawDelta = static_cast<float>(-input->GetMouseMoveX()) * kMouseLookSensitivity;
-			const float pitchDelta = static_cast<float>(input->GetMouseMoveY()) * kMouseLookSensitivity;
-			if (yawDelta != 0.0f || pitchDelta != 0.0f) playerInput->RequestLook(yawDelta, pitchDelta);
-		}
+		// 旧Playerと同じInputSnapshot生成経路を使い、DebugSceneだけ別キー割り当てになる状態を解消する。
+		const InputSnapshot inputSnapshot = Ken4lowEngine::BuildInputSnapshot(*input);
+		playerInput->ApplyInputSnapshot(inputSnapshot, kMouseLookSensitivity, wasControllingPlayer_);
 		wasControllingPlayer_ = true;
-
-		if (input->TriggerKey(DIK_SPACE)) playerInput->RequestJump();
-		if (input->PushMouse(0)) playerInput->RequestFire();
-		if (input->TriggerKey(DIK_R)) playerInput->RequestReload();
-		if (input->TriggerKey(DIK_1)) playerInput->RequestInventorySlot(0);
-		if (input->TriggerKey(DIK_2)) playerInput->RequestInventorySlot(1);
-		if (input->TriggerKey(DIK_3)) playerInput->RequestInventorySlot(2);
-		if (input->TriggerKey(DIK_4)) playerInput->RequestInventorySlot(3);
-		if (input->TriggerKey(DIK_5)) playerInput->RequestInventorySlot(4);
 	}
 	else
 	{
 		wasControllingPlayer_ = false;
 		if (playerInput)
 		{
-			playerInput->RequestMove(0.0f, 0.0f); // Editor操作やDebugCamera中は以前の移動要求を残さない。
+			playerInput->ResetInputState(); // Editor操作やDebugCamera中は以前の移動・Action要求を残さない。
 		}
 	}
 
