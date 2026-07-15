@@ -277,6 +277,13 @@ namespace Ken4lowEngine
 			if (PlayerHudPresenterComponent* hud = GetPlayerHudPresenterComponent()) hud->SetHudVisible(visible);
 		}
 
+		// 旧Intro Directorが残る間だけPlayerActorへ最小互換入口を置き、旧Playerインスタンスは復活させない。
+		void SetSpawnOffset(const Vector3& offset) { (void)offset; }
+		void SetSpawnPosition(const Vector3& position) { ResetForValidation(position); }
+		void SyncViewToPlayer() { if (PlayerCameraComponent* camera = GetPlayerCameraComponent()) camera->SyncToMainCameraNow(); }
+		void StartWeaponEquipAnimation() {}
+		bool IsWeaponEquipAnimating() const { return false; }
+
 		PlayerInputComponent* GetPlayerInputComponent() { return GetCharacterComponent<PlayerInputComponent>(); }
 		const PlayerInputComponent* GetPlayerInputComponent() const { return GetCharacterComponent<PlayerInputComponent>(); }
 		PlayerMovementComponent* GetPlayerMovementComponent() { return GetCharacterComponent<PlayerMovementComponent>(); }
