@@ -1,7 +1,6 @@
 #define NOMINMAX
 #include "PlayerHealthPostEffectController.h"
 
-#include "Player.h"
 #include "PostEffectManager.h"
 
 #include <algorithm>
@@ -33,7 +32,7 @@ void PlayerHealthPostEffectController::Finalize()
 	postEffectManager_ = nullptr;
 }
 
-void PlayerHealthPostEffectController::Update(float deltaTime, const Player* player)
+void PlayerHealthPostEffectController::Update(float deltaTime, const IPlayerRuntime* player)
 {
 	elapsedTime_ += deltaTime;
 
