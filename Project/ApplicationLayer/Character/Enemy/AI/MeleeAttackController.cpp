@@ -2,6 +2,7 @@
 #include "MeleeAttackController.h"
 
 #include "../Core/MeleeEnemy.h"
+#include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
 #include "MathUtil.h"
 
 #include <algorithm>
@@ -13,17 +14,12 @@ namespace
 {
 	constexpr float kEpsilon = 0.0001f;
 
-	float LengthXZ(const K4E::Vector3& v)
-	{
-		// XZ長さの計算本体だけを共通Vector3へ寄せ、攻撃判定のしきい値は呼び出し側で維持する。
-		return K4E::Vector3::LengthXZ(v);
-	}
+	float LengthXZ(const K4E::Vector3& v) { return K4E::Vector3::LengthXZ(v); }
 
 	K4E::Vector3 NormalizeXZ(const K4E::Vector3& v)
 	{
-		// 正規化のfallbackと < kEpsilon 判定は攻撃前進方向に影響するため変更しない。
 		const float len = LengthXZ(v);
-		if (len < kEpsilon) { return { 0.0f, 0.0f, 1.0f }; }
+		if (len < kEpsilon) return { 0.0f, 0.0f, 1.0f };
 		return { v.x / len, 0.0f, v.z / len };
 	}
 }
@@ -46,17 +42,15 @@ void MeleeAttackController::Initialize()
 	lungeScratch.cooldown = 1.25f;
 	lungeScratch.forwardMoveSpeed = 3.0f;
 	lungeScratch.forwardMoveDuration = 0.35f;
-	lungeScratch.steps = {
-		{ "LungeScratch", 14, 0.24f, 0.14f, 3.2f, 1.0f, 0.0f, 0.0f },
-	};
+	lungeScratch.steps = { { "LungeScratch", 14, 0.24f, 0.14f, 3.2f, 1.0f, 0.0f, 0.0f } };
 	patterns_[static_cast<int>(lungeScratch.type)] = lungeScratch;
 }
 
 void MeleeAttackController::StartAttack(MeleeAttackType type)
 {
-	if (!CanStartAttack()) { return; }
+	if (!CanStartAttack()) return;
 	const MeleeAttackPattern* pattern = FindPattern(type);
-	if (!pattern || pattern->steps.empty()) { return; }
+	if (!pattern || pattern->steps.empty()) return;
 	currentType_ = type;
 	attackElapsed_ = 0.0f;
 	currentStepIndex_ = -1;
@@ -74,15 +68,12 @@ void MeleeAttackController::StopAttack()
 	isCurrentStepActive_ = false;
 }
 
-void MeleeAttackController::ResetCooldown()
-{
-	cooldownRemaining_ = 0.0f;
-}
+void MeleeAttackController::ResetCooldown() { cooldownRemaining_ = 0.0f; }
 
 void MeleeAttackController::Update(MeleeEnemy& owner, float deltaTime)
 {
-	if (cooldownRemaining_ > 0.0f) { cooldownRemaining_ = std::max(0.0f, cooldownRemaining_ - deltaTime); }
-	if (!isAttacking_) { return; }
+	if (cooldownRemaining_ > 0.0f) cooldownRemaining_ = std::max(0.0f, cooldownRemaining_ - deltaTime);
+	if (!isAttacking_) return;
 
 	attackElapsed_ += deltaTime;
 	const MeleeAttackPattern* pattern = FindPattern(currentType_);
@@ -132,19 +123,19 @@ const char* MeleeAttackController::GetCurrentAttackName() const
 float MeleeAttackController::GetCurrentAttackNormalizedTime() const
 {
 	const MeleeAttackPattern* pattern = FindPattern(currentType_);
-	if (!pattern || pattern->steps.empty()) { return 0.0f; }
+	if (!pattern || pattern->steps.empty()) return 0.0f;
 	const MeleeAttackStep& lastStep = pattern->steps.back();
 	const float attackEnd = lastStep.startTime + lastStep.activeTime + pattern->recoveryTime;
-	if (attackEnd <= kEpsilon) { return 0.0f; }
+	if (attackEnd <= kEpsilon) return 0.0f;
 	return std::clamp(attackElapsed_ / attackEnd, 0.0f, 1.0f);
 }
 
 float MeleeAttackController::GetCurrentStepNormalizedTime() const
 {
 	const MeleeAttackPattern* pattern = FindPattern(currentType_);
-	if (!pattern || currentStepIndex_ < 0 || static_cast<size_t>(currentStepIndex_) >= pattern->steps.size()) { return 0.0f; }
+	if (!pattern || currentStepIndex_ < 0 || static_cast<size_t>(currentStepIndex_) >= pattern->steps.size()) return 0.0f;
 	const MeleeAttackStep& step = pattern->steps[static_cast<size_t>(currentStepIndex_)];
-	if (step.activeTime <= kEpsilon) { return 0.0f; }
+	if (step.activeTime <= kEpsilon) return 0.0f;
 	return std::clamp((attackElapsed_ - step.startTime) / step.activeTime, 0.0f, 1.0f);
 }
 
@@ -164,25 +155,27 @@ void MeleeAttackController::ProcessStepHit(MeleeEnemy& owner, const MeleeAttackS
 {
 	lastHitSuccess_ = false;
 	K4E::Collider* target = owner.GetTargetCollider();
-	if (!target) { return; }
+	if (!target) return;
 
 	const K4E::Vector3 ownerPos = owner.GetCenterPosition();
 	const K4E::Vector3 forward = NormalizeXZ(owner.GetAttackForward());
 	const K4E::Vector3 attackCenter = ownerPos + (forward * step.range);
-	// 攻撃中心とターゲットのXZ距離だけを共通MathUtilへ寄せ、半径判定は既存のまま保つ。
 	const float hitDist = K4E::MathUtil::DistanceXZ(target->GetCenterPosition(), attackCenter);
-	if (hitDist <= step.radius)
+	if (hitDist > step.radius) return;
+
+	lastHitSuccess_ = true;
+	if (IPlayerRuntime* player = target->GetOwner<IPlayerRuntime>())
 	{
-		lastHitSuccess_ = true;
-		owner.NotifyAttackHit(step.damage, forward);
+		const K4E::Vector3 attackerPosition = owner.GetCenterPosition();
+		player->ApplyDamage(static_cast<float>(step.damage), &attackerPosition); // P13では近接敵Damageを新Player Runtimeへ直接適用する。
 	}
 }
 
 void MeleeAttackController::ApplyForwardMove(MeleeEnemy& owner, float) const
 {
 	const MeleeAttackPattern* pattern = FindPattern(currentType_);
-	if (!pattern) { return; }
-	if (pattern->forwardMoveSpeed <= 0.0f || attackElapsed_ > pattern->forwardMoveDuration) { return; }
+	if (!pattern) return;
+	if (pattern->forwardMoveSpeed <= 0.0f || attackElapsed_ > pattern->forwardMoveDuration) return;
 	const K4E::Vector3 moveForward = NormalizeXZ(owner.GetAttackForward());
 	owner.ApplyAttackMove(moveForward * pattern->forwardMoveSpeed);
 }
