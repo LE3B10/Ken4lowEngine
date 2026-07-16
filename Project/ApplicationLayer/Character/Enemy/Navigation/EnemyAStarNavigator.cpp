@@ -1,9 +1,10 @@
 #include "EnemyAStarNavigator.h"
 
-#include <unordered_map>
-#include <queue>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
+#include <limits>
+#include <queue>
+#include <unordered_map>
 
 namespace
 {
@@ -49,15 +50,78 @@ namespace
 				const float inv = 1.0f / dp;
 				float t0 = (minV - p) * inv;
 				float t1 = (maxV - p) * inv;
-				if (t0 > t1) { std::swap(t0, t1); }
+				if (t0 > t1) std::swap(t0, t1);
 				inOutTMin = std::max(inOutTMin, t0);
 				inOutTMax = std::min(inOutTMax, t1);
 				return inOutTMin <= inOutTMax;
 			};
-		if (!updateAxis(from.x, d.x, aabb.min.x, aabb.max.x, tMin, tMax)) { return false; }
-		if (!updateAxis(from.z, d.z, aabb.min.z, aabb.max.z, tMin, tMax)) { return false; }
+		if (!updateAxis(from.x, d.x, aabb.min.x, aabb.max.x, tMin, tMax)) return false;
+		if (!updateAxis(from.z, d.z, aabb.min.z, aabb.max.z, tMin, tMax)) return false;
 		return tMax >= 0.0f && tMin <= 1.0f;
 	}
+
+	std::uint32_t MixBits(std::uint32_t value)
+	{
+		value ^= value >> 16u;
+		value *= 0x7feb352du;
+		value ^= value >> 15u;
+		value *= 0x846ca68bu;
+		value ^= value >> 16u;
+		return value;
+	}
+
+	float Hash01(std::uint32_t value)
+	{
+		return static_cast<float>(MixBits(value) & 0x00ffffffu) / static_cast<float>(0x01000000u);
+	}
+}
+
+void EnemyAStarNavigator::SetWorldAABBs(const std::vector<K4E::AABB>* worldAABBs)
+{
+	if (worldAABBs_ == worldAABBs) return;
+	worldAABBs_ = worldAABBs;
+	obstacleCacheSource_ = nullptr;
+	obstacleCacheSourceCount_ = 0;
+	obstacleCacheAgentRadius_ = -1.0f;
+	inflatedObstacleAABBs_.clear();
+	Reset(); // Stage切替時に前ステージの経路と膨張障害物を持ち越さない。
+}
+
+void EnemyAStarNavigator::SetWalkableAABBs(const std::vector<K4E::AABB>* walkableAABBs)
+{
+	if (walkableAABBs_ == walkableAABBs) return;
+	walkableAABBs_ = walkableAABBs;
+	Reset(); // 歩行可能床が変わった場合は現在経路を次フレームで再評価する。
+}
+
+void EnemyAStarNavigator::SetSettings(const Settings& settings)
+{
+	Settings sanitized = settings;
+	sanitized.cellSize = std::max(0.1f, sanitized.cellSize);
+	sanitized.agentRadius = std::max(0.0f, sanitized.agentRadius);
+	sanitized.agentHalfHeight = std::max(0.1f, sanitized.agentHalfHeight);
+	sanitized.floorHeightTolerance = std::max(0.0f, sanitized.floorHeightTolerance);
+	sanitized.searchRangeCells = std::max(1, sanitized.searchRangeCells);
+	sanitized.maxExpandedNodes = std::max(16, sanitized.maxExpandedNodes);
+	sanitized.waypointReachDistance = std::max(0.05f, sanitized.waypointReachDistance);
+	sanitized.repathIntervalSec = std::max(0.01f, sanitized.repathIntervalSec);
+
+	const bool obstacleCacheChanged = std::abs(settings_.agentRadius - sanitized.agentRadius) > 1.0e-5f;
+	const bool pathGridChanged = std::abs(settings_.cellSize - sanitized.cellSize) > 1.0e-5f ||
+		std::abs(settings_.agentHalfHeight - sanitized.agentHalfHeight) > 1.0e-5f ||
+		std::abs(settings_.floorHeightTolerance - sanitized.floorHeightTolerance) > 1.0e-5f ||
+		settings_.searchRangeCells != sanitized.searchRangeCells ||
+		settings_.maxExpandedNodes != sanitized.maxExpandedNodes ||
+		settings_.disableCornerCutting != sanitized.disableCornerCutting;
+	settings_ = sanitized;
+
+	if (obstacleCacheChanged)
+	{
+		obstacleCacheSource_ = nullptr;
+		obstacleCacheAgentRadius_ = -1.0f;
+		inflatedObstacleAABBs_.clear();
+	}
+	if (obstacleCacheChanged || pathGridChanged) Reset();
 }
 
 void EnemyAStarNavigator::Reset()
@@ -67,20 +131,24 @@ void EnemyAStarNavigator::Reset()
 	repathTimer_ = 0.0f;
 	hasLastGoal_ = false;
 }
+
 void EnemyAStarNavigator::TickTemporaryBlocks(float deltaTime)
 {
-	for (auto& b : temporaryBlockedAreas_) { b.remainingSec -= deltaTime; }
-	temporaryBlockedAreas_.erase(std::remove_if(temporaryBlockedAreas_.begin(), temporaryBlockedAreas_.end(), [](const TemporaryBlockedArea& b) { return b.remainingSec <= 0.0f; }), temporaryBlockedAreas_.end());
+	for (auto& block : temporaryBlockedAreas_) block.remainingSec -= deltaTime;
+	temporaryBlockedAreas_.erase(
+		std::remove_if(temporaryBlockedAreas_.begin(), temporaryBlockedAreas_.end(),
+			[](const TemporaryBlockedArea& block) { return block.remainingSec <= 0.0f; }),
+		temporaryBlockedAreas_.end());
 }
 
 void EnemyAStarNavigator::AddTemporaryBlockedArea(const K4E::Vector3& center, float radius, float durationSec, const char* reason)
 {
-	TemporaryBlockedArea b{};
-	b.center = center;
-	b.radius = std::max(0.1f, radius);
-	b.remainingSec = std::max(0.1f, durationSec);
-	b.reason = reason ? reason : "Unknown";
-	temporaryBlockedAreas_.push_back(b);
+	TemporaryBlockedArea block{};
+	block.center = center;
+	block.radius = std::max(0.1f, radius);
+	block.remainingSec = std::max(0.1f, durationSec);
+	block.reason = reason ? reason : "Unknown";
+	temporaryBlockedAreas_.push_back(block);
 }
 
 void EnemyAStarNavigator::ClearTemporaryBlockedAreas()
@@ -95,13 +163,13 @@ bool EnemyAStarNavigator::GetNextWaypoint(
 	float deltaTime,
 	K4E::Vector3& outWaypoint)
 {
-	repathTimer_ -= deltaTime;
+	repathTimer_ -= std::max(0.0f, deltaTime);
 
 	int goalX = 0;
 	int goalZ = 0;
 	WorldToCell(goal, goalX, goalZ);
 
-	const bool goalChanged = (!hasLastGoal_ || goalX != lastGoalX_ || goalZ != lastGoalZ_);
+	const bool goalChanged = !hasLastGoal_ || goalX != lastGoalX_ || goalZ != lastGoalZ_;
 	const bool needRepath = path_.empty() || goalChanged || repathTimer_ <= 0.0f;
 
 	if (needRepath)
@@ -127,17 +195,17 @@ bool EnemyAStarNavigator::GetNextWaypoint(
 
 	while (currentPathIndex_ < static_cast<int>(path_.size()))
 	{
-		const K4E::Vector3 wp = path_[currentPathIndex_];
-		const K4E::Vector3 d = wp - current;
-		const float distSq = d.x * d.x + d.z * d.z;
+		const K4E::Vector3 waypoint = path_[currentPathIndex_];
+		const K4E::Vector3 delta = waypoint - current;
+		const float distanceSq = delta.x * delta.x + delta.z * delta.z;
 
-		if (distSq <= settings_.waypointReachDistance * settings_.waypointReachDistance)
+		if (distanceSq <= settings_.waypointReachDistance * settings_.waypointReachDistance)
 		{
 			++currentPathIndex_;
 			continue;
 		}
 
-		outWaypoint = wp;
+		outWaypoint = waypoint;
 		return true;
 	}
 
@@ -169,11 +237,18 @@ bool EnemyAStarNavigator::RebuildPath(const K4E::Vector3& current, const K4E::Ve
 	{
 		int walkableX = goalX;
 		int walkableZ = goalZ;
-		if (FindNearestWalkableCell(goalX, goalZ, sampleY, 6, walkableX, walkableZ))
+		if (FindNearestWalkableCell(goalX, goalZ, sampleY, 8, walkableX, walkableZ))
 		{
 			goalX = walkableX;
 			goalZ = walkableZ;
 		}
+	}
+
+	if (!IsWalkableCell(startX, startZ, sampleY) || !IsWalkableCell(goalX, goalZ, sampleY))
+	{
+		path_.clear();
+		currentPathIndex_ = 0;
+		return false;
 	}
 
 	const int minX = std::min(startX, goalX) - settings_.searchRangeCells;
@@ -183,22 +258,21 @@ bool EnemyAStarNavigator::RebuildPath(const K4E::Vector3& current, const K4E::Ve
 
 	std::unordered_map<CellKey, int, CellKeyHash> indexOf;
 	std::vector<GridNode> nodes;
-	nodes.reserve(512);
+	nodes.reserve(1024);
 
 	auto addNode = [&](int x, int z, float g, float h, int parent) -> int
 		{
-			GridNode n{};
-			n.x = x;
-			n.z = z;
-			n.g = g;
-			n.h = h;
-			n.parentIndex = parent;
-			n.opened = true;
-			n.closed = false;
-			const int idx = static_cast<int>(nodes.size());
-			nodes.push_back(n);
-			indexOf[{x, z}] = idx;
-			return idx;
+			GridNode node{};
+			node.x = x;
+			node.z = z;
+			node.g = g;
+			node.h = h;
+			node.parentIndex = parent;
+			node.opened = true;
+			const int index = static_cast<int>(nodes.size());
+			nodes.push_back(node);
+			indexOf[{x, z}] = index;
+			return index;
 		};
 
 	struct OpenEntry
@@ -214,7 +288,7 @@ bool EnemyAStarNavigator::RebuildPath(const K4E::Vector3& current, const K4E::Ve
 
 	static constexpr int kDx[8] = { 1, -1, 0, 0, 1, 1, -1, -1 };
 	static constexpr int kDz[8] = { 0, 0, 1, -1, 1, -1, 1, -1 };
-	static constexpr float kCost[8] = { 1, 1, 1, 1, 1.4142135f, 1.4142135f, 1.4142135f, 1.4142135f };
+	static constexpr float kCost[8] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.4142135f, 1.4142135f, 1.4142135f, 1.4142135f };
 
 	int expanded = 0;
 	int goalIndex = -1;
@@ -237,39 +311,34 @@ bool EnemyAStarNavigator::RebuildPath(const K4E::Vector3& current, const K4E::Ve
 			break;
 		}
 
-		for (int i = 0; i < 8; ++i)
+		for (int directionIndex = 0; directionIndex < 8; ++directionIndex)
 		{
-			const int nx = node.x + kDx[i];
-			const int nz = node.z + kDz[i];
+			const int nextX = node.x + kDx[directionIndex];
+			const int nextZ = node.z + kDz[directionIndex];
 
-			if (nx < minX || nx > maxX || nz < minZ || nz > maxZ) continue;
-			if (!IsWalkableCell(nx, nz, sampleY)) continue;
+			if (nextX < minX || nextX > maxX || nextZ < minZ || nextZ > maxZ) continue;
+			if (!IsWalkableCell(nextX, nextZ, sampleY)) continue;
 
-			if (settings_.disableCornerCutting && i >= 4)
+			if (settings_.disableCornerCutting && directionIndex >= 4)
 			{
-				if (!IsWalkableCell(node.x, nz, sampleY) || !IsWalkableCell(nx, node.z, sampleY))
-				{
-					continue;
-				}
+				if (!IsWalkableCell(node.x, nextZ, sampleY) || !IsWalkableCell(nextX, node.z, sampleY)) continue;
 			}
 
-			const float ng = node.g + kCost[i];
-			auto it = indexOf.find({ nx, nz });
-			if (it == indexOf.end())
+			const float nextCost = node.g + kCost[directionIndex];
+			auto existingIt = indexOf.find({ nextX, nextZ });
+			if (existingIt == indexOf.end())
 			{
-				const float nh = HeuristicCost(nx, nz, goalX, goalZ);
-				const int ni = addNode(nx, nz, ng, nh, top.index);
-				open.push({ ng + nh, ni });
+				const float heuristic = HeuristicCost(nextX, nextZ, goalX, goalZ);
+				const int nextIndex = addNode(nextX, nextZ, nextCost, heuristic, top.index);
+				open.push({ nextCost + heuristic, nextIndex });
 			}
 			else
 			{
-				GridNode& existing = nodes[it->second];
-				if (existing.closed) continue;
-				if (ng >= existing.g) continue;
-
-				existing.g = ng;
+				GridNode& existing = nodes[existingIt->second];
+				if (existing.closed || nextCost >= existing.g) continue;
+				existing.g = nextCost;
 				existing.parentIndex = top.index;
-				open.push({ existing.g + existing.h, it->second });
+				open.push({ existing.g + existing.h, existingIt->second });
 			}
 		}
 	}
@@ -283,56 +352,75 @@ bool EnemyAStarNavigator::RebuildPath(const K4E::Vector3& current, const K4E::Ve
 
 	std::vector<K4E::Vector3> reversed;
 	reversed.reserve(64);
-	for (int i = goalIndex; i >= 0; i = nodes[i].parentIndex)
+	for (int index = goalIndex; index >= 0; index = nodes[index].parentIndex)
 	{
-		reversed.push_back(CellToWorld(nodes[i].x, nodes[i].z, current.y));
-		if (nodes[i].parentIndex < 0) break;
+		reversed.push_back(CellToWorld(nodes[index].x, nodes[index].z, current.y));
+		if (nodes[index].parentIndex < 0) break;
 	}
 
 	std::reverse(reversed.begin(), reversed.end());
 	path_ = std::move(reversed);
-	currentPathIndex_ = (path_.size() > 1) ? 1 : 0;
+	currentPathIndex_ = path_.size() > 1 ? 1 : 0;
 	return true;
 }
 
 bool EnemyAStarNavigator::IsWalkableCell(int x, int z, float sampleY) const
 {
-	if (!worldAABBs_ || worldAABBs_->empty())
-	{
-		return true;
-	}
+	const K4E::Vector3 point = CellToWorld(x, z, sampleY);
+	if (!HasFloorSupport(point, sampleY)) return false;
 
-	const K4E::Vector3 p = CellToWorld(x, z, sampleY);
 	UpdateInflatedObstacleCache();
-
-	for (const auto& aabb : inflatedObstacleAABBs_)
+	for (const K4E::AABB& obstacle : inflatedObstacleAABBs_)
 	{
-		if (sampleY < aabb.min.y || sampleY > aabb.max.y) continue;
-		if (p.x >= aabb.min.x &&
-			p.x <= aabb.max.x &&
-			p.z >= aabb.min.z &&
-			p.z <= aabb.max.z)
+		if (!IntersectsAgentHeight(obstacle, sampleY)) continue;
+		if (point.x >= obstacle.min.x && point.x <= obstacle.max.x &&
+			point.z >= obstacle.min.z && point.z <= obstacle.max.z)
 		{
 			return false;
 		}
 	}
-	for (const auto& blocked : temporaryBlockedAreas_)
+
+	for (const TemporaryBlockedArea& blocked : temporaryBlockedAreas_)
 	{
-		const float dx = p.x - blocked.center.x;
-		const float dz = p.z - blocked.center.z;
-		if ((dx * dx + dz * dz) <= blocked.radius * blocked.radius)
-		{
-			return false;
-		}
+		const float dx = point.x - blocked.center.x;
+		const float dz = point.z - blocked.center.z;
+		if (dx * dx + dz * dz <= blocked.radius * blocked.radius) return false;
 	}
 
 	return true;
 }
 
+bool EnemyAStarNavigator::HasFloorSupport(const K4E::Vector3& point, float sampleY) const
+{
+	if (!walkableAABBs_ || walkableAABBs_->empty()) return true;
+
+	const float footY = sampleY - settings_.agentHalfHeight;
+	for (const K4E::AABB& floor : *walkableAABBs_)
+	{
+		if (point.x < floor.min.x || point.x > floor.max.x || point.z < floor.min.z || point.z > floor.max.z) continue;
+		if (std::abs(floor.max.y - footY) <= settings_.floorHeightTolerance) return true;
+	}
+	return false;
+}
+
+bool EnemyAStarNavigator::IntersectsAgentHeight(const K4E::AABB& aabb, float sampleY) const
+{
+	const float agentMinY = sampleY - settings_.agentHalfHeight;
+	const float agentMaxY = sampleY + settings_.agentHalfHeight;
+	return agentMaxY >= aabb.min.y && agentMinY <= aabb.max.y;
+}
+
 void EnemyAStarNavigator::UpdateInflatedObstacleCache() const
 {
-	if (!worldAABBs_) { inflatedObstacleAABBs_.clear(); return; }
-	if (obstacleCacheSourceCount_ == worldAABBs_->size() &&
+	if (!worldAABBs_)
+	{
+		inflatedObstacleAABBs_.clear();
+		obstacleCacheSource_ = nullptr;
+		obstacleCacheSourceCount_ = 0;
+		return;
+	}
+	if (obstacleCacheSource_ == worldAABBs_ &&
+		obstacleCacheSourceCount_ == worldAABBs_->size() &&
 		std::abs(obstacleCacheAgentRadius_ - settings_.agentRadius) <= 1.0e-5f)
 	{
 		return;
@@ -340,7 +428,7 @@ void EnemyAStarNavigator::UpdateInflatedObstacleCache() const
 
 	inflatedObstacleAABBs_.clear();
 	inflatedObstacleAABBs_.reserve(worldAABBs_->size());
-	for (const auto& aabb : *worldAABBs_)
+	for (const K4E::AABB& aabb : *worldAABBs_)
 	{
 		K4E::AABB inflated = aabb;
 		inflated.min.x -= settings_.agentRadius;
@@ -349,6 +437,7 @@ void EnemyAStarNavigator::UpdateInflatedObstacleCache() const
 		inflated.max.z += settings_.agentRadius;
 		inflatedObstacleAABBs_.push_back(inflated);
 	}
+	obstacleCacheSource_ = worldAABBs_;
 	obstacleCacheSourceCount_ = worldAABBs_->size();
 	obstacleCacheAgentRadius_ = settings_.agentRadius;
 }
@@ -360,17 +449,74 @@ bool EnemyAStarNavigator::IsSegmentBlockedByObstacle(
 	int* outBlockedObstacleIndex) const
 {
 	UpdateInflatedObstacleCache();
-	for (size_t i = 0; i < inflatedObstacleAABBs_.size(); ++i)
+	for (size_t index = 0; index < inflatedObstacleAABBs_.size(); ++index)
 	{
-		const auto& aabb = inflatedObstacleAABBs_[i];
-		if (sampleY < aabb.min.y || sampleY > aabb.max.y) { continue; }
-		if (SegmentIntersectsAABBXZ(from, to, aabb))
+		const K4E::AABB& obstacle = inflatedObstacleAABBs_[index];
+		if (!IntersectsAgentHeight(obstacle, sampleY)) continue;
+		if (SegmentIntersectsAABBXZ(from, to, obstacle))
 		{
-			if (outBlockedObstacleIndex) { *outBlockedObstacleIndex = static_cast<int>(i); }
+			if (outBlockedObstacleIndex) *outBlockedObstacleIndex = static_cast<int>(index);
 			return true;
 		}
 	}
 	return false;
+}
+
+bool EnemyAStarNavigator::TrySelectPatrolGoal(
+	const K4E::Vector3& current,
+	float sampleY,
+	std::uint32_t sequence,
+	float minimumDistance,
+	K4E::Vector3& outGoal) const
+{
+	if (!walkableAABBs_ || walkableAABBs_->empty()) return false;
+
+	const float minimumDistanceSq = std::max(0.0f, minimumDistance) * std::max(0.0f, minimumDistance);
+	float bestDistanceSq = -1.0f;
+	K4E::Vector3 bestGoal{};
+	const size_t attemptCount = std::min<size_t>(32u, std::max<size_t>(12u, walkableAABBs_->size() * 2u));
+
+	for (size_t attempt = 0; attempt < attemptCount; ++attempt)
+	{
+		const std::uint32_t seed = MixBits(sequence + static_cast<std::uint32_t>(attempt * 0x9e3779b9u));
+		const size_t floorIndex = static_cast<size_t>(seed) % walkableAABBs_->size();
+		const K4E::AABB& floor = (*walkableAABBs_)[floorIndex];
+		const float width = floor.max.x - floor.min.x;
+		const float depth = floor.max.z - floor.min.z;
+		if (width <= 0.2f || depth <= 0.2f) continue;
+
+		const float marginX = std::min(settings_.agentRadius + 0.25f, width * 0.35f);
+		const float marginZ = std::min(settings_.agentRadius + 0.25f, depth * 0.35f);
+		const float minX = floor.min.x + marginX;
+		const float maxX = floor.max.x - marginX;
+		const float minZ = floor.min.z + marginZ;
+		const float maxZ = floor.max.z - marginZ;
+		if (minX > maxX || minZ > maxZ) continue;
+
+		K4E::Vector3 candidate{};
+		candidate.x = minX + (maxX - minX) * Hash01(seed ^ 0x68bc21ebu);
+		candidate.y = current.y;
+		candidate.z = minZ + (maxZ - minZ) * Hash01(seed ^ 0x02e5be93u);
+
+		int cellX = 0;
+		int cellZ = 0;
+		WorldToCell(candidate, cellX, cellZ);
+		if (!IsWalkableCell(cellX, cellZ, sampleY)) continue;
+
+		const float dx = candidate.x - current.x;
+		const float dz = candidate.z - current.z;
+		const float distanceSq = dx * dx + dz * dz;
+		if (distanceSq < minimumDistanceSq && bestDistanceSq >= 0.0f) continue;
+		if (distanceSq > bestDistanceSq)
+		{
+			bestDistanceSq = distanceSq;
+			bestGoal = candidate;
+		}
+	}
+
+	if (bestDistanceSq < 0.0f) return false;
+	outGoal = bestGoal;
+	return true;
 }
 
 bool EnemyAStarNavigator::FindNearestWalkableCell(int centerX, int centerZ, float sampleY, int maxRadius, int& outX, int& outZ) const
@@ -382,25 +528,22 @@ bool EnemyAStarNavigator::FindNearestWalkableCell(int centerX, int centerZ, floa
 		return true;
 	}
 
-	for (int r = 1; r <= maxRadius; ++r)
+	for (int radius = 1; radius <= maxRadius; ++radius)
 	{
-		for (int dz = -r; dz <= r; ++dz)
+		for (int dz = -radius; dz <= radius; ++dz)
 		{
-			for (int dx = -r; dx <= r; ++dx)
+			for (int dx = -radius; dx <= radius; ++dx)
 			{
-				if (std::abs(dx) != r && std::abs(dz) != r) continue;
-
+				if (std::abs(dx) != radius && std::abs(dz) != radius) continue;
 				const int x = centerX + dx;
 				const int z = centerZ + dz;
 				if (!IsWalkableCell(x, z, sampleY)) continue;
-
 				outX = x;
 				outZ = z;
 				return true;
 			}
 		}
 	}
-
 	return false;
 }
 
@@ -413,8 +556,8 @@ K4E::Vector3 EnemyAStarNavigator::CellToWorld(int x, int z, float y) const
 	};
 }
 
-void EnemyAStarNavigator::WorldToCell(const K4E::Vector3& p, int& outX, int& outZ) const
+void EnemyAStarNavigator::WorldToCell(const K4E::Vector3& point, int& outX, int& outZ) const
 {
-	outX = static_cast<int>(std::round(p.x / settings_.cellSize));
-	outZ = static_cast<int>(std::round(p.z / settings_.cellSize));
+	outX = static_cast<int>(std::round(point.x / settings_.cellSize));
+	outZ = static_cast<int>(std::round(point.z / settings_.cellSize));
 }
