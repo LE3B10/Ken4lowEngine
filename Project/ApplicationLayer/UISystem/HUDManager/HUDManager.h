@@ -18,12 +18,13 @@
 
 /// ---------- 前方宣言 ---------- ///
 class Player;
+class IPlayerRuntime;
 
 /// -------------------------------------------------------------
 ///                     HUDマネージャークラス
 ///
-/// World/Tutorial/Boss用HUDを管理し、必要な場合だけ旧Player専用HUDも描画する。
-/// P13以降のPlayer固有HP・弾薬・CrosshairはPlayerHudPresenterComponentを正本にする。
+/// World/Tutorial/Boss用HUDと、新Player Runtimeから受け取る武器HUDを管理する。
+/// 旧ハート・旧Crosshair・旧操作ガイドは比較時だけ明示的に再表示する。
 /// -------------------------------------------------------------
 class HUDManager
 {
@@ -34,10 +35,10 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 各HUD部品を生成し、テクスチャパス・初期位置・表示状態を設定する。
 	void Initialize();
 
-	// World HUDと、有効な場合だけ旧Player専用HUDを1フレーム更新する。
+	// World HUD、新Player武器HUD、必要な場合だけ旧Player専用HUDを1フレーム更新する。
 	void Update(float deltaTime);
 
-	// World HUDと、有効な場合だけ旧Player専用HUDを描画する。
+	// World HUD、新Player武器HUD、必要な場合だけ旧Player専用HUDを描画する。
 	void Draw();
 
 public: /// ---------- セッタ ---------- ///
@@ -47,6 +48,11 @@ public: /// ---------- セッタ ---------- ///
 		player_ = player;
 		SetLegacyPlayerHudVisible(player != nullptr); // 旧Playerを明示接続した場合だけLegacy HUDを復帰する。
 	}
+
+	// 新Player Runtimeを参照し、ReloadCircleとWeaponSlotの状態を直接同期する。
+	void SetPlayerRuntime(IPlayerRuntime* playerRuntime) { playerRuntime_ = playerRuntime; }
+	void SetRuntimeWeaponHudVisible(bool visible);
+	bool IsRuntimeWeaponHudVisible() const { return runtimeWeaponHudVisible_; }
 
 	// P13以降はfalseにして、PlayerHudPresenterComponentとの二重描画を防ぐ。
 	void SetLegacyPlayerHudVisible(bool visible);
@@ -86,7 +92,7 @@ public: /// ---------- セッタ ---------- ///
 	void SetHPVisible(bool v) { if (hpWidget_) hpWidget_->SetVisible(v); }
 	void SetWeaponSlotVisibleSlotCount(int count);
 
-	// WeaponSlot のHUDスナップショットを受け取る（HUD側でWeaponSlotの状態を参照して描画するため）
+	// WeaponSlot のHUDスナップショットを受け取る（旧Player比較表示用）。
 	void SetWeaponSlotSnapshot(const WeaponSlot::HudSnapshot& snapshot) { weaponSlotSnapshot_ = snapshot; }
 
 	// WaveManagerの進行状態をWaveUIへ反映する。
@@ -118,15 +124,21 @@ public: /// ---------- ゲッタ ---------- ///
 	bool IsBossHPBarDrawEnabled() const { return bossHudUI_.IsHpBarDrawEnabled(); }
 	bool IsWaveUIDrawEnabled() const;
 
-private: /// ---------- メンバ変数 ---------- ///
+private: /// ---------- メンバ関数 ---------- ///
 	// HUD更新を部品単位に分け、Update内で複数責務が混ざらないようにする。
+	bool UpdateReloadCircleFromRuntime();
+	void UpdateWeaponSlotFromRuntime();
 	bool UpdateReloadCircleFromPlayer();
 	void UpdateCrosshairFromPlayer(bool isReloadingForHUD);
 	void UpdateWeaponSlotFromPlayer();
 	void UpdateNoAmmoFromPlayer(float deltaTime);
 
+	IPlayerRuntime* ResolvePlayerRuntime() const;
+
 	Player* player_ = nullptr; // 旧Player HUDを使用する場合だけ設定する非所有参照。
+	IPlayerRuntime* playerRuntime_ = nullptr; // 新PlayerのHP・武器状態を参照する非所有Runtime。
 	bool legacyPlayerHudVisible_ = false; // 新Player HUDを正本にするため既定では非表示。
+	bool runtimeWeaponHudVisible_ = true; // ReloadCircleとWeaponSlotは新Player Runtimeから表示する。
 
 	std::unique_ptr<ReloadCircle> reloadCircle_; // リロード円
 	std::unique_ptr<Crosshair> crosshair_; // 十字照準
@@ -136,13 +148,13 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<ControlGuideUI> controlGuideUI_; // コントロールガイドUI
 
 	std::unique_ptr<WeaponSlot> weaponSlot_; // 武器スロット
-	WeaponSlot::HudSnapshot weaponSlotSnapshot_{};    // 外部から受け取る表示用データ
+	WeaponSlot::HudSnapshot weaponSlotSnapshot_{}; // 旧Player比較表示用スナップショット
 
 	std::unique_ptr<DamageIndicatorManager> damageIndicatorManager_;
 
 	std::unique_ptr<NoAmmoUI> noAmmoUI_;
 
-	bool reloadTimerIsRemaining_ = true; // リロードタイマーが「残り時間」か「経過時間」かのフラグ
+	bool reloadTimerIsRemaining_ = true; // 旧Playerのリロードタイマー表現を判定するフラグ
 	bool prevReloading_ = false; // 前フレームのリロード状態（HUDの更新に使う）
 	BossHudUI bossHudUI_; // ボスHPバーとボス方向ガイドを担当するHUD部品
 	Stage1ObjectiveGuideUI stage1ObjectiveGuideUI_; // ステージ1専用の目的表示とチュートリアル文言を担当するHUD部品
