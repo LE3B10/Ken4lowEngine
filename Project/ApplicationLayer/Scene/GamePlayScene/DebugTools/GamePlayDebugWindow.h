@@ -5,6 +5,7 @@
 #include "GamePlayWorld.h"
 #include "../Effects/GamePlayEffectController.h"
 
+#include <Editor/EditorPlayController.h>
 #include <Editor/EditorWindowManager.h>
 
 #ifdef USE_IMGUI
@@ -38,6 +39,7 @@ public:
 		{
 			auto& actorWorld = world->GetCharacters().GetActorWorld();
 			actorWorld.SetLegacyEditorWindowsEnabled(editorWindowState.showPlayerDebug);
+			if (!Ken4lowEngine::EditorPlayController::GetInstance()->IsPlaying()) actorWorld.UpdateEditor(0.0f); // Edit/Pause中だけTransformとCollider表示を同期する。
 			if (editorWindowState.showPlayerDebug) actorWorld.DrawImGui(); // GamePlayの実Player Actorと全Componentを編集・Prefab保存できるよう公開する。
 		}
 		DrawCullingDebugWindow(world, debugTools, frustumCullingDebug, editorWindowState);
