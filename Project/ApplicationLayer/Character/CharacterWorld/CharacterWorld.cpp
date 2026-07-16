@@ -1,13 +1,13 @@
 #include "CharacterWorld.h"
 #include "CollisionManager.h"
 #include "BulletManager.h"
-#include "EnemyFactory.h"
-#include "MeleeEnemy.h"
-#include "MidRangeEnemy.h"
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyActor.h"
 #include "ApplicationLayer/Character/Enemy/Projectile/MidRangeBombProjectile.h"
+
 #include <Stage.h>
+
 #include <algorithm>
+#include <cmath>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -36,11 +36,11 @@ void CharacterWorld::Initialize(GameContext& ctx)
 
 	actorWorld_.SetPhysicsWorld(&physicsWorld_);
 	physicsWorld_.SetUseFixedStep(false);
-	actorWorld_.Initialize(); // P13以降のPlayerActorはCharacterWorld所有ActorWorldだけが所有する。
+	actorWorld_.Initialize(); // Playerと通常Enemyを同じActorWorld・PhysicsWorldへ接続する。
 
 	playerSpawnPosition_ = { 0.0f, 2.25f, 0.0f };
 	playerCollisionBridgeRegistered_ = false;
-	enemies_.clear();
+	enemyActors_.clear();
 	notifiedKilledEnemies_.clear();
 	spawnedEnemyCounts_.fill(0);
 }
@@ -75,7 +75,7 @@ void CharacterWorld::EnsurePlayerRuntime()
 	if (!playerRuntimeController_) playerRuntimeController_ = std::make_unique<GamePlayPlayerMigrationRuntime>();
 	if (!playerRuntimeController_->Initialize(ctx_.bulletManager_, stage, &actorWorld_, &physicsWorld_, playerSpawnPosition_)) return;
 	RegisterPlayerCollisionBridge();
-	MidRangeBombProjectile::SetTargetPlayerRuntime(GetPlayerRuntime()); // 中距離Bombも旧Player Owner判定を経由せず同じRuntime正本へDamageを適用する。
+	MidRangeBombProjectile::SetTargetPlayerRuntime(GetPlayerRuntime()); // 中距離Bombは旧Player Owner判定に依存せずRuntime正本へDamageを適用する。
 }
 
 void CharacterWorld::RegisterPlayerCollisionBridge()
@@ -106,53 +106,45 @@ void CharacterWorld::UpdateActivePlayer(float deltaTime)
 	if (playerRuntimeController_ && playerRuntimeController_->IsActive()) playerRuntimeController_->Update(deltaTime);
 }
 
-void CharacterWorld::InjectEnemyDeps(EnemyBase& enemy)
+void CharacterWorld::InjectEnemyDeps(K4E::EnemyActor& enemy)
 {
-	if (dynamic_cast<MidRangeEnemy*>(&enemy) == nullptr) enemy.SetParticleEffectSystem(&enemyParticleEffectSystem_);
-
+	enemy.SetParticleEffectSystem(&enemyParticleEffectSystem_);
 	EnsurePlayerRuntime();
-	K4E::Collider* playerCollider = GetPlayerRuntime() ? GetPlayerRuntime()->GetCollisionPrimitive() : nullptr;
-	if (auto* actorEnemy = dynamic_cast<K4E::EnemyActor*>(&enemy))
+	enemy.SetTargetActor(GetPlayer());
+	if (K4E::Stage* stage = K4E::Stage::GetActiveRuntimeStage())
 	{
-		actorEnemy->SetTargetActor(GetPlayer());
-		if (K4E::Stage* stage = K4E::Stage::GetActiveRuntimeStage())
-		{
-			actorEnemy->SetNavigationObstacles(&stage->GetNavigationObstacleAABBs()); // 両アーキタイプのA* Componentへ同じStage障害物参照を渡す。
-		}
-	}
-	else if (auto* meleeEnemy = dynamic_cast<MeleeEnemy*>(&enemy))
-	{
-		meleeEnemy->SetTarget(playerCollider);
-	}
-	else if (auto* midRangeEnemy = dynamic_cast<MidRangeEnemy*>(&enemy))
-	{
-		midRangeEnemy->SetTarget(playerCollider);
+		enemy.SetNavigationObstacles(&stage->GetNavigationObstacleAABBs()); // 両アーキタイプのA* Componentへ同じStage障害物参照を渡す。
 	}
 }
 
 std::vector<EnemyBase*> CharacterWorld::GetEnemyRawList() const
 {
 	std::vector<EnemyBase*> result;
-	result.reserve(enemies_.size());
-	for (const auto& enemy : enemies_) result.push_back(enemy.get());
+	result.reserve(enemyActors_.size());
+	for (K4E::EnemyActor* enemy : enemyActors_)
+	{
+		if (enemy) result.push_back(enemy);
+	}
 	return result;
 }
 
 EnemyBase& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 {
-	auto enemy = EnemyFactory::Create(request.enemyType);
-	InjectEnemyDeps(*enemy);
-	enemy->Initialize();
-	enemy->SetPosition(request.position);
+	EnsurePlayerRuntime();
+	K4E::EnemyActor& enemy = actorWorld_.SpawnActor<K4E::EnemyActor>(request.enemyType);
+	InjectEnemyDeps(enemy);
+	enemy.SetPosition(request.position);
+	enemy.SetOrientation({ 0.0f, request.yawRad, 0.0f });
+	if (request.maxHp > 0.0f) enemy.SetMaxHp(std::max(1, static_cast<int>(std::round(request.maxHp))));
 
-	if (ctx_.collisionManager_)
+	if (ctx_.collisionManager_ && enemy.GetCollisionPrimitive())
 	{
-		ctx_.collisionManager_->AddCollider(enemy->GetCollisionPrimitive());
+		ctx_.collisionManager_->AddCollider(enemy.GetCollisionPrimitive()); // PhysicsWorld所有とは別にLegacy弾・照準用Bridgeだけを登録する。
 	}
 
-	enemies_.push_back(std::move(enemy));
+	enemyActors_.push_back(&enemy);
 	++spawnedEnemyCounts_[ToEnemyTypeIndex(request.enemyType)];
-	return *enemies_.back();
+	return enemy;
 }
 
 EnemyBase& CharacterWorld::SpawnEnemyAt(const K4E::Vector3& position, EnemyType enemyType)
@@ -166,10 +158,9 @@ EnemyBase& CharacterWorld::SpawnEnemyAt(const K4E::Vector3& position, EnemyType 
 int CharacterWorld::GetAliveNormalEnemyCount() const
 {
 	int aliveCount = 0;
-	for (const auto& enemy : enemies_)
+	for (const K4E::EnemyActor* enemy : enemyActors_)
 	{
-		if (!enemy || enemy->IsDead()) continue;
-		if (dynamic_cast<const K4E::EnemyActor*>(enemy.get()) || dynamic_cast<const MeleeEnemy*>(enemy.get()) || dynamic_cast<const MidRangeEnemy*>(enemy.get())) ++aliveCount;
+		if (enemy && !enemy->IsDead()) ++aliveCount;
 	}
 	return aliveCount;
 }
@@ -177,77 +168,75 @@ int CharacterWorld::GetAliveNormalEnemyCount() const
 void CharacterWorld::ClearEnemies()
 {
 	notifiedKilledEnemies_.clear();
-	if (ctx_.collisionManager_)
+	for (K4E::EnemyActor* enemy : enemyActors_)
 	{
-		for (auto& enemy : enemies_)
-		{
-			if (enemy) ctx_.collisionManager_->RemoveCollider(enemy->GetCollisionPrimitive());
-		}
+		if (!enemy) continue;
+		if (ctx_.collisionManager_ && enemy->GetCollisionPrimitive()) ctx_.collisionManager_->RemoveCollider(enemy->GetCollisionPrimitive());
+		actorWorld_.DestroyActor(enemy);
 	}
-	enemies_.clear();
+	enemyActors_.clear();
 }
 
 bool CharacterWorld::RemoveEnemy(EnemyBase* enemy)
 {
-	if (!enemy) return false;
-	const auto it = std::find_if(enemies_.begin(), enemies_.end(), [enemy](const std::unique_ptr<EnemyBase>& entry) { return entry.get() == enemy; });
-	if (it == enemies_.end()) return false;
+	auto* actorEnemy = dynamic_cast<K4E::EnemyActor*>(enemy);
+	if (!actorEnemy) return false;
+	const auto it = std::find(enemyActors_.begin(), enemyActors_.end(), actorEnemy);
+	if (it == enemyActors_.end()) return false;
 
-	notifiedKilledEnemies_.erase(enemy);
-	if (ctx_.collisionManager_) ctx_.collisionManager_->RemoveCollider(enemy->GetCollisionPrimitive());
-	enemies_.erase(it);
+	notifiedKilledEnemies_.erase(actorEnemy);
+	if (ctx_.collisionManager_ && actorEnemy->GetCollisionPrimitive()) ctx_.collisionManager_->RemoveCollider(actorEnemy->GetCollisionPrimitive());
+	actorWorld_.DestroyActor(actorEnemy);
+	enemyActors_.erase(it);
 	return true;
 }
 
 void CharacterWorld::Update(float deltaTime)
 {
-	UpdateActivePlayer(deltaTime);
+	UpdateActivePlayer(deltaTime); // Player Runtimeが共有ActorWorld・PhysicsWorldを一度だけ更新する。
 
-	const float enemyDeltaTime = std::clamp(deltaTime, 0.0f, EnemyBase::GetMaxUpdateDeltaTime());
-	for (auto& enemy : enemies_)
+	for (K4E::EnemyActor* enemy : enemyActors_)
 	{
-		const bool wasAlreadyNotified = notifiedKilledEnemies_.contains(enemy.get());
-		enemy->Update(enemyDeltaTime);
+		if (!enemy) continue;
+		const bool wasAlreadyNotified = notifiedKilledEnemies_.contains(enemy);
 		if (!wasAlreadyNotified && enemy->IsDead())
 		{
-			notifiedKilledEnemies_.insert(enemy.get());
+			notifiedKilledEnemies_.insert(enemy);
 			if (onEnemyKilled_) onEnemyKilled_(enemy->GetCenterPosition());
 		}
 	}
 
-	if (ctx_.collisionManager_)
-	{
-		enemies_.erase(std::remove_if(enemies_.begin(), enemies_.end(), [&](const std::unique_ptr<EnemyBase>& enemy)
-			{
-				if (!enemy || !enemy->IsRemovable()) return false;
-				notifiedKilledEnemies_.erase(enemy.get());
-				ctx_.collisionManager_->RemoveCollider(enemy->GetCollisionPrimitive());
-				return true;
-			}), enemies_.end());
-	}
+	std::erase_if(enemyActors_, [&](K4E::EnemyActor* enemy)
+		{
+			if (!enemy || !enemy->IsRemovable()) return false;
+			notifiedKilledEnemies_.erase(enemy);
+			if (ctx_.collisionManager_ && enemy->GetCollisionPrimitive()) ctx_.collisionManager_->RemoveCollider(enemy->GetCollisionPrimitive());
+			actorWorld_.DestroyActor(enemy); // ActorWorldがPhysics登録解除と実体破棄を安全なフレーム境界で行う。
+			return true;
+		});
 }
 
 void CharacterWorld::UpdatePlayerOnly(float deltaTime)
 {
+	for (K4E::EnemyActor* enemy : enemyActors_) if (enemy) enemy->SetSimulationEnabled(false);
 	UpdateActivePlayer(deltaTime);
+	for (K4E::EnemyActor* enemy : enemyActors_) if (enemy) enemy->SetSimulationEnabled(true); // Intro・装備演出中はPlayerだけを進め、敵のAI時間を消費しない。
 }
 
 void CharacterWorld::WarmupStartGameplayVisuals()
 {
 	EnsurePlayerRuntime();
 	if (playerRuntimeController_ && playerRuntimeController_->IsActive()) playerRuntimeController_->Update(0.0f, false);
-	for (auto& enemy : enemies_) if (enemy) enemy->Update(0.0f);
 }
 
 void CharacterWorld::SetStartGameplayVisualsVisible(bool visible)
 {
-	(void)visible; // 新Playerは一人称Weapon Viewを通常Runtime側で管理し、旧Player表示切替には依存しない。
+	(void)visible; // PlayerとEnemyの表示は各Actor Componentが管理し、旧Player表示切替には依存しない。
 }
 
 void CharacterWorld::Draw()
 {
-	if (playerRuntimeController_ && playerRuntimeController_->IsActive()) actorWorld_.Draw();
-	for (auto& enemy : enemies_) if (enemy) enemy->Draw();
+	actorWorld_.Draw();
 }
 
 void CharacterWorld::DrawImGui()
@@ -294,7 +283,7 @@ void CharacterWorld::DrawEnemyDebugImGui()
 #ifdef USE_IMGUI
 	int totalStuckDetections = 0;
 	int totalStuckRecoveries = 0;
-	for (const auto& enemy : enemies_)
+	for (const K4E::EnemyActor* enemy : enemyActors_)
 	{
 		if (!enemy) continue;
 		totalStuckDetections += enemy->GetStuckDetectionCount();
@@ -302,21 +291,19 @@ void CharacterWorld::DrawEnemyDebugImGui()
 	}
 	ImGui::Text("スタック検出回数: %d", totalStuckDetections);
 	ImGui::Text("スタック復帰回数: %d", totalStuckRecoveries);
-	if (!enemies_.empty() && enemies_.front())
+	if (!enemyActors_.empty() && enemyActors_.front())
 	{
-		const Vector3 position = enemies_.front()->GetCenterPosition();
+		const Vector3 position = enemyActors_.front()->GetCenterPosition();
 		ImGui::Text("敵の現在座標: (%.2f, %.2f, %.2f)", position.x, position.y, position.z);
 	}
 
 	std::array<int, 2> liveEnemyCounts{};
-	for (const auto& enemy : enemies_)
+	for (const K4E::EnemyActor* enemy : enemyActors_)
 	{
-		if (const auto* actorEnemy = dynamic_cast<const K4E::EnemyActor*>(enemy.get())) ++liveEnemyCounts[ToEnemyTypeIndex(actorEnemy->GetEnemyType())];
-		else if (dynamic_cast<const MeleeEnemy*>(enemy.get())) ++liveEnemyCounts[ToEnemyTypeIndex(EnemyType::Melee)];
-		else if (dynamic_cast<const MidRangeEnemy*>(enemy.get())) ++liveEnemyCounts[ToEnemyTypeIndex(EnemyType::MidRange)];
+		if (enemy) ++liveEnemyCounts[ToEnemyTypeIndex(enemy->GetEnemyType())];
 	}
 
-	ImGui::Text("現在の敵数: %d", static_cast<int>(enemies_.size()));
+	ImGui::Text("現在の敵数: %d", static_cast<int>(enemyActors_.size()));
 	ImGui::Text("現在の近接雑魚敵数: %d", liveEnemyCounts[ToEnemyTypeIndex(EnemyType::Melee)]);
 	ImGui::Text("現在の中距離雑魚敵数: %d", liveEnemyCounts[ToEnemyTypeIndex(EnemyType::MidRange)]);
 	ImGui::Separator();
