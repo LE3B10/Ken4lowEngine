@@ -91,6 +91,10 @@ namespace Ken4lowEngine
 	void EnemyActor::Update(float deltaTime)
 	{
 		EnsureRuntimeStateInitialized();
+		if (IsDead())
+		{
+			if (MidRangeEnemyAttackComponent* attack = GetMidRangeEnemyAttackComponent()) attack->Update(deltaTime); // 所有者死亡後も発射済みBombの飛翔・爆発・Damageだけを最後まで更新する。
+		}
 		if (!GetComponent<RigidbodyComponent>())
 		{
 			if (const CharacterMovementComponent* movement = GetMovementComponent())
@@ -126,7 +130,7 @@ namespace Ken4lowEngine
 	void EnemyActor::FromJson(const nlohmann::json& inJson)
 	{
 		EnemyBase::FromJson(inJson);
-		enemyType_ = EnemyTypeFromString(inJson.value("EnemyType", std::string(ToEnemyTypeString(enemyType_))));
+		enemyType_ = EnemyTypeFromString(inJson.value("EnemyType", std::string("Melee"))); // 旧Prefabに種別が無い場合も別アーキタイプの状態を持ち越さず近接へ戻す。
 		runtimeStateInitialized_ = false; // Prefab再読込後はHP・Collision・Component接続を現在値から再構築する。
 	}
 
