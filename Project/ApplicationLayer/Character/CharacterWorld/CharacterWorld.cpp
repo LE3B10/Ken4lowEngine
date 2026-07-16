@@ -4,6 +4,7 @@
 #include "EnemyFactory.h"
 #include "MeleeEnemy.h"
 #include "MidRangeEnemy.h"
+#include "ApplicationLayer/Character/Enemy/Actor/EnemyActor.h"
 #include "ApplicationLayer/Character/Enemy/Projectile/MidRangeBombProjectile.h"
 #include <Stage.h>
 #include <algorithm>
@@ -111,7 +112,15 @@ void CharacterWorld::InjectEnemyDeps(EnemyBase& enemy)
 
 	EnsurePlayerRuntime();
 	K4E::Collider* playerCollider = GetPlayerRuntime() ? GetPlayerRuntime()->GetCollisionPrimitive() : nullptr;
-	if (auto* meleeEnemy = dynamic_cast<MeleeEnemy*>(&enemy))
+	if (auto* actorEnemy = dynamic_cast<K4E::EnemyActor*>(&enemy))
+	{
+		actorEnemy->SetTargetActor(GetPlayer());
+		if (K4E::Stage* stage = K4E::Stage::GetActiveRuntimeStage())
+		{
+			actorEnemy->SetNavigationObstacles(&stage->GetNavigationObstacleAABBs()); // 本番Stageの障害物参照をA* Componentへ生成前から保持する。
+		}
+	}
+	else if (auto* meleeEnemy = dynamic_cast<MeleeEnemy*>(&enemy))
 	{
 		meleeEnemy->SetTarget(playerCollider);
 	}
@@ -160,7 +169,7 @@ int CharacterWorld::GetAliveNormalEnemyCount() const
 	for (const auto& enemy : enemies_)
 	{
 		if (!enemy || enemy->IsDead()) continue;
-		if (dynamic_cast<const MeleeEnemy*>(enemy.get()) || dynamic_cast<const MidRangeEnemy*>(enemy.get())) ++aliveCount;
+		if (dynamic_cast<const K4E::EnemyActor*>(enemy.get()) || dynamic_cast<const MeleeEnemy*>(enemy.get()) || dynamic_cast<const MidRangeEnemy*>(enemy.get())) ++aliveCount;
 	}
 	return aliveCount;
 }
@@ -302,7 +311,7 @@ void CharacterWorld::DrawEnemyDebugImGui()
 	std::array<int, 2> liveEnemyCounts{};
 	for (const auto& enemy : enemies_)
 	{
-		if (dynamic_cast<const MeleeEnemy*>(enemy.get())) ++liveEnemyCounts[ToEnemyTypeIndex(EnemyType::Melee)];
+		if (dynamic_cast<const K4E::EnemyActor*>(enemy.get()) || dynamic_cast<const MeleeEnemy*>(enemy.get())) ++liveEnemyCounts[ToEnemyTypeIndex(EnemyType::Melee)];
 		else if (dynamic_cast<const MidRangeEnemy*>(enemy.get())) ++liveEnemyCounts[ToEnemyTypeIndex(EnemyType::MidRange)];
 	}
 
