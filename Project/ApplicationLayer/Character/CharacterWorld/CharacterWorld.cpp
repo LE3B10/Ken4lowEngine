@@ -117,7 +117,7 @@ void CharacterWorld::InjectEnemyDeps(EnemyBase& enemy)
 		actorEnemy->SetTargetActor(GetPlayer());
 		if (K4E::Stage* stage = K4E::Stage::GetActiveRuntimeStage())
 		{
-			actorEnemy->SetNavigationObstacles(&stage->GetNavigationObstacleAABBs()); // 本番Stageの障害物参照をA* Componentへ生成前から保持する。
+			actorEnemy->SetNavigationObstacles(&stage->GetNavigationObstacleAABBs()); // 両アーキタイプのA* Componentへ同じStage障害物参照を渡す。
 		}
 	}
 	else if (auto* meleeEnemy = dynamic_cast<MeleeEnemy*>(&enemy))
@@ -311,7 +311,8 @@ void CharacterWorld::DrawEnemyDebugImGui()
 	std::array<int, 2> liveEnemyCounts{};
 	for (const auto& enemy : enemies_)
 	{
-		if (dynamic_cast<const K4E::EnemyActor*>(enemy.get()) || dynamic_cast<const MeleeEnemy*>(enemy.get())) ++liveEnemyCounts[ToEnemyTypeIndex(EnemyType::Melee)];
+		if (const auto* actorEnemy = dynamic_cast<const K4E::EnemyActor*>(enemy.get())) ++liveEnemyCounts[ToEnemyTypeIndex(actorEnemy->GetEnemyType())];
+		else if (dynamic_cast<const MeleeEnemy*>(enemy.get())) ++liveEnemyCounts[ToEnemyTypeIndex(EnemyType::Melee)];
 		else if (dynamic_cast<const MidRangeEnemy*>(enemy.get())) ++liveEnemyCounts[ToEnemyTypeIndex(EnemyType::MidRange)];
 	}
 
