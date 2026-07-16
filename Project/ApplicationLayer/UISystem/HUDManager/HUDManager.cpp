@@ -54,16 +54,16 @@ void HUDManager::Initialize()
 
 	weaponSlot_->InitializeAmmoDelimiter(
 		"UI/Icons/slash_icon.dds",
-		{ 20.0f, 20.0f },   // 数字が20x20ならこれがちょうど良い
-		{ 0.0f, 0.0f }      // 微調整したいならここでオフセット
+		{ 20.0f, 20.0f },
+		{ 0.0f, 0.0f }
 	);
 
 	// 弾薬表示初期化
 	weaponSlot_->InitializeAmmoNumbers("UI/Common/Number.dds",
 		50, 50,
 		{ 10, 10 },
-		-5.0f,   // spacingは小さく
-		20.0f, 20.0f); // drawサイズ
+		-5.0f,
+		20.0f, 20.0f);
 
 	/*waveUI_ = std::make_unique<WaveUI>();
 	waveUI_->Initialize();
@@ -89,6 +89,23 @@ void HUDManager::Initialize()
 
 	bossHudUI_.Initialize();
 	stage1ObjectiveGuideUI_.Initialize();
+	SetLegacyPlayerHudVisible(legacyPlayerHudVisible_); // 初期化直後から新旧HUDの表示区分を反映する。
+}
+
+void HUDManager::SetLegacyPlayerHudVisible(bool visible)
+{
+	legacyPlayerHudVisible_ = visible;
+	prevReloading_ = false;
+
+	if (hpWidget_) hpWidget_->SetVisible(visible);
+	if (crosshair_) crosshair_->SetVisible(visible);
+	if (controlGuideUI_) controlGuideUI_->SetVisible(visible);
+	if (reloadCircle_)
+	{
+		reloadCircle_->SetVisible(visible);
+		if (!visible) reloadCircle_->SetReloading(false, 0.0f);
+	}
+	if (!visible && noAmmoUI_) noAmmoUI_->SetVisible(false);
 }
 
 /// -------------------------------------------------------------
@@ -96,22 +113,23 @@ void HUDManager::Initialize()
 /// -------------------------------------------------------------
 void HUDManager::Update(float deltaTime)
 {
-	const bool isReloadingForHUD = UpdateReloadCircleFromPlayer();
-	UpdateCrosshairFromPlayer(isReloadingForHUD);
+	if (legacyPlayerHudVisible_)
+	{
+		const bool isReloadingForHUD = UpdateReloadCircleFromPlayer();
+		UpdateCrosshairFromPlayer(isReloadingForHUD);
 
-	if (hpWidget_) hpWidget_->Update();
-	if (reloadCircle_) reloadCircle_->Update();
-	if (crosshair_) crosshair_->Update();
+		if (hpWidget_) hpWidget_->Update();
+		if (reloadCircle_) reloadCircle_->Update();
+		if (crosshair_) crosshair_->Update();
 
-	UpdateWeaponSlotFromPlayer();
+		UpdateWeaponSlotFromPlayer();
+		UpdateNoAmmoFromPlayer(deltaTime);
+		if (controlGuideUI_) controlGuideUI_->Update(deltaTime);
+	}
 
-	//if (waveUI_) waveUI_->Update(deltaTime);
-
+	// World側フィードバックは新Player HUDへ切り替えた後もHUDManagerで継続する。
 	if (damageIndicatorManager_) damageIndicatorManager_->Update(deltaTime);
-	UpdateNoAmmoFromPlayer(deltaTime);
-
-	if (controlGuideUI_) controlGuideUI_->Update(deltaTime);
-
+	if (waveUI_) waveUI_->Update(deltaTime);
 	bossHudUI_.Update(deltaTime);
 	stage1ObjectiveGuideUI_.Update(deltaTime);
 }
@@ -242,19 +260,22 @@ void HUDManager::UpdateNoAmmoFromPlayer(float deltaTime)
 /// -------------------------------------------------------------
 void HUDManager::Draw()
 {
-	if (hpWidget_ && hpWidget_->IsVisible()) hpWidget_->Draw();
-	if (reloadCircle_ && reloadCircle_->IsVisible()) reloadCircle_->Draw();
-	if (crosshair_ && crosshair_->IsVisible()) crosshair_->Draw();
-	if (weaponSlot_) weaponSlot_->Draw();
+	if (legacyPlayerHudVisible_)
+	{
+		if (hpWidget_ && hpWidget_->IsVisible()) hpWidget_->Draw();
+		if (reloadCircle_ && reloadCircle_->IsVisible()) reloadCircle_->Draw();
+		if (crosshair_ && crosshair_->IsVisible()) crosshair_->Draw();
+		if (weaponSlot_) weaponSlot_->Draw();
+		if (noAmmoUI_ && noAmmoUI_->IsVisible()) noAmmoUI_->Draw();
+		if (controlGuideUI_ && controlGuideUI_->IsVisible()) controlGuideUI_->Draw();
+	}
+
 	if (waveUI_ && IsWaveUIDrawEnabled()) waveUI_->Draw();
 	stage1ObjectiveGuideUI_.Draw();
 	bossHudUI_.Draw();
 
+	// 被弾方向表示は新PlayerHudPresenterに未移行のためWorld HUDとして残す。
 	if (damageIndicatorManager_) damageIndicatorManager_->Draw();
-
-	if (noAmmoUI_ && noAmmoUI_->IsVisible()) noAmmoUI_->Draw();
-
-	if (controlGuideUI_ && controlGuideUI_->IsVisible()) controlGuideUI_->Draw();
 }
 
 void HUDManager::SetHP(float hp, float maxHp)
