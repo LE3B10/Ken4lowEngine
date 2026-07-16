@@ -220,6 +220,9 @@
     <Filter Include="ApplicationLayer\Character\Player\Actor">
       <UniqueIdentifier>{26355c87-0127-4d47-8263-74d4862927a2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ApplicationLayer\Character\Player\Migration">
+      <UniqueIdentifier>{4030fa19-2872-47d0-89d0-04c8373d39ae}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="WinMain.cpp" />
@@ -2867,6 +2870,12 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\IPlayerRuntime.h">
       <Filter>ApplicationLayer\Character\Player\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Migration\GamePlayPlayerMigrationRuntime.h">
+      <Filter>ApplicationLayer\Character\Player\Migration</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Player\Migration\PlayerTutorialRestrictionBridge.h">
+      <Filter>ApplicationLayer\Character\Player\Migration</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
