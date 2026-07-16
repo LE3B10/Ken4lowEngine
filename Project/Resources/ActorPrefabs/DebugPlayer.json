@@ -28,6 +28,7 @@
         },
         {
             "Active": true,
+            "AdsLookSensitivityMultiplier": 0.550000011920929,
             "Class": "PlayerInputComponent",
             "DrawOrder": 0,
             "InputEnabled": true,
@@ -42,12 +43,19 @@
             "BlinkSpeed": 18.0,
             "Class": "PlayerMovementComponent",
             "DrawOrder": 0,
+            "FallDamagePerUnit": 12.0,
+            "FallKillY": -30.0,
             "JumpSpeed": 7.0,
+            "KnockbackDecay": 8.0,
+            "KnockbackDuration": 0.2800000011920929,
+            "LadderClimbSpeed": 3.0,
             "MaxBrakingForce": 120.0,
             "MaxDriveForce": 80.0,
             "MoveSpeed": 6.0,
             "MovementEnabled": true,
             "Name": "Player Movement",
+            "ReloadSpeedMultiplier": 0.6499999761581421,
+            "SafeFallDistance": 5.0,
             "SprintSpeedMultiplier": 1.5499999523162842,
             "Type": "ActorComponent",
             "UpdateOrder": -90,
@@ -61,14 +69,9 @@
             "Active": true,
             "AutomaticFireMode": true,
             "Class": "WeaponComponent",
-            "Damage": 25.0,
             "DrawOrder": 0,
-            "FireInterval": 0.11999999731779099,
             "MagazineAmmo": 30,
-            "MagazineCapacity": 30,
             "Name": "Player Weapon",
-            "Range": 200.0,
-            "ReloadDuration": 1.5,
             "ReserveAmmo": 90,
             "Type": "ActorComponent",
             "UpdateOrder": -80,
@@ -85,7 +88,9 @@
                 0,
                 1,
                 -1,
-                -1
+                -1,
+                4,
+                5
             ],
             "Type": "ActorComponent",
             "UpdateOrder": -75
@@ -190,8 +195,11 @@
         {
             "Active": true,
             "AimFovMultiplier": 0.7200000286102295,
-            "AutoRegisterMainCamera": false,
+            "AutoRegisterMainCamera": true,
             "Class": "PlayerCameraComponent",
+            "DeathPitchOffset": 0.3499999940395355,
+            "DeathRollOffset": 1.100000023841858,
+            "DeathTiltDuration": 0.2800000011920929,
             "DrawOrder": 0,
             "FovTransitionSpeed": 12.0,
             "InheritParentRotation": false,
@@ -293,14 +301,14 @@
             "CollisionLayer": 1,
             "DrawOrder": 0,
             "HalfSize": [
-                0.44999998807907104,
-                0.8999999761581421,
-                0.44999998807907104
+                0.699999988079071,
+                1.899999976158142,
+                0.699999988079071
             ],
             "IsTrigger": false,
             "LocalPosition": [
                 0.0,
-                0.0,
+                -0.30000001192092896,
                 0.0
             ],
             "LocalRotation": [
@@ -462,7 +470,7 @@
             "DrawOrder": 110,
             "Name": "Player Crosshair Left",
             "Position": [
-                950.0,
+                944.3599853515625,
                 540.0
             ],
             "Rotation": 0.0,
@@ -491,7 +499,7 @@
             "DrawOrder": 110,
             "Name": "Player Crosshair Right",
             "Position": [
-                970.0,
+                975.6400146484375,
                 540.0
             ],
             "Rotation": 0.0,
@@ -521,7 +529,7 @@
             "Name": "Player Crosshair Top",
             "Position": [
                 960.0,
-                530.0
+                524.3599853515625
             ],
             "Rotation": 0.0,
             "Size": [
@@ -550,7 +558,7 @@
             "Name": "Player Crosshair Bottom",
             "Position": [
                 960.0,
-                550.0
+                555.6400146484375
             ],
             "Rotation": 0.0,
             "Size": [
@@ -561,6 +569,74 @@
             "Type": "ActorComponent",
             "UpdateOrder": 0,
             "Visible": true
+        },
+        {
+            "Active": true,
+            "Class": "PlayerMeleeAttackComponent",
+            "DrawOrder": 0,
+            "Name": "Player Melee Attack",
+            "Type": "ActorComponent",
+            "UpdateOrder": -70
+        },
+        {
+            "Active": true,
+            "Anchor": [
+                0.5,
+                0.5
+            ],
+            "Class": "TextComponent",
+            "Color": [
+                1.0,
+                0.25,
+                0.15000000596046448,
+                1.0
+            ],
+            "DrawOrder": 115,
+            "FontName": "DotGothic16",
+            "FontSize": 25.0,
+            "Name": "Player No Ammo Text",
+            "Position": [
+                960.0,
+                598.0
+            ],
+            "Text": "NO AMMO",
+            "Type": "ActorComponent",
+            "UpdateOrder": 0,
+            "Visible": false
+        },
+        {
+            "Active": true,
+            "Anchor": [
+                0.5,
+                0.5
+            ],
+            "Class": "TextComponent",
+            "Color": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+            ],
+            "DrawOrder": 116,
+            "FontName": "DotGothic16",
+            "FontSize": 20.0,
+            "Name": "Player Hit Marker",
+            "Position": [
+                960.0,
+                502.0
+            ],
+            "Text": "HIT",
+            "Type": "ActorComponent",
+            "UpdateOrder": 0,
+            "Visible": false
+        },
+        {
+            "Active": true,
+            "Class": "PlayerMigrationValidationComponent",
+            "DrawOrder": 0,
+            "Name": "Player P9 Validation",
+            "Type": "ActorComponent",
+            "UpdateOrder": 200
         }
     ],
     "Layer": "Player",

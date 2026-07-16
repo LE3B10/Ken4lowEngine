@@ -2877,6 +2877,12 @@
     <ClInclude Include="ApplicationLayer\Character\Player\Migration\PlayerTutorialRestrictionBridge.h">
       <Filter>ApplicationLayer\Character\Player\Migration</Filter>
     </ClInclude>
+    <ClInclude Include="Engine\Scene\Management\SceneDefinition.h">
+      <Filter>Engine\Scene\Management</Filter>
+    </ClInclude>
+    <ClInclude Include="Engine\Scene\Management\SceneDefinitionRegistry.h">
+      <Filter>Engine\Scene\Management</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
