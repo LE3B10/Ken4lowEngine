@@ -3,6 +3,7 @@
 #include "EnemyAIComponent.h"
 #include "EnemyAttackComponent.h"
 #include "EnemyEffectComponent.h"
+#include "MidRangeEnemyComponents.h"
 
 #include <Collider.h>
 #include <CollisionPreset.h>
@@ -19,6 +20,19 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		const char* ToEnemyTypeString(::EnemyType enemyType)
+		{
+			return enemyType == ::EnemyType::MidRange ? "MidRange" : "Melee";
+		}
+
+		::EnemyType EnemyTypeFromString(const std::string& value)
+		{
+			return value == "MidRange" ? ::EnemyType::MidRange : ::EnemyType::Melee;
+		}
+	}
+
 	void EnemyActor::Initialize()
 	{
 		SceneComponent* root = GetRootComponent();
@@ -29,12 +43,7 @@ namespace Ken4lowEngine
 			root->SetUpdateOrder(-100);
 		}
 
-		if (!GetEnemyAIComponent())
-		{
-			auto& ai = AddComponent<EnemyAIComponent>();
-			ai.SetName("Enemy AI");
-			ai.SetUpdateOrder(-95); // AIは移動要求を決め、EnemyBaseの地形解決へ同じ速度を渡す。
-		}
+		EnsureArchetypeComponents();
 
 		HumanoidVisualComponent* visual = GetHumanoidVisualComponent();
 		if (visual)
@@ -44,13 +53,6 @@ namespace Ken4lowEngine
 			visual->SetDrawOrder(0);
 			visual->SetCastShadowEnabled(true);
 			visual->AttachTo(root);
-		}
-
-		if (!GetEnemyAttackComponent())
-		{
-			auto& attack = AddComponent<EnemyAttackComponent>();
-			attack.SetName("Enemy Attack");
-			attack.SetUpdateOrder(-80);
 		}
 
 		if (!GetEnemyEffectComponent())
@@ -69,15 +71,15 @@ namespace Ken4lowEngine
 			healthGauge.SetSize({ 190.0f, 16.0f });
 			healthGauge.SetScreenOffset({ 0.0f, -8.0f });
 			healthGauge.SetBackgroundColor({ 0.05f, 0.05f, 0.05f, 0.86f });
-			healthGauge.SetFillColor({ 0.90f, 0.58f, 0.16f, 1.0f });
+			healthGauge.SetFillColor(enemyType_ == ::EnemyType::MidRange ? Vector4{ 0.25f, 0.68f, 0.95f, 1.0f } : Vector4{ 0.90f, 0.58f, 0.16f, 1.0f });
 			healthGauge.SetBorderColor({ 1.0f, 1.0f, 1.0f, 0.90f });
 			healthGauge.SetBorderThickness(2.0f);
 			healthGauge.SetVisible(false);
 			healthGauge.AttachTo(root);
 		}
 
-		SetMaxHp(160);
-		EnemyBase::Initialize(); // Collision、地形補正、被弾、死亡演出は既存本番経路を維持する。
+		SetMaxHp(GetConfiguredArchetypeMaxHp());
+		EnemyBase::Initialize(); // Collision、地形補正、被弾、死亡演出は両アーキタイプで同じ本番経路を使う。
 		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetMovementEnabled(false);
 		runtimeStateInitialized_ = true;
 		if (visual && visual->GetSkinTexturePath().empty()) visual->ApplySkinToAllParts("Characters/enemy.dds");
@@ -95,7 +97,7 @@ namespace Ken4lowEngine
 			{
 				const Vector3 desiredVelocity = movement->GetVelocity();
 				velocity_.x = desiredVelocity.x;
-				velocity_.z = desiredVelocity.z; // Componentの要求速度を旧地形解決へ渡し、Root直接移動との二重適用を避ける。
+				velocity_.z = desiredVelocity.z; // Componentの要求速度をEnemyBaseの地形解決へ渡し、Root直接移動との二重適用を避ける。
 			}
 		}
 		EnemyBase::Update(deltaTime);
@@ -111,6 +113,21 @@ namespace Ken4lowEngine
 		EnsureRuntimeStateInitialized();
 		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->ApplyMoveSpeedMultiplier(moveSpeedMultiplier);
 		if (EnemyAttackComponent* attack = GetEnemyAttackComponent()) attack->ApplyDifficultyMultipliers(attackCooldownMultiplier, damageMultiplier);
+		if (MidRangeEnemyAIComponent* ai = GetMidRangeEnemyAIComponent()) ai->ApplyMoveSpeedMultiplier(moveSpeedMultiplier);
+		if (MidRangeEnemyAttackComponent* attack = GetMidRangeEnemyAttackComponent()) attack->ApplyDifficultyMultipliers(attackCooldownMultiplier, damageMultiplier);
+	}
+
+	void EnemyActor::ToJson(nlohmann::json& outJson) const
+	{
+		EnemyBase::ToJson(outJson);
+		outJson["EnemyType"] = ToEnemyTypeString(enemyType_);
+	}
+
+	void EnemyActor::FromJson(const nlohmann::json& inJson)
+	{
+		EnemyBase::FromJson(inJson);
+		enemyType_ = EnemyTypeFromString(inJson.value("EnemyType", std::string(ToEnemyTypeString(enemyType_))));
+		runtimeStateInitialized_ = false; // Prefab再読込後はHP・Collision・Component接続を現在値から再構築する。
 	}
 
 	void EnemyActor::SetTargetActor(CharacterActor* targetActor)
@@ -118,12 +135,15 @@ namespace Ken4lowEngine
 		targetActor_ = targetActor;
 		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->SetTargetActor(targetActor_);
 		if (EnemyAttackComponent* attack = GetEnemyAttackComponent()) attack->SetTargetActor(targetActor_);
+		if (MidRangeEnemyAIComponent* ai = GetMidRangeEnemyAIComponent()) ai->SetTargetActor(targetActor_);
+		if (MidRangeEnemyAttackComponent* attack = GetMidRangeEnemyAttackComponent()) attack->SetTargetActor(targetActor_);
 	}
 
 	void EnemyActor::SetNavigationObstacles(const std::vector<AABB>* obstacles)
 	{
 		navigationObstacles_ = obstacles;
 		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->SetNavigationObstacles(navigationObstacles_);
+		if (MidRangeEnemyAIComponent* ai = GetMidRangeEnemyAIComponent()) ai->SetNavigationObstacles(navigationObstacles_);
 	}
 
 	CharacterDamageResult EnemyActor::ApplyComparisonDamage(float amount)
@@ -165,7 +185,7 @@ namespace Ken4lowEngine
 		orientation_ = {};
 		hitFlashTimer_ = 0.0f;
 		SetPosition(worldPosition);
-		SetCurrentHp(160);
+		SetCurrentHp(GetConfiguredArchetypeMaxHp());
 		SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 		SetAllPartsActive(true);
 		if (CharacterMovementComponent* movement = GetMovementComponent())
@@ -181,6 +201,8 @@ namespace Ken4lowEngine
 			attack->SetAttackEnabled(true);
 			attack->ResetAttackState();
 		}
+		if (MidRangeEnemyAIComponent* ai = GetMidRangeEnemyAIComponent()) ai->ResetBehavior();
+		if (MidRangeEnemyAttackComponent* attack = GetMidRangeEnemyAttackComponent()) attack->ResetAttackState();
 		if (EnemyEffectComponent* effect = GetEnemyEffectComponent()) effect->ResetEffectState();
 		ApplyPendingRuntimeBindings();
 		SetHealthBarVisible(false);
@@ -192,45 +214,24 @@ namespace Ken4lowEngine
 		if (WorldGaugeComponent* gauge = GetHealthGaugeComponent()) gauge->SetVisible(visible && !IsDead());
 	}
 
-	EnemyAIComponent* EnemyActor::GetEnemyAIComponent()
+	void EnemyActor::KillAfterSuicide()
 	{
-		return GetCharacterComponent<EnemyAIComponent>();
+		const Vector3 direction = targetActor_ ? Vector3::NormalizeSafe(GetCenterPosition() - targetActor_->GetTargetPosition(), { 0.0f, 1.0f, 0.0f }) : Vector3{ 0.0f, 1.0f, 0.0f };
+		EnemyBase::TakeDamage(std::max(1, GetHp()), direction, 2.5f); // 自爆無敵を迂回し、既存の部位爆散と削除タイマーへ接続する。
 	}
 
-	const EnemyAIComponent* EnemyActor::GetEnemyAIComponent() const
-	{
-		return GetCharacterComponent<EnemyAIComponent>();
-	}
-
-	EnemyAttackComponent* EnemyActor::GetEnemyAttackComponent()
-	{
-		return GetCharacterComponent<EnemyAttackComponent>();
-	}
-
-	const EnemyAttackComponent* EnemyActor::GetEnemyAttackComponent() const
-	{
-		return GetCharacterComponent<EnemyAttackComponent>();
-	}
-
-	EnemyEffectComponent* EnemyActor::GetEnemyEffectComponent()
-	{
-		return GetCharacterComponent<EnemyEffectComponent>();
-	}
-
-	const EnemyEffectComponent* EnemyActor::GetEnemyEffectComponent() const
-	{
-		return GetCharacterComponent<EnemyEffectComponent>();
-	}
-
-	HumanoidVisualComponent* EnemyActor::GetHumanoidVisualComponent()
-	{
-		return GetCharacterComponent<HumanoidVisualComponent>();
-	}
-
-	const HumanoidVisualComponent* EnemyActor::GetHumanoidVisualComponent() const
-	{
-		return GetCharacterComponent<HumanoidVisualComponent>();
-	}
+	EnemyAIComponent* EnemyActor::GetEnemyAIComponent() { return GetCharacterComponent<EnemyAIComponent>(); }
+	const EnemyAIComponent* EnemyActor::GetEnemyAIComponent() const { return GetCharacterComponent<EnemyAIComponent>(); }
+	EnemyAttackComponent* EnemyActor::GetEnemyAttackComponent() { return GetCharacterComponent<EnemyAttackComponent>(); }
+	const EnemyAttackComponent* EnemyActor::GetEnemyAttackComponent() const { return GetCharacterComponent<EnemyAttackComponent>(); }
+	MidRangeEnemyAIComponent* EnemyActor::GetMidRangeEnemyAIComponent() { return GetCharacterComponent<MidRangeEnemyAIComponent>(); }
+	const MidRangeEnemyAIComponent* EnemyActor::GetMidRangeEnemyAIComponent() const { return GetCharacterComponent<MidRangeEnemyAIComponent>(); }
+	MidRangeEnemyAttackComponent* EnemyActor::GetMidRangeEnemyAttackComponent() { return GetCharacterComponent<MidRangeEnemyAttackComponent>(); }
+	const MidRangeEnemyAttackComponent* EnemyActor::GetMidRangeEnemyAttackComponent() const { return GetCharacterComponent<MidRangeEnemyAttackComponent>(); }
+	EnemyEffectComponent* EnemyActor::GetEnemyEffectComponent() { return GetCharacterComponent<EnemyEffectComponent>(); }
+	const EnemyEffectComponent* EnemyActor::GetEnemyEffectComponent() const { return GetCharacterComponent<EnemyEffectComponent>(); }
+	HumanoidVisualComponent* EnemyActor::GetHumanoidVisualComponent() { return GetCharacterComponent<HumanoidVisualComponent>(); }
+	const HumanoidVisualComponent* EnemyActor::GetHumanoidVisualComponent() const { return GetCharacterComponent<HumanoidVisualComponent>(); }
 
 	WorldGaugeComponent* EnemyActor::GetHealthGaugeComponent()
 	{
@@ -243,12 +244,22 @@ namespace Ken4lowEngine
 
 	const WorldGaugeComponent* EnemyActor::GetHealthGaugeComponent() const
 	{
-		const auto gauges = GetComponents<WorldGaugeComponent>();
-		for (const WorldGaugeComponent* gauge : gauges)
+		for (const WorldGaugeComponent* gauge : GetComponents<WorldGaugeComponent>())
 		{
 			if (gauge && gauge->GetName() == "Enemy HP Gauge") return gauge;
 		}
 		return nullptr;
+	}
+
+	void EnemyActor::TakeDamage(int amount)
+	{
+		TakeDamage(amount, {}, 50.0f);
+	}
+
+	void EnemyActor::TakeDamage(int amount, const Vector3& hitDir, float hitPower)
+	{
+		if (const MidRangeEnemyAttackComponent* attack = GetMidRangeEnemyAttackComponent(); attack && attack->IsSuicideInvulnerable()) return;
+		EnemyBase::TakeDamage(amount, hitDir, hitPower);
 	}
 
 	void EnemyActor::SyncHealthGauge()
@@ -269,6 +280,8 @@ namespace Ken4lowEngine
 	void EnemyActor::EnsureRuntimeStateInitialized()
 	{
 		if (runtimeStateInitialized_) return;
+		EnsureArchetypeComponents();
+		InitializeComponents();
 		if (CharacterHealthComponent* health = GetHealthComponent())
 		{
 			configuredMaxHp_ = std::max(1, static_cast<int>(std::round(health->GetMaxHealth())));
@@ -276,7 +289,7 @@ namespace Ken4lowEngine
 		}
 		else
 		{
-			configuredMaxHp_ = 160;
+			configuredMaxHp_ = GetConfiguredArchetypeMaxHp();
 			isDead_ = false;
 		}
 
@@ -311,11 +324,52 @@ namespace Ken4lowEngine
 		SyncHealthGauge();
 	}
 
+	void EnemyActor::EnsureArchetypeComponents()
+	{
+		if (enemyType_ == ::EnemyType::MidRange)
+		{
+			if (!GetMidRangeEnemyAIComponent())
+			{
+				auto& ai = AddComponent<MidRangeEnemyAIComponent>();
+				ai.SetName("MidRange Enemy AI");
+				ai.SetUpdateOrder(-95);
+			}
+			if (!GetMidRangeEnemyAttackComponent())
+			{
+				auto& attack = AddComponent<MidRangeEnemyAttackComponent>();
+				attack.SetName("MidRange Enemy Attack");
+				attack.SetUpdateOrder(-80);
+				attack.SetDrawOrder(10);
+			}
+			return;
+		}
+
+		if (!GetEnemyAIComponent())
+		{
+			auto& ai = AddComponent<EnemyAIComponent>();
+			ai.SetName("Enemy AI");
+			ai.SetUpdateOrder(-95);
+		}
+		if (!GetEnemyAttackComponent())
+		{
+			auto& attack = AddComponent<EnemyAttackComponent>();
+			attack.SetName("Enemy Attack");
+			attack.SetUpdateOrder(-80);
+		}
+	}
+
+	int EnemyActor::GetConfiguredArchetypeMaxHp() const
+	{
+		return enemyType_ == ::EnemyType::MidRange ? 120 : 160;
+	}
+
 	void EnemyActor::OnDeath(const CharacterDeathEvent& deathEvent)
 	{
 		(void)deathEvent;
 		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->StopBehavior();
 		if (EnemyAttackComponent* attack = GetEnemyAttackComponent()) attack->StopAttacking();
+		if (MidRangeEnemyAIComponent* ai = GetMidRangeEnemyAIComponent()) ai->StopBehavior();
+		if (MidRangeEnemyAttackComponent* attack = GetMidRangeEnemyAttackComponent()) attack->StopAttacking();
 		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->Stop();
 		SetHealthBarVisible(false);
 		SyncHealthGauge(); // Collider停止と部位死亡演出は直後のEnemyBase::TakeDamageへ一元化する。
