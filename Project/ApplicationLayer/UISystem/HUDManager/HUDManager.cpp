@@ -1,6 +1,8 @@
 ﻿#define NOMINMAX
 #include "HUDManager.h"
 #include "Player.h"
+#include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
+#include "ApplicationLayer/Character/Player/Actor/PlayerActor.h"
 
 #include <algorithm>
 #include <array>
@@ -9,7 +11,6 @@
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif
-
 
 HUDManager::~HUDManager() = default;
 
@@ -34,14 +35,13 @@ void HUDManager::Initialize()
 	hpWidget_->SetAnchorTopLeft({ 560.0f, 880.0f });
 	hpWidget_->SetIconSize({ 22.0f, 22.0f });
 	hpWidget_->SetPadding(6.0f);
-	hpWidget_->SetHpPerHeart(10.0f); // 1ハート=10HP（必要なら変更）
+	hpWidget_->SetHpPerHeart(10.0f);
 
 	// 武器スロットHUDの初期化
 	weaponSlot_ = std::make_unique<WeaponSlot>();
 	weaponSlot_->Initialize("UI/Common/slot_frame.dds", "UI/Common/slot_frame_selected.dds");
 	weaponSlot_->InitializeSlotNumbers("UI/Common/numbers02.dds", 50.0f, 50.0f, { 8.0f, 8.0f }, 2.0f, 32, 32);
 
-	// 武器カテゴリ別アイコン（スロット0..5）をまとめて渡し、WeaponSlot側で選択状態を描き分ける。
 	const std::array<std::string, WeaponSlot::kSlotCount> weaponIcons = {
 		"UI/Icons/primary_icon.dds",
 		"UI/Icons/backup_icon.dds",
@@ -51,19 +51,8 @@ void HUDManager::Initialize()
 		"UI/Icons/heavy_icon.dds"
 	};
 	weaponSlot_->InitializeIcons(weaponIcons);
-
-	weaponSlot_->InitializeAmmoDelimiter(
-		"UI/Icons/slash_icon.dds",
-		{ 20.0f, 20.0f },
-		{ 0.0f, 0.0f }
-	);
-
-	// 弾薬表示初期化
-	weaponSlot_->InitializeAmmoNumbers("UI/Common/Number.dds",
-		50, 50,
-		{ 10, 10 },
-		-5.0f,
-		20.0f, 20.0f);
+	weaponSlot_->InitializeAmmoDelimiter("UI/Icons/slash_icon.dds", { 20.0f, 20.0f }, { 0.0f, 0.0f });
+	weaponSlot_->InitializeAmmoNumbers("UI/Common/Number.dds", 50, 50, { 10, 10 }, -5.0f, 20.0f, 20.0f);
 
 	/*waveUI_ = std::make_unique<WaveUI>();
 	waveUI_->Initialize();
@@ -82,14 +71,14 @@ void HUDManager::Initialize()
 		"UI/Common/reticle_icon.dds",
 		"UI/Common/mouse_rightClick.dds",
 		"UI/Common/R_key_icon.dds",
-		"UI/Common/reload_icon.dds"
-	);
+		"UI/Common/reload_icon.dds");
 	controlGuideUI_->SetVisible(true);
 	controlGuideUI_->SetAnchorTopLeft({ 1500.0f, 930.0f });
 
 	bossHudUI_.Initialize();
 	stage1ObjectiveGuideUI_.Initialize();
-	SetLegacyPlayerHudVisible(legacyPlayerHudVisible_); // 初期化直後から新旧HUDの表示区分を反映する。
+	SetLegacyPlayerHudVisible(legacyPlayerHudVisible_);
+	SetRuntimeWeaponHudVisible(runtimeWeaponHudVisible_); // 新PlayerではReloadCircleとWeaponSlotだけを旧素材から再利用する。
 }
 
 void HUDManager::SetLegacyPlayerHudVisible(bool visible)
@@ -100,12 +89,23 @@ void HUDManager::SetLegacyPlayerHudVisible(bool visible)
 	if (hpWidget_) hpWidget_->SetVisible(visible);
 	if (crosshair_) crosshair_->SetVisible(visible);
 	if (controlGuideUI_) controlGuideUI_->SetVisible(visible);
+	if (reloadCircle_) reloadCircle_->SetVisible(runtimeWeaponHudVisible_ || visible);
+	if (!visible && noAmmoUI_) noAmmoUI_->SetVisible(false);
+}
+
+void HUDManager::SetRuntimeWeaponHudVisible(bool visible)
+{
+	runtimeWeaponHudVisible_ = visible;
 	if (reloadCircle_)
 	{
-		reloadCircle_->SetVisible(visible);
-		if (!visible) reloadCircle_->SetReloading(false, 0.0f);
+		reloadCircle_->SetVisible(visible || legacyPlayerHudVisible_);
+		if (!visible && !legacyPlayerHudVisible_) reloadCircle_->SetReloading(false, 0.0f);
 	}
-	if (!visible && noAmmoUI_) noAmmoUI_->SetVisible(false);
+}
+
+IPlayerRuntime* HUDManager::ResolvePlayerRuntime() const
+{
+	return playerRuntime_ ? playerRuntime_ : IPlayerRuntime::GetActiveRuntime();
 }
 
 /// -------------------------------------------------------------
@@ -113,16 +113,25 @@ void HUDManager::SetLegacyPlayerHudVisible(bool visible)
 /// -------------------------------------------------------------
 void HUDManager::Update(float deltaTime)
 {
+	bool isReloadingForHUD = false;
+	if (runtimeWeaponHudVisible_ && ResolvePlayerRuntime())
+	{
+		isReloadingForHUD = UpdateReloadCircleFromRuntime();
+		UpdateWeaponSlotFromRuntime();
+	}
+	else if (legacyPlayerHudVisible_)
+	{
+		isReloadingForHUD = UpdateReloadCircleFromPlayer();
+		UpdateWeaponSlotFromPlayer();
+	}
+
+	if ((runtimeWeaponHudVisible_ || legacyPlayerHudVisible_) && reloadCircle_) reloadCircle_->Update();
+
 	if (legacyPlayerHudVisible_)
 	{
-		const bool isReloadingForHUD = UpdateReloadCircleFromPlayer();
 		UpdateCrosshairFromPlayer(isReloadingForHUD);
-
 		if (hpWidget_) hpWidget_->Update();
-		if (reloadCircle_) reloadCircle_->Update();
 		if (crosshair_) crosshair_->Update();
-
-		UpdateWeaponSlotFromPlayer();
 		UpdateNoAmmoFromPlayer(deltaTime);
 		if (controlGuideUI_) controlGuideUI_->Update(deltaTime);
 	}
@@ -134,33 +143,84 @@ void HUDManager::Update(float deltaTime)
 	stage1ObjectiveGuideUI_.Update(deltaTime);
 }
 
-bool HUDManager::UpdateReloadCircleFromPlayer()
+bool HUDManager::UpdateReloadCircleFromRuntime()
 {
-	if (!reloadCircle_)
+	IPlayerRuntime* runtime = ResolvePlayerRuntime();
+	if (!reloadCircle_ || !runtime)
 	{
+		if (reloadCircle_) reloadCircle_->SetReloading(false, 0.0f);
 		return false;
 	}
+
+	const bool isReloading = runtime->IsReloading();
+	const float reloadDuration = runtime->GetReloadDuration();
+	const float progress01 = isReloading && reloadDuration > 1.0e-6f
+		? std::clamp(runtime->GetReloadTimer() / reloadDuration, 0.0f, 1.0f)
+		: 0.0f;
+
+	reloadCircle_->SetVisible(runtimeWeaponHudVisible_ || legacyPlayerHudVisible_);
+	reloadCircle_->SetReloading(isReloading, progress01); // 新WeaponComponentは経過時間を正本として0→1へ進める。
+	prevReloading_ = isReloading;
+	return isReloading;
+}
+
+void HUDManager::UpdateWeaponSlotFromRuntime()
+{
+	IPlayerRuntime* runtime = ResolvePlayerRuntime();
+	if (!weaponSlot_ || !runtime) return;
+
+	WeaponSlot::HudSnapshot snapshot{};
+	int selectedSlot = runtime->GetSelectedWeaponSlot();
+	int slotCount = std::clamp(runtime->GetWeaponSlotCount(), 1, WeaponSlot::kSlotCount);
+
+	if (const auto* actor = dynamic_cast<const Ken4lowEngine::PlayerActor*>(runtime))
+	{
+		if (const auto* inventory = actor->GetInventoryComponent())
+		{
+			selectedSlot = inventory->GetSelectedSlot();
+			slotCount = std::min(static_cast<int>(inventory->GetSlots().size()), WeaponSlot::kSlotCount);
+			for (int i = 0; i < slotCount; ++i)
+			{
+				if (inventory->GetSlots()[i] < 0) continue;
+				snapshot.slotStates[i].useAmmo = (i == selectedSlot);
+			}
+		}
+	}
+	else
+	{
+		for (int i = 0; i < slotCount; ++i)
+		{
+			if (runtime->GetWeaponIdForSlot(i) < 0) continue;
+			snapshot.slotStates[i].useAmmo = (i == selectedSlot);
+		}
+	}
+
+	snapshot.selectedIndex = std::clamp(selectedSlot, 0, WeaponSlot::kSlotCount - 1);
+	if (snapshot.selectedIndex >= 0 && snapshot.selectedIndex < WeaponSlot::kSlotCount)
+	{
+		auto& ammo = snapshot.slotStates[snapshot.selectedIndex].ammoInfo;
+		ammo.currentAmmo = runtime->GetMagazineAmmo();
+		ammo.reserveAmmo = runtime->GetReserveAmmo();
+	}
+	weaponSlot_->Update(snapshot); // 選択枠と弾薬だけを新Inventory/Weapon状態から同期する。
+}
+
+bool HUDManager::UpdateReloadCircleFromPlayer()
+{
+	if (!reloadCircle_) return false;
 
 	bool isReloading = false;
 	float reloadTimer = 0.0f;
 	float reloadSec = 0.0f;
-
 	const bool hasInfo = (player_ != nullptr) && player_->GetReloadUI(isReloading, reloadTimer, reloadSec);
 	if (!hasInfo || reloadSec <= 1e-6f)
 	{
-		// 武器情報が取得できないフレームでは、古いリロード表示が残らないように明示的に消す。
 		reloadCircle_->SetReloading(false, 0.0f);
 		prevReloading_ = false;
 		return false;
 	}
 
-	// 武器側のreloadTimer表現差を吸収し、HUDでは常に0→1の進捗として扱う。
-	if (isReloading && !prevReloading_)
-	{
-		// start直後にtimerがreloadSecに近ければ「残り時間」、0に近ければ「経過時間」とみなす。
-		reloadTimerIsRemaining_ = (reloadTimer > reloadSec * 0.5f);
-	}
-
+	if (isReloading && !prevReloading_) reloadTimerIsRemaining_ = (reloadTimer > reloadSec * 0.5f);
 	float progress01 = 0.0f;
 	if (isReloading)
 	{
@@ -175,21 +235,13 @@ bool HUDManager::UpdateReloadCircleFromPlayer()
 
 void HUDManager::UpdateCrosshairFromPlayer(bool isReloadingForHUD)
 {
-	if (!crosshair_ || !player_)
-	{
-		return;
-	}
+	if (!crosshair_ || !player_) return;
 
 	FWeaponReticleData r{};
 	float spread = 0.0f;
 	bool isADS = false;
+	if (!player_->GetReticleUI(r, spread, isADS)) return;
 
-	if (!player_->GetReticleUI(r, spread, isADS))
-	{
-		return;
-	}
-
-	// 武器マスタ由来のレティクル設定を毎フレーム反映し、Editor調整を即時確認できるようにする。
 	crosshair_->SetReticleType(static_cast<int>(r.reticleType));
 	crosshair_->SetReticleTexture(r.reticleTexturePath);
 	crosshair_->SetBaseSize(r.reticleBaseSize);
@@ -197,16 +249,8 @@ void HUDManager::UpdateCrosshairFromPlayer(bool isReloadingForHUD)
 	crosshair_->SetExpandPerShot(r.reticleExpandPerShot);
 	crosshair_->SetRecoverSpeed(r.reticleRecoverSpeed);
 	crosshair_->SetSpreadValue(spread);
-
-	// 移動状態そのものはPlayer側から渡されるため、ここでは倍率だけをレティクルへ反映する。
 	crosshair_->SetMoveExpandEnabled(r.bEnableMoveReticleExpand);
-	crosshair_->SetMoveExpandMultipliers(
-		r.moveExpandMultiplier,
-		r.sprintExpandMultiplier,
-		r.airExpandMultiplier,
-		r.landExpandImpulse);
-
-	// ADS時は通常照準を隠す/専用照準へ差し替えるなど、武器ごとの見え方を同期する。
+	crosshair_->SetMoveExpandMultipliers(r.moveExpandMultiplier, r.sprintExpandMultiplier, r.airExpandMultiplier, r.landExpandImpulse);
 	crosshair_->SetHideInADS(r.bHideReticleInADS);
 	crosshair_->SetADSState(isADS);
 	crosshair_->SetHideWhileReload(true);
@@ -216,8 +260,6 @@ void HUDManager::UpdateCrosshairFromPlayer(bool isReloadingForHUD)
 	crosshair_->SetUseADSCenterDot(r.bUseAdsCenterDot);
 	crosshair_->SetADSCenterDotTexture(r.adsCenterDotTexturePath);
 	crosshair_->SetADSBlendTime(r.adsReticleBlendTime);
-
-	// ヒット/撃破マーカーは通知時に使う素材と表示時間だけをここで最新化しておく。
 	crosshair_->SetShowHitMarker(r.bShowHitMarker);
 	crosshair_->SetHitMarkerTexture(r.hitMarkerTexturePath);
 	crosshair_->SetUseHeadshotMarker(r.bUseHeadshotMarker);
@@ -230,24 +272,15 @@ void HUDManager::UpdateCrosshairFromPlayer(bool isReloadingForHUD)
 
 void HUDManager::UpdateWeaponSlotFromPlayer()
 {
-	if (!weaponSlot_ || !player_)
-	{
-		return;
-	}
+	if (!weaponSlot_ || !player_) return;
 
 	WeaponSlot::HudSnapshot snap{};
-	if (player_->GetWeaponSlotHUD(snap))
-	{
-		weaponSlot_->Update(snap);
-	}
+	if (player_->GetWeaponSlotHUD(snap)) weaponSlot_->Update(snap);
 }
 
 void HUDManager::UpdateNoAmmoFromPlayer(float deltaTime)
 {
-	if (!noAmmoUI_ || !player_)
-	{
-		return;
-	}
+	if (!noAmmoUI_ || !player_) return;
 
 	bool showNoAmmo = false;
 	player_->GetNoAmmoUI(showNoAmmo);
@@ -263,11 +296,15 @@ void HUDManager::Draw()
 	if (legacyPlayerHudVisible_)
 	{
 		if (hpWidget_ && hpWidget_->IsVisible()) hpWidget_->Draw();
-		if (reloadCircle_ && reloadCircle_->IsVisible()) reloadCircle_->Draw();
 		if (crosshair_ && crosshair_->IsVisible()) crosshair_->Draw();
-		if (weaponSlot_) weaponSlot_->Draw();
 		if (noAmmoUI_ && noAmmoUI_->IsVisible()) noAmmoUI_->Draw();
 		if (controlGuideUI_ && controlGuideUI_->IsVisible()) controlGuideUI_->Draw();
+	}
+
+	if (runtimeWeaponHudVisible_ || legacyPlayerHudVisible_)
+	{
+		if (reloadCircle_ && reloadCircle_->IsVisible()) reloadCircle_->Draw();
+		if (weaponSlot_) weaponSlot_->Draw();
 	}
 
 	if (waveUI_ && IsWaveUIDrawEnabled()) waveUI_->Draw();
@@ -285,7 +322,6 @@ void HUDManager::SetHP(float hp, float maxHp)
 
 void HUDManager::SetBossHP(float hp, float maxHp, bool bossBattleActive)
 {
-	// ボス専用HUDの状態管理はBossHudUIへ委譲し、HUDManagerは通知だけを担当する。
 	bossHudUI_.SetBossHP(hp, maxHp, bossBattleActive);
 }
 
@@ -294,55 +330,23 @@ void HUDManager::SetStage1ObjectiveGuide(bool enabled, int destroyedCrystals, in
 	stage1ObjectiveGuideUI_.SetGuide(enabled, destroyedCrystals, totalCrystals, bossBattleActive, bossDefeated, tutorialActive);
 }
 
-void HUDManager::SetStage1ObjectiveTutorialAlpha(float alpha)
-{
-	stage1ObjectiveGuideUI_.SetTutorialAlpha(alpha);
-}
+void HUDManager::SetStage1ObjectiveTutorialAlpha(float alpha) { stage1ObjectiveGuideUI_.SetTutorialAlpha(alpha); }
+void HUDManager::SetStage1ObjectiveTutorialPage(int page) { stage1ObjectiveGuideUI_.SetTutorialPage(page); }
+void HUDManager::SetStage1ObjectiveTutorialProgress(float progress) { stage1ObjectiveGuideUI_.SetTutorialProgress(progress); }
+void HUDManager::SetStage1TutorialItemMarker(int markerIndex, bool visible, const K4E::Vector2& screenPosition, int itemType) { stage1ObjectiveGuideUI_.SetTutorialItemMarker(markerIndex, visible, screenPosition, itemType); }
+void HUDManager::NotifyStage1ObjectiveGuideStarted() { stage1ObjectiveGuideUI_.NotifyGuideStarted(); }
+void HUDManager::NotifyStage1BossAppeared() { stage1ObjectiveGuideUI_.NotifyBossAppeared(); }
 
-void HUDManager::SetStage1ObjectiveTutorialPage(int page)
-{
-	stage1ObjectiveGuideUI_.SetTutorialPage(page);
-}
-
-void HUDManager::SetStage1ObjectiveTutorialProgress(float progress)
-{
-	stage1ObjectiveGuideUI_.SetTutorialProgress(progress);
-}
-
-void HUDManager::SetStage1TutorialItemMarker(int markerIndex, bool visible, const K4E::Vector2& screenPosition, int itemType)
-{
-	stage1ObjectiveGuideUI_.SetTutorialItemMarker(markerIndex, visible, screenPosition, itemType);
-}
-
-void HUDManager::NotifyStage1ObjectiveGuideStarted()
-{
-	stage1ObjectiveGuideUI_.NotifyGuideStarted();
-}
-
-void HUDManager::NotifyStage1BossAppeared()
-{
-	stage1ObjectiveGuideUI_.NotifyBossAppeared();
-}
-
-void HUDManager::SetBossGuide(const K4E::Vector3& playerPos,
-	const K4E::Vector3& bossPos,
-	const K4E::Vector3& cameraForward,
-	bool bossBattleActive)
+void HUDManager::SetBossGuide(const K4E::Vector3& playerPos, const K4E::Vector3& bossPos, const K4E::Vector3& cameraForward, bool bossBattleActive)
 {
 	bossHudUI_.SetBossGuide(playerPos, bossPos, cameraForward, bossBattleActive);
 }
 
-void HUDManager::NotifyBossIntroCompleted(const K4E::Vector3& bossPos)
-{
-	bossHudUI_.NotifyBossIntroCompleted(bossPos);
-}
+void HUDManager::NotifyBossIntroCompleted(const K4E::Vector3& bossPos) { bossHudUI_.NotifyBossIntroCompleted(bossPos); }
 
 void HUDManager::SetWeaponSlotVisibleSlotCount(int count)
 {
-	if (weaponSlot_)
-	{
-		weaponSlot_->SetVisibleSlotCount(count);
-	}
+	if (weaponSlot_) weaponSlot_->SetVisibleSlotCount(count);
 }
 
 void HUDManager::NotifyPlayerHit(float strength01)
@@ -352,27 +356,22 @@ void HUDManager::NotifyPlayerHit(float strength01)
 
 void HUDManager::NotifyEnemyHit(bool isHeadshot)
 {
-	if (!crosshair_) return;
-	crosshair_->NotifyEnemyHit(isHeadshot, false);
+	if (crosshair_) crosshair_->NotifyEnemyHit(isHeadshot, false);
 }
 
 void HUDManager::NotifyEnemyKill(bool isHeadshot)
 {
-	if (!crosshair_) return;
-	// kill優先（ヘッドショットキルなら killConfirm テクスチャにフォールバック）
-	crosshair_->NotifyEnemyHit(isHeadshot, true);
+	if (crosshair_) crosshair_->NotifyEnemyHit(isHeadshot, true);
 }
 
 void HUDManager::SetCrosshairMovementState(bool isMoving, bool isSprinting, bool isAirborne)
 {
-	if (!crosshair_) return;
-	crosshair_->SetMovementState(isMoving, isSprinting, isAirborne);
+	if (crosshair_) crosshair_->SetMovementState(isMoving, isSprinting, isAirborne);
 }
 
 void HUDManager::NotifyCrosshairLanded()
 {
-	if (!crosshair_) return;
-	crosshair_->NotifyLanded();
+	if (crosshair_) crosshair_->NotifyLanded();
 }
 
 void HUDManager::SetWaveDisplayState(const WaveUI::DisplayState& state)
@@ -397,31 +396,21 @@ void HUDManager::SetWaveUIVisible(bool v)
 
 bool HUDManager::IsWaveUIDrawEnabled() const
 {
-	// ボス戦中にWave UIを非表示にする処理。WaveUI自体の状態は破棄せず描画だけ止める。
-	if (bossHudUI_.ShouldHideWaveUI())
-	{
-		return false;
-	}
+	if (bossHudUI_.ShouldHideWaveUI()) return false;
 	return waveUI_ && waveUI_->IsVisible();
 }
 
 void HUDManager::AddDamageIndicator(const K4E::Vector3& playerPos, const K4E::Vector3& attackerPos, const K4E::Vector3& cameraForward, const K4E::Vector3& cameraRight)
 {
-	if (damageIndicatorManager_)
-	{
-		damageIndicatorManager_->AddIndicator(playerPos, attackerPos, cameraForward, cameraRight);
-	}
+	if (damageIndicatorManager_) damageIndicatorManager_->AddIndicator(playerPos, attackerPos, cameraForward, cameraRight);
 }
 
 void HUDManager::SetCrosshairTargetingEnemy(bool v)
 {
-	if (!crosshair_) return;
-	// クロスヘア色を切り替える処理。Detectorで遮蔽済みの直接対象だけtrueになる。
-	crosshair_->SetTargetingEnemy(v);
+	if (crosshair_) crosshair_->SetTargetingEnemy(v);
 }
 
 void HUDManager::SetCrosshairTargetColors(const K4E::Vector4& normalColor, const K4E::Vector4& targetColor)
 {
-	if (!crosshair_) return;
-	crosshair_->SetTargetColors(normalColor, targetColor);
+	if (crosshair_) crosshair_->SetTargetColors(normalColor, targetColor);
 }
