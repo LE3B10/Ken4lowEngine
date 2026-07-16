@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Core/EnemyBase.h"
+#include "../Core/EnemyType.h"
 
 #include <AABB.h>
 
@@ -11,26 +12,34 @@ namespace Ken4lowEngine
 	class EnemyAIComponent;
 	class EnemyAttackComponent;
 	class EnemyEffectComponent;
+	class MidRangeEnemyAIComponent;
+	class MidRangeEnemyAttackComponent;
 	class HumanoidVisualComponent;
 	class WorldGaugeComponent;
 
-	/// EnemyBase互換を維持しながら、近接敵のAI・攻撃・表示同期を専用Componentへ委譲する本番Actor。
+	/// EnemyBase互換を維持しながら、近接・中距離敵のAIと攻撃をアーキタイプ別Componentへ委譲する本番Actor。
 	class EnemyActor final : public ::EnemyBase
 	{
 	public:
-		/// 必要なComponentを不足分だけ生成し、旧MeleeEnemyと同じ基礎値を設定する。
+		explicit EnemyActor(::EnemyType enemyType = ::EnemyType::Melee) : enemyType_(enemyType) {}
+
+		/// 必要なComponentを不足分だけ生成し、アーキタイプ別の基礎値を設定する。
 		void Initialize() override;
 
 		/// EnemyBaseの地形・死亡処理とComponent更新を進め、表示用状態を同期する。
 		void Update(float deltaTime) override;
 
-		/// Difficulty Directorの倍率をAIと攻撃Componentへ適用する。
+		/// Difficulty Directorの倍率を現在アーキタイプのAIと攻撃Componentへ適用する。
 		void ApplyDirectorDifficulty(float moveSpeedMultiplier, float attackCooldownMultiplier, float damageMultiplier) override;
 
 		/// JSON保存・復元で使用するActor識別名を返す。
 		std::string GetClassTypeName() const override { return "EnemyActor"; }
+		void ToJson(nlohmann::json& outJson) const override;
+		void FromJson(const nlohmann::json& inJson) override;
 
-		/// AIと攻撃Componentの両方へ同じ追跡対象を設定する。Initialize前の指定も保持する。
+		::EnemyType GetEnemyType() const { return enemyType_; }
+
+		/// 各AIと攻撃Componentへ同じ追跡対象を設定する。Initialize前の指定も保持する。
 		void SetTargetActor(CharacterActor* targetActor);
 
 		/// A* ComponentへStage障害物を設定する。Initialize前の指定も保持し、所有権は移さない。
@@ -45,10 +54,17 @@ namespace Ken4lowEngine
 		/// 照準中だけ頭上HP Gaugeを表示する。
 		void SetHealthBarVisible(bool visible);
 
+		/// 自爆Componentだけが無敵判定を迂回して共通死亡演出へ接続する。
+		void KillAfterSuicide();
+
 		EnemyAIComponent* GetEnemyAIComponent();
 		const EnemyAIComponent* GetEnemyAIComponent() const;
 		EnemyAttackComponent* GetEnemyAttackComponent();
 		const EnemyAttackComponent* GetEnemyAttackComponent() const;
+		MidRangeEnemyAIComponent* GetMidRangeEnemyAIComponent();
+		const MidRangeEnemyAIComponent* GetMidRangeEnemyAIComponent() const;
+		MidRangeEnemyAttackComponent* GetMidRangeEnemyAttackComponent();
+		const MidRangeEnemyAttackComponent* GetMidRangeEnemyAttackComponent() const;
 		EnemyEffectComponent* GetEnemyEffectComponent();
 		const EnemyEffectComponent* GetEnemyEffectComponent() const;
 		HumanoidVisualComponent* GetHumanoidVisualComponent();
@@ -56,8 +72,11 @@ namespace Ken4lowEngine
 		WorldGaugeComponent* GetHealthGaugeComponent();
 		const WorldGaugeComponent* GetHealthGaugeComponent() const;
 
+		void TakeDamage(int amount) override;
+		void TakeDamage(int amount, const Vector3& hitDir, float hitPower) override;
+
 	protected:
-		/// 共通Healthが死亡へ遷移した時点でAI・攻撃・移動を停止する。
+		/// 共通Healthが死亡へ遷移した時点で全AI・攻撃・移動を停止する。
 		void OnDeath(const CharacterDeathEvent& deathEvent) override;
 
 	private:
@@ -65,10 +84,13 @@ namespace Ken4lowEngine
 		void SyncHealthGauge();
 		void ApplyPendingRuntimeBindings();
 		void EnsureRuntimeStateInitialized();
+		void EnsureArchetypeComponents();
+		int GetConfiguredArchetypeMaxHp() const;
 
 	private:
 		CharacterActor* targetActor_ = nullptr;
 		const std::vector<AABB>* navigationObstacles_ = nullptr;
+		::EnemyType enemyType_ = ::EnemyType::Melee;
 		bool runtimeStateInitialized_ = false;
 	};
 } // namespace Ken4lowEngine
