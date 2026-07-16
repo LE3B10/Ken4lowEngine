@@ -6,19 +6,37 @@
 #include <Input.h>
 #include <InputSnapshot.h>
 
+#include <algorithm>
+
 namespace
 {
 	constexpr float kMouseLookSensitivity = 0.0025f;
-	constexpr const char* kPlayerPrefabPath = "Resources/ActorPrefabs/DebugPlayer.json";
+	constexpr const char* kPlayerPrefabPath = "Resources/ActorPrefabs/Player.json";
+}
+
+void TestActor::ToJson(nlohmann::json& outJson) const
+{
+	Ken4lowEngine::PlayerActor::ToJson(outJson);
+	outJson["Class"] = "PlayerActor";
+	outJson["Name"] = "Player";
+	outJson["Layer"] = "Player";
+	outJson["Tags"] = nlohmann::json::array({ "Player" });
+	if (outJson.contains("Components") && outJson["Components"].is_array())
+	{
+		auto& components = outJson["Components"];
+		components.erase(std::remove_if(components.begin(), components.end(), [](const nlohmann::json& component)
+			{
+				return component.value("Class", std::string{}) == "PlayerMigrationValidationComponent";
+			}), components.end()); // Debug検証Componentを本番共通Prefabへ混ぜない。
+	}
 }
 
 void TestActor::Initialize()
 {
 	const bool hadSavedComposition = !GetComponents().empty();
-	bool loadedFromPrefab = false;
 	if (!hadSavedComposition)
 	{
-		loadedFromPrefab = Ken4lowEngine::ActorJsonSerializer::LoadActorFromFile(*this, kPlayerPrefabPath);
+		Ken4lowEngine::ActorJsonSerializer::LoadActorFromFile(*this, kPlayerPrefabPath);
 	}
 
 	Ken4lowEngine::PlayerActor::Initialize();
@@ -29,9 +47,9 @@ void TestActor::Initialize()
 		validation.SetUpdateOrder(200); // Player本体の各Component更新後にフレーム跨ぎの検証結果を判定する。
 	}
 
-	SetName("DebugPlayer");
+	SetName("Player");
 	wasControllingPlayer_ = false;
-	if (!hadSavedComposition && !loadedFromPrefab) ResetForValidation({ 0.0f, 1.5f, 0.0f });
+	if (!hadSavedComposition) ResetForValidation({ 0.0f, 1.5f, 0.0f }); // 共通Prefabの原点をDebugScene用検証位置へ移す。
 }
 
 void TestActor::Update(float deltaTime)

@@ -189,7 +189,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// リトライ遷移制御
 	bool isRetryTransitionActive_ = false; // リトライ演出中か
 	bool isRetryRestartDone_ = false;      // フェードアウト後の再初期化を実行済みか
-	bool tutorialSeen_ = false;			   // 同じ起動中にチュートリアル完了済みかを覚え、2回目以降のスキップ解放に使う。
+	bool tutorialSeen_ = false;            // 同じ起動中にチュートリアル完了済みかを覚え、2回目以降のスキップ解放に使う。
 	bool tutorialSkipUnlocked_ = false;
 	bool stage1TutorialSkipRequested_ = false;
 

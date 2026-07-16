@@ -67,9 +67,12 @@ namespace
 	}
 }
 
-void RegisterDebugActors()
+void RegisterApplicationActorTypes()
 {
-	// Json Spawnで生成できるDebug用Actorを登録する
+	static bool registered = false;
+	if (registered) return;
+	registered = true; // DebugSceneとGamePlaySceneの両方から呼ばれてもFactory登録を一度だけ行う。
+
 	ActorFactory::RegisterActorClass<TestActor>("TestActor");
 	ActorFactory::RegisterActorClass<TestGroundActor>("TestGroundActor");
 	ActorFactory::RegisterActorClass<EnemyActor>("EnemyActor");
@@ -78,7 +81,7 @@ void RegisterDebugActors()
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<EnemyEffectComponent>("EnemyEffectComponent", "通常敵Effect", "通常敵", "被弾・死亡Effectと死亡表示を管理します。"));
 
 	ActorFactory::RegisterActorClass<BossActor>("BossActor");
-	ActorFactory::RegisterActorClass<NonHumanoidBossActor>("NonHumanoidBossActor"); // 非人型BossをArchetypeとJSON生成候補へ接続する。
+	ActorFactory::RegisterActorClass<NonHumanoidBossActor>("NonHumanoidBossActor");
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<BossBrainComponent>("BossBrainComponent", "ボス行動判断", "ボス", "Target追跡と攻撃要求を判断します。"));
 	//ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<BossAttackComponent>("BossAttackComponent", "ボス攻撃", "ボス", "フェーズ別攻撃選択と共通攻撃実行を管理します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<BossPhaseComponent>("BossPhaseComponent", "ボスフェーズ", "ボス", "共通HPからフェーズを判定します。"));
@@ -90,8 +93,13 @@ void RegisterDebugActors()
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerMovementComponent>("PlayerMovementComponent", "プレイヤー移動", "プレイヤー", "通常移動・Ladder・落下ダメージ・被弾ノックバックを管理します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<WeaponComponent>("WeaponComponent", "武器", "プレイヤー", "6カテゴリの射撃・リロード・装備演出と弾薬状態を管理します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<InventoryComponent>("InventoryComponent", "Inventory", "プレイヤー", "6武器スロットと選択中の装備を管理します。"));
-	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerMeleeAttackComponent>("PlayerMeleeAttackComponent", "プレイヤー近接攻撃", "プレイヤー", "近接攻撃の予備・有効・硬直と命中判定を管理します。")); // Prefab再読込でも新Playerの近接機能を復元する。
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerMeleeAttackComponent>("PlayerMeleeAttackComponent", "プレイヤー近接攻撃", "プレイヤー", "近接攻撃の予備・有効・硬直と命中判定を管理します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerHudPresenterComponent>("PlayerHudPresenterComponent", "プレイヤーHUD", "プレイヤー", "HP・武器・NoAmmo・HitMarker・動的Crosshairを同期します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerMigrationValidationComponent>("PlayerMigrationValidationComponent", "P9 Player検証", "デバッグ", "新PlayerのDamage・Heal・Fire・Reload・Death・GameOver・Resetを自動検証します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationSceneComponentTypeInfo<PlayerCameraComponent>("PlayerCameraComponent", "プレイヤーカメラ", "プレイヤー", "視点要求を角度へ反映し、共通CameraComponentへ同期します。"));
+}
+
+void RegisterDebugActors()
+{
+	RegisterApplicationActorTypes(); // 既存DebugScene入口を共有Factory登録へ転送する。
 }
