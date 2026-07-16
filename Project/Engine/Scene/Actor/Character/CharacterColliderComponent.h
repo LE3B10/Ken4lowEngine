@@ -10,6 +10,9 @@ namespace Ken4lowEngine
 		/// Character向けの扱いやすい既定形状を設定する。
 		CharacterColliderComponent();
 
+		/// Player移行用の既定値よりJSON・Editorで設定したHalfSizeを優先する。
+		void SetHalfSize(const Vector3& halfSize);
+
 		/// Collider生成後に所有CharacterActorへCollision/Overlap通知を接続する。
 		void Initialize() override;
 
