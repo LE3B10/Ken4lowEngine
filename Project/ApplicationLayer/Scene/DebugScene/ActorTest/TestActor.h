@@ -17,6 +17,9 @@ public:
 		return "PlayerActor";
 	}
 
+	/// Debug専用検証ComponentとTagを除外して本番Player Prefabとして保存する。
+	void ToJson(nlohmann::json& outJson) const override;
+
 	/// PlayerActorのComponent構成を生成し、新規生成時だけDebugScene用の初期位置へ配置する。
 	void Initialize() override;
 
