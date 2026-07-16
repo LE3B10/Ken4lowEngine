@@ -3,6 +3,7 @@
 #include "InventoryComponent.h"
 #include "PlayerCameraComponent.h"
 #include "PlayerInputSnapshot.h"
+#include "PlayerMeleeAttackComponent.h"
 #include "PlayerMovementComponent.h"
 #include "WeaponComponent.h"
 
@@ -36,6 +37,7 @@ namespace Ken4lowEngine
 			PlayerCameraComponent* camera = owner->GetComponent<PlayerCameraComponent>();
 			WeaponComponent* weapon = owner->GetComponent<WeaponComponent>();
 			InventoryComponent* inventory = owner->GetComponent<InventoryComponent>();
+			PlayerMeleeAttackComponent* melee = owner->GetComponent<PlayerMeleeAttackComponent>();
 
 			if (movement)
 			{
@@ -56,12 +58,13 @@ namespace Ken4lowEngine
 				if (fireRequested_ && weapon) weapon->RequestFire();
 				if (reloadRequested_ && weapon) weapon->RequestReload();
 				if (toggleFireModeRequested_ && weapon) weapon->RequestToggleFireMode();
+				if (meleeRequested_ && melee) melee->RequestAttack(); // InputSnapshotに存在していた近接入力を新Playerの攻撃処理へ接続する。
 				if (inventorySlotRequested_ >= 0 && inventory) inventory->RequestSelectSlot(inventorySlotRequested_);
 				if (weaponSwitchRequested_ != 0 && inventory) inventory->RequestCycle(weaponSwitchRequested_);
 				if ((lookYawDelta_ != 0.0f || lookPitchDelta_ != 0.0f) && camera) camera->RequestLook(lookYawDelta_, lookPitchDelta_);
 			}
 
-			ClearTransientRequests(); // Hold状態はframeInput_に残し、Press系要求だけ1フレーム配送後に破棄する。
+			ClearTransientRequests();
 		}
 
 		void DrawImGui() override
@@ -74,10 +77,11 @@ namespace Ken4lowEngine
 				frameInput_.sprintHeld ? "Yes" : "No",
 				frameInput_.aimHeld ? "Yes" : "No",
 				frameInput_.fireHeld ? "Yes" : "No");
-			ImGui::Text("Jump: %s / Blink: %s / Reload: %s / Slot: %d / Wheel: %d",
+			ImGui::Text("Jump: %s / Blink: %s / Reload: %s / Melee: %s / Slot: %d / Wheel: %d",
 				frameInput_.jumpPressed ? "Yes" : "No",
 				frameInput_.blinkPressed ? "Yes" : "No",
 				frameInput_.reloadPressed ? "Yes" : "No",
+				frameInput_.meleePressed ? "Yes" : "No",
 				frameInput_.weaponSlotPressed,
 				frameInput_.weaponSwitch);
 			ImGui::Text("Restrictions: %s  Move:%s Shoot:%s Reload:%s",
@@ -103,7 +107,6 @@ namespace Ken4lowEngine
 			ResetInputState();
 		}
 
-		/// 旧Playerと同じInputSnapshotを受け取り、新Actor用の要求へ変換する段階移行入口。
 		void ApplyInputSnapshot(const ::InputSnapshot& snapshot, float mouseLookSensitivity, bool allowLookInput = true)
 		{
 			if (!inputEnabled_)
@@ -123,12 +126,12 @@ namespace Ken4lowEngine
 				const float effectiveSensitivity = mouseLookSensitivity * sensitivityMultiplier;
 				const float yawDelta = -filtered.lookMouseX * effectiveSensitivity;
 				const float pitchDelta = filtered.lookMouseY * effectiveSensitivity;
-				if (yawDelta != 0.0f || pitchDelta != 0.0f) RequestLook(yawDelta, pitchDelta); // ADS中だけ視点感度を落とし、通常時の操作感は維持する。
+				if (yawDelta != 0.0f || pitchDelta != 0.0f) RequestLook(yawDelta, pitchDelta);
 			}
 
 			if (filtered.jumpPressed) RequestJump();
 			if (filtered.blinkPressed) RequestBlink();
-			if (filtered.firePressed) RequestFire(); // SEMIはPress、AUTOはframeInput_.fireHeldをWeaponへ別途配送する。
+			if (filtered.firePressed) RequestFire();
 			if (filtered.reloadPressed) RequestReload();
 			if (filtered.weaponSlotPressed > 0) RequestInventorySlot(filtered.weaponSlotPressed - 1);
 			if (filtered.weaponSwitch != 0) RequestWeaponSwitch(filtered.weaponSwitch);
