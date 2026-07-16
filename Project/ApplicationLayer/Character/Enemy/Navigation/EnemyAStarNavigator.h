@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace K4E = ::Ken4lowEngine;
@@ -56,7 +57,7 @@ public:
 		float sampleY,
 		int* outBlockedObstacleIndex = nullptr) const;
 
-	/// Stage床上から決定的な巡回候補を選び、複数個体が原点へ集中しない目標を返す。
+	/// Stage床上から決定的な巡回候補を選び、複数個体が同じ遠方地点へ集中しない目標を返す。
 	bool TrySelectPatrolGoal(
 		const K4E::Vector3& current,
 		float sampleY,
@@ -89,9 +90,12 @@ private:
 
 	bool RebuildPath(const K4E::Vector3& current, const K4E::Vector3& goal, float sampleY);
 	bool IsWalkableCell(int x, int z, float sampleY) const;
+	bool IsStaticWalkableCell(int x, int z, float sampleY) const;
 	bool HasFloorSupport(const K4E::Vector3& point, float sampleY) const;
 	bool IntersectsAgentHeight(const K4E::AABB& aabb, float sampleY) const;
 	void UpdateInflatedObstacleCache() const;
+	void InvalidateWalkabilityCache() const;
+	std::uint64_t MakeCellCacheKey(int x, int z) const;
 	bool FindNearestWalkableCell(int centerX, int centerZ, float sampleY, int maxRadius, int& outX, int& outZ) const;
 	K4E::Vector3 CellToWorld(int x, int z, float y) const;
 	void WorldToCell(const K4E::Vector3& p, int& outX, int& outZ) const;
@@ -106,6 +110,8 @@ private:
 	mutable const std::vector<K4E::AABB>* obstacleCacheSource_ = nullptr;
 	mutable size_t obstacleCacheSourceCount_ = 0;
 	mutable float obstacleCacheAgentRadius_ = -1.0f;
+	mutable std::unordered_map<std::uint64_t, bool> staticWalkabilityCache_{};
+	mutable float walkabilityCacheSampleY_ = 1.0e30f;
 	std::vector<TemporaryBlockedArea> temporaryBlockedAreas_{};
 	int currentPathIndex_ = 0;
 	float repathTimer_ = 0.0f;
