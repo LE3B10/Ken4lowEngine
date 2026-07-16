@@ -49,6 +49,10 @@ namespace Ken4lowEngine
 
 		::EnemyType GetEnemyType() const { return enemyType_; }
 
+		/// IntroなどPlayerだけを進める区間でAI・攻撃・死亡時間の更新を一時停止する。
+		void SetSimulationEnabled(bool enabled) { simulationEnabled_ = enabled; }
+		bool IsSimulationEnabled() const { return simulationEnabled_; }
+
 		/// 各AIと攻撃Componentへ同じ追跡対象を設定する。Initialize前の指定も保持する。
 		void SetTargetActor(CharacterActor* targetActor);
 
@@ -102,5 +106,6 @@ namespace Ken4lowEngine
 		const std::vector<AABB>* navigationObstacles_ = nullptr;
 		::EnemyType enemyType_ = ::EnemyType::Melee;
 		bool runtimeStateInitialized_ = false;
+		bool simulationEnabled_ = true;
 	};
 } // namespace Ken4lowEngine
