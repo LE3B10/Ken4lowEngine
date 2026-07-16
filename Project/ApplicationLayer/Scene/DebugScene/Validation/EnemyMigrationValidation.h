@@ -15,7 +15,7 @@ namespace Ken4lowEngine
 
 namespace K4E = ::Ken4lowEngine;
 
-/// DebugSceneへ移行済みEnemyActorを配置し、DebugPlayerの射撃・照準とUI Component表示を実戦形式で検証する。
+/// DebugSceneへ移行済みEnemyActorを配置し、DebugPlayerの射撃・照準・A*巡回を実戦形式で検証する。
 class EnemyMigrationValidation
 {
 public:
@@ -55,6 +55,7 @@ private:
 	K4E::EnemyActor* aimedEnemy_ = nullptr;
 	K4E::BossActor* aimedBoss_ = nullptr;
 	std::vector<K4E::AABB> navigationObstacles_;
+	std::vector<K4E::AABB> navigationFloors_; // DebugSceneでも本編と同じFloor制約付きA*巡回を検証する。
 	std::string enemyName_ = "ComponentEnemy";
 	std::string bossName_ = "ComponentBoss";
 	std::string targetName_ = "DebugPlayer";
