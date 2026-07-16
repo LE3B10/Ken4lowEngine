@@ -4,14 +4,16 @@
 #include "EnemyAttackComponent.h"
 #include "EnemyEffectComponent.h"
 
-#include <PhysicsCollisionLayer.h>
-#include <RigidbodyComponent.h>
+#include <Collider.h>
 #include <Scene/Actor/Character/CharacterColliderComponent.h>
 #include <Scene/Actor/Character/CharacterHealthComponent.h>
 #include <Scene/Actor/Character/CharacterMovementComponent.h>
 #include <Scene/Actor/Character/HumanoidVisualComponent.h>
 #include <SceneComponent.h>
 #include <WorldGaugeComponent.h>
+
+#include <algorithm>
+#include <cmath>
 
 namespace Ken4lowEngine
 {
@@ -25,32 +27,16 @@ namespace Ken4lowEngine
 			root->SetUpdateOrder(-100);
 		}
 
-		auto* ai = GetEnemyAIComponent();
-		if (!ai)
+		if (!GetEnemyAIComponent())
 		{
-			ai = &AddComponent<EnemyAIComponent>();
-			ai->SetName("Enemy AI");
-			ai->SetUpdateOrder(-95); // AIは移動要求を決め、CharacterMovementが同フレームでPhysics速度へ変換する。
+			auto& ai = AddComponent<EnemyAIComponent>();
+			ai.SetName("Enemy AI");
+			ai.SetUpdateOrder(-95); // AIは移動要求を決め、CharacterMovementが同じComponent更新内で座標へ反映する。
 		}
 
-		if (!GetComponent<RigidbodyComponent>())
+		HumanoidVisualComponent* visual = GetHumanoidVisualComponent();
+		if (visual)
 		{
-			auto& rigidbody = AddComponent<RigidbodyComponent>();
-			rigidbody.SetName("Enemy Rigidbody");
-			rigidbody.SetUpdateOrder(-85);
-			rigidbody.SetBodyType(BodyType::Dynamic);
-			rigidbody.SetMass(1.0f);
-			rigidbody.SetUseGravity(true);
-			rigidbody.SetSleepEnabled(false);
-			rigidbody.SetRestitution(0.0f);
-			rigidbody.SetStaticFriction(0.0f);
-			rigidbody.SetDynamicFriction(0.0f);
-		}
-
-		auto* visual = GetHumanoidVisualComponent();
-		if (!visual)
-		{
-			visual = &AddComponent<HumanoidVisualComponent>();
 			visual->SetName("Enemy Humanoid Visual");
 			visual->SetUpdateOrder(0);
 			visual->SetDrawOrder(0);
@@ -84,74 +70,98 @@ namespace Ken4lowEngine
 			healthGauge.SetFillColor({ 0.90f, 0.58f, 0.16f, 1.0f });
 			healthGauge.SetBorderColor({ 1.0f, 1.0f, 1.0f, 0.90f });
 			healthGauge.SetBorderThickness(2.0f);
-			healthGauge.SetVisible(false); // 通常EnemyはPlayerの照準が合った時だけ表示する。
+			healthGauge.SetVisible(false);
 			healthGauge.AttachTo(root);
 		}
 
-		const bool hadHealth = GetHealthComponent() != nullptr;
-		const bool hadCollider = GetColliderComponent() != nullptr;
-		CharacterActor::Initialize();
-
-		if (!hadHealth)
-		{
-			if (CharacterHealthComponent* health = GetHealthComponent()) health->ResetHealth(240.0f);
-		}
-		if (!hadCollider)
-		{
-			if (CharacterColliderComponent* collider = GetColliderComponent())
-			{
-				collider->SetHalfSize({ 1.0f, 2.0f, 1.0f });
-				collider->SetCollisionLayer(PhysicsCollisionLayer::DynamicActor);
-			}
-		}
+		SetMaxHp(160);
+		EnemyBase::Initialize(); // Collision、地形補正、被弾、死亡演出は既存本番経路を維持する。
 		if (visual && visual->GetSkinTexturePath().empty()) visual->ApplySkinToAllParts("Characters/enemy.dds");
+		ApplyPendingRuntimeBindings();
+		SetHealthBarVisible(false);
 		SyncHealthGauge();
 	}
 
 	void EnemyActor::Update(float deltaTime)
 	{
-		CharacterActor::Update(deltaTime);
-		SyncHealthGauge(); // ゲーム描画用WorldGaugeへHealth Componentの値を同期する。
+		EnemyBase::Update(deltaTime);
+		if (!IsDead())
+		{
+			if (const SceneComponent* root = GetRootComponent()) orientation_ = root->GetWorldRotation();
+		}
+		SyncHealthGauge();
+	}
+
+	void EnemyActor::ApplyDirectorDifficulty(float moveSpeedMultiplier, float attackCooldownMultiplier, float damageMultiplier)
+	{
+		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->ApplyMoveSpeedMultiplier(moveSpeedMultiplier);
+		if (EnemyAttackComponent* attack = GetEnemyAttackComponent()) attack->ApplyDifficultyMultipliers(attackCooldownMultiplier, damageMultiplier);
 	}
 
 	void EnemyActor::SetTargetActor(CharacterActor* targetActor)
 	{
-		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->SetTargetActor(targetActor);
-		if (EnemyAttackComponent* attack = GetEnemyAttackComponent()) attack->SetTargetActor(targetActor);
+		targetActor_ = targetActor;
+		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->SetTargetActor(targetActor_);
+		if (EnemyAttackComponent* attack = GetEnemyAttackComponent()) attack->SetTargetActor(targetActor_);
 	}
 
 	void EnemyActor::SetNavigationObstacles(const std::vector<AABB>* obstacles)
 	{
-		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->SetNavigationObstacles(obstacles);
+		navigationObstacles_ = obstacles;
+		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->SetNavigationObstacles(navigationObstacles_);
 	}
 
 	CharacterDamageResult EnemyActor::ApplyComparisonDamage(float amount)
 	{
-		const CharacterDamageResult result = ApplyDamage(amount);
+		CharacterDamageResult result{};
+		result.requestedDamage = amount;
+		result.healthBefore = static_cast<float>(GetHp());
+		const bool wasDead = IsDead();
+		if (std::isfinite(amount) && amount > 0.0f)
+		{
+			TakeDamage(std::max(1, static_cast<int>(std::round(amount)))); // Debug比較も本番のEnemyBase Damage経路だけを使用する。
+		}
+		result.healthAfter = static_cast<float>(GetHp());
+		result.appliedDamage = std::max(0.0f, result.healthBefore - result.healthAfter);
+		result.accepted = result.appliedDamage > 0.0f;
+		result.killed = !wasDead && IsDead();
 		if (result.accepted)
 		{
-			const SceneComponent* root = GetRootComponent();
-			if (EnemyEffectComponent* effect = GetEnemyEffectComponent()) effect->TriggerHitEffect(root ? root->GetWorldPosition() : Vector3{});
-			SyncHealthGauge();
+			if (EnemyEffectComponent* effect = GetEnemyEffectComponent()) effect->TriggerHitEffect(GetCenterPosition());
 		}
+		SyncHealthGauge();
 		return result;
 	}
 
 	void EnemyActor::ResetForComparison(const Vector3& worldPosition)
 	{
 		SetActive(true);
-		if (SceneComponent* root = GetRootComponent())
-		{
-			root->SetLocalPosition(worldPosition);
-			root->RefreshWorldTransform();
-		}
-		if (CharacterHealthComponent* health = GetHealthComponent()) health->ResetHealth(240.0f);
+		isDead_ = false;
+		removable_ = false;
+		deathBreakActive_ = false;
+		deathBreakInitialized_ = false;
+		hasDeathEffectOrigin_ = false;
+		hasDeathPartWorldTransforms_ = false;
+		deathTimer_ = 0.0f;
+		deathPieces_.clear();
+		velocity_ = {};
+		orientation_ = {};
+		hitFlashTimer_ = 0.0f;
+		SetPosition(worldPosition);
+		SetCurrentHp(160);
+		SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+		SetAllPartsActive(true);
 		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->Stop();
-		if (RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>()) rigidbody->SetVelocity({}); // 再配置時に以前の落下・追跡速度を持ち越さない。
 		if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(true);
+		if (Collider* primitive = GetCollisionPrimitive()) primitive->SetEnabled(true);
 		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->ResetBehavior();
-		if (EnemyAttackComponent* attack = GetEnemyAttackComponent()) attack->ResetAttackState();
+		if (EnemyAttackComponent* attack = GetEnemyAttackComponent())
+		{
+			attack->SetAttackEnabled(true);
+			attack->ResetAttackState();
+		}
 		if (EnemyEffectComponent* effect = GetEnemyEffectComponent()) effect->ResetEffectState();
+		ApplyPendingRuntimeBindings();
 		SetHealthBarVisible(false);
 		SyncHealthGauge();
 	}
@@ -166,7 +176,17 @@ namespace Ken4lowEngine
 		return GetCharacterComponent<EnemyAIComponent>();
 	}
 
+	const EnemyAIComponent* EnemyActor::GetEnemyAIComponent() const
+	{
+		return GetCharacterComponent<EnemyAIComponent>();
+	}
+
 	EnemyAttackComponent* EnemyActor::GetEnemyAttackComponent()
+	{
+		return GetCharacterComponent<EnemyAttackComponent>();
+	}
+
+	const EnemyAttackComponent* EnemyActor::GetEnemyAttackComponent() const
 	{
 		return GetCharacterComponent<EnemyAttackComponent>();
 	}
@@ -176,7 +196,17 @@ namespace Ken4lowEngine
 		return GetCharacterComponent<EnemyEffectComponent>();
 	}
 
+	const EnemyEffectComponent* EnemyActor::GetEnemyEffectComponent() const
+	{
+		return GetCharacterComponent<EnemyEffectComponent>();
+	}
+
 	HumanoidVisualComponent* EnemyActor::GetHumanoidVisualComponent()
+	{
+		return GetCharacterComponent<HumanoidVisualComponent>();
+	}
+
+	const HumanoidVisualComponent* EnemyActor::GetHumanoidVisualComponent() const
 	{
 		return GetCharacterComponent<HumanoidVisualComponent>();
 	}
@@ -184,6 +214,16 @@ namespace Ken4lowEngine
 	WorldGaugeComponent* EnemyActor::GetHealthGaugeComponent()
 	{
 		for (WorldGaugeComponent* gauge : GetComponents<WorldGaugeComponent>())
+		{
+			if (gauge && gauge->GetName() == "Enemy HP Gauge") return gauge;
+		}
+		return nullptr;
+	}
+
+	const WorldGaugeComponent* EnemyActor::GetHealthGaugeComponent() const
+	{
+		const auto gauges = GetComponents<WorldGaugeComponent>();
+		for (const WorldGaugeComponent* gauge : gauges)
 		{
 			if (gauge && gauge->GetName() == "Enemy HP Gauge") return gauge;
 		}
@@ -199,18 +239,19 @@ namespace Ken4lowEngine
 		gauge->SetValue(health->GetCurrentHealth());
 	}
 
+	void EnemyActor::ApplyPendingRuntimeBindings()
+	{
+		SetTargetActor(targetActor_);
+		SetNavigationObstacles(navigationObstacles_);
+	}
+
 	void EnemyActor::OnDeath(const CharacterDeathEvent& deathEvent)
 	{
 		(void)deathEvent;
 		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->StopBehavior();
 		if (EnemyAttackComponent* attack = GetEnemyAttackComponent()) attack->StopAttacking();
 		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->Stop();
-		if (RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>()) rigidbody->SetVelocity({});
-		if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(false);
 		SetHealthBarVisible(false);
-		SyncHealthGauge();
-
-		const SceneComponent* root = GetRootComponent();
-		if (EnemyEffectComponent* effect = GetEnemyEffectComponent()) effect->TriggerDeathEffect(root ? root->GetWorldPosition() : Vector3{});
+		SyncHealthGauge(); // Collider停止と部位死亡演出は直後のEnemyBase::TakeDamageへ一元化する。
 	}
 } // namespace Ken4lowEngine
