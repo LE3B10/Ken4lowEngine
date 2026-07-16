@@ -27,6 +27,14 @@ namespace Ken4lowEngine
 			if (angle < 0.0f) angle += twoPi;
 			return angle - pi;
 		}
+
+		/// 被弾方向をXZ平面で安全に正規化する。
+		Vector3 NormalizeKnockbackDirection(const Vector3& direction)
+		{
+			const float length = Vector3::LengthXZ(direction);
+			if (length <= kDirectionEpsilon) return { 0.0f, 0.0f, 1.0f };
+			return { direction.x / length, 0.0f, direction.z / length };
+		}
 	}
 
 	void CharacterMovementComponent::Update(float deltaTime)
@@ -82,6 +90,26 @@ namespace Ken4lowEngine
 	{
 		ActorComponent::FromJson(inJson);
 		ComponentPropertyUtility::FromJson(CreateProperties(), inJson);
+	}
+
+	void CharacterMovementComponent::ApplyDamageKnockback(const Vector3& direction, float horizontalPower, float verticalPower)
+	{
+		const Vector3 normalized = NormalizeKnockbackDirection(direction);
+		const float safeHorizontalPower = std::isfinite(horizontalPower) ? std::max(0.0f, horizontalPower) : 0.0f;
+		const float safeVerticalPower = std::isfinite(verticalPower) ? std::max(0.0f, verticalPower) : 0.0f;
+		velocity_.x = normalized.x * safeHorizontalPower;
+		velocity_.z = normalized.z * safeHorizontalPower;
+
+		Actor* owner = GetOwner();
+		RigidbodyComponent* rigidbodyComponent = owner ? owner->GetComponent<RigidbodyComponent>() : nullptr;
+		Rigidbody* rigidbody = rigidbodyComponent ? rigidbodyComponent->GetRigidbody() : nullptr;
+		if (!rigidbody) return;
+
+		Vector3 physicalVelocity = rigidbody->GetVelocity();
+		physicalVelocity.x = velocity_.x;
+		physicalVelocity.z = velocity_.z;
+		physicalVelocity.y = std::max(physicalVelocity.y, safeVerticalPower);
+		rigidbodyComponent->SetVelocity(physicalVelocity); // 被弾フレームのPhysics Stepへ水平押し出しと浮き上がりを即時反映する。
 	}
 
 	void CharacterMovementComponent::SetVelocity(const Vector3& velocity)
