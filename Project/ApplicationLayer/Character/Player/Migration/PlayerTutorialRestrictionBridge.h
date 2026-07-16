@@ -13,6 +13,7 @@ public:
 		bool allowMove = true;
 		bool allowShoot = true;
 		bool allowReload = true;
+		bool allowWeaponSwitch = true;
 	};
 
 	using Provider = std::function<State()>;
