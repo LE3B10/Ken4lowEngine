@@ -21,6 +21,11 @@ public:
 	virtual bool IsDeathActive() const = 0;
 	bool IsDeathSequenceFinished() const { return IsGameOverReady(); }
 
+	// 単一PlayerのGamePlay HUDが新Runtimeへ直接接続できるよう、現在有効なRuntimeを登録する。
+	static void SetActiveRuntime(IPlayerRuntime* runtime) { activeRuntime_ = runtime; }
+	static IPlayerRuntime* GetActiveRuntime() { return activeRuntime_; }
+	static const IPlayerRuntime* GetActiveRuntimeConst() { return activeRuntime_; }
+
 	// P13中も旧Playerソース自体を比較用にコンパイルできるよう、追加Runtime APIは安全な既定実装を持つ。
 	virtual Ken4lowEngine::Vector3 GetWorldPosition() const { return {}; }
 	virtual Ken4lowEngine::Collider* GetCollisionPrimitive() { return nullptr; }
@@ -60,10 +65,16 @@ public:
 	virtual bool IsReloading() const { return false; }
 	virtual float GetReloadTimer() const { return 0.0f; }
 	virtual float GetReloadDuration() const { return 0.0f; }
+	virtual int GetSelectedWeaponSlot() const { return 0; }
+	virtual int GetWeaponSlotCount() const { return 1; }
+	virtual int GetWeaponIdForSlot(int slotIndex) const { return slotIndex == 0 ? 0 : -1; }
 
 	virtual void SetViewLookAngles(float pitch, float yaw)
 	{
 		(void)pitch;
 		(void)yaw;
 	}
+
+private:
+	inline static IPlayerRuntime* activeRuntime_ = nullptr;
 };
