@@ -21,11 +21,8 @@ class BulletManager
 {
 public: /// ---------- メンバ関数 ---------- ///
 
-	// 初期化処理
 	void Initialize(CollisionManager* collisionManager);
 
-	// 生成（dirは正規化済み推奨。speedは units/sec）
-	// typeId: CollisionTypeIdDef の弾種（デフォはプレイヤー弾）
 	Bullet* Spawn(const Ken4lowEngine::Vector3& startPos,
 		const Ken4lowEngine::Vector3& dir,
 		float speed,
@@ -37,27 +34,15 @@ public: /// ---------- メンバ関数 ---------- ///
 		const WeaponParams& weaponParams = WeaponParams()
 	);
 
-	// 更新処理
 	void Update(float dt);
-
-	// 描画処理
 	void Draw();
-
-	// ImGui描画処理
 	void DrawImGui();
-
-	// クリア処理
 	void Clear();
 
-	// プレイヤー弾のWorld着弾演出をGamePlayScene側へ通知する。
 	void SetWorldImpactCallback(std::function<void(const Ken4lowEngine::Vector3&, const Ken4lowEngine::Vector3&)> callback);
-
-	// 通常弾だけをPhysicsWorld Triggerへ段階移行するため、登録先Worldとレイヤーを設定する。
 	void SetPhysicsTriggerWorld(Ken4lowEngine::PhysicsWorld* physicsWorld, uint32_t playerBulletLayer);
 	void SetUsePhysicsTriggerForNormalBullets(bool enabled);
 	void RefreshPhysicsTriggerRegistrations();
-
-	// 有効な弾の判定情報だけをSoA衝突システムへ追加する。
 	void AppendCollisionSoABullets(Ken4lowEngine::BulletEnemyCollisionSoA& collisionSoA) const;
 
 public: /// ---------- アクセサ ---------- ///
@@ -66,17 +51,15 @@ public: /// ---------- アクセサ ---------- ///
 	size_t GetActiveCount() const;
 	size_t GetPhysicsTriggerBulletCount() const;
 	int GetPhysicsTriggerHitCount() const { return physicsTriggerHitCount_; }
+	CollisionManager* GetCollisionManager() const { return collisionManager_; } // 新Player近接ComponentもGamePlayの同じCollision正本を参照する。
 
 private: /// ---------- メンバ変数 ---------- ///
 
-	// 衝突管理マネージャー（弾の衝突判定用）
 	CollisionManager* collisionManager_ = nullptr;
 	Ken4lowEngine::PhysicsWorld* physicsWorld_ = nullptr;
 	uint32_t playerBulletLayer_ = 0u;
 	bool usePhysicsTriggerForNormalBullets_ = false;
 	int physicsTriggerHitCount_ = 0;
 	std::function<void(const Ken4lowEngine::Vector3&, const Ken4lowEngine::Vector3&)> worldImpactCallback_{};
-
-	// 弾リスト
 	std::vector<std::unique_ptr<Bullet>> bullets_;
 };
