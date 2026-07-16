@@ -43,6 +43,10 @@ public:
 		player_->ResetForValidation(spawnPosition);
 		if (K4E::WeaponComponent* weapon = player_->GetWeaponComponent()) weapon->ConfigureAmmoState(30, 30, 90, 120);
 		if (K4E::PlayerMeleeAttackComponent* melee = player_->GetPlayerMeleeAttackComponent()) melee->SetCollisionManager(bulletManager_ ? bulletManager_->GetCollisionManager() : nullptr);
+		Bullet::SetDamageableHitCallback([this](bool killed)
+			{
+				if (player_) player_->NotifyHitFeedback(killed); // Bulletの寿命よりPlayer Runtimeが先に破棄されてもnull確認してHUD通知を止める。
+			});
 		UpdateLadderState();
 		RefreshNearbyStageColliders(true);
 		player_->SetGameplayHudVisible(true);
@@ -61,6 +65,7 @@ public:
 	void Finalize()
 	{
 		active_ = false;
+		Bullet::SetDamageableHitCallback({});
 		if (player_) player_->SetLadderState(false);
 		ClearNearbyStageColliders();
 		stageColliders_.clear();
