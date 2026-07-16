@@ -3,8 +3,10 @@
 #include "BulletManager.h"
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyActor.h"
 #include "ApplicationLayer/Character/Enemy/Projectile/MidRangeBombProjectile.h"
+#include "ApplicationLayer/Scene/DebugScene/DebugActorRegistration.h"
 
 #include <Stage.h>
+#include <Scene/Actor/Character/CharacterMovementComponent.h>
 
 #include <algorithm>
 #include <cmath>
@@ -30,6 +32,20 @@ namespace
 	const char* ToEnemyActorName(EnemyType enemyType)
 	{
 		return enemyType == EnemyType::MidRange ? "MidRangeEnemyActor" : "MeleeEnemyActor";
+	}
+
+	const char* ToEnemyPrefabPath(EnemyType enemyType)
+	{
+		return enemyType == EnemyType::MidRange
+			? "Resources/ActorPrefabs/ComponentMidRangeEnemy.json"
+			: "Resources/ActorPrefabs/ComponentEnemy.json";
+	}
+
+	Vector3 NormalizeXZ(const Vector3& value)
+	{
+		const float length = Vector3::LengthXZ(value);
+		if (length <= 0.0001f) return {};
+		return { value.x / length, 0.0f, value.z / length };
 	}
 }
 
@@ -112,6 +128,7 @@ void CharacterWorld::UpdateRuntimeWorld(float deltaTime, bool allowInput)
 	if (!playerRuntimeController_->BeginWorldUpdate(deltaTime, allowInput)) return;
 
 	actorWorld_.Update(deltaTime);
+	ApplyEnemyCrowdSeparation(deltaTime);
 	playerRuntimeController_->PreparePhysicsUpdate();
 	physicsWorld_.Update(deltaTime);
 	actorWorld_.PostPhysicsUpdate(deltaTime);
@@ -134,6 +151,62 @@ void CharacterWorld::InjectEnemyDeps(K4E::EnemyActor& enemy)
 	}
 }
 
+void CharacterWorld::ApplyEnemyCrowdSeparation(float deltaTime)
+{
+	if (!std::isfinite(deltaTime) || deltaTime <= 0.0f || enemyActors_.size() < 2) return;
+	constexpr float kSeparationRadius = 3.2f;
+	constexpr float kSeparationRadiusSq = kSeparationRadius * kSeparationRadius;
+	constexpr float kSeparationBlend = 0.95f;
+	std::vector<Vector3> separation(enemyActors_.size());
+
+	for (size_t firstIndex = 0; firstIndex < enemyActors_.size(); ++firstIndex)
+	{
+		K4E::EnemyActor* first = enemyActors_[firstIndex];
+		if (!first || first->IsDead() || !first->IsSimulationEnabled()) continue;
+		for (size_t secondIndex = firstIndex + 1; secondIndex < enemyActors_.size(); ++secondIndex)
+		{
+			K4E::EnemyActor* second = enemyActors_[secondIndex];
+			if (!second || second->IsDead() || !second->IsSimulationEnabled()) continue;
+
+			Vector3 apart = first->GetCenterPosition() - second->GetCenterPosition();
+			apart.y = 0.0f;
+			const float distanceSq = apart.x * apart.x + apart.z * apart.z;
+			if (distanceSq >= kSeparationRadiusSq) continue;
+
+			Vector3 direction{};
+			float distance = 0.0f;
+			if (distanceSq <= 0.0001f)
+			{
+				direction = ((firstIndex + secondIndex) & 1u) == 0u ? Vector3{ 1.0f, 0.0f, 0.0f } : Vector3{ 0.0f, 0.0f, 1.0f };
+			}
+			else
+			{
+				distance = std::sqrt(distanceSq);
+				direction = apart * (1.0f / distance);
+			}
+			const float strength = 1.0f - std::clamp(distance / kSeparationRadius, 0.0f, 1.0f);
+			separation[firstIndex] = separation[firstIndex] + direction * strength;
+			separation[secondIndex] = separation[secondIndex] - direction * strength;
+		}
+	}
+
+	for (size_t enemyIndex = 0; enemyIndex < enemyActors_.size(); ++enemyIndex)
+	{
+		K4E::EnemyActor* enemy = enemyActors_[enemyIndex];
+		if (!enemy || enemy->IsDead()) continue;
+		CharacterMovementComponent* movement = enemy->GetMovementComponent();
+		if (!movement) continue;
+		const Vector3 desired = movement->GetVelocity();
+		const float desiredSpeed = Vector3::LengthXZ(desired);
+		if (desiredSpeed <= 0.05f || Vector3::LengthXZ(separation[enemyIndex]) <= 0.0001f) continue;
+
+		const Vector3 correctedDirection = NormalizeXZ(desired + separation[enemyIndex] * (desiredSpeed * kSeparationBlend));
+		if (Vector3::LengthXZ(correctedDirection) <= 0.0001f) continue;
+		movement->SetVelocity({ correctedDirection.x * desiredSpeed, desired.y, correctedDirection.z * desiredSpeed });
+		movement->ApplyMotorTargetToRigidbody(deltaTime); // A*速度の大きさを落とさず、同じ経路上の個体だけ左右へ分散させる。
+	}
+}
+
 std::vector<EnemyBase*> CharacterWorld::GetEnemyRawList() const
 {
 	std::vector<EnemyBase*> result;
@@ -148,25 +221,45 @@ std::vector<EnemyBase*> CharacterWorld::GetEnemyRawList() const
 EnemyBase& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 {
 	EnsurePlayerRuntime();
-	K4E::EnemyActor& enemy = actorWorld_.SpawnActor<K4E::EnemyActor>(request.enemyType);
-	const size_t typeIndex = ToEnemyTypeIndex(request.enemyType);
-	enemy.SetName(std::string(ToEnemyActorName(request.enemyType)) + "_" + std::to_string(spawnedEnemyCounts_[typeIndex] + 1));
-	enemy.SetLayer("Enemy");
-	enemy.AddTag("NormalEnemy");
-	enemy.AddTag(request.enemyType == EnemyType::MidRange ? "MidRangeEnemy" : "MeleeEnemy"); // Outliner・検索・将来のWorld Queryでアーキタイプを型変換なしに識別する。
-	InjectEnemyDeps(enemy);
-	enemy.SetPosition(request.position);
-	enemy.SetOrientation({ 0.0f, request.yawRad, 0.0f });
-	if (request.maxHp > 0.0f) enemy.SetMaxHp(std::max(1, static_cast<int>(std::round(request.maxHp))));
+	RegisterApplicationActorTypes();
 
-	if (ctx_.collisionManager_ && enemy.GetCollisionPrimitive())
+	K4E::EnemyActor* enemy = nullptr;
+	if (K4E::Actor* prefabActor = actorWorld_.SpawnActorFromJson(ToEnemyPrefabPath(request.enemyType)))
 	{
-		ctx_.collisionManager_->AddCollider(enemy.GetCollisionPrimitive()); // PhysicsWorld所有とは別にLegacy弾・照準用Bridgeだけを登録する。
+		enemy = dynamic_cast<K4E::EnemyActor*>(prefabActor);
+		if (!enemy || enemy->GetEnemyType() != request.enemyType)
+		{
+			actorWorld_.DestroyActor(prefabActor);
+			enemy = nullptr;
+		}
+	}
+	if (enemy)
+	{
+		enemy->Initialize(); // DebugSceneと同じPrefab・Initialize経路を使い、Scene間でAI速度設定が分裂しないようにする。
+	}
+	else
+	{
+		enemy = &actorWorld_.SpawnActor<K4E::EnemyActor>(request.enemyType);
 	}
 
-	enemyActors_.push_back(&enemy);
+	const size_t typeIndex = ToEnemyTypeIndex(request.enemyType);
+	enemy->SetName(std::string(ToEnemyActorName(request.enemyType)) + "_" + std::to_string(spawnedEnemyCounts_[typeIndex] + 1));
+	enemy->SetLayer("Enemy");
+	enemy->AddTag("NormalEnemy");
+	enemy->AddTag(request.enemyType == EnemyType::MidRange ? "MidRangeEnemy" : "MeleeEnemy"); // Outliner・検索・将来のWorld Queryでアーキタイプを型変換なしに識別する。
+	InjectEnemyDeps(*enemy);
+	enemy->SetPosition(request.position);
+	enemy->SetOrientation({ 0.0f, request.yawRad, 0.0f });
+	if (request.maxHp > 0.0f) enemy->SetMaxHp(std::max(1, static_cast<int>(std::round(request.maxHp))));
+
+	if (ctx_.collisionManager_ && enemy->GetCollisionPrimitive())
+	{
+		ctx_.collisionManager_->AddCollider(enemy->GetCollisionPrimitive()); // PhysicsWorld所有とは別にLegacy弾・照準用Bridgeだけを登録する。
+	}
+
+	enemyActors_.push_back(enemy);
 	++spawnedEnemyCounts_[typeIndex];
-	return enemy;
+	return *enemy;
 }
 
 EnemyBase& CharacterWorld::SpawnEnemyAt(const K4E::Vector3& position, EnemyType enemyType)
