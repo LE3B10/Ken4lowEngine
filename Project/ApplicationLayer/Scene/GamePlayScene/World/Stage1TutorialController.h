@@ -35,6 +35,7 @@ public:
 				state.allowMove = AllowsPlayerMove();
 				state.allowShoot = AllowsPlayerShoot();
 				state.allowReload = AllowsReload();
+				state.allowWeaponSwitch = !beginnerBalanceEnabled_; // Stage1ではTutorial完了後もPrimary以外の選択を禁止する。
 				return state; // P13でも入力制限の正本はTutorial状態とし、PlayerActorへ直接反映する。
 			});
 	}
