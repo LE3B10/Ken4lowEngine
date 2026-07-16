@@ -1,0 +1,245 @@
+{
+    "Active": true,
+    "Class": "PlayerActor",
+    "Components": [
+        {
+            "Active": true,
+            "Class": "SceneComponent",
+            "DrawOrder": 0,
+            "LocalPosition": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "LocalRotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "LocalScale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "Name": "Player Root",
+            "Parent": "",
+            "Type": "SceneComponent",
+            "UpdateOrder": -100
+        },
+        {
+            "Active": true,
+            "Class": "PlayerInputComponent",
+            "DrawOrder": 0,
+            "InputEnabled": true,
+            "Name": "Player Input",
+            "Type": "ActorComponent",
+            "UpdateOrder": -95
+        },
+        {
+            "Active": true,
+            "BlinkCooldown": 0.75,
+            "BlinkDuration": 0.15000000596046448,
+            "BlinkSpeed": 18.0,
+            "Class": "PlayerMovementComponent",
+            "DrawOrder": 0,
+            "JumpSpeed": 7.0,
+            "MaxBrakingForce": 120.0,
+            "MaxDriveForce": 80.0,
+            "MoveSpeed": 6.0,
+            "MovementEnabled": true,
+            "Name": "Player Movement",
+            "SprintSpeedMultiplier": 1.5499999523162842,
+            "Type": "ActorComponent",
+            "UpdateOrder": -90,
+            "Velocity": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        },
+        {
+            "Active": true,
+            "BodyType": "Dynamic",
+            "Class": "RigidbodyComponent",
+            "DrawOrder": 0,
+            "DynamicFriction": 0.0,
+            "Mass": 1.0,
+            "Name": "Player Rigidbody",
+            "Restitution": 0.0,
+            "SleepEnabled": false,
+            "StaticFriction": 0.0,
+            "Type": "ActorComponent",
+            "UpdateOrder": -85,
+            "UseGravity": true,
+            "Velocity": [
+                0.0,
+                0.0,
+                0.0
+            ]
+        },
+        {
+            "Active": true,
+            "AutomaticFireMode": true,
+            "Class": "WeaponComponent",
+            "DrawOrder": 0,
+            "MagazineAmmo": 30,
+            "Name": "Player Weapon",
+            "ReserveAmmo": 90,
+            "Type": "ActorComponent",
+            "UpdateOrder": -80,
+            "WeaponEnabled": true,
+            "WeaponId": 0
+        },
+        {
+            "Active": true,
+            "Class": "InventoryComponent",
+            "DrawOrder": 0,
+            "Name": "Player Inventory",
+            "SelectedSlot": 0,
+            "Slots": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+            ],
+            "Type": "ActorComponent",
+            "UpdateOrder": -75
+        },
+        {
+            "Active": true,
+            "Class": "PlayerMeleeAttackComponent",
+            "DrawOrder": 0,
+            "Name": "Player Melee Attack",
+            "Type": "ActorComponent",
+            "UpdateOrder": -70
+        },
+        {
+            "Active": true,
+            "AimFovMultiplier": 0.7200000286102295,
+            "AutoRegisterMainCamera": false,
+            "Class": "PlayerCameraComponent",
+            "DrawOrder": 0,
+            "FovTransitionSpeed": 12.0,
+            "InheritParentRotation": false,
+            "LocalPosition": [
+                0.0,
+                1.2000000476837158,
+                0.20000000298023224
+            ],
+            "LocalRotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "LocalScale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "Name": "Player Camera",
+            "Parent": "Player Root",
+            "Pitch": 0.0,
+            "SprintFovMultiplier": 1.100000023841858,
+            "Type": "SceneComponent",
+            "UpdateOrder": 10,
+            "Yaw": 0.0
+        },
+        {
+            "Active": true,
+            "Class": "CharacterHealthComponent",
+            "CurrentHealth": 100.0,
+            "DrawOrder": 0,
+            "Invulnerable": false,
+            "MaxHealth": 100.0,
+            "Name": "Character Health",
+            "Type": "ActorComponent",
+            "UpdateOrder": -50
+        },
+        {
+            "Active": true,
+            "Class": "CharacterTargetComponent",
+            "DrawOrder": 0,
+            "LocalPosition": [
+                0.0,
+                1.0,
+                0.0
+            ],
+            "LocalRotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "LocalScale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "Name": "Character Target",
+            "Parent": "Player Root",
+            "Type": "SceneComponent",
+            "UpdateOrder": -80
+        },
+        {
+            "Active": true,
+            "AnimationName": "Idle",
+            "Class": "CharacterAnimationComponent",
+            "DrawOrder": 0,
+            "Duration": 1.0,
+            "Loop": true,
+            "Name": "Character Animation",
+            "PlaybackSpeed": 1.0,
+            "PlaybackTime": 0.0,
+            "Playing": true,
+            "Type": "ActorComponent",
+            "UpdateOrder": -70
+        },
+        {
+            "Active": true,
+            "Class": "CharacterColliderComponent",
+            "CollisionLayer": 1,
+            "DrawOrder": 0,
+            "HalfSize": [
+                0.44999998807907104,
+                0.8999999761581421,
+                0.44999998807907104
+            ],
+            "IsTrigger": false,
+            "LocalPosition": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "LocalRotation": [
+                0.0,
+                0.0,
+                0.0
+            ],
+            "LocalScale": [
+                1.0,
+                1.0,
+                1.0
+            ],
+            "Name": "Character Collider",
+            "Parent": "Player Root",
+            "Radius": 1.0,
+            "ShapeType": "AABB",
+            "Type": "SceneComponent",
+            "UpdateOrder": -60
+        },
+        {
+            "Active": true,
+            "Class": "PlayerHudPresenterComponent",
+            "DrawOrder": 0,
+            "Name": "Player HUD Presenter",
+            "Type": "ActorComponent",
+            "UpdateOrder": 50
+        }
+    ],
+    "Layer": "Player",
+    "Name": "Player",
+    "Tags": [
+        "Player"
+    ]
+}
