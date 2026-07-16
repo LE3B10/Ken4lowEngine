@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <limits>
 #include <numbers>
 
 #ifdef USE_IMGUI
@@ -100,10 +101,12 @@ void BossBattleController::Initialize(GamePlayStageContext& stageContext, bool s
 {
 	stage1BeginnerBalanceEnabled_ = stage1BeginnerBalanceEnabled;
 	bossSpawnPosition_ = stageContext.HasBossSpawnPoint() ? stageContext.GetBossSpawnPoint() : K4E::Vector3{ 0.0f, 2.25f, 30.0f };
+	bossDeathPosition_ = bossSpawnPosition_;
 	bossSpawned_ = false;
 	bossColliderRegistered_ = false;
 	bossSpawnConditionMet_ = false;
 	bossDefeated_ = false;
+	bossDeathPositionCaptured_ = false;
 	clearItemSpawned_ = false;
 	clearItemCollected_ = false;
 	isGameClear_ = false;
@@ -194,10 +197,15 @@ void BossBattleController::UpdateRuntime(const Dependencies& deps, float deltaTi
 	IPlayerRuntime* player = deps.characters ? deps.characters->GetPlayerRuntime() : nullptr;
 	if (guardianBoss_)
 	{
+		if (!bossDeathPositionCaptured_ && guardianBoss_->GetHP() <= 0.0f)
+		{
+			bossDeathPosition_ = guardianBoss_->GetPosition();
+			bossDeathPositionCaptured_ = true; // 部位爆散でBodyが移動する前の撃破地点を報酬生成用に固定する。
+		}
 		if (player)
 		{
 			guardianBoss_->SetTargetPosition(player->GetWorldPosition());
-			guardianBoss_->SetTargetPlayer(player); // Boss攻撃は旧Player Proxyを経由せずRuntimeへ直接Damageを与える。
+			guardianBoss_->SetTargetPlayer(player);
 		}
 		guardianBoss_->Update(deltaTime);
 		HandleBossPhasePresentation(deps);
@@ -242,6 +250,7 @@ void BossBattleController::DrawBoss()
 		guardianBoss_->Draw();
 	}
 }
+
 void BossBattleController::DrawClearItem() { if (clearItem_) clearItem_->Draw(); }
 void BossBattleController::DrawBossIntro3D() { if (guardianBoss_) { guardianBoss_->ForceSyncWorldTransform(); guardianBoss_->Draw(); } }
 void BossBattleController::DrawShadow() { if (guardianBoss_) guardianBoss_->DrawShadow(); }
@@ -269,6 +278,7 @@ void BossBattleController::DrawImGui(const Dependencies& deps, bool bossIntroPre
 		ImGui::Text("最後にプレイヤーが受けたボスダメージ: %.1f", guardianBoss_->GetLastPlayerDamage());
 	}
 	ImGui::SeparatorText("クリアCube状態");
+	ImGui::Text("死亡地点保持: %s (%.2f, %.2f, %.2f)", bossDeathPositionCaptured_ ? "はい" : "いいえ", bossDeathPosition_.x, bossDeathPosition_.y, bossDeathPosition_.z);
 	ImGui::Text("クリアCube出現済み: %s", clearItemSpawned_ ? "はい" : "いいえ");
 	ImGui::Text("クリアCube取得済み: %s", clearItemCollected_ ? "はい" : "いいえ");
 	ImGui::Text("ゲームクリア判定: %s", isGameClear_ ? "はい" : "いいえ");
@@ -286,6 +296,8 @@ void BossBattleController::ResetIntroForDebug(const Dependencies& deps)
 	bossSpawned_ = false;
 	bossColliderRegistered_ = false;
 	bossDefeated_ = false;
+	bossDeathPositionCaptured_ = false;
+	bossDeathPosition_ = bossSpawnPosition_;
 	bossSpawnConditionMet_ = false;
 	bossIntroController_.Reset();
 }
@@ -299,6 +311,8 @@ void BossBattleController::SpawnGuardianBoss(const Dependencies& deps, bool regi
 	if (bossSpawned_) return;
 	guardianBoss_ = std::make_unique<GuardianBoss>();
 	guardianBoss_->Initialize();
+	bossDeathPositionCaptured_ = false;
+	bossDeathPosition_ = bossSpawnPosition_;
 	if (stage1BeginnerBalanceEnabled_)
 	{
 		if (auto* status = guardianBoss_->GetStatusComponent())
@@ -359,7 +373,7 @@ void BossBattleController::UpdateBossClearProgress(const Dependencies& deps, flo
 		bossDefeated_ = true;
 		if (deps.setBossDefeated) deps.setBossDefeated(false);
 	}
-	if (bossDefeated_ && !clearItemSpawned_ && guardianBoss_) SpawnClearItem(deps, guardianBoss_->GetPosition());
+	if (bossDefeated_ && !clearItemSpawned_ && bossDeathPositionCaptured_) SpawnClearItem(deps, bossDeathPosition_);
 	if (clearItem_ && !clearItemCollected_)
 	{
 		clearItem_->Update(deltaTime);
@@ -372,13 +386,28 @@ void BossBattleController::SpawnClearItem(const Dependencies& deps, const K4E::V
 {
 	if (clearItemSpawned_) return;
 	K4E::Vector3 spawnPosition = bossPosition;
-	spawnPosition.z -= 2.0f;
-	spawnPosition.y = std::max(spawnPosition.y, 0.75f);
+	if (deps.stage)
+	{
+		float selectedFloorY = -std::numeric_limits<float>::infinity();
+		float nearestHeight = std::numeric_limits<float>::infinity();
+		for (const K4E::AABB& floor : deps.stage->GetFloorAABBs())
+		{
+			if (spawnPosition.x < floor.min.x || spawnPosition.x > floor.max.x || spawnPosition.z < floor.min.z || spawnPosition.z > floor.max.z) continue;
+			const float heightDistance = std::abs(floor.max.y - spawnPosition.y);
+			if (heightDistance < nearestHeight)
+			{
+				nearestHeight = heightDistance;
+				selectedFloorY = floor.max.y;
+			}
+		}
+		if (std::isfinite(selectedFloorY)) spawnPosition.y = selectedFloorY;
+	}
+	spawnPosition.y = std::max(spawnPosition.y, 0.0f);
 	clearItem_ = std::make_unique<BossClearItem>();
-	clearItem_->Initialize(spawnPosition);
+	clearItem_->Initialize(spawnPosition); // XZは撃破地点を維持し、Yだけ最寄り床面へ合わせる。
 	if (deps.collisionManager) deps.collisionManager->AddCollider(clearItem_.get());
 	clearItemSpawned_ = true;
-	Log("[GameClear] BossClearItem spawned.\n");
+	Log("[GameClear] BossClearItem spawned at captured death position.\n");
 }
 
 void BossBattleController::CollectClearItem(const Dependencies& deps)
