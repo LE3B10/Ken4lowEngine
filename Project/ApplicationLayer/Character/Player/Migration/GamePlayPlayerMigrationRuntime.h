@@ -22,7 +22,7 @@
 #include <utility>
 #include <vector>
 
-/// P13以降はCharacterWorld所有のPlayerActorをGamePlay入力・Physics・Bulletへ接続するRuntime Controller。
+/// PlayerActorをGamePlay入力・Ladder・Bullet Bridgeへ接続し、World更新前後のPlayer固有処理だけを担当するRuntime Controller。
 class GamePlayPlayerMigrationRuntime
 {
 public:
@@ -89,9 +89,10 @@ public:
 		hasStageRefreshPosition_ = false;
 	}
 
-	void Update(float deltaTime, bool allowInput = true)
+	bool BeginWorldUpdate(float deltaTime, bool allowInput = true)
 	{
-		if (!active_ || !player_ || !actorWorld_ || !physicsWorld_) return;
+		(void)deltaTime;
+		if (!active_ || !player_ || !actorWorld_ || !physicsWorld_) return false;
 		RefreshPlayerRuntimeBindings();
 		K4E::Input* input = K4E::Input::GetInstance();
 		K4E::PlayerInputComponent* playerInput = player_->GetPlayerInputComponent();
@@ -105,17 +106,35 @@ public:
 		const bool canControl = allowInput && input && playerInput && input->IsGameInputEnabled() && !K4E::CameraManager::GetInstance()->IsUsingDebugCamera();
 		if (canControl) playerInput->ApplyInputSnapshot(K4E::BuildInputSnapshot(*input), kMouseLookSensitivity);
 		else if (playerInput) playerInput->ResetInputState();
-
 		UpdateLadderState();
-		actorWorld_->Update(deltaTime);
-		RefreshNearbyStageColliders(false);
-		physicsWorld_->Update(deltaTime);
-		actorWorld_->PostPhysicsUpdate(deltaTime);
+		return true; // ActorWorldとPhysicsWorldの更新は所有者であるCharacterWorldへ委譲する。
+	}
+
+	void PreparePhysicsUpdate()
+	{
+		if (!active_ || !player_ || !physicsWorld_) return;
+		RefreshNearbyStageColliders(false); // Player移動後、Physics判定前に周辺Stage Collider集合を更新する。
+	}
+
+	void EndWorldUpdate()
+	{
+		if (!active_ || !player_) return;
 		SpawnBridgedShots();
 		if (!K4E::CameraManager::GetInstance()->IsUsingDebugCamera())
 		{
 			if (K4E::Camera* camera = GetCamera()) K4E::CameraManager::GetInstance()->SetMainCamera(camera);
 		}
+	}
+
+	/// Debug・互換呼び出しでは従来順を維持し、本番CharacterWorldは分割APIを使用する。
+	void Update(float deltaTime, bool allowInput = true)
+	{
+		if (!BeginWorldUpdate(deltaTime, allowInput)) return;
+		actorWorld_->Update(deltaTime);
+		PreparePhysicsUpdate();
+		physicsWorld_->Update(deltaTime);
+		actorWorld_->PostPhysicsUpdate(deltaTime);
+		EndWorldUpdate();
 	}
 
 	void PrepareRenderState() { if (active_ && actorWorld_) actorWorld_->PrepareRenderState(); }
