@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "EnemyHPBarManager.h"
 #include "EnemyBase.h"
+#include "ApplicationLayer/Character/Enemy/Actor/EnemyActor.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -118,8 +119,6 @@ void EnemyHPBarManager::Update(
 			hpRate = 0.0f;
 		}
 
-		// 画面内にいる間だけ表示更新
-		// 死亡後も最後のスクリーン位置で描き続ける
 		if (enemy == aimedEnemy)
 		{
 			entry.aimVisibleTimer = std::max(0.0f, visibleHoldTime);
@@ -130,8 +129,15 @@ void EnemyHPBarManager::Update(
 		}
 		// 照準対象だけHPバーを表示する処理。保持時間中だけ照準外れのチラつきを抑える。
 		const bool aimVisible = !showOnlyWhenAimed || enemy == aimedEnemy || entry.aimVisibleTimer > 0.0f;
-		const bool visible = (entry.visibleThisFrame || entry.deathStarted) && aimVisible;
 
+		if (auto* actorEnemy = dynamic_cast<K4E::EnemyActor*>(enemy))
+		{
+			actorEnemy->SetHealthBarVisible(!enemy->IsDead() && aimVisible);
+			entry.bar->SetVisible(false); // EnemyActorはWorldGaugeComponentへ描画を統一し、旧Sprite HPバーを二重表示しない。
+			continue;
+		}
+
+		const bool visible = (entry.visibleThisFrame || entry.deathStarted) && aimVisible;
 		entry.bar->Update(
 			entry.cachedScreenPos,
 			hpRate,
@@ -151,6 +157,14 @@ void EnemyHPBarManager::Update(
 
 		if (!entry.bar)
 		{
+			entry.removeRequested = true;
+			continue;
+		}
+
+		if (auto* actorEnemy = dynamic_cast<K4E::EnemyActor*>(entry.enemy))
+		{
+			actorEnemy->SetHealthBarVisible(false);
+			entry.bar->SetVisible(false);
 			entry.removeRequested = true;
 			continue;
 		}
