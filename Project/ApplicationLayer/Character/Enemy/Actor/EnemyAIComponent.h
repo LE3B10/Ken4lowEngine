@@ -75,15 +75,15 @@ namespace Ken4lowEngine
 		EnemyAStarNavigator navigator_{};
 		Vector3 spawnOrigin_{};
 		Vector3 wanderTarget_{};
-		float moveSpeed_ = 3.2f;
+		float moveSpeed_ = 4.0f;
 		float chaseSpeedMultiplier_ = 1.4f;
-		float rotateSpeed_ = 8.0f;
+		float rotateSpeed_ = 9.0f;
 		float stopDistance_ = 1.8f;
 		float attackStartRange_ = 2.4f;
 		float detectRange_ = 18.0f;
 		float wanderRadius_ = 18.0f;
 		float wanderInterval_ = 7.0f;
-		float wanderSpeedScale_ = 0.45f;
+		float wanderSpeedScale_ = 0.65f;
 		float wanderRetryDelay_ = 0.35f;
 		float wanderTimer_ = 0.0f;
 		float wanderAngle_ = 0.0f;
