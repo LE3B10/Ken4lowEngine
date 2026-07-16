@@ -15,11 +15,12 @@
 
 namespace Ken4lowEngine
 {
-	/// Playerの武器スロットと現在選択中のスロットを所有するInventory Component。
+	/// Playerの6武器スロットと選択状態を所有し、WeaponComponentの保存済み武器状態へ切り替えるInventory Component。
 	class InventoryComponent final : public ActorComponent
 	{
 	public:
-		/// 予約された直接選択または循環選択を確定し、WeaponComponentへ装備武器IDを通知する。
+		static constexpr int kSlotCount = 6;
+
 		void Update(float deltaTime) override
 		{
 			(void)deltaTime;
@@ -43,7 +44,7 @@ namespace Ken4lowEngine
 		{
 #ifdef USE_IMGUI
 			ImGui::SeparatorText("Inventory");
-			ImGui::Text("Selected Slot: %d", selectedSlot_);
+			ImGui::Text("Selected Slot: %d / Revision: %u", selectedSlot_, selectionRevision_);
 			for (int i = 0; i < static_cast<int>(slots_.size()); ++i) ImGui::Text("Slot %d: Weapon %d", i, slots_[i]);
 #endif
 		}
@@ -65,8 +66,10 @@ namespace Ken4lowEngine
 				for (std::size_t i = 0; i < slots_.size() && i < inJson["Slots"].size(); ++i) slots_[i] = inJson["Slots"][i].get<int>();
 			}
 			selectedSlot_ = std::clamp(inJson.value("SelectedSlot", selectedSlot_), 0, static_cast<int>(slots_.size()) - 1);
+			if (slots_[selectedSlot_] < 0) selectedSlot_ = FindFirstAvailableSlot();
 			pendingSlot_ = -1;
 			pendingCycleDirection_ = 0;
+			SyncSelectedWeapon();
 		}
 
 		void RequestSelectSlot(int slotIndex) { pendingSlot_ = slotIndex; }
@@ -76,28 +79,44 @@ namespace Ken4lowEngine
 		{
 			if (slotIndex < 0 || slotIndex >= static_cast<int>(slots_.size())) return;
 			slots_[slotIndex] = weaponId;
-			if (slotIndex == selectedSlot_) SyncSelectedWeapon();
+			if (slotIndex == selectedSlot_)
+			{
+				if (weaponId < 0) selectedSlot_ = FindFirstAvailableSlot();
+				SyncSelectedWeapon();
+				++selectionRevision_;
+			}
 		}
 
 		void ResetInventory()
 		{
-			slots_ = { 0, 1, -1, -1 };
+			slots_ = { 0, 1, 2, 3, -1, -1 };
 			selectedSlot_ = 0;
 			pendingSlot_ = -1;
 			pendingCycleDirection_ = 0;
-			SyncSelectedWeapon(); // Reset時もWeaponComponentとの選択状態を即時一致させる。
+			++selectionRevision_;
+			SyncSelectedWeapon(); // Reset時も武器ごとの弾薬・性能・装備演出を即時一致させる。
 		}
 
 		int GetSelectedSlot() const { return selectedSlot_; }
 		int GetSelectedWeaponId() const { return slots_[selectedSlot_]; }
-		const std::array<int, 4>& GetSlots() const { return slots_; }
+		int GetWeaponIdForSlot(int slotIndex) const { return slotIndex >= 0 && slotIndex < kSlotCount ? slots_[slotIndex] : -1; }
+		const std::array<int, kSlotCount>& GetSlots() const { return slots_; }
+		unsigned int GetSelectionRevision() const { return selectionRevision_; }
 
 	private:
+		int FindFirstAvailableSlot() const
+		{
+			for (int i = 0; i < static_cast<int>(slots_.size()); ++i) if (slots_[i] >= 0) return i;
+			return 0;
+		}
+
 		bool SelectSlot(int slotIndex)
 		{
 			if (slotIndex < 0 || slotIndex >= static_cast<int>(slots_.size())) return false;
 			if (slots_[slotIndex] < 0) return false;
+			if (selectedSlot_ == slotIndex) return true;
 			selectedSlot_ = slotIndex;
+			++selectionRevision_;
 			SyncSelectedWeapon();
 			return true;
 		}
@@ -118,13 +137,14 @@ namespace Ken4lowEngine
 		{
 			Actor* owner = GetOwner();
 			WeaponComponent* weapon = owner ? owner->GetComponent<WeaponComponent>() : nullptr;
-			if (weapon) weapon->SetWeaponId(slots_[selectedSlot_]);
+			if (weapon && slots_[selectedSlot_] >= 0) weapon->SetWeaponId(slots_[selectedSlot_]);
 		}
 
 	private:
-		std::array<int, 4> slots_{ 0, 1, -1, -1 };
+		std::array<int, kSlotCount> slots_{ 0, 1, 2, 3, -1, -1 };
 		int selectedSlot_ = 0;
 		int pendingSlot_ = -1;
 		int pendingCycleDirection_ = 0;
+		unsigned int selectionRevision_ = 0u;
 	};
 } // namespace Ken4lowEngine
