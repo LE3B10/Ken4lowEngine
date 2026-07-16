@@ -4,7 +4,7 @@
 #include "SceneComponent.h"
 #include "ComponentFactory.h"
 #include "ActorFactory.h"
-#include "HumanoidCharacterActor.h"
+#include <Scene/Actor/Character/HumanoidCharacterActor.h>
 
 #include <filesystem>
 #include <fstream>
