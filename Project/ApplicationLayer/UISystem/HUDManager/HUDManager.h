@@ -22,9 +22,8 @@ class Player;
 /// -------------------------------------------------------------
 ///                     HUDマネージャークラス
 ///
-/// GamePlayWorldが所有し、プレイヤーHP、照準、リロード、武器スロット、
-/// Wave表示、被弾方向、弾切れ、操作ガイドなどGamePlay中のHUDをまとめて管理する。
-/// Playerは参照のみ保持し、寿命はCharacterWorld/GamePlayWorld側に従う。
+/// World/Tutorial/Boss用HUDを管理し、必要な場合だけ旧Player専用HUDも描画する。
+/// P13以降のPlayer固有HP・弾薬・CrosshairはPlayerHudPresenterComponentを正本にする。
 /// -------------------------------------------------------------
 class HUDManager
 {
@@ -35,15 +34,23 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 各HUD部品を生成し、テクスチャパス・初期位置・表示状態を設定する。
 	void Initialize();
 
-	// Playerから現在HP/武器/リロード/弾切れ状態を取得し、HUD部品を1フレーム更新する。
+	// World HUDと、有効な場合だけ旧Player専用HUDを1フレーム更新する。
 	void Update(float deltaTime);
 
-	// 可視状態のHUD部品を、画面上の重なり順に描画する。
+	// World HUDと、有効な場合だけ旧Player専用HUDを描画する。
 	void Draw();
 
 public: /// ---------- セッタ ---------- ///
 
-	void SetPlayer(Player* player) { player_ = player; }
+	void SetPlayer(Player* player)
+	{
+		player_ = player;
+		SetLegacyPlayerHudVisible(player != nullptr); // 旧Playerを明示接続した場合だけLegacy HUDを復帰する。
+	}
+
+	// P13以降はfalseにして、PlayerHudPresenterComponentとの二重描画を防ぐ。
+	void SetLegacyPlayerHudVisible(bool visible);
+	bool IsLegacyPlayerHudVisible() const { return legacyPlayerHudVisible_; }
 
 	// GamePlayWorldから渡された現在HP/最大HPをHPWidgetへ反映する。
 	void SetHP(float hp, float maxHp);
@@ -118,9 +125,8 @@ private: /// ---------- メンバ変数 ---------- ///
 	void UpdateWeaponSlotFromPlayer();
 	void UpdateNoAmmoFromPlayer(float deltaTime);
 
-	// Stage1目的表示の描画をページ単位に分け、チュートリアル文言の追加・調整を安全にする。
-
-	Player* player_ = nullptr; // プレイヤーへの参照（HUDがゲーム状態を参照するため）
+	Player* player_ = nullptr; // 旧Player HUDを使用する場合だけ設定する非所有参照。
+	bool legacyPlayerHudVisible_ = false; // 新Player HUDを正本にするため既定では非表示。
 
 	std::unique_ptr<ReloadCircle> reloadCircle_; // リロード円
 	std::unique_ptr<Crosshair> crosshair_; // 十字照準
