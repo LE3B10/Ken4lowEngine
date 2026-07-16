@@ -2,6 +2,7 @@
 
 #include "ApplicationLayer/Character/Player/Actor/PlayerActor.h"
 #include "ApplicationLayer/Character/Player/Migration/PlayerTutorialRestrictionBridge.h"
+#include "ApplicationLayer/Scene/DebugScene/DebugActorRegistration.h"
 #include "BulletManager.h"
 #include "Stage.h"
 
@@ -16,6 +17,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -33,14 +35,23 @@ public:
 		physicsWorld_ = physicsWorld;
 		if (!stage_ || !actorWorld_ || !physicsWorld_) return false;
 
-		K4E::PlayerActor& player = actorWorld_->SpawnActor<K4E::PlayerActor>();
-		player.SetName("GamePlayPlayer");
-		player.SetLayer("Player");
-		player.AddTag("Player");
-		player.AddTag("P13Runtime");
-		player_ = &player;
+		RegisterApplicationActorTypes();
+		K4E::Actor* spawnedActor = actorWorld_->SpawnActorFromJson(kPlayerPrefabPath);
+		player_ = dynamic_cast<K4E::PlayerActor*>(spawnedActor);
+		if (!player_)
+		{
+			if (spawnedActor) actorWorld_->DestroyActor(spawnedActor);
+			Finalize();
+			return false;
+		}
+
+		player_->Initialize(); // Prefab復元後に不足ComponentとPlayer固有Callbackを同じ初期化入口で再接続する。
+		player_->SetName("Player");
+		player_->SetLayer("Player");
+		player_->AddTag("Player");
+		player_->AddTag("P13Runtime");
 		stageColliders_ = stage_->GetWorldColliderPointers();
-		player_->ResetForValidation(spawnPosition);
+		player_->ResetForValidation(ResolveSpawnRootPosition(spawnPosition));
 		if (K4E::WeaponComponent* weapon = player_->GetWeaponComponent()) weapon->ConfigureAmmoState(30, 30, 90, 120);
 		if (K4E::PlayerMeleeAttackComponent* melee = player_->GetPlayerMeleeAttackComponent()) melee->SetCollisionManager(bulletManager_ ? bulletManager_->GetCollisionManager() : nullptr);
 		Bullet::SetDamageableHitCallback([this](bool killed)
@@ -127,6 +138,32 @@ public:
 	K4E::Vector3 GetPlayerPosition() const { return player_ ? player_->GetWorldPosition() : K4E::Vector3{}; }
 
 private:
+	K4E::Vector3 ResolveSpawnRootPosition(const K4E::Vector3& requestedPosition) const
+	{
+		K4E::Vector3 resolved = requestedPosition;
+		if (!player_ || !stage_) return resolved;
+
+		float floorTop = -std::numeric_limits<float>::infinity();
+		for (const K4E::AABB& floor : stage_->GetFloorAABBs())
+		{
+			constexpr float kSpawnBoundsMargin = 0.15f;
+			const bool containsXZ = requestedPosition.x >= floor.min.x - kSpawnBoundsMargin && requestedPosition.x <= floor.max.x + kSpawnBoundsMargin &&
+				requestedPosition.z >= floor.min.z - kSpawnBoundsMargin && requestedPosition.z <= floor.max.z + kSpawnBoundsMargin;
+			if (containsXZ) floorTop = (std::max)(floorTop, floor.max.y);
+		}
+		if (!std::isfinite(floorTop)) return resolved;
+
+		const K4E::CharacterColliderComponent* collider = player_->GetColliderComponent();
+		const K4E::SceneComponent* root = player_->GetRootComponent();
+		if (!collider || !root) return resolved;
+		const float rootScaleY = std::fabs(root->GetWorldScale().y);
+		const float colliderScaleY = std::fabs(collider->GetLocalScale().y);
+		const float halfHeight = collider->GetHalfSize().y * rootScaleY * colliderScaleY;
+		const float localCenterY = collider->GetLocalPosition().y * rootScaleY;
+		resolved.y = floorTop + halfHeight - localCenterY + kSpawnGroundClearance; // SpawnPointを足元基準としてCollider下面を床上へ揃える。
+		return resolved;
+	}
+
 	static float DistanceSquaredPointToAabbXZ(const K4E::Vector3& point, const K4E::AABB& bounds)
 	{
 		const float dx = point.x < bounds.min.x ? bounds.min.x - point.x : (point.x > bounds.max.x ? point.x - bounds.max.x : 0.0f);
@@ -212,7 +249,9 @@ private:
 	}
 
 private:
+	static constexpr const char* kPlayerPrefabPath = "Resources/ActorPrefabs/Player.json";
 	static constexpr float kMouseLookSensitivity = 0.0025f;
+	static constexpr float kSpawnGroundClearance = 0.02f;
 	static constexpr float kStageActivationRadius = 18.0f;
 	static constexpr float kStageRefreshDistance = 3.0f;
 	static constexpr size_t kMaxActiveStageColliders = 96;
