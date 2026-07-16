@@ -51,6 +51,13 @@ namespace Ken4lowEngine
 			}
 			if (weapon) weapon->SetTriggerHeld(inputEnabled_ && frameInput_.fireHeld && !weapon->IsMeleeWeapon());
 
+			const bool reloadAllowed = !restrictionsEnabled_ || allowReload_;
+			if (inputEnabled_ && reloadAllowed && weapon && weapon->UsesAmmo() && !weapon->IsReloading() &&
+				!weapon->IsEquipAnimating() && weapon->GetMagazineAmmo() <= 0 && weapon->GetReserveAmmo() > 0)
+			{
+				weapon->RequestReload(); // 弾倉が空になった次フレームに、予備弾があれば自動Reloadを要求する。
+			}
+
 			if (inputEnabled_)
 			{
 				if (jumpRequested_ && movement) movement->RequestJump();
@@ -87,8 +94,9 @@ namespace Ken4lowEngine
 				frameInput_.sprintHeld ? "Yes" : "No", frameInput_.aimHeld ? "Yes" : "No",
 				frameInput_.fireHeld ? "Yes" : "No", frameInput_.meleePressed ? "Yes" : "No",
 				frameInput_.weaponSlotPressed, frameInput_.weaponSwitch);
-			ImGui::Text("Restrictions: %s  Move:%s Shoot:%s Reload:%s",
-				restrictionsEnabled_ ? "ON" : "OFF", allowMove_ ? "ON" : "OFF", allowShoot_ ? "ON" : "OFF", allowReload_ ? "ON" : "OFF");
+			ImGui::Text("Restrictions: %s  Move:%s Shoot:%s Reload:%s WeaponSwitch:%s",
+				restrictionsEnabled_ ? "ON" : "OFF", allowMove_ ? "ON" : "OFF", allowShoot_ ? "ON" : "OFF",
+				allowReload_ ? "ON" : "OFF", weaponSwitchEnabled_ ? "ON" : "OFF");
 			ImGui::SliderFloat("ADS感度倍率", &adsLookSensitivityMultiplier_, 0.1f, 1.0f, "%.2f");
 #endif
 		}
@@ -150,6 +158,16 @@ namespace Ken4lowEngine
 			allowReload_ = allowReload;
 		}
 
+		void SetWeaponSwitchEnabled(bool enabled)
+		{
+			weaponSwitchEnabled_ = enabled;
+			if (!enabled)
+			{
+				inventorySlotRequested_ = -1;
+				weaponSwitchRequested_ = 0;
+			}
+		}
+
 		void RequestMove(float x, float z) { moveX_ = std::clamp(x, -1.0f, 1.0f); moveZ_ = std::clamp(z, -1.0f, 1.0f); }
 		void RequestLook(float yawDelta, float pitchDelta) { lookYawDelta_ += yawDelta; lookPitchDelta_ += pitchDelta; }
 		void RequestJump() { jumpRequested_ = true; }
@@ -186,10 +204,16 @@ namespace Ken4lowEngine
 		int GetWeaponSwitchRequested() const { return frameInput_.weaponSwitch; }
 		bool IsToggleFireModeRequested() const { return frameInput_.toggleFireModePressed; }
 		float GetAdsLookSensitivityMultiplier() const { return adsLookSensitivityMultiplier_; }
+		bool IsWeaponSwitchEnabled() const { return weaponSwitchEnabled_; }
 
 	private:
 		void ApplyRestrictions(::InputSnapshot& input) const
 		{
+			if (!weaponSwitchEnabled_)
+			{
+				input.weaponSwitch = 0;
+				input.weaponSlotPressed = 0;
+			}
 			if (!restrictionsEnabled_) return;
 			input.weaponSwitch = 0;
 			input.weaponSlotPressed = 0;
@@ -248,5 +272,6 @@ namespace Ken4lowEngine
 		bool allowMove_ = true;
 		bool allowShoot_ = true;
 		bool allowReload_ = true;
+		bool weaponSwitchEnabled_ = true;
 	};
 } // namespace Ken4lowEngine
