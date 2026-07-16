@@ -7,11 +7,14 @@
 
 #include <ActorComponent.h>
 #include <AABB.h>
+#include <Scene/Actor/Character/CharacterColliderComponent.h>
 #include <Scene/Actor/Character/CharacterMovementComponent.h>
 #include <SceneComponent.h>
+#include <Stage.h>
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <numbers>
 #include <string>
@@ -25,7 +28,7 @@ namespace Ken4lowEngine
 {
 	class MidRangeEnemyAttackComponent;
 
-	/// 中距離敵の徘徊、接近、間合い維持、後退をA*と共通Movement要求へ分離するComponent。
+	/// 中距離敵のStage巡回、A*接近、間合い維持、後退を共通Movement要求へ分離するComponent。
 	class MidRangeEnemyAIComponent final : public ActorComponent
 	{
 	public:
@@ -38,14 +41,30 @@ namespace Ken4lowEngine
 
 		void SetTargetActor(CharacterActor* targetActor) { targetActor_ = targetActor; }
 		void SetNavigationObstacles(const std::vector<AABB>* obstacles);
+		void SetWalkableAreas(const std::vector<AABB>* walkableAreas);
 		void ApplyMoveSpeedMultiplier(float multiplier);
 		void StopBehavior();
 		void ResetBehavior();
 		const std::string& GetStateName() const { return stateName_; }
 
 	private:
+		float GetNavigationSampleY(const CharacterActor& owner) const;
+		bool FollowNavigationGoal(
+			CharacterActor& owner,
+			CharacterMovementComponent& movement,
+			const Vector3& current,
+			const Vector3& goal,
+			float speed,
+			float rotateSpeed,
+			float deltaTime,
+			const char* successState,
+			const char* failureState);
+		bool SelectNextWanderTarget(const Vector3& current, float sampleY);
+
+	private:
 		CharacterActor* targetActor_ = nullptr;
 		const std::vector<AABB>* navigationObstacles_ = nullptr;
+		const std::vector<AABB>* walkableAreas_ = nullptr;
 		EnemyAStarNavigator navigator_{};
 		Vector3 spawnOrigin_{};
 		Vector3 wanderTarget_{};
@@ -57,15 +76,18 @@ namespace Ken4lowEngine
 		float moveSpeed_ = 2.6f;
 		float retreatSpeed_ = 2.8f;
 		float rotateSpeed_ = 8.0f;
-		float wanderRadius_ = 8.0f;
-		float wanderInterval_ = 3.0f;
+		float wanderRadius_ = 22.0f;
+		float wanderInterval_ = 8.0f;
 		float wanderSpeed_ = 1.8f;
+		float wanderRetryDelay_ = 0.4f;
 		float wanderTimer_ = 0.0f;
 		float wanderAngle_ = 0.0f;
 		float distanceToTarget_ = 0.0f;
+		std::uint32_t wanderSequence_ = 1u;
 		bool behaviorEnabled_ = true;
 		bool spawnOriginCaptured_ = false;
 		bool pathFound_ = false;
+		bool wanderTargetValid_ = false;
 		std::string stateName_ = "Idle";
 	};
 
@@ -137,6 +159,17 @@ namespace Ken4lowEngine
 			if (length <= 0.0001f) return {};
 			return { value.x / length, 0.0f, value.z / length };
 		}
+
+		inline std::uint32_t BuildWanderSeed(const Vector3& position)
+		{
+			const auto quantize = [](float value)
+				{
+					return static_cast<std::uint32_t>(std::abs(std::floor(value * 100.0f)));
+				};
+			std::uint32_t seed = quantize(position.x) * 83492791u;
+			seed ^= quantize(position.z) * 2654435761u;
+			return seed == 0u ? 1u : seed;
+		}
 	}
 
 	inline void MidRangeEnemyAIComponent::Initialize()
@@ -144,12 +177,30 @@ namespace Ken4lowEngine
 		EnemyAStarNavigator::Settings settings{};
 		settings.cellSize = 1.5f;
 		settings.agentRadius = 0.9f;
-		settings.searchRangeCells = 28;
+		settings.agentHalfHeight = 2.0f;
+		settings.floorHeightTolerance = 1.25f;
+		settings.searchRangeCells = 34;
+		settings.maxExpandedNodes = 7000;
 		settings.waypointReachDistance = 0.85f;
 		settings.repathIntervalSec = 0.25f;
 		settings.disableCornerCutting = true;
+		if (const auto* owner = dynamic_cast<const CharacterActor*>(GetOwner()))
+		{
+			if (const CharacterColliderComponent* collider = owner->GetColliderComponent())
+			{
+				const Vector3 halfSize = collider->GetHalfSize();
+				settings.agentRadius = std::max(0.2f, std::max(halfSize.x, halfSize.z));
+				settings.agentHalfHeight = std::max(0.2f, halfSize.y);
+			}
+		}
 		navigator_.SetSettings(settings);
+		if (Stage* stage = Stage::GetActiveRuntimeStage())
+		{
+			if (!navigationObstacles_) navigationObstacles_ = &stage->GetNavigationObstacleAABBs();
+			if (!walkableAreas_) walkableAreas_ = &stage->GetFloorAABBs();
+		}
 		navigator_.SetWorldAABBs(navigationObstacles_);
+		navigator_.SetWalkableAABBs(walkableAreas_);
 		ResetBehavior();
 	}
 
@@ -166,17 +217,24 @@ namespace Ken4lowEngine
 			return;
 		}
 
+		if (!walkableAreas_)
+		{
+			if (Stage* stage = Stage::GetActiveRuntimeStage()) SetWalkableAreas(&stage->GetFloorAABBs());
+		}
+		navigator_.TickTemporaryBlocks(std::max(0.0f, deltaTime));
+
 		if (!spawnOriginCaptured_)
 		{
 			spawnOrigin_ = root->GetWorldPosition();
 			wanderTarget_ = spawnOrigin_;
-			spawnOriginCaptured_ = true; // 実際のSpawn位置を徘徊中心として一度だけ保存する。
+			wanderSequence_ = MidRangeEnemyComponentDetail::BuildWanderSeed(spawnOrigin_);
+			spawnOriginCaptured_ = true; // Spawn座標由来のSequenceで巡回先を分散し、全個体の原点集中を防ぐ。
 		}
 
 		if (attack && attack->IsSuicideActive())
 		{
 			stateName_ = "Suicide";
-			return; // 自爆追跡中はAttack Componentだけが移動要求を出す。
+			return;
 		}
 		if (attack && attack->IsCasting())
 		{
@@ -196,21 +254,33 @@ namespace Ken4lowEngine
 				if (distanceToTarget_ < attackMinRange_)
 				{
 					const Vector3 away = MidRangeEnemyComponentDetail::NormalizeXZ(toTarget) * -1.0f;
-					movement->FaceDirectionXZ(toTarget, rotateSpeed_, deltaTime);
-					movement->SetVelocity(away * retreatSpeed_);
-					pathFound_ = false;
-					stateName_ = distanceToTarget_ <= tooCloseRange_ ? "EmergencyRetreat" : "Retreat";
+					const float retreatDistance = std::max(3.0f, idealRange_ - distanceToTarget_ + 2.0f);
+					const Vector3 retreatGoal = current + away * retreatDistance;
+					FollowNavigationGoal(
+						*owner,
+						*movement,
+						current,
+						retreatGoal,
+						retreatSpeed_,
+						rotateSpeed_,
+						deltaTime,
+						distanceToTarget_ <= tooCloseRange_ ? "EmergencyRetreatPath" : "RetreatPath",
+						"RetreatPathFailed");
 					return;
 				}
 				if (distanceToTarget_ > attackMaxRange_)
 				{
-					Vector3 waypoint = targetActor_->GetTargetPosition();
-					pathFound_ = navigator_.GetNextWaypoint(current, waypoint, current.y, deltaTime, waypoint);
-					const Vector3 direction = MidRangeEnemyComponentDetail::NormalizeXZ(waypoint - current);
-					movement->FaceDirectionXZ(direction, rotateSpeed_, deltaTime);
-					movement->SetVelocity(direction * moveSpeed_);
-					stateName_ = pathFound_ ? "ApproachPath" : "ApproachDirect";
-					return;
+					FollowNavigationGoal(
+						*owner,
+						*movement,
+						current,
+						targetActor_->GetTargetPosition(),
+						moveSpeed_,
+						rotateSpeed_,
+						deltaTime,
+						"ApproachPath",
+						"ApproachPathFailed");
+					return; // 経路失敗時にTargetへ直接進まず、障害物前で再探索を待つ。
 				}
 
 				movement->Stop();
@@ -225,18 +295,102 @@ namespace Ken4lowEngine
 			distanceToTarget_ = 0.0f;
 		}
 
-		pathFound_ = false;
 		wanderTimer_ = std::max(0.0f, wanderTimer_ - std::max(0.0f, deltaTime));
-		if (wanderTimer_ <= 0.0f || Vector3::LengthXZ(wanderTarget_ - current) <= 1.0f)
+		const bool reachedWanderTarget = wanderTargetValid_ && Vector3::LengthXZ(wanderTarget_ - current) <= 1.0f;
+		if (!wanderTargetValid_ || reachedWanderTarget || wanderTimer_ <= 0.0f)
 		{
-			wanderAngle_ = std::fmod(wanderAngle_ + 2.39996323f, std::numbers::pi_v<float> * 2.0f);
-			wanderTarget_ = spawnOrigin_ + Vector3{ std::cos(wanderAngle_) * wanderRadius_, 0.0f, std::sin(wanderAngle_) * wanderRadius_ };
-			wanderTimer_ = wanderInterval_;
+			wanderTargetValid_ = SelectNextWanderTarget(current, GetNavigationSampleY(*owner));
+			wanderTimer_ = wanderTargetValid_ ? wanderInterval_ : wanderRetryDelay_;
+			navigator_.Reset();
 		}
-		const Vector3 direction = MidRangeEnemyComponentDetail::NormalizeXZ(wanderTarget_ - current);
-		movement->FaceDirectionXZ(direction, rotateSpeed_ * 0.65f, deltaTime);
-		movement->SetVelocity(direction * wanderSpeed_);
-		stateName_ = "Wander";
+
+		if (!wanderTargetValid_)
+		{
+			movement->Stop();
+			pathFound_ = false;
+			stateName_ = "WanderGoalFailed";
+			return;
+		}
+
+		if (!FollowNavigationGoal(
+			*owner,
+			*movement,
+			current,
+			wanderTarget_,
+			wanderSpeed_,
+			rotateSpeed_ * 0.65f,
+			deltaTime,
+			"WanderPath",
+			"WanderPathFailed"))
+		{
+			wanderTargetValid_ = false;
+			wanderTimer_ = wanderRetryDelay_;
+		}
+	}
+
+	inline float MidRangeEnemyAIComponent::GetNavigationSampleY(const CharacterActor& owner) const
+	{
+		if (const CharacterColliderComponent* collider = owner.GetColliderComponent()) return collider->GetWorldPosition().y;
+		if (const SceneComponent* root = owner.GetRootComponent()) return root->GetWorldPosition().y;
+		return 0.0f;
+	}
+
+	inline bool MidRangeEnemyAIComponent::FollowNavigationGoal(
+		CharacterActor& owner,
+		CharacterMovementComponent& movement,
+		const Vector3& current,
+		const Vector3& goal,
+		float speed,
+		float rotateSpeed,
+		float deltaTime,
+		const char* successState,
+		const char* failureState)
+	{
+		Vector3 waypoint = current;
+		const float sampleY = GetNavigationSampleY(owner);
+		pathFound_ = navigator_.GetNextWaypoint(current, goal, sampleY, deltaTime, waypoint);
+		if (!pathFound_)
+		{
+			movement.Stop();
+			stateName_ = failureState ? failureState : "PathFailed";
+			return false;
+		}
+
+		int blockedObstacleIndex = -1;
+		if (navigator_.IsSegmentBlockedByObstacle(current, waypoint, sampleY, &blockedObstacleIndex))
+		{
+			navigator_.Reset();
+			movement.Stop();
+			pathFound_ = false;
+			stateName_ = "WaypointBlocked";
+			return false;
+		}
+
+		const Vector3 direction = MidRangeEnemyComponentDetail::NormalizeXZ(waypoint - current);
+		if (Vector3::LengthXZ(direction) <= 0.0001f)
+		{
+			movement.Stop();
+			stateName_ = successState ? successState : "PathReached";
+			return true;
+		}
+		movement.FaceDirectionXZ(direction, rotateSpeed, deltaTime);
+		movement.SetVelocity(direction * std::max(0.0f, speed));
+		stateName_ = successState ? successState : "PathMove";
+		return true;
+	}
+
+	inline bool MidRangeEnemyAIComponent::SelectNextWanderTarget(const Vector3& current, float sampleY)
+	{
+		const float minimumDistance = std::max(3.0f, wanderRadius_ * 0.5f);
+		if (navigator_.TrySelectPatrolGoal(current, sampleY, wanderSequence_++, minimumDistance, wanderTarget_)) return true;
+
+		wanderAngle_ = std::fmod(wanderAngle_ + 2.39996323f, std::numbers::pi_v<float> * 2.0f);
+		wanderTarget_ = current + Vector3{
+			std::cos(wanderAngle_) * std::max(5.0f, wanderRadius_),
+			0.0f,
+			std::sin(wanderAngle_) * std::max(5.0f, wanderRadius_)
+		};
+		return walkableAreas_ == nullptr || walkableAreas_->empty();
 	}
 
 	inline void MidRangeEnemyAIComponent::DrawImGui()
@@ -246,6 +400,8 @@ namespace Ken4lowEngine
 		ImGui::Text("状態: %s", stateName_.c_str());
 		ImGui::Text("距離: %.2f / 攻撃 %.2f - %.2f", distanceToTarget_, attackMinRange_, attackMaxRange_);
 		ImGui::Text("移動: %.2f / 後退: %.2f / A*: %s", moveSpeed_, retreatSpeed_, pathFound_ ? "有効" : "なし");
+		ImGui::Text("巡回目標: (%.1f, %.1f) / 有効:%s", wanderTarget_.x, wanderTarget_.z, wanderTargetValid_ ? "Yes" : "No");
+		ImGui::Text("Stage Floor: %zu / Obstacle: %zu", navigator_.GetWalkableAreaCount(), navigator_.GetObstacleCount());
 #endif
 	}
 
@@ -263,6 +419,7 @@ namespace Ken4lowEngine
 		outJson["WanderRadius"] = wanderRadius_;
 		outJson["WanderInterval"] = wanderInterval_;
 		outJson["WanderSpeed"] = wanderSpeed_;
+		outJson["WanderRetryDelay"] = wanderRetryDelay_;
 	}
 
 	inline void MidRangeEnemyAIComponent::FromJson(const nlohmann::json& inJson)
@@ -277,15 +434,24 @@ namespace Ken4lowEngine
 		retreatSpeed_ = std::max(0.0f, inJson.value("RetreatSpeed", retreatSpeed_));
 		rotateSpeed_ = std::max(0.0f, inJson.value("RotateSpeed", rotateSpeed_));
 		wanderRadius_ = std::max(0.0f, inJson.value("WanderRadius", wanderRadius_));
-		wanderInterval_ = std::max(0.1f, inJson.value("WanderInterval", wanderInterval_));
+		wanderInterval_ = std::max(0.5f, inJson.value("WanderInterval", wanderInterval_));
 		wanderSpeed_ = std::max(0.0f, inJson.value("WanderSpeed", wanderSpeed_));
+		wanderRetryDelay_ = std::clamp(inJson.value("WanderRetryDelay", wanderRetryDelay_), 0.1f, 2.0f);
 	}
 
 	inline void MidRangeEnemyAIComponent::SetNavigationObstacles(const std::vector<AABB>* obstacles)
 	{
 		navigationObstacles_ = obstacles;
-		navigator_.SetWorldAABBs(obstacles);
-		navigator_.Reset();
+		navigator_.SetWorldAABBs(navigationObstacles_);
+		if (Stage* stage = Stage::GetActiveRuntimeStage()) SetWalkableAreas(&stage->GetFloorAABBs());
+	}
+
+	inline void MidRangeEnemyAIComponent::SetWalkableAreas(const std::vector<AABB>* walkableAreas)
+	{
+		if (walkableAreas_ == walkableAreas) return;
+		walkableAreas_ = walkableAreas;
+		navigator_.SetWalkableAABBs(walkableAreas_);
+		wanderTargetValid_ = false;
 	}
 
 	inline void MidRangeEnemyAIComponent::ApplyMoveSpeedMultiplier(float multiplier)
@@ -303,6 +469,8 @@ namespace Ken4lowEngine
 		{
 			if (CharacterMovementComponent* movement = owner->GetMovementComponent()) movement->Stop();
 		}
+		pathFound_ = false;
+		navigator_.Reset();
 		stateName_ = "Stopped";
 	}
 
@@ -311,11 +479,14 @@ namespace Ken4lowEngine
 		behaviorEnabled_ = true;
 		spawnOriginCaptured_ = false;
 		pathFound_ = false;
+		wanderTargetValid_ = false;
 		wanderTimer_ = 0.0f;
 		wanderAngle_ = 0.0f;
+		wanderSequence_ = 1u;
 		distanceToTarget_ = 0.0f;
 		stateName_ = "Idle";
 		navigator_.Reset();
+		navigator_.ClearTemporaryBlockedAreas();
 	}
 
 	inline void MidRangeEnemyAttackComponent::Initialize()
