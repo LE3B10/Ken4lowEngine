@@ -139,13 +139,20 @@ namespace Ken4lowEngine
 
 			char text[192]{};
 			const int displaySlot = inventory ? inventory->GetSelectedSlot() + 1 : 1;
-			std::snprintf(text, sizeof(text), "[%d] %s   AMMO %d / %d   RESERVE %d%s%s",
-				displaySlot, weapon->GetWeaponDisplayName(),
-				weapon->GetMagazineAmmo(), weapon->GetMagazineCapacity(), weapon->GetReserveAmmo(),
-				weapon->IsReloading() ? "   RELOADING" : (weapon->IsEquipAnimating() ? "   EQUIPPING" : ""),
-				weapon->IsAutomaticFireMode() ? "   AUTO" : "   SEMI");
-			ammo->SetText(text);
-			ammo->SetColor(weapon->GetMagazineAmmo() <= 0 ? Vector4{ 1.0f, 0.35f, 0.2f, 1.0f } : Vector4{ 1.0f, 1.0f, 1.0f, 1.0f });
+			const char* actionState = weapon->IsEquipAnimating() ? "   EQUIPPING" : (weapon->IsReloading() ? "   RELOADING" : "");
+			if (weapon->IsMeleeWeapon())
+			{
+				std::snprintf(text, sizeof(text), "[%d] %s   MELEE%s", displaySlot, weapon->GetWeaponDisplayName(), actionState);
+				ammo->SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
+			}
+			else
+			{
+				std::snprintf(text, sizeof(text), "[%d] %s   AMMO %d / %d   RESERVE %d%s   %s",
+					displaySlot, weapon->GetWeaponDisplayName(),
+					weapon->GetMagazineAmmo(), weapon->GetMagazineCapacity(), weapon->GetReserveAmmo(), actionState,
+					weapon->IsAutomaticFireMode() ? "AUTO" : "SEMI");
+				ammo->SetColor(weapon->GetMagazineAmmo() <= 0 ? Vector4{ 1.0f, 0.35f, 0.2f, 1.0f } : Vector4{ 1.0f, 1.0f, 1.0f, 1.0f });
+			}
 		}
 
 		void SyncFeedbackText()
@@ -173,7 +180,7 @@ namespace Ken4lowEngine
 			const PlayerMeleeAttackComponent* melee = owner->GetComponent<PlayerMeleeAttackComponent>();
 			const WeaponComponent* weapon = owner->GetComponent<WeaponComponent>();
 			const bool aiming = input && input->IsAimHeld();
-			const bool actionHidesCrosshair = weapon && (weapon->IsReloading() || weapon->IsEquipAnimating()) || (melee && melee->IsAttacking());
+			const bool actionHidesCrosshair = (weapon && (weapon->IsReloading() || weapon->IsEquipAnimating())) || (melee && melee->IsAttacking());
 			const bool visible = hudVisible_ && !actionHidesCrosshair;
 
 			float spread = baseCrosshairDistance_;
