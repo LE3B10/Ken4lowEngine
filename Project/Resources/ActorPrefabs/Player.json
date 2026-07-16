@@ -126,7 +126,7 @@
         {
             "Active": true,
             "AimFovMultiplier": 0.7200000286102295,
-            "AutoRegisterMainCamera": true,
+            "AutoRegisterMainCamera": false,
             "Class": "PlayerCameraComponent",
             "DeathPitchOffset": 0.3499999940395355,
             "DeathRollOffset": 1.100000023841858,
@@ -219,7 +219,7 @@
             "IsTrigger": false,
             "LocalPosition": [
                 0.0,
-                -0.30000001192092896,
+                0.0,
                 0.0
             ],
             "LocalRotation": [
@@ -437,7 +437,7 @@
             "Visible": true
         },
         {
-            "Active": true,
+            "Active": false,
             "Anchor": [
                 1.0,
                 0.0
@@ -457,7 +457,7 @@
                 1884.0,
                 1022.0
             ],
-            "Text": "Text",
+            "Text": "",
             "Type": "ActorComponent",
             "UpdateOrder": 0,
             "Visible": true
@@ -483,7 +483,7 @@
                 960.0,
                 598.0
             ],
-            "Text": "NO AMMO",
+            "Text": "弾切れ",
             "Type": "ActorComponent",
             "UpdateOrder": 0,
             "Visible": false
