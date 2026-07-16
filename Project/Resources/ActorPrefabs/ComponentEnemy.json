@@ -20,9 +20,9 @@
             "ChaseSpeedMultiplier": 1.4,
             "Class": "EnemyAIComponent",
             "DetectRange": 18.0,
-            "MoveSpeed": 3.2,
+            "MoveSpeed": 4.0,
             "Name": "Enemy AI",
-            "RotateSpeed": 8.0,
+            "RotateSpeed": 9.0,
             "StopDistance": 1.8,
             "Type": "ActorComponent",
             "UpdateOrder": -95,
@@ -30,7 +30,7 @@
             "WanderInterval": 7.0,
             "WanderRadius": 18.0,
             "WanderRetryDelay": 0.35,
-            "WanderSpeedScale": 0.45
+            "WanderSpeedScale": 0.65
         },
         {
             "Active": true,
@@ -121,8 +121,8 @@
         {
             "Active": true,
             "Class": "CharacterMovementComponent",
-            "MaxBrakingForce": 120.0,
-            "MaxDriveForce": 80.0,
+            "MaxBrakingForce": 360.0,
+            "MaxDriveForce": 280.0,
             "MovementEnabled": true,
             "Name": "Character Movement",
             "Type": "ActorComponent",
