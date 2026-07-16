@@ -9,6 +9,7 @@
 #include <ActorWorld.h>
 #include <PhysicsWorld.h>
 
+#include "ApplicationLayer/Character/Enemy/Actor/EnemyActor.h"
 #include "ApplicationLayer/Character/Player/Migration/GamePlayPlayerMigrationRuntime.h"
 #include "EnemyBase.h"
 #include "EnemyType.h"
@@ -16,11 +17,6 @@
 
 class CollisionManager;
 class BulletManager;
-
-namespace Ken4lowEngine
-{
-	class EnemyActor;
-}
 
 namespace K4E = ::Ken4lowEngine;
 
