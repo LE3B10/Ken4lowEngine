@@ -39,11 +39,10 @@ namespace Ken4lowEngine
 		/// EnemyBaseの地形・死亡処理とComponent更新を進め、表示用状態を同期する。
 		void Update(float deltaTime) override;
 
-		/// 死亡後にワールド座標へ分離した部位を通常のVisual Rootへ再接続しない。
+		/// EnemyActorは通常更新内でRoot・Collider・Visualを確定するため、物理後の人型再同期を行わない。
 		void PostPhysicsUpdate(float deltaTime) override
 		{
-			if (IsDead()) return; // 爆散中の部位はEnemyBaseがワールド座標で管理するため、親子Transform同期を停止する。
-			::EnemyBase::PostPhysicsUpdate(deltaTime);
+			(void)deltaTime; // Bodyのワールド座標をVisual Rootのローカル座標として二重適用しない。
 		}
 
 		/// Difficulty Directorの倍率を現在アーキタイプのAIと攻撃Componentへ適用する。
