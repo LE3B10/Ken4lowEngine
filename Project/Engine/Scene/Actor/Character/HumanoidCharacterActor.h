@@ -51,6 +51,12 @@ namespace Ken4lowEngine
 		/// 旧GameplayがBody Transformへ書いた結果をRootへ集約し、Component更新後に同じBody参照へワールド値を戻す。
 		void Update(float deltaTime) override
 		{
+			const CharacterHealthComponent* health = GetHealthComponent();
+			if (health && health->IsDead() && !body_.id.empty() && body_.transform.parent_ == nullptr)
+			{
+				return; // 崩壊演出でワールド空間へ切り離した部位を通常Humanoid階層へ再接続しない。
+			}
+
 			SyncGameplayTransformToRoot();
 			CharacterActor::Update(deltaTime);
 			SyncRootToGameplayBody();
