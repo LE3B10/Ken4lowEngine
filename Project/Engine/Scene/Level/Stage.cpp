@@ -198,16 +198,8 @@ namespace Ken4lowEngine
 
 	void Stage::RegisterColliders(CollisionManager* collisionManager)
 	{
-		// Rigidbodyなしの回転OBB ColliderをStatic Stage形状として汎用CollisionSystemへ登録する。
-		if (!collisionManager)
-		{
-			return;
-		}
-
-		for (auto& collider : worldColliders_)
-		{
-			collisionManager->AddCollider(collider.get());
-		}
+		(void)collisionManager;
+		// Stage2の全Static ColliderをLegacy総当たりへ登録せず、Player Runtimeが周辺集合だけをPhysicsとLegacyへ同期する。
 	}
 
 	bool Stage::CheckLadderOverlap(const AABB& playerAABB) const
