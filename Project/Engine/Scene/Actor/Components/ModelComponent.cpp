@@ -1,8 +1,12 @@
 #include "ModelComponent.h"
 #include "SceneComponent.h"
+#include "CameraComponent.h"
 #include "Actor.h"
 #include "AssetPathSelector.h"
 #include "MaterialRepository.h"
+
+#include <Camera.h>
+#include <Matrix4x4.h>
 
 #include <algorithm>
 #include <exception>
@@ -246,6 +250,19 @@ namespace Ken4lowEngine
 		{
 			return;
 		}
+
+		if (camera_ && dynamic_cast<const CameraComponent*>(GetParent()))
+		{
+			const Matrix4x4 cameraRotation = Matrix4x4::MakeRotateMatrix(camera_->GetRotate());
+			const Vector3 cameraSpaceOffset = Vector3::Transform(GetLocalPosition(), cameraRotation);
+			object3D_->SetTranslate(camera_->GetTranslate() + cameraSpaceOffset);
+			object3D_->SetRotate(camera_->GetRotate() + GetLocalRotation());
+			object3D_->SetScale(GetLocalScale());
+			object3D_->SetFrustumCullingEnabled(false); // 一人称ViewModelはNear Plane付近でも通常ObjectのFrustum判定で消さない。
+			return;
+		}
+
+		object3D_->SetFrustumCullingEnabled(true);
 		object3D_->SetTranslate(GetWorldPosition());
 		object3D_->SetRotate(GetWorldRotation());
 		object3D_->SetScale(GetWorldScale());
