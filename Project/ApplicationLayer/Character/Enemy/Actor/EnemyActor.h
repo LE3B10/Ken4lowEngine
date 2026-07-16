@@ -35,7 +35,19 @@ namespace Ken4lowEngine
 	class EnemyActor final : public ::EnemyBase
 	{
 	public:
-		explicit EnemyActor(::EnemyType enemyType = ::EnemyType::Melee) : enemyType_(enemyType) {}
+		explicit EnemyActor(::EnemyType enemyType = ::EnemyType::Melee) : enemyType_(enemyType)
+		{
+			auto& rigidbody = AddComponent<RigidbodyComponent>();
+			rigidbody.SetName("Enemy Rigidbody");
+			rigidbody.SetUpdateOrder(-65);
+			rigidbody.SetBodyType(BodyType::Dynamic);
+			rigidbody.SetMass(4.0f);
+			rigidbody.SetUseGravity(true);
+			rigidbody.SetSleepEnabled(false);
+			rigidbody.SetRestitution(0.0f);
+			rigidbody.SetStaticFriction(0.8f);
+			rigidbody.SetDynamicFriction(0.35f); // 通常敵は立位を保ちつつ床・段差へ物理的に接地させる。
+		}
 
 		/// 必要なComponentを不足分だけ生成し、アーキタイプ別の基礎値を設定する。
 		void Initialize() override;
@@ -81,6 +93,9 @@ namespace Ken4lowEngine
 			SetCenterPosition(resolvedPosition);
 			if (RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>())
 			{
+				useGravity_ = false;
+				useWorldResolve_ = false;
+				if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetMovementEnabled(true);
 				rigidbody->SetVelocity({}); // 再配置前の落下・移動速度を新しいSpawnへ持ち越さない。
 				rigidbody->WakeUp();
 			}
