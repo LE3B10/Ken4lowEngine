@@ -1,3 +1,7 @@
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
 #include "EnemyAIComponent.h"
 
 #include "EnemyAttackComponent.h"
@@ -12,6 +16,13 @@
 #include <cmath>
 #include <cstdint>
 #include <numbers>
+
+#ifdef min
+#undef min
+#endif
+#ifdef max
+#undef max
+#endif
 
 #ifdef USE_IMGUI
 #include <imgui.h>
