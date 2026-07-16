@@ -2,6 +2,8 @@
 
 #include "CharacterActor.h"
 
+#include <cmath>
+
 namespace Ken4lowEngine
 {
 	CharacterColliderComponent::CharacterColliderComponent()
@@ -28,5 +30,53 @@ namespace Ken4lowEngine
 		SetOnOverlapBeginCallback([character](const CollisionHit& hit) { character->OnOverlapBegin(hit); });
 		SetOnOverlapStayCallback([character](const CollisionHit& hit) { character->OnOverlapStay(hit); });
 		SetOnOverlapEndCallback([character](const CollisionHit& hit) { character->OnOverlapEnd(hit); });
+		SyncScaledShape();
+	}
+
+	void CharacterColliderComponent::Update(float deltaTime)
+	{
+		ColliderComponent::Update(deltaTime);
+		SyncScaledShape();
+	}
+
+	void CharacterColliderComponent::UpdateEditor(float deltaTime)
+	{
+		ColliderComponent::UpdateEditor(deltaTime);
+		SyncScaledShape();
+	}
+
+	void CharacterColliderComponent::PostPhysicsUpdate(float deltaTime)
+	{
+		ColliderComponent::PostPhysicsUpdate(deltaTime);
+		SyncScaledShape();
+	}
+
+	void CharacterColliderComponent::SyncScaledShape()
+	{
+		Collider* collider = GetCollider();
+		if (!collider) return;
+
+		const Vector3 worldScale = GetWorldScale();
+		const Vector3 authoredHalfSize = GetHalfSize();
+		const Vector3 scaledHalfSize{
+			authoredHalfSize.x * std::fabs(worldScale.x),
+			authoredHalfSize.y * std::fabs(worldScale.y),
+			authoredHalfSize.z * std::fabs(worldScale.z)
+		};
+
+		if (GetShapeType() == ECollisionShapeType::AABB)
+		{
+			const Vector3 center = GetWorldPosition();
+			AABB aabb{};
+			aabb.min = center - scaledHalfSize;
+			aabb.max = center + scaledHalfSize;
+			collider->SetAABB(aabb); // Characterの親Scale変更を実際のAABBサイズへ反映する。
+		}
+		else if (GetShapeType() == ECollisionShapeType::OBB)
+		{
+			collider->SetCenterPosition(GetWorldPosition());
+			collider->SetOBBHalfSize(scaledHalfSize);
+			collider->SetOrientation(GetWorldRotation()); // OBBも見た目と同じWorld Scale・回転へ同期する。
+		}
 	}
 } // namespace Ken4lowEngine
