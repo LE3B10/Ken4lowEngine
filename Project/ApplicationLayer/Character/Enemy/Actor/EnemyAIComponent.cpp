@@ -66,8 +66,9 @@ namespace Ken4lowEngine
 
 		if (attack && attack->IsAttacking())
 		{
+			movement->Stop(); // Scratchは停止し、LungeのActive中だけ後段のCharge Behaviorが速度を上書きする。
 			stateName_ = "Attacking";
-			return; // Charge中の移動要求をAI側で上書きしない。
+			return;
 		}
 
 		const Vector3 current = root->GetWorldPosition();
