@@ -6,29 +6,10 @@
 #include <Input.h>
 #include <InputSnapshot.h>
 
-#include <algorithm>
-
 namespace
 {
 	constexpr float kMouseLookSensitivity = 0.0025f;
 	constexpr const char* kPlayerPrefabPath = "Resources/ActorPrefabs/Player.json";
-}
-
-void TestActor::ToJson(nlohmann::json& outJson) const
-{
-	Ken4lowEngine::PlayerActor::ToJson(outJson);
-	outJson["Class"] = "PlayerActor";
-	outJson["Name"] = "Player";
-	outJson["Layer"] = "Player";
-	outJson["Tags"] = nlohmann::json::array({ "Player" });
-	if (outJson.contains("Components") && outJson["Components"].is_array())
-	{
-		auto& components = outJson["Components"];
-		components.erase(std::remove_if(components.begin(), components.end(), [](const nlohmann::json& component)
-			{
-				return component.value("Class", std::string{}) == "PlayerMigrationValidationComponent";
-			}), components.end()); // Debug検証Componentを本番共通Prefabへ混ぜない。
-	}
 }
 
 void TestActor::Initialize()
@@ -47,7 +28,7 @@ void TestActor::Initialize()
 		validation.SetUpdateOrder(200); // Player本体の各Component更新後にフレーム跨ぎの検証結果を判定する。
 	}
 
-	SetName("Player");
+	SetName("DebugPlayer"); // 共通PrefabのPlayer名をDebug専用保存先へ分離し、Player.jsonの誤上書きを防ぐ。
 	wasControllingPlayer_ = false;
 	if (!hadSavedComposition) ResetForValidation({ 0.0f, 1.5f, 0.0f }); // 共通Prefabの原点をDebugScene用検証位置へ移す。
 }
