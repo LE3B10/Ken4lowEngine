@@ -49,8 +49,13 @@ public:
 		player_->ResetForValidation(spawnPosition);
 		if (K4E::WeaponComponent* weapon = player_->GetWeaponComponent())
 		{
-			weapon->ConfigureAmmoState(30, 30, 90, 120); // 旧Playerを生成せず、現行Primaryの初期弾数を新Weapon側で正本化する。
+			weapon->ConfigureAmmoState(30, 30, 90, 120);
 		}
+		if (K4E::PlayerMeleeAttackComponent* melee = player_->GetPlayerMeleeAttackComponent())
+		{
+			melee->SetCollisionManager(bulletManager_ ? bulletManager_->GetCollisionManager() : nullptr); // 銃弾と近接で別のCollisionManagerを生成しない。
+		}
+		UpdateLadderState();
 		RefreshNearbyStageColliders(true);
 		player_->SetGameplayHudVisible(true);
 		if (auto* visual = player_->GetHumanoidVisualComponent()) visual->SetActive(false);
@@ -69,6 +74,7 @@ public:
 	void Finalize()
 	{
 		active_ = false;
+		if (player_) player_->SetLadderState(false);
 		ClearNearbyStageColliders();
 		stageColliders_.clear();
 		player_ = nullptr;
@@ -108,6 +114,7 @@ public:
 			playerInput->ResetInputState();
 		}
 
+		UpdateLadderState();
 		actorWorld_->Update(deltaTime);
 		RefreshNearbyStageColliders(false);
 		physicsWorld_->Update(deltaTime);
@@ -161,6 +168,14 @@ private:
 		const float dx = point.x < bounds.min.x ? bounds.min.x - point.x : (point.x > bounds.max.x ? point.x - bounds.max.x : 0.0f);
 		const float dz = point.z < bounds.min.z ? bounds.min.z - point.z : (point.z > bounds.max.z ? point.z - bounds.max.z : 0.0f);
 		return dx * dx + dz * dz;
+	}
+
+	void UpdateLadderState()
+	{
+		if (!player_ || !stage_) return;
+		K4E::Collider* collider = player_->GetCollisionPrimitive();
+		const bool overlapsLadder = collider && stage_->CheckLadderOverlap(collider->GetAABB());
+		player_->SetLadderState(overlapsLadder); // Stage Trigger問い合わせを新Movementの昇降状態へ毎フレーム同期する。
 	}
 
 	void RefreshNearbyStageColliders(bool force)
