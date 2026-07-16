@@ -5,6 +5,8 @@
 #include "EnemyEffectComponent.h"
 
 #include <Collider.h>
+#include <CollisionPreset.h>
+#include <RigidbodyComponent.h>
 #include <Scene/Actor/Character/CharacterColliderComponent.h>
 #include <Scene/Actor/Character/CharacterHealthComponent.h>
 #include <Scene/Actor/Character/CharacterMovementComponent.h>
@@ -76,6 +78,7 @@ namespace Ken4lowEngine
 
 		SetMaxHp(160);
 		EnemyBase::Initialize(); // Collision、地形補正、被弾、死亡演出は既存本番経路を維持する。
+		runtimeStateInitialized_ = true;
 		if (visual && visual->GetSkinTexturePath().empty()) visual->ApplySkinToAllParts("Characters/enemy.dds");
 		ApplyPendingRuntimeBindings();
 		SetHealthBarVisible(false);
@@ -84,6 +87,7 @@ namespace Ken4lowEngine
 
 	void EnemyActor::Update(float deltaTime)
 	{
+		EnsureRuntimeStateInitialized();
 		EnemyBase::Update(deltaTime);
 		if (!IsDead())
 		{
@@ -94,6 +98,7 @@ namespace Ken4lowEngine
 
 	void EnemyActor::ApplyDirectorDifficulty(float moveSpeedMultiplier, float attackCooldownMultiplier, float damageMultiplier)
 	{
+		EnsureRuntimeStateInitialized();
 		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->ApplyMoveSpeedMultiplier(moveSpeedMultiplier);
 		if (EnemyAttackComponent* attack = GetEnemyAttackComponent()) attack->ApplyDifficultyMultipliers(attackCooldownMultiplier, damageMultiplier);
 	}
@@ -113,6 +118,7 @@ namespace Ken4lowEngine
 
 	CharacterDamageResult EnemyActor::ApplyComparisonDamage(float amount)
 	{
+		EnsureRuntimeStateInitialized();
 		CharacterDamageResult result{};
 		result.requestedDamage = amount;
 		result.healthBefore = static_cast<float>(GetHp());
@@ -135,6 +141,7 @@ namespace Ken4lowEngine
 
 	void EnemyActor::ResetForComparison(const Vector3& worldPosition)
 	{
+		EnsureRuntimeStateInitialized();
 		SetActive(true);
 		isDead_ = false;
 		removable_ = false;
@@ -243,6 +250,50 @@ namespace Ken4lowEngine
 	{
 		SetTargetActor(targetActor_);
 		SetNavigationObstacles(navigationObstacles_);
+	}
+
+	void EnemyActor::EnsureRuntimeStateInitialized()
+	{
+		if (runtimeStateInitialized_) return;
+		if (CharacterHealthComponent* health = GetHealthComponent())
+		{
+			configuredMaxHp_ = std::max(1, static_cast<int>(std::round(health->GetMaxHealth())));
+			isDead_ = !health->IsAlive();
+		}
+		else
+		{
+			configuredMaxHp_ = 160;
+			isDead_ = false;
+		}
+
+		removable_ = false;
+		deathBreakActive_ = false;
+		deathBreakInitialized_ = false;
+		hasDeathEffectOrigin_ = false;
+		hasDeathPartWorldTransforms_ = false;
+		deathTimer_ = 0.0f;
+		deathPieces_.clear();
+		hitFlashTimer_ = 0.0f;
+		velocity_ = {};
+		const bool usesPhysicsBody = GetComponent<RigidbodyComponent>() != nullptr;
+		useGravity_ = !usesPhysicsBody;
+		useWorldResolve_ = !usesPhysicsBody;
+		if (CharacterColliderComponent* collider = GetColliderComponent())
+		{
+			obbHalf_ = collider->GetHalfSize();
+			worldCol_.half = obbHalf_;
+			worldCol_.centerOffset = collider->GetLocalPosition();
+			worldColOverride_ = true;
+		}
+		ApplyCollisionPreset(*this, ECollisionPresetId::Enemy);
+		if (Collider* primitive = GetCollisionPrimitive()) primitive->SetOwner(this);
+		spawnPosition_ = GetCenterPosition();
+		lastSafePosition_ = spawnPosition_;
+		orientation_ = GetOrientation();
+		SetColor(baseColor_);
+		ApplyPendingRuntimeBindings();
+		runtimeStateInitialized_ = true; // Prefab生成ではActor固有Initializeが呼ばれないため、最初の利用時に一度だけ補完する。
+		SyncHealthGauge();
 	}
 
 	void EnemyActor::OnDeath(const CharacterDeathEvent& deathEvent)
