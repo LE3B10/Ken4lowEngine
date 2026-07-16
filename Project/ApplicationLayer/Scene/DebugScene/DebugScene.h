@@ -158,7 +158,7 @@ private:
 
 	struct ActorWorldValidationState
 	{
-		std::string targetActorName = "Player";
+		std::string targetActorName = "DebugPlayer";
 		std::string jsonPath = "../Generated/Intermediate/ActorWorldValidation.json";
 		std::string lastMessage = "未検証";
 		bool lastSucceeded = false;
