@@ -88,6 +88,7 @@ public:
 		{
 			const PlayerTutorialRestrictionBridge::State restrictions = PlayerTutorialRestrictionBridge::GetState();
 			playerInput->SetInputRestrictions(restrictions.enabled, restrictions.allowMove, restrictions.allowShoot, restrictions.allowReload);
+			playerInput->SetWeaponSwitchEnabled(restrictions.allowWeaponSwitch); // Stage1の1武器制限を数字キーとホイール入力へ常時反映する。
 		}
 
 		const bool canControl = allowInput && input && playerInput && input->IsGameInputEnabled() && !K4E::CameraManager::GetInstance()->IsUsingDebugCamera();
