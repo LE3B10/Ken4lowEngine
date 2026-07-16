@@ -100,7 +100,7 @@ namespace Ken4lowEngine
 					return;
 				}
 				movement->FaceDirectionXZ(direction, rotateSpeed_, deltaTime);
-				movement->SetVelocity(direction * moveSpeed_);
+				movement->SetVelocity(direction * GetChaseSpeed()); // 徘徊速度は維持し、Player発見後だけ追跡速度を引き上げる。
 				stateName_ = pathFound_ ? "ChasePath" : "ChaseDirect";
 				return;
 			}
@@ -138,7 +138,8 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("通常敵AI");
 		ImGui::Text("状態: %s", stateName_.c_str());
-		ImGui::Text("移動速度: %.2f / 索敵距離: %.2f", moveSpeed_, detectRange_);
+		ImGui::Text("基本速度: %.2f / 追跡速度: %.2f", moveSpeed_, GetChaseSpeed());
+		ImGui::Text("追跡倍率: %.2f / 索敵距離: %.2f", chaseSpeedMultiplier_, detectRange_);
 		ImGui::Text("回転速度: %.2f / Root Yaw: %.2f", rotateSpeed_, GetOwner() && GetOwner()->GetRootComponent() ? GetOwner()->GetRootComponent()->GetWorldRotation().y : 0.0f);
 		ImGui::Text("Target水平距離: %.2f", distanceToTarget_);
 		ImGui::Text("徘徊: %s / 半径 %.2f", wanderEnabled_ ? "有効" : "無効", wanderRadius_);
@@ -150,6 +151,7 @@ namespace Ken4lowEngine
 	{
 		ActorComponent::ToJson(outJson);
 		outJson["MoveSpeed"] = moveSpeed_;
+		outJson["ChaseSpeedMultiplier"] = chaseSpeedMultiplier_;
 		outJson["RotateSpeed"] = rotateSpeed_;
 		outJson["StopDistance"] = stopDistance_;
 		outJson["AttackStartRange"] = attackStartRange_;
@@ -164,6 +166,7 @@ namespace Ken4lowEngine
 	{
 		ActorComponent::FromJson(inJson);
 		moveSpeed_ = std::max(0.0f, inJson.value("MoveSpeed", moveSpeed_));
+		chaseSpeedMultiplier_ = std::clamp(inJson.value("ChaseSpeedMultiplier", chaseSpeedMultiplier_), 0.1f, 4.0f);
 		rotateSpeed_ = std::max(0.0f, inJson.value("RotateSpeed", rotateSpeed_));
 		stopDistance_ = std::max(0.0f, inJson.value("StopDistance", stopDistance_));
 		attackStartRange_ = std::max(stopDistance_, inJson.value("AttackStartRange", attackStartRange_));
@@ -184,7 +187,7 @@ namespace Ken4lowEngine
 
 	void EnemyAIComponent::ApplyMoveSpeedMultiplier(float multiplier)
 	{
-		moveSpeed_ *= std::max(0.1f, multiplier); // Director倍率は生成時に一度だけ適用し、AI分岐を増やさない。
+		moveSpeed_ *= std::max(0.1f, multiplier); // Director倍率は基準速度へ一度だけ適用し、追跡倍率との積で最終速度を決める。
 	}
 
 	void EnemyAIComponent::StopBehavior()
