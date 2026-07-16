@@ -4,6 +4,7 @@
 #include "ApplicationLayer/Character/Player/Migration/PlayerTutorialRestrictionBridge.h"
 #include "ApplicationLayer/Scene/DebugScene/DebugActorRegistration.h"
 #include "BulletManager.h"
+#include "CollisionManager.h"
 #include "Stage.h"
 
 #include <ActorWorld.h>
@@ -30,6 +31,7 @@ public:
 	{
 		Finalize();
 		bulletManager_ = bulletManager;
+		legacyCollisionManager_ = bulletManager_ ? bulletManager_->GetCollisionManager() : nullptr;
 		stage_ = stage;
 		actorWorld_ = actorWorld;
 		physicsWorld_ = physicsWorld;
@@ -81,6 +83,7 @@ public:
 		stageColliders_.clear();
 		player_ = nullptr;
 		bulletManager_ = nullptr;
+		legacyCollisionManager_ = nullptr;
 		stage_ = nullptr;
 		actorWorld_ = nullptr;
 		physicsWorld_ = nullptr;
@@ -162,7 +165,7 @@ private:
 		if (!player_) return;
 		if (K4E::PlayerMeleeAttackComponent* melee = player_->GetPlayerMeleeAttackComponent())
 		{
-			melee->SetCollisionManager(bulletManager_ ? bulletManager_->GetCollisionManager() : nullptr);
+			melee->SetCollisionManager(legacyCollisionManager_);
 			melee->SetHitFeedbackCallback([this](bool killed) { if (player_) player_->NotifyHitFeedback(killed); }); // JSON再読込後の新ComponentへRuntime依存を張り直す。
 		}
 		if (const K4E::WeaponComponent* weapon = player_->GetWeaponComponent(); weapon && weapon->GetShotRevision() < lastShotRevision_)
@@ -251,18 +254,28 @@ private:
 			if (!desired.contains(*it))
 			{
 				physicsWorld_->UnregisterCollider(*it);
+				if (legacyCollisionManager_) legacyCollisionManager_->RemoveCollider(*it);
 				it = activeStageColliders_.erase(it);
 			}
 			else ++it;
 		}
-		for (K4E::Collider* collider : desired) if (activeStageColliders_.insert(collider).second) physicsWorld_->RegisterCollider(collider);
+		for (K4E::Collider* collider : desired)
+		{
+			if (!activeStageColliders_.insert(collider).second) continue;
+			physicsWorld_->RegisterCollider(collider);
+			if (legacyCollisionManager_) legacyCollisionManager_->AddCollider(collider); // 弾・Enemy対WorldもPlayer周辺だけLegacy判定へ登録する。
+		}
 		lastStageRefreshPosition_ = playerPosition;
 		hasStageRefreshPosition_ = true;
 	}
 
 	void ClearNearbyStageColliders()
 	{
-		if (physicsWorld_) for (K4E::Collider* collider : activeStageColliders_) physicsWorld_->UnregisterCollider(collider);
+		for (K4E::Collider* collider : activeStageColliders_)
+		{
+			if (physicsWorld_) physicsWorld_->UnregisterCollider(collider);
+			if (legacyCollisionManager_) legacyCollisionManager_->RemoveCollider(collider);
+		}
 		activeStageColliders_.clear();
 	}
 
@@ -292,13 +305,14 @@ private:
 	static constexpr const char* kPlayerPrefabPath = "Resources/ActorPrefabs/Player.json";
 	static constexpr float kMouseLookSensitivity = 0.0025f;
 	static constexpr float kSpawnGroundClearance = 0.02f;
-	static constexpr float kStageActivationRadius = 18.0f;
-	static constexpr float kStageRefreshDistance = 3.0f;
-	static constexpr size_t kMaxActiveStageColliders = 96;
+	static constexpr float kStageActivationRadius = 72.0f;
+	static constexpr float kStageRefreshDistance = 5.0f;
+	static constexpr size_t kMaxActiveStageColliders = 256;
 	K4E::ActorWorld* actorWorld_ = nullptr;
 	K4E::PhysicsWorld* physicsWorld_ = nullptr;
 	K4E::PlayerActor* player_ = nullptr;
 	BulletManager* bulletManager_ = nullptr;
+	CollisionManager* legacyCollisionManager_ = nullptr;
 	K4E::Stage* stage_ = nullptr;
 	std::vector<K4E::Collider*> stageColliders_{};
 	std::unordered_set<K4E::Collider*> activeStageColliders_{};
