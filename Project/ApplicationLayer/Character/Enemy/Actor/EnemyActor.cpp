@@ -82,6 +82,7 @@ namespace Ken4lowEngine
 		EnemyBase::Initialize(); // Collision、地形補正、被弾、死亡演出は両アーキタイプで同じ本番経路を使う。
 		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetMovementEnabled(false);
 		runtimeStateInitialized_ = true;
+		simulationEnabled_ = true;
 		if (visual && visual->GetSkinTexturePath().empty()) visual->ApplySkinToAllParts("Characters/enemy.dds");
 		ApplyPendingRuntimeBindings();
 		SetHealthBarVisible(false);
@@ -91,6 +92,11 @@ namespace Ken4lowEngine
 	void EnemyActor::Update(float deltaTime)
 	{
 		EnsureRuntimeStateInitialized();
+		if (!simulationEnabled_)
+		{
+			SyncHealthGauge();
+			return; // Intro・装備演出中はActorWorldに残したままEnemy固有時間だけを停止する。
+		}
 		if (IsDead())
 		{
 			if (MidRangeEnemyAttackComponent* attack = GetMidRangeEnemyAttackComponent()) attack->Update(deltaTime); // 所有者死亡後も発射済みBombの飛翔・爆発・Damageだけを最後まで更新する。
@@ -188,6 +194,7 @@ namespace Ken4lowEngine
 		velocity_ = {};
 		orientation_ = {};
 		hitFlashTimer_ = 0.0f;
+		simulationEnabled_ = true;
 		SetPosition(worldPosition);
 		SetCurrentHp(GetConfiguredArchetypeMaxHp());
 		SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
