@@ -11,14 +11,11 @@
 class TestActor final : public Ken4lowEngine::PlayerActor
 {
 public:
-	/// 共通Player Prefabへ保存した際もGamePlayで生成できるPlayerActor型として記録する。
+	/// PIE複製ではDebugScene固有入力を持つTestActor型を維持する。
 	std::string GetClassTypeName() const override
 	{
-		return "PlayerActor";
+		return "TestActor";
 	}
-
-	/// Debug専用検証ComponentとTagを除外して本番Player Prefabとして保存する。
-	void ToJson(nlohmann::json& outJson) const override;
 
 	/// PlayerActorのComponent構成を生成し、新規生成時だけDebugScene用の初期位置へ配置する。
 	void Initialize() override;
