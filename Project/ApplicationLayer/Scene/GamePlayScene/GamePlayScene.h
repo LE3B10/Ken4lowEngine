@@ -66,6 +66,12 @@ public: /// ---------- BaseScene override ---------- ///
 	// World OutlinerへGamePlaySceneの主要オブジェクトを公開する。
 	void CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) override;
 
+	// GamePlayの実Player ActorWorldをEditorの更新・Play Snapshot・Component編集へ公開する。
+	K4E::ActorWorld* GetEditorActorWorld() override
+	{
+		return world_ ? &world_->GetCharacters().GetActorWorld() : nullptr; // DebugSceneと同じActorWorld編集経路をGamePlayでも使用する。
+	}
+
 	// FPS操作が必要なGamePlaySceneだけF8入力キャプチャを許可する。
 	K4E::EditorInputPolicy GetEditorInputPolicy() const override;
 
@@ -189,7 +195,7 @@ private: /// ---------- メンバ変数 ---------- ///
 	// リトライ遷移制御
 	bool isRetryTransitionActive_ = false; // リトライ演出中か
 	bool isRetryRestartDone_ = false;      // フェードアウト後の再初期化を実行済みか
-	bool tutorialSeen_ = false;			   // 同じ起動中にチュートリアル完了済みかを覚え、2回目以降のスキップ解放に使う。
+	bool tutorialSeen_ = false;            // 同じ起動中にチュートリアル完了済みかを覚え、2回目以降のスキップ解放に使う。
 	bool tutorialSkipUnlocked_ = false;
 	bool stage1TutorialSkipRequested_ = false;
 
