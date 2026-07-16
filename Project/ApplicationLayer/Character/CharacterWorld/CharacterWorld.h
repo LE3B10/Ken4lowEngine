@@ -93,6 +93,7 @@ private:
 	void UpdateRuntimeWorld(float deltaTime, bool allowInput);
 	void UpdateActivePlayer(float dt);
 	void InjectEnemyDeps(K4E::EnemyActor& enemy);
+	void ApplyEnemyCrowdSeparation(float deltaTime);
 	void RegisterPlayerCollisionBridge();
 	void UnregisterPlayerCollisionBridge();
 
