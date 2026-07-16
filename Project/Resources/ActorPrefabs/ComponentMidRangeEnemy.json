@@ -28,8 +28,9 @@
             "TooCloseRange": 4.0,
             "Type": "ActorComponent",
             "UpdateOrder": -95,
-            "WanderInterval": 3.0,
-            "WanderRadius": 8.0,
+            "WanderInterval": 8.0,
+            "WanderRadius": 22.0,
+            "WanderRetryDelay": 0.4,
             "WanderSpeed": 1.8
         },
         {
@@ -98,6 +99,8 @@
         {
             "Active": true,
             "Class": "CharacterMovementComponent",
+            "MaxBrakingForce": 120.0,
+            "MaxDriveForce": 80.0,
             "MovementEnabled": true,
             "Name": "Character Movement",
             "Type": "ActorComponent",
