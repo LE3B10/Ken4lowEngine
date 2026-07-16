@@ -107,7 +107,7 @@ namespace Ken4lowEngine
 			weaponEnabled_ = inJson.value("WeaponEnabled", weaponEnabled_);
 			SaveCurrentWeaponState();
 			ResetTransientState();
-			RestartEquipAnimation();
+			equipTimer_ = equipDuration_;
 		}
 
 		void RequestFire() { fireRequested_ = true; }
@@ -163,8 +163,8 @@ namespace Ken4lowEngine
 			LoadDefinition(weaponId_, false);
 			weaponEnabled_ = true;
 			ResetTransientState();
-			RestartEquipAnimation();
-			++equipRevision_;
+			equipTimer_ = equipDuration_;
+			++equipRevision_; // 状態Resetは即時Readyにし、GamePlay開始演出はStartWeaponEquipAnimationから明示開始する。
 		}
 
 		void RestartEquipAnimation()
@@ -316,7 +316,6 @@ namespace Ken4lowEngine
 
 		static int NormalizeWeaponId(int weaponId) { return std::clamp(weaponId, 0, kWeaponCount - 1); }
 		static float SmoothStep(float value) { return value * value * (3.0f - 2.0f * value); }
-
 		void ResetAllStoredStates() { for (StoredWeaponState& state : storedStates_) state = {}; }
 
 		void SaveCurrentWeaponState()
