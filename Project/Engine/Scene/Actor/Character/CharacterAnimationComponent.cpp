@@ -196,23 +196,23 @@ namespace Ken4lowEngine
 
 		if (animationName_ == "Attack.Scratch")
 		{
-			const float slash = threeStageSwing(-1.35f, 0.75f);
-			const float twist = threeStageSwing(-0.28f, 0.32f);
-			setRotationOffset("RightArm", { slash, 0.0f, -0.42f });
-			setRotationOffset("LeftArm", { -0.25f * slash, 0.0f, 0.18f });
-			setRotationOffset("Body", { 0.10f * std::sin(t * kPi), twist, 0.0f });
-			setRotationOffset("Head", { 0.0f, -twist * 0.35f, 0.0f });
+			const float slash = threeStageSwing(-1.35f, 0.30f);
+			const float twist = threeStageSwing(-0.22f, 0.24f);
+			setRotationOffset("RightArm", { slash, 0.0f, -0.32f });
+			setRotationOffset("LeftArm", { -0.20f * slash, 0.0f, 0.16f });
+			setRotationOffset("Body", { 0.06f * std::sin(t * kPi), twist, 0.0f });
+			setRotationOffset("Head", { 0.0f, -twist * 0.30f, 0.0f }); // 振り抜き終端を上げ、腕と上体が腰より下へ落ち込み過ぎないようにする。
 		}
 		else if (animationName_ == "Attack.LungeScratch")
 		{
 			const float lunge = std::sin(t * kPi);
-			const float slash = threeStageSwing(-1.55f, 0.65f);
-			setRotationOffset("Body", { 0.48f * lunge, 0.0f, 0.0f });
-			setRotationOffset("Head", { -0.18f * lunge, 0.0f, 0.0f });
-			setRotationOffset("RightArm", { slash, 0.0f, -0.36f });
-			setRotationOffset("LeftArm", { -0.75f * lunge, 0.0f, 0.20f });
-			setRotationOffset("LeftLeg", { -0.30f * lunge, 0.0f, 0.0f });
-			setRotationOffset("RightLeg", { 0.35f * lunge, 0.0f, 0.0f });
+			const float slash = threeStageSwing(-1.55f, 0.20f);
+			setRotationOffset("Body", { 0.34f * lunge, 0.0f, 0.0f });
+			setRotationOffset("Head", { -0.10f * lunge, 0.0f, 0.0f });
+			setRotationOffset("RightArm", { slash, 0.0f, -0.30f });
+			setRotationOffset("LeftArm", { -0.58f * lunge, 0.0f, 0.18f });
+			setRotationOffset("LeftLeg", { -0.22f * lunge, 0.0f, 0.0f });
+			setRotationOffset("RightLeg", { 0.28f * lunge, 0.0f, 0.0f });
 		}
 		else if (animationName_ == "Attack.Melee")
 		{
