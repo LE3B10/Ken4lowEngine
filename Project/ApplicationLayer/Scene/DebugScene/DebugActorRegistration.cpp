@@ -17,6 +17,7 @@
 #include "ApplicationLayer/Character/Boss/Components/BossWeakPointComponent.h"
 #include "ApplicationLayer/Character/Player/Actor/PlayerActor.h"
 #include "ApplicationLayer/Character/Player/Actor/PlayerHudPresenterComponent.h"
+#include "ApplicationLayer/Character/Player/Actor/PlayerMeleeAttackComponent.h"
 #include "Validation/PlayerMigrationValidationComponent.h"
 #include "TestActor.h"
 #include "TestGroundActor.h"
@@ -86,10 +87,11 @@ void RegisterDebugActors()
 
 	ActorFactory::RegisterActorClass<PlayerActor>("PlayerActor");
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerInputComponent>("PlayerInputComponent", "プレイヤー入力", "プレイヤー", "入力を具体処理へ変換せず、各専用Componentへ要求だけ配送します。"));
-	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerMovementComponent>("PlayerMovementComponent", "プレイヤー移動", "プレイヤー", "移動入力を速度へ変換し、共通Character移動へ委譲します。"));
-	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<WeaponComponent>("WeaponComponent", "武器", "プレイヤー", "射撃・リロード要求と弾薬状態を管理します。"));
-	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<InventoryComponent>("InventoryComponent", "Inventory", "プレイヤー", "武器スロットと選択中の装備を管理します。"));
-	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerHudPresenterComponent>("PlayerHudPresenterComponent", "プレイヤーHUD", "プレイヤー", "HP・弾薬・Crosshair表示をPlayer本体から分離して同期します。"));
-	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerMigrationValidationComponent>("PlayerMigrationValidationComponent", "P9 Player検証", "デバッグ", "新PlayerのDamage・Heal・Fire・Reload・Death・GameOver・Resetを自動検証します。")); // PIE SnapshotでもDebug専用検証Componentを復元できるよう登録する。
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerMovementComponent>("PlayerMovementComponent", "プレイヤー移動", "プレイヤー", "通常移動・Ladder・落下ダメージ・被弾ノックバックを管理します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<WeaponComponent>("WeaponComponent", "武器", "プレイヤー", "6カテゴリの射撃・リロード・装備演出と弾薬状態を管理します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<InventoryComponent>("InventoryComponent", "Inventory", "プレイヤー", "6武器スロットと選択中の装備を管理します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerMeleeAttackComponent>("PlayerMeleeAttackComponent", "プレイヤー近接攻撃", "プレイヤー", "近接攻撃の予備・有効・硬直と命中判定を管理します。")); // Prefab再読込でも新Playerの近接機能を復元する。
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerHudPresenterComponent>("PlayerHudPresenterComponent", "プレイヤーHUD", "プレイヤー", "HP・武器・NoAmmo・HitMarker・動的Crosshairを同期します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<PlayerMigrationValidationComponent>("PlayerMigrationValidationComponent", "P9 Player検証", "デバッグ", "新PlayerのDamage・Heal・Fire・Reload・Death・GameOver・Resetを自動検証します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationSceneComponentTypeInfo<PlayerCameraComponent>("PlayerCameraComponent", "プレイヤーカメラ", "プレイヤー", "視点要求を角度へ反映し、共通CameraComponentへ同期します。"));
 }
