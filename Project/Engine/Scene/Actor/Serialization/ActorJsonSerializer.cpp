@@ -4,6 +4,7 @@
 #include "SceneComponent.h"
 #include "ComponentFactory.h"
 #include "ActorFactory.h"
+#include "HumanoidCharacterActor.h"
 
 #include <filesystem>
 #include <fstream>
@@ -80,6 +81,33 @@ namespace Ken4lowEngine
 			}
 			return true;
 		}
+
+		std::unordered_set<ActorComponent*> PrepareComponentsForReload(Actor& actor)
+		{
+			std::unordered_set<ActorComponent*> reusableComponents;
+			auto* humanoid = dynamic_cast<HumanoidCharacterActor*>(&actor);
+			if (!humanoid)
+			{
+				actor.ClearComponents();
+				return reusableComponents;
+			}
+
+			if (SceneComponent* root = actor.GetRootComponent()) reusableComponents.insert(root);
+			if (HumanoidVisualComponent* visual = humanoid->GetHumanoidVisualComponent()) reusableComponents.insert(visual);
+
+			std::vector<ActorComponent*> removeTargets;
+			for (const auto& ownedComponent : actor.GetComponents())
+			{
+				ActorComponent* component = ownedComponent.get();
+				if (component && !reusableComponents.contains(component)) removeTargets.push_back(component);
+			}
+			for (ActorComponent* component : removeTargets) actor.RemoveComponent(component);
+			for (ActorComponent* component : reusableComponents)
+			{
+				if (component) component->FinalizeForWorld(); // 部位参照が指す実体は残し、GPU・階層状態だけを再初期化可能にする。
+			}
+			return reusableComponents;
+		}
 	}
 
 	nlohmann::json ActorJsonSerializer::SerializeActor(const Actor& actor)
@@ -134,13 +162,12 @@ namespace Ken4lowEngine
 	{
 		if (!ValidateActorJson(actorJson)) return false;
 
-		const bool preserveConstructionComponents = actor.GetRootComponent() == nullptr && !actor.GetComponents().empty();
-		if (!preserveConstructionComponents) actor.ClearComponents();
+		std::unordered_set<ActorComponent*> reusableComponents = PrepareComponentsForReload(actor);
 		actor.FromJson(actorJson);
 
 		std::unordered_map<std::string, SceneComponent*> sceneComponentsByName;
 		std::vector<std::pair<SceneComponent*, std::string>> pendingAttachments;
-		std::unordered_set<ActorComponent*> reusedConstructionComponents;
+		std::unordered_set<ActorComponent*> reusedComponents;
 
 		for (const auto& componentJson : actorJson["Components"])
 		{
@@ -149,17 +176,13 @@ namespace Ken4lowEngine
 			const std::string parentName = componentJson.value("Parent", std::string{});
 
 			ActorComponent* createdComponent = nullptr;
-			if (preserveConstructionComponents)
+			for (ActorComponent* reusable : reusableComponents)
 			{
-				for (const auto& existingOwner : actor.GetComponents())
-				{
-					ActorComponent* existing = existingOwner.get();
-					if (!existing || reusedConstructionComponents.contains(existing)) continue;
-					if (existing->GetClassTypeName() != className) continue;
-					createdComponent = existing;
-					reusedConstructionComponents.insert(existing);
-					break;
-				}
+				if (!reusable || reusedComponents.contains(reusable)) continue;
+				if (reusable->GetClassTypeName() != className) continue;
+				createdComponent = reusable;
+				reusedComponents.insert(reusable);
+				break;
 			}
 
 			if (!createdComponent)
@@ -180,7 +203,7 @@ namespace Ken4lowEngine
 			{
 				sceneComponentsByName.emplace(sceneComponent->GetName(), sceneComponent);
 				if (!parentName.empty()) pendingAttachments.emplace_back(sceneComponent, parentName);
-				else if (!actor.GetRootComponent()) actor.SetRootComponent(sceneComponent);
+				else actor.SetRootComponent(sceneComponent);
 			}
 		}
 
@@ -191,7 +214,7 @@ namespace Ken4lowEngine
 			child->AttachTo(parentIt->second);
 		}
 
-		actor.InitializeComponents(); // Constructor必須Componentは実体を保持したままJSON値だけを復元する。
+		actor.InitializeComponents();
 		return true;
 	}
 
