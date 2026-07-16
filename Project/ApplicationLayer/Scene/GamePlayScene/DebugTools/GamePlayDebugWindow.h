@@ -34,6 +34,12 @@ public:
 		}
 
 		auto& editorWindowState = Ken4lowEngine::EditorWindowManager::GetInstance()->GetWindowState();
+		if (world)
+		{
+			auto& actorWorld = world->GetCharacters().GetActorWorld();
+			actorWorld.SetLegacyEditorWindowsEnabled(editorWindowState.showPlayerDebug);
+			if (editorWindowState.showPlayerDebug) actorWorld.DrawImGui(); // GamePlayの実Player Actorと全Componentを編集・Prefab保存できるよう公開する。
+		}
 		DrawCullingDebugWindow(world, debugTools, frustumCullingDebug, editorWindowState);
 		DrawPlayerDebugWindow(effectController, editorWindowState);
 #else
