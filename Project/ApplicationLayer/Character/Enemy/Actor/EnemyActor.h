@@ -64,9 +64,11 @@ namespace Ken4lowEngine
 		/// CharacterHealthの現在値をWorldGaugeへ反映する。
 		void SyncHealthGauge();
 		void ApplyPendingRuntimeBindings();
+		void EnsureRuntimeStateInitialized();
 
 	private:
 		CharacterActor* targetActor_ = nullptr;
 		const std::vector<AABB>* navigationObstacles_ = nullptr;
+		bool runtimeStateInitialized_ = false;
 	};
 } // namespace Ken4lowEngine
