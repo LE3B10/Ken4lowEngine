@@ -33,7 +33,7 @@ namespace Ken4lowEngine
 		{
 			auto& ai = AddComponent<EnemyAIComponent>();
 			ai.SetName("Enemy AI");
-			ai.SetUpdateOrder(-95); // AIは移動要求を決め、CharacterMovementが同じComponent更新内で座標へ反映する。
+			ai.SetUpdateOrder(-95); // AIは移動要求を決め、EnemyBaseの地形解決へ同じ速度を渡す。
 		}
 
 		HumanoidVisualComponent* visual = GetHumanoidVisualComponent();
@@ -78,6 +78,7 @@ namespace Ken4lowEngine
 
 		SetMaxHp(160);
 		EnemyBase::Initialize(); // Collision、地形補正、被弾、死亡演出は既存本番経路を維持する。
+		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetMovementEnabled(false);
 		runtimeStateInitialized_ = true;
 		if (visual && visual->GetSkinTexturePath().empty()) visual->ApplySkinToAllParts("Characters/enemy.dds");
 		ApplyPendingRuntimeBindings();
@@ -88,6 +89,15 @@ namespace Ken4lowEngine
 	void EnemyActor::Update(float deltaTime)
 	{
 		EnsureRuntimeStateInitialized();
+		if (!GetComponent<RigidbodyComponent>())
+		{
+			if (const CharacterMovementComponent* movement = GetMovementComponent())
+			{
+				const Vector3 desiredVelocity = movement->GetVelocity();
+				velocity_.x = desiredVelocity.x;
+				velocity_.z = desiredVelocity.z; // Componentの要求速度を旧地形解決へ渡し、Root直接移動との二重適用を避ける。
+			}
+		}
 		EnemyBase::Update(deltaTime);
 		if (!IsDead())
 		{
@@ -158,7 +168,11 @@ namespace Ken4lowEngine
 		SetCurrentHp(160);
 		SetColor({ 1.0f, 1.0f, 1.0f, 1.0f });
 		SetAllPartsActive(true);
-		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->Stop();
+		if (CharacterMovementComponent* movement = GetMovementComponent())
+		{
+			movement->Stop();
+			movement->SetMovementEnabled(GetComponent<RigidbodyComponent>() != nullptr);
+		}
 		if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(true);
 		if (Collider* primitive = GetCollisionPrimitive()) primitive->SetEnabled(true);
 		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->ResetBehavior();
@@ -278,6 +292,7 @@ namespace Ken4lowEngine
 		const bool usesPhysicsBody = GetComponent<RigidbodyComponent>() != nullptr;
 		useGravity_ = !usesPhysicsBody;
 		useWorldResolve_ = !usesPhysicsBody;
+		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetMovementEnabled(usesPhysicsBody);
 		if (CharacterColliderComponent* collider = GetColliderComponent())
 		{
 			obbHalf_ = collider->GetHalfSize();
