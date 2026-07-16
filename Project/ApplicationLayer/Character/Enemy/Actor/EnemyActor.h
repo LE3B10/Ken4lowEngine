@@ -15,6 +15,8 @@
 
 #include <AABB.h>
 #include <RigidbodyComponent.h>
+#include <Scene/Actor/Character/CharacterColliderComponent.h>
+#include <Scene/Actor/Character/CharacterMovementComponent.h>
 
 #include <algorithm>
 #include <vector>
