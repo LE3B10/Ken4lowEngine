@@ -44,8 +44,11 @@ namespace Ken4lowEngine
 		/// Difficulty Directorの移動速度倍率を現在個体へ適用する。
 		void ApplyMoveSpeedMultiplier(float multiplier);
 
-		/// 旧敵との比較に使用する基本移動速度を返す。
+		/// 徘徊速度の基準となる基本移動速度を返す。
 		float GetMoveSpeed() const { return moveSpeed_; }
+
+		/// Player発見後に使用する実際の追跡速度を返す。
+		float GetChaseSpeed() const { return moveSpeed_ * chaseSpeedMultiplier_; }
 
 		/// 進行方向またはTarget方向へ向く最大Yaw回転速度を返す。
 		float GetRotateSpeed() const { return rotateSpeed_; }
@@ -78,6 +81,7 @@ namespace Ken4lowEngine
 		Vector3 spawnOrigin_{};
 		Vector3 wanderTarget_{};
 		float moveSpeed_ = 3.2f;
+		float chaseSpeedMultiplier_ = 1.4f;
 		float rotateSpeed_ = 8.0f;
 		float stopDistance_ = 1.8f;
 		float attackStartRange_ = 2.4f;
