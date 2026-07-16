@@ -90,6 +90,7 @@ public:
 
 private:
 	void EnsurePlayerRuntime();
+	void UpdateRuntimeWorld(float deltaTime, bool allowInput);
 	void UpdateActivePlayer(float dt);
 	void InjectEnemyDeps(K4E::EnemyActor& enemy);
 	void RegisterPlayerCollisionBridge();
