@@ -105,10 +105,22 @@ void CharacterWorld::UnregisterPlayerCollisionBridge()
 	playerCollisionBridgeRegistered_ = false;
 }
 
-void CharacterWorld::UpdateActivePlayer(float deltaTime)
+void CharacterWorld::UpdateRuntimeWorld(float deltaTime, bool allowInput)
 {
 	EnsurePlayerRuntime();
-	if (playerRuntimeController_ && playerRuntimeController_->IsActive()) playerRuntimeController_->Update(deltaTime);
+	if (!playerRuntimeController_ || !playerRuntimeController_->IsActive()) return;
+	if (!playerRuntimeController_->BeginWorldUpdate(deltaTime, allowInput)) return;
+
+	actorWorld_.Update(deltaTime);
+	playerRuntimeController_->PreparePhysicsUpdate();
+	physicsWorld_.Update(deltaTime);
+	actorWorld_.PostPhysicsUpdate(deltaTime);
+	playerRuntimeController_->EndWorldUpdate(); // Player固有BridgeはActor・Physics更新が完了した後にだけ処理する。
+}
+
+void CharacterWorld::UpdateActivePlayer(float deltaTime)
+{
+	UpdateRuntimeWorld(deltaTime, true);
 }
 
 void CharacterWorld::InjectEnemyDeps(K4E::EnemyActor& enemy)
@@ -205,7 +217,7 @@ bool CharacterWorld::RemoveEnemy(EnemyBase* enemy)
 
 void CharacterWorld::Update(float deltaTime)
 {
-	UpdateActivePlayer(deltaTime); // Player Runtimeが共有ActorWorld・PhysicsWorldを一度だけ更新する。
+	UpdateRuntimeWorld(deltaTime, true);
 
 	for (K4E::EnemyActor* enemy : enemyActors_)
 	{
@@ -232,14 +244,13 @@ void CharacterWorld::Update(float deltaTime)
 void CharacterWorld::UpdatePlayerOnly(float deltaTime)
 {
 	for (K4E::EnemyActor* enemy : enemyActors_) if (enemy) enemy->SetSimulationEnabled(false);
-	UpdateActivePlayer(deltaTime);
+	UpdateRuntimeWorld(deltaTime, true);
 	for (K4E::EnemyActor* enemy : enemyActors_) if (enemy) enemy->SetSimulationEnabled(true); // Intro・装備演出中はPlayerだけを進め、敵のAI時間を消費しない。
 }
 
 void CharacterWorld::WarmupStartGameplayVisuals()
 {
-	EnsurePlayerRuntime();
-	if (playerRuntimeController_ && playerRuntimeController_->IsActive()) playerRuntimeController_->Update(0.0f, false);
+	UpdateRuntimeWorld(0.0f, false);
 }
 
 void CharacterWorld::SetStartGameplayVisualsVisible(bool visible)
