@@ -244,6 +244,7 @@ namespace Ken4lowEngine
 			body_.transform.scale_ = root->GetWorldScale();
 			body_.transform.worldTranslate_ = root->GetWorldPosition();
 			body_.transform.worldRotate_ = root->GetWorldRotation();
+			body_.transform.parent_ = nullptr; // 旧Gameplayへ返すBodyは常にワールドTransformとして保持し、死亡時の再UpdateでRootを二重適用しない。
 			Collider::SetCenterPosition(root->GetWorldPosition());
 		}
 
