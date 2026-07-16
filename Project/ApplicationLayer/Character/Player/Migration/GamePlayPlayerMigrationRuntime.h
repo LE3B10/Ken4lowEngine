@@ -52,7 +52,7 @@ public:
 		stageColliders_ = stage_->GetWorldColliderPointers();
 		player_->ResetForValidation(ResolveSpawnRootPosition(spawnPosition));
 		if (K4E::WeaponComponent* weapon = player_->GetWeaponComponent()) weapon->ConfigureAmmoState(30, 30, 90, 120);
-		if (K4E::PlayerMeleeAttackComponent* melee = player_->GetPlayerMeleeAttackComponent()) melee->SetCollisionManager(bulletManager_ ? bulletManager_->GetCollisionManager() : nullptr);
+		RefreshPlayerRuntimeBindings();
 		Bullet::SetDamageableHitCallback([this](bool killed)
 			{
 				if (player_) player_->NotifyHitFeedback(killed); // Bulletの寿命よりPlayer Runtimeが先に破棄されてもnull確認してHUD通知を止める。
@@ -92,6 +92,7 @@ public:
 	void Update(float deltaTime, bool allowInput = true)
 	{
 		if (!active_ || !player_ || !actorWorld_ || !physicsWorld_) return;
+		RefreshPlayerRuntimeBindings();
 		K4E::Input* input = K4E::Input::GetInstance();
 		K4E::PlayerInputComponent* playerInput = player_->GetPlayerInputComponent();
 		if (playerInput)
@@ -137,6 +138,20 @@ public:
 	K4E::Vector3 GetPlayerPosition() const { return player_ ? player_->GetWorldPosition() : K4E::Vector3{}; }
 
 private:
+	void RefreshPlayerRuntimeBindings()
+	{
+		if (!player_) return;
+		if (K4E::PlayerMeleeAttackComponent* melee = player_->GetPlayerMeleeAttackComponent())
+		{
+			melee->SetCollisionManager(bulletManager_ ? bulletManager_->GetCollisionManager() : nullptr);
+			melee->SetHitFeedbackCallback([this](bool killed) { if (player_) player_->NotifyHitFeedback(killed); }); // JSON再読込後の新ComponentへRuntime依存を張り直す。
+		}
+		if (const K4E::WeaponComponent* weapon = player_->GetWeaponComponent(); weapon && weapon->GetShotRevision() < lastShotRevision_)
+		{
+			lastShotRevision_ = weapon->GetShotRevision(); // 再読込でRevisionが初期化された場合に次の1発から再同期する。
+		}
+	}
+
 	K4E::Vector3 ResolveSpawnRootPosition(const K4E::Vector3& requestedPosition) const
 	{
 		K4E::Vector3 resolved = requestedPosition;
