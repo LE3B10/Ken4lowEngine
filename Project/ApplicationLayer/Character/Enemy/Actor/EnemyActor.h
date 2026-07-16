@@ -14,7 +14,11 @@
 #include "../Core/EnemyType.h"
 
 #include <AABB.h>
+#include <RigidbodyComponent.h>
+#include <Scene/Actor/Character/CharacterColliderComponent.h>
+#include <Scene/Actor/Character/CharacterMovementComponent.h>
 
+#include <algorithm>
 #include <vector>
 
 namespace Ken4lowEngine
@@ -31,7 +35,19 @@ namespace Ken4lowEngine
 	class EnemyActor final : public ::EnemyBase
 	{
 	public:
-		explicit EnemyActor(::EnemyType enemyType = ::EnemyType::Melee) : enemyType_(enemyType) {}
+		explicit EnemyActor(::EnemyType enemyType = ::EnemyType::Melee) : enemyType_(enemyType)
+		{
+			auto& rigidbody = AddComponent<RigidbodyComponent>();
+			rigidbody.SetName("Enemy Rigidbody");
+			rigidbody.SetUpdateOrder(-65);
+			rigidbody.SetBodyType(BodyType::Dynamic);
+			rigidbody.SetMass(4.0f);
+			rigidbody.SetUseGravity(true);
+			rigidbody.SetSleepEnabled(false);
+			rigidbody.SetRestitution(0.0f);
+			rigidbody.SetStaticFriction(0.8f);
+			rigidbody.SetDynamicFriction(0.35f); // 通常敵は立位を保ちつつ床・段差へ物理的に接地させる。
+		}
 
 		/// 必要なComponentを不足分だけ生成し、アーキタイプ別の基礎値を設定する。
 		void Initialize() override;
@@ -39,10 +55,18 @@ namespace Ken4lowEngine
 		/// EnemyBaseの地形・死亡処理とComponent更新を進め、表示用状態を同期する。
 		void Update(float deltaTime) override;
 
-		/// EnemyActorは通常更新内でRoot・Collider・Visualを確定するため、物理後の人型再同期を行わない。
+		/// Rigidbodyが補正したCollider中心をRootへ戻し、次フレームのVisual更新へ反映する。
 		void PostPhysicsUpdate(float deltaTime) override
 		{
-			(void)deltaTime; // Bodyのワールド座標をVisual Rootのローカル座標として二重適用しない。
+			if (IsDead()) return;
+			RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>();
+			if (!rigidbody) return; // Rigidbodyを持たない比較用Actorは従来のEnemyBase解決だけを使う。
+
+			useGravity_ = false;
+			useWorldResolve_ = false;
+			if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetMovementEnabled(true);
+			rigidbody->PostPhysicsUpdate(deltaTime);
+			if (CharacterColliderComponent* collider = GetColliderComponent()) collider->PostPhysicsUpdate(deltaTime);
 		}
 
 		/// Difficulty Directorの倍率を現在アーキタイプのAIと攻撃Componentへ適用する。
@@ -55,9 +79,37 @@ namespace Ken4lowEngine
 
 		::EnemyType GetEnemyType() const { return enemyType_; }
 
-		/// IntroなどPlayerだけを進める区間でAI・攻撃・死亡時間の更新を一時停止する。
-		void SetSimulationEnabled(bool enabled) { simulationEnabled_ = enabled; }
+		/// IntroなどPlayerだけを進める区間ではAIだけでなく重力を含むEnemy物理も停止する。
+		void SetSimulationEnabled(bool enabled)
+		{
+			simulationEnabled_ = enabled;
+			if (RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>())
+			{
+				rigidbody->SetUseGravity(enabled);
+				if (!enabled) rigidbody->SetVelocity({});
+				else rigidbody->WakeUp(); // 本編開始時は停止位置から重力・接地判定を再開する。
+			}
+		}
 		bool IsSimulationEnabled() const { return simulationEnabled_; }
+
+		/// 高いSpawn位置は維持して重力落下させ、床より低い位置だけ安全な接地高さへ補正する。
+		void SetPosition(const Vector3& worldPosition)
+		{
+			Vector3 resolvedPosition = CorrectSpawnPosition(worldPosition);
+			resolvedPosition.y = std::max(worldPosition.y, resolvedPosition.y);
+			spawnPosition_ = resolvedPosition;
+			lastSafePosition_ = resolvedPosition;
+			SetCenterPosition(resolvedPosition);
+			if (RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>())
+			{
+				useGravity_ = false;
+				useWorldResolve_ = false;
+				if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetMovementEnabled(true);
+				rigidbody->SetUseGravity(simulationEnabled_);
+				rigidbody->SetVelocity({}); // 再配置前の落下・移動速度を新しいSpawnへ持ち越さない。
+				rigidbody->WakeUp();
+			}
+		}
 
 		/// 各AIと攻撃Componentへ同じ追跡対象を設定する。Initialize前の指定も保持する。
 		void SetTargetActor(CharacterActor* targetActor);
