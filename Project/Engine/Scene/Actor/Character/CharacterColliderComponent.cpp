@@ -12,6 +12,24 @@ namespace Ken4lowEngine
 		SetHalfSize({ 0.5f, 1.0f, 0.5f });
 	}
 
+	void CharacterColliderComponent::SetHalfSize(const Vector3& halfSize)
+	{
+		auto nearlyEqual = [](const Vector3& lhs, const Vector3& rhs)
+			{
+				return std::fabs(lhs.x - rhs.x) <= 0.0001f &&
+					std::fabs(lhs.y - rhs.y) <= 0.0001f &&
+					std::fabs(lhs.z - rhs.z) <= 0.0001f;
+			};
+
+		const Vector3 currentHalfSize = ColliderComponent::GetHalfSize();
+		const Vector3 characterDefault{ 0.5f, 1.0f, 0.5f };
+		const Vector3 migrationPlayerDefault{ 0.45f, 0.90f, 0.45f };
+		const bool applyingMigrationDefault = nearlyEqual(halfSize, migrationPlayerDefault);
+		const bool currentIsDefault = nearlyEqual(currentHalfSize, characterDefault) || nearlyEqual(currentHalfSize, migrationPlayerDefault);
+		if (applyingMigrationDefault && !currentIsDefault) return; // JSON・Editorで変更済みのHalfSizeをPlayer初期化で上書きしない。
+		ColliderComponent::SetHalfSize(halfSize);
+	}
+
 	void CharacterColliderComponent::Initialize()
 	{
 		ColliderComponent::Initialize();
