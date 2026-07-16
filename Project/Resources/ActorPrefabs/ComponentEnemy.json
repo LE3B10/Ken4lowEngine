@@ -72,7 +72,7 @@
             "LungeDecisionCooldown": 2.0,
             "Name": "Enemy Attack",
             "Type": "ActorComponent",
-            "UpdateOrder": -80
+            "UpdateOrder": -92
         },
         {
             "Active": true,
@@ -118,10 +118,25 @@
         {
             "Active": true,
             "Class": "CharacterMovementComponent",
-            "MovementEnabled": false,
+            "MovementEnabled": true,
             "Name": "Character Movement",
             "Type": "ActorComponent",
             "UpdateOrder": -90,
+            "Velocity": [0.0, 0.0, 0.0]
+        },
+        {
+            "Active": true,
+            "BodyType": "Dynamic",
+            "Class": "RigidbodyComponent",
+            "DynamicFriction": 0.35,
+            "Mass": 4.0,
+            "Name": "Enemy Rigidbody",
+            "Restitution": 0.0,
+            "SleepEnabled": false,
+            "StaticFriction": 0.8,
+            "Type": "ActorComponent",
+            "UpdateOrder": -65,
+            "UseGravity": true,
             "Velocity": [0.0, 0.0, 0.0]
         },
         {
