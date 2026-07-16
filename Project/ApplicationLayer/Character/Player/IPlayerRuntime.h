@@ -12,7 +12,11 @@ namespace Ken4lowEngine
 class IPlayerRuntime
 {
 public:
-	virtual ~IPlayerRuntime() = default;
+	IPlayerRuntime() { activeRuntime_ = this; }
+	virtual ~IPlayerRuntime()
+	{
+		if (activeRuntime_ == this) activeRuntime_ = nullptr; // RetryやScene破棄後に古いPlayer参照を残さない。
+	}
 
 	virtual float GetHP() const = 0;
 	virtual float GetMaxHP() const = 0;
