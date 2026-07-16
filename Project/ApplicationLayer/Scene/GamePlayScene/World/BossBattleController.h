@@ -118,12 +118,14 @@ private:
 	std::unique_ptr<GuardianBoss> guardianBoss_;
 	std::unique_ptr<BossClearItem> clearItem_;
 	K4E::Vector3 bossSpawnPosition_{ 0.0f, 2.25f, 30.0f };
+	K4E::Vector3 bossDeathPosition_{};
 	BossIntroController bossIntroController_;
 	bool stage1BeginnerBalanceEnabled_ = false;
 	bool bossSpawned_ = false;
 	bool bossColliderRegistered_ = false;
 	bool bossSpawnConditionMet_ = false;
 	bool bossDefeated_ = false;
+	bool bossDeathPositionCaptured_ = false;
 	bool clearItemSpawned_ = false;
 	bool clearItemCollected_ = false;
 	bool isGameClear_ = false;
