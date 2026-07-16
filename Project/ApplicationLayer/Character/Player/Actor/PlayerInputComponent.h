@@ -46,25 +46,35 @@ namespace Ken4lowEngine
 			}
 			if (camera)
 			{
-				camera->SetAimHeld(inputEnabled_ && frameInput_.aimHeld);
+				camera->SetAimHeld(inputEnabled_ && frameInput_.aimHeld && !(weapon && weapon->IsMeleeWeapon()));
 				camera->SetSprintHeld(inputEnabled_ && frameInput_.sprintHeld && !frameInput_.aimHeld);
 			}
-			if (weapon) weapon->SetTriggerHeld(inputEnabled_ && frameInput_.fireHeld);
+			if (weapon) weapon->SetTriggerHeld(inputEnabled_ && frameInput_.fireHeld && !weapon->IsMeleeWeapon());
 
 			if (inputEnabled_)
 			{
 				if (jumpRequested_ && movement) movement->RequestJump();
 				if (blinkRequested_ && movement) movement->RequestBlink();
-				if (fireRequested_ && weapon) weapon->RequestFire();
+				if (fireRequested_)
+				{
+					if (weapon && weapon->IsMeleeWeapon())
+					{
+						if (melee) melee->RequestAttack();
+					}
+					else if (weapon)
+					{
+						weapon->RequestFire();
+					}
+				}
 				if (reloadRequested_ && weapon) weapon->RequestReload();
 				if (toggleFireModeRequested_ && weapon) weapon->RequestToggleFireMode();
-				if (meleeRequested_ && melee) melee->RequestAttack(); // InputSnapshotに存在していた近接入力を新Playerの攻撃処理へ接続する。
+				if (meleeRequested_ && melee) melee->RequestAttack();
 				if (inventorySlotRequested_ >= 0 && inventory) inventory->RequestSelectSlot(inventorySlotRequested_);
 				if (weaponSwitchRequested_ != 0 && inventory) inventory->RequestCycle(weaponSwitchRequested_);
 				if ((lookYawDelta_ != 0.0f || lookPitchDelta_ != 0.0f) && camera) camera->RequestLook(lookYawDelta_, lookPitchDelta_);
 			}
 
-			ClearTransientRequests();
+			ClearTransientRequests(); // 左クリック近接と専用近接入力も同じ1フレーム要求として消費する。
 		}
 
 		void DrawImGui() override
@@ -73,17 +83,10 @@ namespace Ken4lowEngine
 			ImGui::SeparatorText("プレイヤー入力要求");
 			ImGui::Text("Enabled: %s", inputEnabled_ ? "ON" : "OFF");
 			ImGui::Text("Move: %.2f, %.2f", moveX_, moveZ_);
-			ImGui::Text("Sprint: %s / Aim: %s / Fire Held: %s",
-				frameInput_.sprintHeld ? "Yes" : "No",
-				frameInput_.aimHeld ? "Yes" : "No",
-				frameInput_.fireHeld ? "Yes" : "No");
-			ImGui::Text("Jump: %s / Blink: %s / Reload: %s / Melee: %s / Slot: %d / Wheel: %d",
-				frameInput_.jumpPressed ? "Yes" : "No",
-				frameInput_.blinkPressed ? "Yes" : "No",
-				frameInput_.reloadPressed ? "Yes" : "No",
-				frameInput_.meleePressed ? "Yes" : "No",
-				frameInput_.weaponSlotPressed,
-				frameInput_.weaponSwitch);
+			ImGui::Text("Sprint:%s Aim:%s Fire:%s Melee:%s Slot:%d Wheel:%d",
+				frameInput_.sprintHeld ? "Yes" : "No", frameInput_.aimHeld ? "Yes" : "No",
+				frameInput_.fireHeld ? "Yes" : "No", frameInput_.meleePressed ? "Yes" : "No",
+				frameInput_.weaponSlotPressed, frameInput_.weaponSwitch);
 			ImGui::Text("Restrictions: %s  Move:%s Shoot:%s Reload:%s",
 				restrictionsEnabled_ ? "ON" : "OFF", allowMove_ ? "ON" : "OFF", allowShoot_ ? "ON" : "OFF", allowReload_ ? "ON" : "OFF");
 			ImGui::SliderFloat("ADS感度倍率", &adsLookSensitivityMultiplier_, 0.1f, 1.0f, "%.2f");
@@ -147,11 +150,7 @@ namespace Ken4lowEngine
 			allowReload_ = allowReload;
 		}
 
-		void RequestMove(float x, float z)
-		{
-			moveX_ = std::clamp(x, -1.0f, 1.0f);
-			moveZ_ = std::clamp(z, -1.0f, 1.0f);
-		}
+		void RequestMove(float x, float z) { moveX_ = std::clamp(x, -1.0f, 1.0f); moveZ_ = std::clamp(z, -1.0f, 1.0f); }
 		void RequestLook(float yawDelta, float pitchDelta) { lookYawDelta_ += yawDelta; lookPitchDelta_ += pitchDelta; }
 		void RequestJump() { jumpRequested_ = true; }
 		void RequestBlink() { blinkRequested_ = true; }
