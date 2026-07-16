@@ -5,6 +5,7 @@
 #include "PlayerCameraComponent.h"
 #include "PlayerHudPresenterComponent.h"
 #include "PlayerInputComponent.h"
+#include "PlayerMeleeAttackComponent.h"
 #include "PlayerMovementComponent.h"
 #include "WeaponComponent.h"
 
@@ -22,6 +23,8 @@
 #include <SpriteComponent.h>
 #include <TextComponent.h>
 
+#include <algorithm>
+#include <cmath>
 #include <functional>
 #include <string_view>
 
@@ -65,11 +68,17 @@ namespace Ken4lowEngine
 				inventory.SetName("Player Inventory");
 				inventory.SetUpdateOrder(-75);
 			}
+			if (!GetPlayerMeleeAttackComponent())
+			{
+				auto& melee = AddComponent<PlayerMeleeAttackComponent>();
+				melee.SetName("Player Melee Attack");
+				melee.SetUpdateOrder(-70);
+			}
 			if (!GetPlayerHudPresenterComponent())
 			{
 				auto& hud = AddComponent<PlayerHudPresenterComponent>();
 				hud.SetName("Player HUD Presenter");
-				hud.SetUpdateOrder(50); // 状態更新後にHP・弾薬・Crosshairを同期する。
+				hud.SetUpdateOrder(50);
 			}
 
 			auto* visual = GetHumanoidVisualComponent();
@@ -101,8 +110,8 @@ namespace Ken4lowEngine
 				weaponView.SetUpdateOrder(15);
 				weaponView.SetDrawOrder(5);
 				weaponView.SetModelPath("Sources/Weapons/primary_rifle.gltf");
-				weaponView.SetLocalPosition({ 0.28f, -0.30f, 0.55f });
-				weaponView.SetLocalRotation({ 1.5708f, 1.5708f, 0.0f });
+				weaponView.SetLocalPosition(kWeaponViewBasePosition);
+				weaponView.SetLocalRotation(kWeaponViewBaseRotation);
 				weaponView.SetLocalScale({ 0.55f, 0.55f, 0.55f });
 				weaponView.SetCastShadowEnabled(false);
 				weaponView.AttachTo(camera);
@@ -131,8 +140,13 @@ namespace Ken4lowEngine
 				if (CharacterHealthComponent* health = GetHealthComponent()) health->ResetHealth(100.0f);
 			}
 			if (visual && visual->GetSkinTexturePath().empty()) visual->ApplySkinToAllParts("Characters/steve.dds");
+			if (PlayerMeleeAttackComponent* melee = GetPlayerMeleeAttackComponent())
+			{
+				melee->SetHitFeedbackCallback([this](bool killed) { NotifyHitFeedback(killed); });
+			}
 			deathTimer_ = 0.0f;
 			gameOverReady_ = false;
+			lastWeaponEquipRevision_ = GetWeaponComponent() ? GetWeaponComponent()->GetEquipRevision() : 0u;
 			if (PlayerHudPresenterComponent* hud = GetPlayerHudPresenterComponent()) hud->ResetPresentation();
 		}
 
@@ -143,6 +157,8 @@ namespace Ken4lowEngine
 				if (PlayerCameraComponent* camera = GetPlayerCameraComponent()) weaponView->SetCamera(camera->GetCamera());
 			}
 			CharacterActor::Update(deltaTime);
+			ConsumeMovementDamage();
+			UpdateWeaponViewPresentation();
 			UpdateDeathLifecycle(deltaTime);
 		}
 
@@ -161,13 +177,20 @@ namespace Ken4lowEngine
 			if (PlayerInputComponent* input = GetPlayerInputComponent()) input->SetInputEnabled(true);
 			if (PlayerMovementComponent* movement = GetPlayerMovementComponent()) movement->ResetMovement();
 			if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(true);
-			if (RigidbodyComponent* rigidbody = GetRigidbodyComponent()) rigidbody->SetVelocity({});
+			if (RigidbodyComponent* rigidbody = GetRigidbodyComponent())
+			{
+				rigidbody->SetUseGravity(true);
+				rigidbody->SetVelocity({});
+			}
 			if (WeaponComponent* weapon = GetWeaponComponent()) weapon->ResetWeapon();
 			if (InventoryComponent* inventory = GetInventoryComponent()) inventory->ResetInventory();
+			if (PlayerMeleeAttackComponent* melee = GetPlayerMeleeAttackComponent()) melee->ResetAttack();
 			if (PlayerCameraComponent* camera = GetPlayerCameraComponent()) camera->ResetLook();
 			if (CharacterAnimationComponent* animation = GetAnimationComponent()) animation->Play("Idle", 1.0f, true);
 			deathTimer_ = 0.0f;
 			gameOverReady_ = false;
+			lastWeaponEquipRevision_ = GetWeaponComponent() ? GetWeaponComponent()->GetEquipRevision() : 0u;
+			UpdateWeaponViewPresentation();
 			if (PlayerHudPresenterComponent* hud = GetPlayerHudPresenterComponent()) hud->ResetPresentation();
 		}
 
@@ -189,6 +212,10 @@ namespace Ken4lowEngine
 		}
 
 		void SetOnDamageTakenCallback(std::function<void()> callback) { onDamageTaken_ = std::move(callback); }
+		void NotifyHitFeedback(bool killed)
+		{
+			if (PlayerHudPresenterComponent* hud = GetPlayerHudPresenterComponent()) hud->NotifyHit(killed);
+		}
 
 		float GetHP() const override
 		{
@@ -223,6 +250,17 @@ namespace Ken4lowEngine
 		}
 		float ApplyRuntimeDamage(float amount) override { return ApplyPlayerDamage(amount).appliedDamage; }
 		float HealRuntime(float amount) override { return HealPlayer(amount); }
+		void ApplyDamage(float amount, const Vector3* attackPosition = nullptr) override
+		{
+			if (attackPosition)
+			{
+				if (PlayerMovementComponent* movement = GetPlayerMovementComponent())
+				{
+					movement->ApplyDamageKnockback(GetWorldPosition() - *attackPosition, 6.0f, 2.2f);
+				}
+			}
+			ApplyPlayerDamage(amount); // ダメージ受付とノックバックを同じ攻撃位置情報から一度だけ適用する。
+		}
 		int AddReserveAmmo(int amount) override
 		{
 			WeaponComponent* weapon = GetWeaponComponent();
@@ -263,6 +301,17 @@ namespace Ken4lowEngine
 			const WeaponComponent* weapon = GetWeaponComponent();
 			return weapon ? weapon->GetReloadDuration() : 0.0f;
 		}
+		int GetSelectedWeaponSlot() const override
+		{
+			const InventoryComponent* inventory = GetInventoryComponent();
+			return inventory ? inventory->GetSelectedSlot() : 0;
+		}
+		int GetWeaponSlotCount() const override { return InventoryComponent::kSlotCount; }
+		int GetWeaponIdForSlot(int slotIndex) const override
+		{
+			const InventoryComponent* inventory = GetInventoryComponent();
+			return inventory ? inventory->GetWeaponIdForSlot(slotIndex) : -1;
+		}
 		void SetViewLookAngles(float pitch, float yaw) override
 		{
 			if (PlayerCameraComponent* camera = GetPlayerCameraComponent()) camera->ResetLook(pitch, yaw);
@@ -276,13 +325,21 @@ namespace Ken4lowEngine
 		{
 			if (PlayerHudPresenterComponent* hud = GetPlayerHudPresenterComponent()) hud->SetHudVisible(visible);
 		}
+		void SetLadderState(bool inLadderArea)
+		{
+			if (PlayerMovementComponent* movement = GetPlayerMovementComponent()) movement->SetLadderState(inLadderArea);
+		}
 
 		// 旧Intro Directorが残る間だけPlayerActorへ最小互換入口を置き、旧Playerインスタンスは復活させない。
 		void SetSpawnOffset(const Vector3& offset) { (void)offset; }
 		void SetSpawnPosition(const Vector3& position) { ResetForValidation(position); }
 		void SyncViewToPlayer() { if (PlayerCameraComponent* camera = GetPlayerCameraComponent()) camera->SyncToMainCameraNow(); }
-		void StartWeaponEquipAnimation() {}
-		bool IsWeaponEquipAnimating() const { return false; }
+		void StartWeaponEquipAnimation() { if (WeaponComponent* weapon = GetWeaponComponent()) weapon->RestartEquipAnimation(); }
+		bool IsWeaponEquipAnimating() const
+		{
+			const WeaponComponent* weapon = GetWeaponComponent();
+			return weapon && weapon->IsEquipAnimating();
+		}
 
 		PlayerInputComponent* GetPlayerInputComponent() { return GetCharacterComponent<PlayerInputComponent>(); }
 		const PlayerInputComponent* GetPlayerInputComponent() const { return GetCharacterComponent<PlayerInputComponent>(); }
@@ -292,6 +349,8 @@ namespace Ken4lowEngine
 		const WeaponComponent* GetWeaponComponent() const { return GetCharacterComponent<WeaponComponent>(); }
 		InventoryComponent* GetInventoryComponent() { return GetCharacterComponent<InventoryComponent>(); }
 		const InventoryComponent* GetInventoryComponent() const { return GetCharacterComponent<InventoryComponent>(); }
+		PlayerMeleeAttackComponent* GetPlayerMeleeAttackComponent() { return GetCharacterComponent<PlayerMeleeAttackComponent>(); }
+		const PlayerMeleeAttackComponent* GetPlayerMeleeAttackComponent() const { return GetCharacterComponent<PlayerMeleeAttackComponent>(); }
 		PlayerCameraComponent* GetPlayerCameraComponent() { return GetCharacterComponent<PlayerCameraComponent>(); }
 		const PlayerCameraComponent* GetPlayerCameraComponent() const { return GetCharacterComponent<PlayerCameraComponent>(); }
 		PlayerHudPresenterComponent* GetPlayerHudPresenterComponent() { return GetCharacterComponent<PlayerHudPresenterComponent>(); }
@@ -316,6 +375,7 @@ namespace Ken4lowEngine
 				movement->Stop();
 				movement->SetMovementEnabled(false);
 			}
+			if (PlayerMeleeAttackComponent* melee = GetPlayerMeleeAttackComponent()) melee->ResetAttack();
 			if (RigidbodyComponent* rigidbody = GetRigidbodyComponent()) rigidbody->SetVelocity({});
 			if (WeaponComponent* weapon = GetWeaponComponent()) weapon->SetWeaponEnabled(false);
 			if (CharacterColliderComponent* collider = GetColliderComponent()) collider->SetActive(false);
@@ -339,6 +399,8 @@ namespace Ken4lowEngine
 		GaugeComponent* GetPlayerHealthGaugeComponent() { return FindNamedComponent<GaugeComponent>("Player HP Gauge"); }
 		TextComponent* GetPlayerHealthLabelComponent() { return FindNamedComponent<TextComponent>("Player HP Label"); }
 		TextComponent* GetAmmoTextComponent() { return FindNamedComponent<TextComponent>("Player Ammo Text"); }
+		TextComponent* GetNoAmmoTextComponent() { return FindNamedComponent<TextComponent>("Player No Ammo Text"); }
+		TextComponent* GetHitMarkerTextComponent() { return FindNamedComponent<TextComponent>("Player Hit Marker"); }
 
 		void CreateGameplayHudComponents()
 		{
@@ -374,6 +436,29 @@ namespace Ken4lowEngine
 				ammo.SetAnchor({ 1.0f, 0.0f });
 				ammo.SetFontSize(22.0f);
 			}
+			if (!GetNoAmmoTextComponent())
+			{
+				auto& noAmmo = AddComponent<TextComponent>();
+				noAmmo.SetName("Player No Ammo Text");
+				noAmmo.SetDrawOrder(115);
+				noAmmo.SetText("NO AMMO");
+				noAmmo.SetPosition({ screenWidth * 0.5f, screenHeight * 0.5f + 58.0f });
+				noAmmo.SetAnchor({ 0.5f, 0.5f });
+				noAmmo.SetFontSize(25.0f);
+				noAmmo.SetColor({ 1.0f, 0.25f, 0.15f, 1.0f });
+				noAmmo.SetVisible(false);
+			}
+			if (!GetHitMarkerTextComponent())
+			{
+				auto& marker = AddComponent<TextComponent>();
+				marker.SetName("Player Hit Marker");
+				marker.SetDrawOrder(116);
+				marker.SetText("HIT");
+				marker.SetPosition({ screenWidth * 0.5f, screenHeight * 0.5f - 38.0f });
+				marker.SetAnchor({ 0.5f, 0.5f });
+				marker.SetFontSize(20.0f);
+				marker.SetVisible(false);
+			}
 			CreateCrosshairBar("Player Crosshair Left", { screenWidth * 0.5f - 10.0f, screenHeight * 0.5f }, { 8.0f, 2.0f });
 			CreateCrosshairBar("Player Crosshair Right", { screenWidth * 0.5f + 10.0f, screenHeight * 0.5f }, { 8.0f, 2.0f });
 			CreateCrosshairBar("Player Crosshair Top", { screenWidth * 0.5f, screenHeight * 0.5f - 10.0f }, { 2.0f, 8.0f });
@@ -392,15 +477,53 @@ namespace Ken4lowEngine
 			sprite.SetAnchor({ 0.5f, 0.5f });
 		}
 
+		void ConsumeMovementDamage()
+		{
+			PlayerMovementComponent* movement = GetPlayerMovementComponent();
+			if (!movement || CharacterActor::IsDead()) return;
+			const float fallDamage = movement->ConsumePendingFallDamage();
+			if (fallDamage > 0.0f) ApplyPlayerDamage(fallDamage);
+		}
+
+		void UpdateWeaponViewPresentation()
+		{
+			ModelComponent* weaponView = GetWeaponViewComponent();
+			WeaponComponent* weapon = GetWeaponComponent();
+			if (!weaponView || !weapon) return;
+
+			if (lastWeaponEquipRevision_ != weapon->GetEquipRevision())
+			{
+				lastWeaponEquipRevision_ = weapon->GetEquipRevision();
+				weaponView->SetModelPath(weapon->GetViewModelPath());
+			}
+
+			Vector3 position = kWeaponViewBasePosition + weapon->GetViewModelPositionOffset();
+			Vector3 rotation = kWeaponViewBaseRotation + weapon->GetViewModelRotationOffset();
+			if (const PlayerMeleeAttackComponent* melee = GetPlayerMeleeAttackComponent(); melee && melee->IsAttacking())
+			{
+				const float swing = std::sin(melee->GetNormalizedTime() * 3.14159265358979323846f);
+				position.x -= swing * 0.18f;
+				position.z -= swing * 0.12f;
+				rotation.x -= swing * 0.48f;
+				rotation.z += swing * 0.36f;
+			}
+			weaponView->SetLocalPosition(position);
+			weaponView->SetLocalRotation(rotation);
+			weaponView->RefreshWorldTransform(); // Equip・Reload・Recoil・Meleeの各オフセットを最終ViewModel Transformへ一度だけ合成する。
+		}
+
 		void UpdateDeathLifecycle(float deltaTime)
 		{
 			if (!CharacterActor::IsDead()) return;
 			deathTimer_ += (std::max)(0.0f, deltaTime);
-			if (deathTimer_ >= gameOverDelay_) gameOverReady_ = true; // 新Player自身の死亡演出完了をGameOver遷移の正本にする。
+			if (deathTimer_ >= gameOverDelay_) gameOverReady_ = true;
 		}
 
 	private:
+		inline static const Vector3 kWeaponViewBasePosition{ 0.28f, -0.30f, 0.55f };
+		inline static const Vector3 kWeaponViewBaseRotation{ 1.5708f, 1.5708f, 0.0f };
 		std::function<void()> onDamageTaken_{};
+		unsigned int lastWeaponEquipRevision_ = 0u;
 		float deathTimer_ = 0.0f;
 		float gameOverDelay_ = 1.25f;
 		bool gameOverReady_ = false;
