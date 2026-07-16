@@ -320,20 +320,7 @@ namespace Ken4lowEngine
 
 	inline void MidRangeEnemyAttackComponent::Initialize()
 	{
-		bombSettings_.initialSpeed = 10.0f;
-		bombSettings_.useDistanceBasedSpeed = true;
-		bombSettings_.minInitialSpeed = 7.0f;
-		bombSettings_.maxInitialSpeed = 16.0f;
-		bombSettings_.speedPerDistance = 0.55f;
-		bombSettings_.speedBaseDistance = 6.0f;
-		bombSettings_.upwardVelocity = 7.0f;
-		bombSettings_.gravity = 18.0f;
-		bombSettings_.lifeTime = 4.0f;
-		bombSettings_.hitRadius = 0.45f;
-		bombSettings_.explosionRadius = 3.0f;
-		bombSettings_.directHitDamage = 25;
-		bombSettings_.explosionDamage = 12;
-		ResetAttackState();
+		ResetAttackState(); // BombProjectileSettingsの既定値またはFromJson済み調整値を上書きせず、実行時状態だけを初期化する。
 	}
 
 	inline void MidRangeEnemyAttackComponent::Update(float deltaTime)
