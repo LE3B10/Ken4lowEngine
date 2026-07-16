@@ -79,8 +79,17 @@ namespace Ken4lowEngine
 
 		::EnemyType GetEnemyType() const { return enemyType_; }
 
-		/// IntroなどPlayerだけを進める区間でAI・攻撃・死亡時間の更新を一時停止する。
-		void SetSimulationEnabled(bool enabled) { simulationEnabled_ = enabled; }
+		/// IntroなどPlayerだけを進める区間ではAIだけでなく重力を含むEnemy物理も停止する。
+		void SetSimulationEnabled(bool enabled)
+		{
+			simulationEnabled_ = enabled;
+			if (RigidbodyComponent* rigidbody = GetComponent<RigidbodyComponent>())
+			{
+				rigidbody->SetUseGravity(enabled);
+				if (!enabled) rigidbody->SetVelocity({});
+				else rigidbody->WakeUp(); // 本編開始時は停止位置から重力・接地判定を再開する。
+			}
+		}
 		bool IsSimulationEnabled() const { return simulationEnabled_; }
 
 		/// 高いSpawn位置は維持して重力落下させ、床より低い位置だけ安全な接地高さへ補正する。
@@ -96,6 +105,7 @@ namespace Ken4lowEngine
 				useGravity_ = false;
 				useWorldResolve_ = false;
 				if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetMovementEnabled(true);
+				rigidbody->SetUseGravity(simulationEnabled_);
 				rigidbody->SetVelocity({}); // 再配置前の落下・移動速度を新しいSpawnへ持ち越さない。
 				rigidbody->WakeUp();
 			}
