@@ -89,12 +89,12 @@ namespace Ken4lowEngine
 
 		void ResetInventory()
 		{
-			slots_ = { 0, 1, 2, 3, -1, -1 };
+			slots_ = { 0, 1, 2, 3, 4, 5 };
 			selectedSlot_ = 0;
 			pendingSlot_ = -1;
 			pendingCycleDirection_ = 0;
 			++selectionRevision_;
-			SyncSelectedWeapon(); // Reset時も武器ごとの弾薬・性能・装備演出を即時一致させる。
+			SyncSelectedWeapon(); // PrimaryからHeavyまで旧Playerと同じ6カテゴリを常に選択可能にする。
 		}
 
 		int GetSelectedSlot() const { return selectedSlot_; }
@@ -141,7 +141,7 @@ namespace Ken4lowEngine
 		}
 
 	private:
-		std::array<int, kSlotCount> slots_{ 0, 1, 2, 3, -1, -1 };
+		std::array<int, kSlotCount> slots_{ 0, 1, 2, 3, 4, 5 };
 		int selectedSlot_ = 0;
 		int pendingSlot_ = -1;
 		int pendingCycleDirection_ = 0;
