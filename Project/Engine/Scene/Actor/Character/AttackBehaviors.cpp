@@ -26,6 +26,18 @@ namespace Ken4lowEngine
 			return execution;
 		}
 
+		/// 受理された近接Damageだけ、攻撃者から離れる方向へTarget Movementへノックバックを要求する。
+		void ApplyAcceptedKnockback(const AttackContext& context, const AttackExecutionResult& execution, float horizontalPower, float verticalPower)
+		{
+			if (!execution.accepted || !context.owner || !context.target) return;
+			CharacterMovementComponent* movement = context.target->GetMovementComponent();
+			const SceneComponent* ownerRoot = context.owner->GetRootComponent();
+			if (!movement || !ownerRoot) return;
+
+			const Vector3 direction = context.target->GetTargetPosition() - ownerRoot->GetWorldPosition();
+			movement->ApplyDamageKnockback(direction, horizontalPower, verticalPower); // PlayerMovement派生では入力より優先する減衰ノックバックへ接続される。
+		}
+
 		/// XZ平面上の方向を0除算せず正規化する。
 		Vector3 NormalizeXZ(const Vector3& value)
 		{
@@ -61,7 +73,9 @@ namespace Ken4lowEngine
 		if (executed_) return {};
 		executed_ = true;
 		if (!IsWithinAttackVolume(context, data)) return { true, false, 0.0f };
-		return ApplyDamageOnce(context, data.damage);
+		const AttackExecutionResult execution = ApplyDamageOnce(context, data.damage);
+		ApplyAcceptedKnockback(context, execution, 5.5f, 1.4f);
+		return execution;
 	}
 
 	void MeleeAttackBehavior::End(AttackContext& context, const AttackData& data, bool interrupted)
@@ -128,7 +142,9 @@ namespace Ken4lowEngine
 		}
 		if (hit_ || !IsWithinAttackVolume(context, data)) return {};
 		hit_ = true;
-		return ApplyDamageOnce(context, data.damage);
+		const AttackExecutionResult execution = ApplyDamageOnce(context, data.damage);
+		ApplyAcceptedKnockback(context, execution, 8.0f, 2.2f);
+		return execution;
 	}
 
 	void ChargeAttackBehavior::End(AttackContext& context, const AttackData& data, bool interrupted)
