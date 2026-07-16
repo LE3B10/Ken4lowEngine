@@ -17,6 +17,7 @@ namespace Ken4lowEngine
 {
 	void EnemyAttackComponent::Initialize()
 	{
+		SetUpdateOrder(-92); // Charge速度を同じフレームのMovement更新へ渡すためAI直後に攻撃を評価する。
 		EnsureDefaultAttacks();
 		AttackComponent::Initialize(); // タイマー、イベント、攻撃Phaseは共通基盤だけで初期化する。
 		lungeDecisionTimer_ = 0.0f;
