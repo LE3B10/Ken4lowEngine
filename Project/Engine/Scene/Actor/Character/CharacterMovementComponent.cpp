@@ -40,34 +40,7 @@ namespace Ken4lowEngine
 	void CharacterMovementComponent::Update(float deltaTime)
 	{
 		if (!std::isfinite(deltaTime) || deltaTime <= 0.0f) return;
-
-		Actor* owner = GetOwner();
-		RigidbodyComponent* rigidbodyComponent = owner ? owner->GetComponent<RigidbodyComponent>() : nullptr;
-		Rigidbody* rigidbody = rigidbodyComponent ? rigidbodyComponent->GetRigidbody() : nullptr;
-		if (rigidbody)
-		{
-			// Rigidbody Characterは速度を即時上書きせず、massに応じた加速度上限で目標XZ速度へ近づける。
-			Vector3 physicalVelocity = rigidbody->GetVelocity();
-			const Vector3 targetVelocity = movementEnabled_ ? velocity_ : Vector3{};
-			const float deltaX = targetVelocity.x - physicalVelocity.x;
-			const float deltaZ = targetVelocity.z - physicalVelocity.z;
-			const float deltaSpeed = std::sqrt(deltaX * deltaX + deltaZ * deltaZ);
-
-			if (deltaSpeed > 0.000001f)
-			{
-				const float targetHorizontalSpeedSq = targetVelocity.x * targetVelocity.x + targetVelocity.z * targetVelocity.z;
-				const float forceLimit = targetHorizontalSpeedSq > 0.000001f ? maxDriveForce_ : maxBrakingForce_;
-				const float maxDeltaSpeed = forceLimit * std::max(rigidbody->GetInvMass(), 0.0f) * deltaTime;
-				const float appliedDeltaSpeed = std::min(deltaSpeed, maxDeltaSpeed);
-				const float ratio = deltaSpeed > 0.0f ? appliedDeltaSpeed / deltaSpeed : 0.0f;
-				physicalVelocity.x += deltaX * ratio;
-				physicalVelocity.z += deltaZ * ratio;
-			}
-
-			rigidbodyComponent->SetVelocity(physicalVelocity); // Y速度は重力・ジャンプ・衝突Impulseの結果を保持する。
-			return;
-		}
-
+		if (ApplyMotorTargetToRigidbody(deltaTime)) return;
 		if (!movementEnabled_) return;
 		ApplyMovement(deltaTime);
 	}
@@ -117,6 +90,35 @@ namespace Ken4lowEngine
 		velocity_.x = std::isfinite(velocity.x) ? velocity.x : 0.0f;
 		velocity_.y = std::isfinite(velocity.y) ? velocity.y : 0.0f;
 		velocity_.z = std::isfinite(velocity.z) ? velocity.z : 0.0f;
+	}
+
+	bool CharacterMovementComponent::ApplyMotorTargetToRigidbody(float deltaTime)
+	{
+		if (!std::isfinite(deltaTime) || deltaTime <= 0.0f) return false;
+		Actor* owner = GetOwner();
+		RigidbodyComponent* rigidbodyComponent = owner ? owner->GetComponent<RigidbodyComponent>() : nullptr;
+		Rigidbody* rigidbody = rigidbodyComponent ? rigidbodyComponent->GetRigidbody() : nullptr;
+		if (!rigidbody) return false;
+
+		Vector3 physicalVelocity = rigidbody->GetVelocity();
+		const Vector3 targetVelocity = movementEnabled_ ? velocity_ : Vector3{};
+		const float deltaX = targetVelocity.x - physicalVelocity.x;
+		const float deltaZ = targetVelocity.z - physicalVelocity.z;
+		const float deltaSpeed = std::sqrt(deltaX * deltaX + deltaZ * deltaZ);
+
+		if (deltaSpeed > 0.000001f)
+		{
+			const float targetHorizontalSpeedSq = targetVelocity.x * targetVelocity.x + targetVelocity.z * targetVelocity.z;
+			const float forceLimit = targetHorizontalSpeedSq > 0.000001f ? maxDriveForce_ : maxBrakingForce_;
+			const float maxDeltaSpeed = forceLimit * std::max(rigidbody->GetInvMass(), 0.0f) * deltaTime;
+			const float appliedDeltaSpeed = std::min(deltaSpeed, maxDeltaSpeed);
+			const float ratio = deltaSpeed > 0.0f ? appliedDeltaSpeed / deltaSpeed : 0.0f;
+			physicalVelocity.x += deltaX * ratio;
+			physicalVelocity.z += deltaZ * ratio;
+		}
+
+		rigidbodyComponent->SetVelocity(physicalVelocity); // Y速度は重力・ジャンプ・衝突Impulseの結果を保持する。
+		return true;
 	}
 
 	void CharacterMovementComponent::SetMaxDriveForce(float force)
