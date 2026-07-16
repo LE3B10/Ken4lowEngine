@@ -27,8 +27,9 @@
             "Type": "ActorComponent",
             "UpdateOrder": -95,
             "WanderEnabled": true,
-            "WanderInterval": 2.5,
-            "WanderRadius": 5.0,
+            "WanderInterval": 7.0,
+            "WanderRadius": 18.0,
+            "WanderRetryDelay": 0.35,
             "WanderSpeedScale": 0.45
         },
         {
