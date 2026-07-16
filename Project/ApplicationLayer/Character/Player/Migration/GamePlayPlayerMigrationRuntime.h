@@ -24,12 +24,7 @@
 class GamePlayPlayerMigrationRuntime
 {
 public:
-	bool Initialize(
-		BulletManager* bulletManager,
-		K4E::Stage* stage,
-		K4E::ActorWorld* actorWorld,
-		K4E::PhysicsWorld* physicsWorld,
-		const K4E::Vector3& spawnPosition)
+	bool Initialize(BulletManager* bulletManager, K4E::Stage* stage, K4E::ActorWorld* actorWorld, K4E::PhysicsWorld* physicsWorld, const K4E::Vector3& spawnPosition)
 	{
 		Finalize();
 		bulletManager_ = bulletManager;
@@ -44,17 +39,10 @@ public:
 		player.AddTag("Player");
 		player.AddTag("P13Runtime");
 		player_ = &player;
-
 		stageColliders_ = stage_->GetWorldColliderPointers();
 		player_->ResetForValidation(spawnPosition);
-		if (K4E::WeaponComponent* weapon = player_->GetWeaponComponent())
-		{
-			weapon->ConfigureAmmoState(30, 30, 90, 120);
-		}
-		if (K4E::PlayerMeleeAttackComponent* melee = player_->GetPlayerMeleeAttackComponent())
-		{
-			melee->SetCollisionManager(bulletManager_ ? bulletManager_->GetCollisionManager() : nullptr); // 銃弾と近接で別のCollisionManagerを生成しない。
-		}
+		if (K4E::WeaponComponent* weapon = player_->GetWeaponComponent()) weapon->ConfigureAmmoState(30, 30, 90, 120);
+		if (K4E::PlayerMeleeAttackComponent* melee = player_->GetPlayerMeleeAttackComponent()) melee->SetCollisionManager(bulletManager_ ? bulletManager_->GetCollisionManager() : nullptr);
 		UpdateLadderState();
 		RefreshNearbyStageColliders(true);
 		player_->SetGameplayHudVisible(true);
@@ -65,7 +53,6 @@ public:
 			camera->SetFarClip(1600.0f);
 			K4E::CameraManager::GetInstance()->SetMainCamera(camera);
 		}
-
 		lastShotRevision_ = player_->GetWeaponComponent() ? player_->GetWeaponComponent()->GetShotRevision() : 0u;
 		active_ = true;
 		return true;
@@ -90,29 +77,17 @@ public:
 	void Update(float deltaTime, bool allowInput = true)
 	{
 		if (!active_ || !player_ || !actorWorld_ || !physicsWorld_) return;
-
 		K4E::Input* input = K4E::Input::GetInstance();
 		K4E::PlayerInputComponent* playerInput = player_->GetPlayerInputComponent();
 		if (playerInput)
 		{
-			const PlayerTutorialRestrictionBridge::State tutorialRestrictions = PlayerTutorialRestrictionBridge::GetState();
-			playerInput->SetInputRestrictions(
-				tutorialRestrictions.enabled,
-				tutorialRestrictions.allowMove,
-				tutorialRestrictions.allowShoot,
-				tutorialRestrictions.allowReload);
+			const PlayerTutorialRestrictionBridge::State restrictions = PlayerTutorialRestrictionBridge::GetState();
+			playerInput->SetInputRestrictions(restrictions.enabled, restrictions.allowMove, restrictions.allowShoot, restrictions.allowReload);
 		}
 
 		const bool canControl = allowInput && input && playerInput && input->IsGameInputEnabled() && !K4E::CameraManager::GetInstance()->IsUsingDebugCamera();
-		if (canControl)
-		{
-			const InputSnapshot snapshot = K4E::BuildInputSnapshot(*input);
-			playerInput->ApplyInputSnapshot(snapshot, kMouseLookSensitivity);
-		}
-		else if (playerInput)
-		{
-			playerInput->ResetInputState();
-		}
+		if (canControl) playerInput->ApplyInputSnapshot(K4E::BuildInputSnapshot(*input), kMouseLookSensitivity);
+		else if (playerInput) playerInput->ResetInputState();
 
 		UpdateLadderState();
 		actorWorld_->Update(deltaTime);
@@ -120,35 +95,19 @@ public:
 		physicsWorld_->Update(deltaTime);
 		actorWorld_->PostPhysicsUpdate(deltaTime);
 		SpawnBridgedShots();
-
 		if (!K4E::CameraManager::GetInstance()->IsUsingDebugCamera())
 		{
 			if (K4E::Camera* camera = GetCamera()) K4E::CameraManager::GetInstance()->SetMainCamera(camera);
 		}
 	}
 
-	void PrepareRenderState()
-	{
-		if (active_ && actorWorld_) actorWorld_->PrepareRenderState();
-	}
-
-	void Draw()
-	{
-		if (active_ && actorWorld_) actorWorld_->Draw();
-	}
-
-	void DrawShadow()
-	{
-		if (active_ && actorWorld_) actorWorld_->DrawShadow();
-	}
-
+	void PrepareRenderState() { if (active_ && actorWorld_) actorWorld_->PrepareRenderState(); }
+	void Draw() { if (active_ && actorWorld_) actorWorld_->Draw(); }
+	void DrawShadow() { if (active_ && actorWorld_) actorWorld_->DrawShadow(); }
 	void SetDebugCameraEnabled(bool enabled)
 	{
 		if (!active_ || !player_) return;
-		if (K4E::PlayerInputComponent* input = player_->GetPlayerInputComponent())
-		{
-			if (enabled) input->ResetInputState();
-		}
+		if (K4E::PlayerInputComponent* input = player_->GetPlayerInputComponent(); input && enabled) input->ResetInputState();
 	}
 
 	bool IsActive() const { return active_ && player_ != nullptr; }
@@ -158,7 +117,6 @@ public:
 	const IPlayerRuntime* GetPlayerRuntime() const { return player_; }
 	size_t GetRegisteredStageColliderCount() const { return activeStageColliders_.size(); }
 	size_t GetTotalStageColliderCount() const { return stageColliders_.size(); }
-
 	K4E::Camera* GetCamera() const { return player_ ? player_->GetCamera() : nullptr; }
 	K4E::Vector3 GetPlayerPosition() const { return player_ ? player_->GetWorldPosition() : K4E::Vector3{}; }
 
@@ -174,8 +132,7 @@ private:
 	{
 		if (!player_ || !stage_) return;
 		K4E::Collider* collider = player_->GetCollisionPrimitive();
-		const bool overlapsLadder = collider && stage_->CheckLadderOverlap(collider->GetAABB());
-		player_->SetLadderState(overlapsLadder); // Stage Trigger問い合わせを新Movementの昇降状態へ毎フレーム同期する。
+		player_->SetLadderState(collider && stage_->CheckLadderOverlap(collider->GetAABB())); // StageのLadder Triggerを新Movementへ同期する。
 	}
 
 	void RefreshNearbyStageColliders(bool force)
@@ -197,21 +154,15 @@ private:
 			const float distanceSq = DistanceSquaredPointToAabbXZ(playerPosition, collider->GetAABB());
 			if (distanceSq <= kStageActivationRadius * kStageActivationRadius) candidates.emplace_back(distanceSq, collider);
 		}
-
 		if (candidates.size() > kMaxActiveStageColliders)
 		{
-			std::nth_element(
-				candidates.begin(),
-				candidates.begin() + static_cast<std::ptrdiff_t>(kMaxActiveStageColliders),
-				candidates.end(),
-				[](const auto& lhs, const auto& rhs) { return lhs.first < rhs.first; });
+			std::nth_element(candidates.begin(), candidates.begin() + static_cast<std::ptrdiff_t>(kMaxActiveStageColliders), candidates.end(), [](const auto& lhs, const auto& rhs) { return lhs.first < rhs.first; });
 			candidates.resize(kMaxActiveStageColliders);
 		}
 
 		std::unordered_set<K4E::Collider*> desired;
 		desired.reserve(candidates.size());
 		for (const auto& candidate : candidates) desired.insert(candidate.second);
-
 		for (auto it = activeStageColliders_.begin(); it != activeStageColliders_.end();)
 		{
 			if (!desired.contains(*it))
@@ -219,26 +170,16 @@ private:
 				physicsWorld_->UnregisterCollider(*it);
 				it = activeStageColliders_.erase(it);
 			}
-			else
-			{
-				++it;
-			}
+			else ++it;
 		}
-		for (K4E::Collider* collider : desired)
-		{
-			if (activeStageColliders_.insert(collider).second) physicsWorld_->RegisterCollider(collider);
-		}
-
+		for (K4E::Collider* collider : desired) if (activeStageColliders_.insert(collider).second) physicsWorld_->RegisterCollider(collider);
 		lastStageRefreshPosition_ = playerPosition;
 		hasStageRefreshPosition_ = true;
 	}
 
 	void ClearNearbyStageColliders()
 	{
-		if (physicsWorld_)
-		{
-			for (K4E::Collider* collider : activeStageColliders_) physicsWorld_->UnregisterCollider(collider);
-		}
+		if (physicsWorld_) for (K4E::Collider* collider : activeStageColliders_) physicsWorld_->UnregisterCollider(collider);
 		activeStageColliders_.clear();
 	}
 
@@ -247,17 +188,18 @@ private:
 		if (!player_ || !bulletManager_) return;
 		K4E::WeaponComponent* weapon = player_->GetWeaponComponent();
 		K4E::Camera* camera = GetCamera();
-		if (!weapon || !camera) return;
+		if (!weapon || !camera || weapon->IsMeleeWeapon()) return;
 
 		const unsigned int currentRevision = weapon->GetShotRevision();
 		while (lastShotRevision_ < currentRevision)
 		{
+			const WeaponParams params = weapon->BuildProjectileParams();
 			const K4E::Vector3 forward = K4E::Vector3::Normalize(camera->GetForward());
-			const K4E::Vector3 start = camera->GetTranslate() + forward * 1.2f;
-			const float speed = 90.0f;
-			const float lifeTime = (std::max)(0.1f, weapon->GetRange() / speed);
-			const int damage = (std::max)(1, static_cast<int>(std::lround(weapon->GetDamage())));
-			bulletManager_->Spawn(start, forward, speed, damage, lifeTime, GetPlayerPosition());
+			const K4E::Vector3 start = camera->GetTranslate() + forward * (std::max)(0.05f, params.muzzleForwardOffset);
+			const float speed = (std::max)(1.0f, params.projectileSpeed);
+			const float lifeTime = params.projectileLifeTime > 0.0f ? params.projectileLifeTime : (std::max)(0.1f, params.maxRange / speed);
+			const int damage = (std::max)(1, static_cast<int>(std::lround(params.damage)));
+			bulletManager_->Spawn(start, forward, speed, damage, lifeTime, GetPlayerPosition(), 0u, static_cast<uint32_t>(CollisionTypeIdDef::kBullet), params);
 			K4E::AudioManager::GetInstance()->PlaySE("player_fire.mp3", 0.1f);
 			++lastShotRevision_;
 		}
