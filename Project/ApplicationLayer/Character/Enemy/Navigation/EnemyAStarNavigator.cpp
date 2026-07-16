@@ -84,6 +84,7 @@ void EnemyAStarNavigator::SetWorldAABBs(const std::vector<K4E::AABB>* worldAABBs
 	obstacleCacheSourceCount_ = 0;
 	obstacleCacheAgentRadius_ = -1.0f;
 	inflatedObstacleAABBs_.clear();
+	InvalidateWalkabilityCache();
 	Reset(); // Stage切替時に前ステージの経路と膨張障害物を持ち越さない。
 }
 
@@ -91,6 +92,7 @@ void EnemyAStarNavigator::SetWalkableAABBs(const std::vector<K4E::AABB>* walkabl
 {
 	if (walkableAABBs_ == walkableAABBs) return;
 	walkableAABBs_ = walkableAABBs;
+	InvalidateWalkabilityCache();
 	Reset(); // 歩行可能床が変わった場合は現在経路を次フレームで再評価する。
 }
 
@@ -121,7 +123,11 @@ void EnemyAStarNavigator::SetSettings(const Settings& settings)
 		obstacleCacheAgentRadius_ = -1.0f;
 		inflatedObstacleAABBs_.clear();
 	}
-	if (obstacleCacheChanged || pathGridChanged) Reset();
+	if (obstacleCacheChanged || pathGridChanged)
+	{
+		InvalidateWalkabilityCache();
+		Reset();
+	}
 }
 
 void EnemyAStarNavigator::Reset()
@@ -170,7 +176,7 @@ bool EnemyAStarNavigator::GetNextWaypoint(
 	WorldToCell(goal, goalX, goalZ);
 
 	const bool goalChanged = !hasLastGoal_ || goalX != lastGoalX_ || goalZ != lastGoalZ_;
-	const bool needRepath = path_.empty() || goalChanged || repathTimer_ <= 0.0f;
+	const bool needRepath = path_.empty() || goalChanged;
 
 	if (needRepath)
 	{
@@ -366,20 +372,15 @@ bool EnemyAStarNavigator::RebuildPath(const K4E::Vector3& current, const K4E::Ve
 
 bool EnemyAStarNavigator::IsWalkableCell(int x, int z, float sampleY) const
 {
-	const K4E::Vector3 point = CellToWorld(x, z, sampleY);
-	if (!HasFloorSupport(point, sampleY)) return false;
-
-	UpdateInflatedObstacleCache();
-	for (const K4E::AABB& obstacle : inflatedObstacleAABBs_)
+	if (std::abs(walkabilityCacheSampleY_ - sampleY) > 0.35f)
 	{
-		if (!IntersectsAgentHeight(obstacle, sampleY)) continue;
-		if (point.x >= obstacle.min.x && point.x <= obstacle.max.x &&
-			point.z >= obstacle.min.z && point.z <= obstacle.max.z)
-		{
-			return false;
-		}
+		InvalidateWalkabilityCache();
+		walkabilityCacheSampleY_ = sampleY;
 	}
 
+	if (!IsStaticWalkableCell(x, z, sampleY)) return false;
+
+	const K4E::Vector3 point = CellToWorld(x, z, sampleY);
 	for (const TemporaryBlockedArea& blocked : temporaryBlockedAreas_)
 	{
 		const float dx = point.x - blocked.center.x;
@@ -388,6 +389,32 @@ bool EnemyAStarNavigator::IsWalkableCell(int x, int z, float sampleY) const
 	}
 
 	return true;
+}
+
+bool EnemyAStarNavigator::IsStaticWalkableCell(int x, int z, float sampleY) const
+{
+	UpdateInflatedObstacleCache();
+	const std::uint64_t cacheKey = MakeCellCacheKey(x, z);
+	if (const auto found = staticWalkabilityCache_.find(cacheKey); found != staticWalkabilityCache_.end()) return found->second;
+
+	const K4E::Vector3 point = CellToWorld(x, z, sampleY);
+	bool walkable = HasFloorSupport(point, sampleY);
+	if (walkable)
+	{
+		for (const K4E::AABB& obstacle : inflatedObstacleAABBs_)
+		{
+			if (!IntersectsAgentHeight(obstacle, sampleY)) continue;
+			if (point.x >= obstacle.min.x && point.x <= obstacle.max.x &&
+				point.z >= obstacle.min.z && point.z <= obstacle.max.z)
+			{
+				walkable = false;
+				break;
+			}
+		}
+	}
+
+	staticWalkabilityCache_.emplace(cacheKey, walkable); // Stage2の同一セルを再探索するたび全床・全障害物へ総当たりしない。
+	return walkable;
 }
 
 bool EnemyAStarNavigator::HasFloorSupport(const K4E::Vector3& point, float sampleY) const
@@ -417,6 +444,7 @@ void EnemyAStarNavigator::UpdateInflatedObstacleCache() const
 		inflatedObstacleAABBs_.clear();
 		obstacleCacheSource_ = nullptr;
 		obstacleCacheSourceCount_ = 0;
+		staticWalkabilityCache_.clear();
 		return;
 	}
 	if (obstacleCacheSource_ == worldAABBs_ &&
@@ -440,6 +468,19 @@ void EnemyAStarNavigator::UpdateInflatedObstacleCache() const
 	obstacleCacheSource_ = worldAABBs_;
 	obstacleCacheSourceCount_ = worldAABBs_->size();
 	obstacleCacheAgentRadius_ = settings_.agentRadius;
+	staticWalkabilityCache_.clear();
+}
+
+void EnemyAStarNavigator::InvalidateWalkabilityCache() const
+{
+	staticWalkabilityCache_.clear();
+	walkabilityCacheSampleY_ = 1.0e30f;
+}
+
+std::uint64_t EnemyAStarNavigator::MakeCellCacheKey(int x, int z) const
+{
+	return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(x)) << 32ull)
+		| static_cast<std::uint64_t>(static_cast<std::uint32_t>(z));
 }
 
 bool EnemyAStarNavigator::IsSegmentBlockedByObstacle(
@@ -472,8 +513,8 @@ bool EnemyAStarNavigator::TrySelectPatrolGoal(
 	if (!walkableAABBs_ || walkableAABBs_->empty()) return false;
 
 	const float minimumDistanceSq = std::max(0.0f, minimumDistance) * std::max(0.0f, minimumDistance);
-	float bestDistanceSq = -1.0f;
-	K4E::Vector3 bestGoal{};
+	bool hasFallback = false;
+	K4E::Vector3 fallbackGoal{};
 	const size_t attemptCount = std::min<size_t>(32u, std::max<size_t>(12u, walkableAABBs_->size() * 2u));
 
 	for (size_t attempt = 0; attempt < attemptCount; ++attempt)
@@ -503,19 +544,22 @@ bool EnemyAStarNavigator::TrySelectPatrolGoal(
 		WorldToCell(candidate, cellX, cellZ);
 		if (!IsWalkableCell(cellX, cellZ, sampleY)) continue;
 
+		if (!hasFallback)
+		{
+			hasFallback = true;
+			fallbackGoal = candidate;
+		}
 		const float dx = candidate.x - current.x;
 		const float dz = candidate.z - current.z;
-		const float distanceSq = dx * dx + dz * dz;
-		if (distanceSq < minimumDistanceSq && bestDistanceSq >= 0.0f) continue;
-		if (distanceSq > bestDistanceSq)
+		if (dx * dx + dz * dz >= minimumDistanceSq)
 		{
-			bestDistanceSq = distanceSq;
-			bestGoal = candidate;
+			outGoal = candidate; // 個体Sequenceで最初に成立した候補を採用し、全員が最遠床へ集まる選択を避ける。
+			return true;
 		}
 	}
 
-	if (bestDistanceSq < 0.0f) return false;
-	outGoal = bestGoal;
+	if (!hasFallback) return false;
+	outGoal = fallbackGoal;
 	return true;
 }
 
@@ -544,6 +588,7 @@ bool EnemyAStarNavigator::FindNearestWalkableCell(int centerX, int centerZ, floa
 			}
 		}
 	}
+
 	return false;
 }
 
@@ -556,8 +601,8 @@ K4E::Vector3 EnemyAStarNavigator::CellToWorld(int x, int z, float y) const
 	};
 }
 
-void EnemyAStarNavigator::WorldToCell(const K4E::Vector3& point, int& outX, int& outZ) const
+void EnemyAStarNavigator::WorldToCell(const K4E::Vector3& p, int& outX, int& outZ) const
 {
-	outX = static_cast<int>(std::round(point.x / settings_.cellSize));
-	outZ = static_cast<int>(std::round(point.z / settings_.cellSize));
+	outX = static_cast<int>(std::round(p.x / settings_.cellSize));
+	outZ = static_cast<int>(std::round(p.z / settings_.cellSize));
 }
