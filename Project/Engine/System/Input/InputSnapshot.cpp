@@ -69,17 +69,16 @@ namespace Ken4lowEngine
 		// --------------------------------------------------
 		snap.weaponSwitch = 0;
 
-		// 実装によっては ±120 などで返るため、
-		// 符号だけを見て 1 ステップ入力に変換する
+		// WindowsのWheel値は±120単位でも返るため符号だけを使い、旧Playerと同じ操作方向へ変換する。
 		const int wheelDelta = input.GetMouseWheel();
 
 		if (wheelDelta > 0)
 		{
-			snap.weaponSwitch = +1;
+			snap.weaponSwitch = -1;
 		}
 		else if (wheelDelta < 0)
 		{
-			snap.weaponSwitch = -1;
+			snap.weaponSwitch = +1;
 		}
 
 		// --------------------------------------------------
@@ -103,4 +102,4 @@ namespace Ken4lowEngine
 
 		return snap;
 	}
-}
+} // namespace Ken4lowEngine
