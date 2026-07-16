@@ -49,7 +49,6 @@ public:
 		player_->SetName("Player");
 		player_->SetLayer("Player");
 		player_->AddTag("Player");
-		player_->AddTag("P13Runtime");
 		stageColliders_ = stage_->GetWorldColliderPointers();
 		player_->ResetForValidation(ResolveSpawnRootPosition(spawnPosition));
 		if (K4E::WeaponComponent* weapon = player_->GetWeaponComponent()) weapon->ConfigureAmmoState(30, 30, 90, 120);
@@ -144,12 +143,19 @@ private:
 		if (!player_ || !stage_) return resolved;
 
 		float floorTop = -std::numeric_limits<float>::infinity();
+		float nearestFloorDistance = std::numeric_limits<float>::infinity();
 		for (const K4E::AABB& floor : stage_->GetFloorAABBs())
 		{
 			constexpr float kSpawnBoundsMargin = 0.15f;
 			const bool containsXZ = requestedPosition.x >= floor.min.x - kSpawnBoundsMargin && requestedPosition.x <= floor.max.x + kSpawnBoundsMargin &&
 				requestedPosition.z >= floor.min.z - kSpawnBoundsMargin && requestedPosition.z <= floor.max.z + kSpawnBoundsMargin;
-			if (containsXZ) floorTop = (std::max)(floorTop, floor.max.y);
+			if (!containsXZ) continue;
+			const float floorDistance = std::fabs(floor.max.y - requestedPosition.y);
+			if (floorDistance < nearestFloorDistance)
+			{
+				nearestFloorDistance = floorDistance;
+				floorTop = floor.max.y; // 上下に床が重なる場所ではSpawnPointのYに最も近い床面を選ぶ。
+			}
 		}
 		if (!std::isfinite(floorTop)) return resolved;
 
