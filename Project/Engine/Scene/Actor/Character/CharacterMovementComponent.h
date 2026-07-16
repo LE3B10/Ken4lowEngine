@@ -27,6 +27,9 @@ namespace Ken4lowEngine
 		/// Actor JSONから移動設定を復元する。
 		void FromJson(const nlohmann::json& inJson) override;
 
+		/// Damage発生元から離れる方向へ即時速度を与える。Player派生は継続時間と減衰を追加できる。
+		virtual void ApplyDamageKnockback(const Vector3& direction, float horizontalPower = 6.0f, float verticalPower = 2.0f);
+
 		/// Root TransformまたはRigidbody Motorが目指す速度を設定する。
 		virtual void SetVelocity(const Vector3& velocity);
 
