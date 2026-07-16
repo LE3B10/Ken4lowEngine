@@ -26,6 +26,11 @@ namespace
 		default: return 0;
 		}
 	}
+
+	const char* ToEnemyActorName(EnemyType enemyType)
+	{
+		return enemyType == EnemyType::MidRange ? "MidRangeEnemyActor" : "MeleeEnemyActor";
+	}
 }
 
 void CharacterWorld::Initialize(GameContext& ctx)
@@ -132,6 +137,11 @@ EnemyBase& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 {
 	EnsurePlayerRuntime();
 	K4E::EnemyActor& enemy = actorWorld_.SpawnActor<K4E::EnemyActor>(request.enemyType);
+	const size_t typeIndex = ToEnemyTypeIndex(request.enemyType);
+	enemy.SetName(std::string(ToEnemyActorName(request.enemyType)) + "_" + std::to_string(spawnedEnemyCounts_[typeIndex] + 1));
+	enemy.SetLayer("Enemy");
+	enemy.AddTag("NormalEnemy");
+	enemy.AddTag(request.enemyType == EnemyType::MidRange ? "MidRangeEnemy" : "MeleeEnemy"); // Outliner・検索・将来のWorld Queryでアーキタイプを型変換なしに識別する。
 	InjectEnemyDeps(enemy);
 	enemy.SetPosition(request.position);
 	enemy.SetOrientation({ 0.0f, request.yawRad, 0.0f });
@@ -143,7 +153,7 @@ EnemyBase& CharacterWorld::SpawnEnemy(const EnemySpawnRequest& request)
 	}
 
 	enemyActors_.push_back(&enemy);
-	++spawnedEnemyCounts_[ToEnemyTypeIndex(request.enemyType)];
+	++spawnedEnemyCounts_[typeIndex];
 	return enemy;
 }
 
@@ -172,7 +182,8 @@ void CharacterWorld::ClearEnemies()
 	{
 		if (!enemy) continue;
 		if (ctx_.collisionManager_ && enemy->GetCollisionPrimitive()) ctx_.collisionManager_->RemoveCollider(enemy->GetCollisionPrimitive());
-		actorWorld_.DestroyActor(enemy);
+		enemy->SetActive(false);
+		actorWorld_.DestroyActor(enemy); // Destroy予約直後から描画・問い合わせ対象外にし、次のWorld境界で所有実体を破棄する。
 	}
 	enemyActors_.clear();
 }
@@ -186,6 +197,7 @@ bool CharacterWorld::RemoveEnemy(EnemyBase* enemy)
 
 	notifiedKilledEnemies_.erase(actorEnemy);
 	if (ctx_.collisionManager_ && actorEnemy->GetCollisionPrimitive()) ctx_.collisionManager_->RemoveCollider(actorEnemy->GetCollisionPrimitive());
+	actorEnemy->SetActive(false);
 	actorWorld_.DestroyActor(actorEnemy);
 	enemyActors_.erase(it);
 	return true;
@@ -211,6 +223,7 @@ void CharacterWorld::Update(float deltaTime)
 			if (!enemy || !enemy->IsRemovable()) return false;
 			notifiedKilledEnemies_.erase(enemy);
 			if (ctx_.collisionManager_ && enemy->GetCollisionPrimitive()) ctx_.collisionManager_->RemoveCollider(enemy->GetCollisionPrimitive());
+			enemy->SetActive(false);
 			actorWorld_.DestroyActor(enemy); // ActorWorldがPhysics登録解除と実体破棄を安全なフレーム境界で行う。
 			return true;
 		});
