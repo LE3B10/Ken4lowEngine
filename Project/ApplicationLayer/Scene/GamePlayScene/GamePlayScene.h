@@ -66,12 +66,6 @@ public: /// ---------- BaseScene override ---------- ///
 	// World OutlinerへGamePlaySceneの主要オブジェクトを公開する。
 	void CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) override;
 
-	// GamePlayの実Player ActorWorldをEditorの更新・Play Snapshot・Component編集へ公開する。
-	K4E::ActorWorld* GetEditorActorWorld() override
-	{
-		return world_ ? &world_->GetCharacters().GetActorWorld() : nullptr; // DebugSceneと同じActorWorld編集経路をGamePlayでも使用する。
-	}
-
 	// FPS操作が必要なGamePlaySceneだけF8入力キャプチャを許可する。
 	K4E::EditorInputPolicy GetEditorInputPolicy() const override;
 
