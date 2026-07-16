@@ -47,6 +47,7 @@ private:
 		bool updatedThisFrame = false;
 		bool deathStarted = false;
 		bool removeRequested = false;
+		bool usesWorldGauge = false; // Enemy破棄後に実体ポインタへ触れず、描画方式だけを安全に判定する。
 		float aimVisibleTimer = 0.0f;
 	};
 
