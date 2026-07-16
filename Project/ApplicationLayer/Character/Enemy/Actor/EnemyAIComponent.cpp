@@ -19,6 +19,7 @@ namespace Ken4lowEngine
 	namespace
 	{
 		constexpr float kDirectionEpsilon = 0.0001f;
+		constexpr float kGoldenAngle = 2.39996323f;
 
 		/// 旧MeleeEnemyと同じXZ長さと0判定で移動方向を正規化する。
 		Vector3 NormalizeDirectionXZ(const Vector3& direction)
@@ -38,7 +39,7 @@ namespace Ken4lowEngine
 		settings.waypointReachDistance = 0.85f;
 		settings.repathIntervalSec = 0.25f;
 		settings.disableCornerCutting = true;
-		navigator_.SetSettings(settings); // 判定値を変えず、旧MeleeEnemyと同じNavigator実装を共有する。
+		navigator_.SetSettings(settings); // 旧MeleeEnemyと同じNavigator実装を共有し、経路探索の差を増やさない。
 		navigator_.SetWorldAABBs(navigationObstacles_);
 		ResetBehavior();
 	}
@@ -56,33 +57,79 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		if (!targetActor_ || targetActor_->IsDead())
+		if (!spawnOriginCaptured_)
 		{
-			movement->Stop();
-			pathFound_ = false;
-			stateName_ = "NoTarget";
-			return;
+			spawnOrigin_ = root->GetWorldPosition();
+			wanderTarget_ = spawnOrigin_;
+			spawnOriginCaptured_ = true; // Spawn後の実座標を最初の更新で保存し、徘徊中心が原点へ戻らないようにする。
+		}
+
+		if (attack && attack->IsAttacking())
+		{
+			stateName_ = "Attacking";
+			return; // Charge中の移動要求をAI側で上書きしない。
 		}
 
 		const Vector3 current = root->GetWorldPosition();
-		const Vector3 target = targetActor_->GetTargetPosition();
-		const Vector3 toTarget = target - current;
-		distanceToTarget_ = Vector3::LengthXZ(toTarget);
-		const bool withinMeleeVolume = attack && attack->IsTargetWithinAttackRange("Melee");
-		if (withinMeleeVolume)
+		const bool hasLivingTarget = targetActor_ && !targetActor_->IsDead();
+		if (hasLivingTarget)
+		{
+			const Vector3 target = targetActor_->GetTargetPosition();
+			const Vector3 toTarget = target - current;
+			distanceToTarget_ = Vector3::LengthXZ(toTarget);
+			if (distanceToTarget_ <= detectRange_)
+			{
+				if (attack && attack->ShouldHoldForAttack())
+				{
+					movement->Stop();
+					movement->FaceDirectionXZ(toTarget, rotateSpeed_, deltaTime);
+					pathFound_ = false;
+					stateName_ = "AttackRange";
+					return;
+				}
+
+				Vector3 waypoint = target;
+				pathFound_ = navigator_.GetNextWaypoint(current, target, current.y, deltaTime, waypoint);
+				const Vector3 direction = NormalizeDirectionXZ((pathFound_ ? waypoint : target) - current);
+				if (Vector3::LengthXZ(direction) < kDirectionEpsilon && distanceToTarget_ <= stopDistance_)
+				{
+					movement->Stop();
+					movement->FaceDirectionXZ(toTarget, rotateSpeed_, deltaTime);
+					stateName_ = "TargetHeightOutOfRange";
+					return;
+				}
+				movement->FaceDirectionXZ(direction, rotateSpeed_, deltaTime);
+				movement->SetVelocity(direction * moveSpeed_);
+				stateName_ = pathFound_ ? "ChasePath" : "ChaseDirect";
+				return;
+			}
+		}
+		else
+		{
+			distanceToTarget_ = 0.0f;
+		}
+
+		pathFound_ = false;
+		if (!wanderEnabled_ || wanderRadius_ <= 0.0f)
 		{
 			movement->Stop();
-			movement->FaceDirectionXZ(toTarget, rotateSpeed_, deltaTime); // 水平距離と高さ差の両方を満たした時だけ攻撃待機へ入る。
-			stateName_ = "AttackRange";
+			stateName_ = hasLivingTarget ? "TargetOutOfRange" : "Idle";
 			return;
 		}
 
-		Vector3 waypoint = target;
-		pathFound_ = navigator_.GetNextWaypoint(current, target, current.y, deltaTime, waypoint);
-		const Vector3 direction = NormalizeDirectionXZ((pathFound_ ? waypoint : target) - current);
-		movement->FaceDirectionXZ(direction, rotateSpeed_, deltaTime);
-		movement->SetVelocity(direction * moveSpeed_); // 高さ範囲外では攻撃せず、到達可能な経路探索・追跡を継続する。
-		stateName_ = distanceToTarget_ <= attackStartRange_ ? "TargetHeightOutOfRange" : (pathFound_ ? "ChasePath" : "ChaseDirect");
+		wanderTimer_ = std::max(0.0f, wanderTimer_ - std::max(0.0f, deltaTime));
+		const Vector3 toWanderTarget = wanderTarget_ - current;
+		if (wanderTimer_ <= 0.0f || Vector3::LengthXZ(toWanderTarget) <= 0.6f)
+		{
+			wanderAngle_ = std::fmod(wanderAngle_ + kGoldenAngle, std::numbers::pi_v<float> * 2.0f);
+			wanderTarget_ = spawnOrigin_ + Vector3{ std::cos(wanderAngle_) * wanderRadius_, 0.0f, std::sin(wanderAngle_) * wanderRadius_ };
+			wanderTimer_ = wanderInterval_;
+		}
+
+		const Vector3 wanderDirection = NormalizeDirectionXZ(wanderTarget_ - current);
+		movement->FaceDirectionXZ(wanderDirection, rotateSpeed_ * 0.65f, deltaTime);
+		movement->SetVelocity(wanderDirection * (moveSpeed_ * wanderSpeedScale_));
+		stateName_ = hasLivingTarget ? "WanderTargetOutOfRange" : "Wander";
 	}
 
 	void EnemyAIComponent::DrawImGui()
@@ -90,9 +137,10 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("通常敵AI");
 		ImGui::Text("状態: %s", stateName_.c_str());
-		ImGui::Text("移動速度: %.2f", moveSpeed_);
+		ImGui::Text("移動速度: %.2f / 索敵距離: %.2f", moveSpeed_, detectRange_);
 		ImGui::Text("回転速度: %.2f / Root Yaw: %.2f", rotateSpeed_, GetOwner() && GetOwner()->GetRootComponent() ? GetOwner()->GetRootComponent()->GetWorldRotation().y : 0.0f);
 		ImGui::Text("Target水平距離: %.2f", distanceToTarget_);
+		ImGui::Text("徘徊: %s / 半径 %.2f", wanderEnabled_ ? "有効" : "無効", wanderRadius_);
 		ImGui::Text("A*経路: %s / %zu nodes", pathFound_ ? "有効" : "未生成", navigator_.GetCurrentPath().size());
 #endif
 	}
@@ -104,6 +152,11 @@ namespace Ken4lowEngine
 		outJson["RotateSpeed"] = rotateSpeed_;
 		outJson["StopDistance"] = stopDistance_;
 		outJson["AttackStartRange"] = attackStartRange_;
+		outJson["DetectRange"] = detectRange_;
+		outJson["WanderEnabled"] = wanderEnabled_;
+		outJson["WanderRadius"] = wanderRadius_;
+		outJson["WanderInterval"] = wanderInterval_;
+		outJson["WanderSpeedScale"] = wanderSpeedScale_;
 	}
 
 	void EnemyAIComponent::FromJson(const nlohmann::json& inJson)
@@ -113,14 +166,24 @@ namespace Ken4lowEngine
 		rotateSpeed_ = std::max(0.0f, inJson.value("RotateSpeed", rotateSpeed_));
 		stopDistance_ = std::max(0.0f, inJson.value("StopDistance", stopDistance_));
 		attackStartRange_ = std::max(stopDistance_, inJson.value("AttackStartRange", attackStartRange_));
+		detectRange_ = std::max(attackStartRange_, inJson.value("DetectRange", detectRange_));
+		wanderEnabled_ = inJson.value("WanderEnabled", wanderEnabled_);
+		wanderRadius_ = std::max(0.0f, inJson.value("WanderRadius", wanderRadius_));
+		wanderInterval_ = std::max(0.1f, inJson.value("WanderInterval", wanderInterval_));
+		wanderSpeedScale_ = std::clamp(inJson.value("WanderSpeedScale", wanderSpeedScale_), 0.0f, 1.0f);
 	}
 
 	void EnemyAIComponent::SetNavigationObstacles(const std::vector<AABB>* obstacles)
 	{
-		if (navigationObstacles_ == obstacles) return; // PIE中の参照再接続で毎フレーム経路を破棄しない。
+		if (navigationObstacles_ == obstacles) return;
 		navigationObstacles_ = obstacles;
 		navigator_.SetWorldAABBs(obstacles);
 		navigator_.Reset(); // 障害物集合が変わった場合は旧経路を次フレームへ持ち越さない。
+	}
+
+	void EnemyAIComponent::ApplyMoveSpeedMultiplier(float multiplier)
+	{
+		moveSpeed_ *= std::max(0.1f, multiplier); // Director倍率は生成時に一度だけ適用し、AI分岐を増やさない。
 	}
 
 	void EnemyAIComponent::StopBehavior()
@@ -137,6 +200,9 @@ namespace Ken4lowEngine
 	{
 		behaviorEnabled_ = true;
 		pathFound_ = false;
+		spawnOriginCaptured_ = false;
+		wanderTimer_ = 0.0f;
+		wanderAngle_ = 0.0f;
 		distanceToTarget_ = 0.0f;
 		stateName_ = "Idle";
 		navigator_.Reset();
