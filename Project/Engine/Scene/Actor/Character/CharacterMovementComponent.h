@@ -36,6 +36,9 @@ namespace Ken4lowEngine
 		/// 目標速度を0へ戻す。
 		virtual void Stop() { velocity_ = {}; }
 
+		/// AIの群れ補正後など、更新順の後段から現在の目標速度をRigidbodyへ再反映する。
+		bool ApplyMotorTargetToRigidbody(float deltaTime);
+
 		/// Actorを持たない経路でも同じ速度積分を使えるよう、1フレームの移動量を返す。
 		Vector3 CalculateDisplacement(float deltaTime) const;
 
