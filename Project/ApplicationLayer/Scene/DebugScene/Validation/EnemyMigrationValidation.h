@@ -55,7 +55,6 @@ private:
 	K4E::EnemyActor* aimedEnemy_ = nullptr;
 	K4E::BossActor* aimedBoss_ = nullptr;
 	std::vector<K4E::AABB> navigationObstacles_;
-	std::vector<K4E::AABB> navigationFloors_; // DebugSceneでも本編と同じFloor制約付きA*巡回を検証する。
 	std::string enemyName_ = "ComponentEnemy";
 	std::string bossName_ = "ComponentBoss";
 	std::string targetName_ = "DebugPlayer";
