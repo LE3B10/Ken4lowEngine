@@ -134,11 +134,13 @@ namespace Ken4lowEngine
 	{
 		if (!ValidateActorJson(actorJson)) return false;
 
-		actor.ClearComponents();
+		const bool preserveConstructionComponents = actor.GetRootComponent() == nullptr && !actor.GetComponents().empty();
+		if (!preserveConstructionComponents) actor.ClearComponents();
 		actor.FromJson(actorJson);
 
 		std::unordered_map<std::string, SceneComponent*> sceneComponentsByName;
 		std::vector<std::pair<SceneComponent*, std::string>> pendingAttachments;
+		std::unordered_set<ActorComponent*> reusedConstructionComponents;
 
 		for (const auto& componentJson : actorJson["Components"])
 		{
@@ -147,13 +149,29 @@ namespace Ken4lowEngine
 			const std::string parentName = componentJson.value("Parent", std::string{});
 
 			ActorComponent* createdComponent = nullptr;
-			if (typeInfo && typeInfo->canBeRoot && parentName.empty())
+			if (preserveConstructionComponents)
 			{
-				createdComponent = ComponentFactory::CreateRootSceneComponent(&actor, className);
+				for (const auto& existingOwner : actor.GetComponents())
+				{
+					ActorComponent* existing = existingOwner.get();
+					if (!existing || reusedConstructionComponents.contains(existing)) continue;
+					if (existing->GetClassTypeName() != className) continue;
+					createdComponent = existing;
+					reusedConstructionComponents.insert(existing);
+					break;
+				}
 			}
-			else
+
+			if (!createdComponent)
 			{
-				createdComponent = ComponentFactory::CreateComponent(&actor, className);
+				if (typeInfo && typeInfo->canBeRoot && parentName.empty())
+				{
+					createdComponent = ComponentFactory::CreateRootSceneComponent(&actor, className);
+				}
+				else
+				{
+					createdComponent = ComponentFactory::CreateComponent(&actor, className);
+				}
 			}
 			if (!createdComponent) return false;
 
@@ -173,7 +191,7 @@ namespace Ken4lowEngine
 			child->AttachTo(parentIt->second);
 		}
 
-		actor.InitializeComponents();
+		actor.InitializeComponents(); // Constructor必須Componentは実体を保持したままJSON値だけを復元する。
 		return true;
 	}
 
