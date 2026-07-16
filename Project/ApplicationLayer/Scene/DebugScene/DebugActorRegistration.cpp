@@ -8,6 +8,7 @@
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyAIComponent.h"
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyAttackComponent.h"
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyEffectComponent.h"
+#include "ApplicationLayer/Character/Enemy/Actor/MidRangeEnemyComponents.h"
 #include "ApplicationLayer/Character/Boss/Actor/BossActor.h"
 #include "ApplicationLayer/Character/Boss/Actor/NonHumanoidBossActor.h"
 #include "ApplicationLayer/Character/Boss/Actor/BossActorAttackComponent.h"
@@ -77,7 +78,9 @@ void RegisterApplicationActorTypes()
 	ActorFactory::RegisterActorClass<TestGroundActor>("TestGroundActor");
 	ActorFactory::RegisterActorClass<EnemyActor>("EnemyActor");
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<EnemyAIComponent>("EnemyAIComponent", "通常敵AI", "通常敵", "A*追跡判断と移動速度出力を管理します。"));
-	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<EnemyAttackComponent>("EnemyAttackComponent", "通常敵攻撃", "通常敵", "攻撃間隔とダメージ適用を管理します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<EnemyAttackComponent>("EnemyAttackComponent", "通常敵攻撃", "通常敵", "ScratchとLungeScratchを共通攻撃基盤で管理します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<MidRangeEnemyAIComponent>("MidRangeEnemyAIComponent", "中距離敵AI", "通常敵", "間合い維持、後退、A*接近、徘徊を管理します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<MidRangeEnemyAttackComponent>("MidRangeEnemyAttackComponent", "中距離敵攻撃", "通常敵", "爆弾投擲、Projectile、自爆モードを管理します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<EnemyEffectComponent>("EnemyEffectComponent", "通常敵Effect", "通常敵", "被弾・死亡Effectと死亡表示を管理します。"));
 
 	ActorFactory::RegisterActorClass<BossActor>("BossActor");
