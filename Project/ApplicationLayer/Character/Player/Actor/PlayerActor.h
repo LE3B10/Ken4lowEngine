@@ -521,7 +521,7 @@ namespace Ken4lowEngine
 
 	private:
 		inline static const Vector3 kWeaponViewBasePosition{ 0.28f, -0.30f, 0.55f };
-		inline static const Vector3 kWeaponViewBaseRotation{ 1.5708f, 1.5708f, 0.0f };
+		inline static const Vector3 kWeaponViewBaseRotation{ 0.0f, 0.0f, 0.0f };
 		std::function<void()> onDamageTaken_{};
 		unsigned int lastWeaponEquipRevision_ = 0u;
 		float deathTimer_ = 0.0f;
