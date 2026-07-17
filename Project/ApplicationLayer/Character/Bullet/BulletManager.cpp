@@ -94,10 +94,9 @@ namespace
 		}
 	}
 
-	void EmitPlayerWeaponFireEffects(const Vector3& bulletStart, const Vector3& fireDirection)
+	void EmitPlayerWeaponFireEffects(const Vector3& muzzlePosition, const Vector3& fireDirection)
 	{
 		const Vector3 forward = Vector3::Normalize(fireDirection);
-		const Vector3 muzzlePosition = bulletStart + forward * 0.35f;
 		EffectSystem::GetInstance()->Play("MuzzleFlash", muzzlePosition);
 
 		GpuParticleManager* particle = GpuParticleManager::GetInstance();
@@ -110,6 +109,7 @@ namespace
 void BulletManager::Initialize(CollisionManager* collisionManager)
 {
 	collisionManager_ = collisionManager;
+	shotEffectTransformResolver_ = {};
 	bullets_.clear();
 }
 
@@ -146,7 +146,24 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 
 	Bullet* raw = b.get();
 	bullets_.push_back(std::move(b));
-	EmitPlayerWeaponFireEffects(startPos, dirNormalized); // 弾生成が成立した射撃だけ、銃口発光・火花・トレーサーを同じ方向へ発生させる。
+
+	if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
+	{
+		const Vector3 fallbackForward = Vector3::Normalize(dirNormalized);
+		Vector3 effectPosition = startPos + fallbackForward * 0.35f;
+		Vector3 effectDirection = fallbackForward;
+		if (shotEffectTransformResolver_)
+		{
+			Vector3 resolvedPosition{};
+			Vector3 resolvedDirection{};
+			if (shotEffectTransformResolver_(resolvedPosition, resolvedDirection))
+			{
+				effectPosition = resolvedPosition;
+				effectDirection = resolvedDirection; // ViewModelの銃口座標を使い、カメラ中心の顔位置からVFXを出さない。
+			}
+		}
+		EmitPlayerWeaponFireEffects(effectPosition, effectDirection);
+	}
 	return raw;
 }
 
