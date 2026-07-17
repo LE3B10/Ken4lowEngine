@@ -18,6 +18,15 @@ void EnemyParticleEffectSystem::Initialize()
         return;
     }
 
+    static bool bloodEffectsTuned = false;
+    if (!bloodEffectsTuned)
+    {
+        auto* effects = EffectSystem::GetInstance();
+        effects->RegisterSpriteEffect("EnemyBlood", GpuParticleType::Blood, 32, 0, 0.0f, 0.18f);
+        effects->RegisterSpriteEffect("EnemyDeathBlood", GpuParticleType::Blood, 56, 0, 0.0f, 0.28f);
+        bloodEffectsTuned = true; // 通常被弾と死亡時の血飛沫を、従来より多く広い範囲へ散らす。
+    }
+
     // Sprite系GPUパーティクルはEffectSystem側に登録済みのRuntime effectNameで再生する。
     // Enemy側ではEmitter名・ParameterManager登録・Json保存対象を直接管理しない。
     isInitialized_ = true;
@@ -33,7 +42,7 @@ void EnemyParticleEffectSystem::SpawnHitEffect(const Vector3& hitWorldPos)
 
     auto* effects = EffectSystem::GetInstance();
     effects->Play("EnemyHitSpark", hitWorldPos);
-    effects->Play("EnemyBlood", hitWorldPos);
+    effects->Play("EnemyBlood", AddY(hitWorldPos, 0.55f));
 }
 
 void EnemyParticleEffectSystem::SpawnDeathEffect(const Vector3& deathWorldPos)
