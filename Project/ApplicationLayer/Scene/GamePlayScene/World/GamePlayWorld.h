@@ -116,7 +116,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsBossIntroActive() const { return bossBattleController_.IsIntroActive(); }
 	bool IsBossIntroGameplayPaused() const { return bossBattleController_.IsIntroGameplayPaused(); }
 	// カメラ演出中は通常3D/HUDを止め、専用描画だけに切り替える。
-	bool IsBossIntroPresentationActive() const { return bossBattleController_.IsGameplayPaused(); }
+	bool IsBossIntroPresentationActive() const { return bossBattleController_.IsIntroPresentationActive(); }
 	bool HasStage1TutorialCompleted() const { return stage1TutorialController_.HasCompletedTutorial(); }
 
 private: /// ---------- メンバ関数 ---------- ///
