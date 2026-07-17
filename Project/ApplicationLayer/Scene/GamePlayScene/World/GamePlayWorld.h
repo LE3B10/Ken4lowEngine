@@ -91,6 +91,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	HUDManager* GetHUDManager() const { return hudManager_.get(); }
 	// Details用の弾数参照はWorld経由で安全にnullptr確認してから使う。
 	BulletManager* GetBulletManager() const { return bulletManager_.get(); }
+	GuardianBoss* GetBoss() const { return bossBattleController_.GetBoss(); } // 演出Controllerは所有権を持たず現在のBoss状態だけを観測する。
 	WaveManager* GetWaveManager() const { return waveManager_.get(); }
 	K4E::Stage* GetStage() const { return stage_.get(); }
 	K4E::SkyBox* GetSkyBox() const { return skyBox_.get(); }
@@ -115,7 +116,7 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool IsBossIntroActive() const { return bossBattleController_.IsIntroActive(); }
 	bool IsBossIntroGameplayPaused() const { return bossBattleController_.IsIntroGameplayPaused(); }
 	// カメラ演出中は通常3D/HUDを止め、専用描画だけに切り替える。
-	bool IsBossIntroPresentationActive() const { return bossBattleController_.IsIntroPresentationActive(); }
+	bool IsBossIntroPresentationActive() const { return bossBattleController_.IsGameplayPaused(); }
 	bool HasStage1TutorialCompleted() const { return stage1TutorialController_.HasCompletedTutorial(); }
 
 private: /// ---------- メンバ関数 ---------- ///
