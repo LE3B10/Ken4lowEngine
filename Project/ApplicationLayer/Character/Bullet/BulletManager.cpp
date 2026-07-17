@@ -3,10 +3,109 @@
 #include "CollisionManager.h"
 #include "Engine/Physics/Core/PhysicsWorld.h"
 #include "BulletEnemyCollisionSoA.h"
+#include "GpuParticleManager.h"
 
 #include <algorithm>
+#include <string>
 
 using namespace Ken4lowEngine;
+
+namespace
+{
+	constexpr uint32_t kMuzzleSparkMeshId = 1000u;
+	constexpr uint32_t kMuzzleSparkBurstCount = 8u;
+	constexpr const char* kMuzzleSparkEmitterName = "MuzzleSparkMesh";
+	constexpr const char* kMuzzleSparkMeshModelPath = "Sample/cube.gltf";
+
+	constexpr uint32_t kBulletTracerMeshId = 1001u;
+	constexpr uint32_t kBulletTracerBurstCountPerPoint = 10u;
+	constexpr int kBulletTracerPointCount = 18;
+	constexpr float kBulletTracerStartOffset = 0.22f;
+	constexpr float kBulletTracerStepDistance = 0.16f;
+	constexpr const char* kBulletTracerEmitterBaseName = "BulletTracerMesh_";
+	constexpr const char* kBulletTracerMeshModelPath = "Sample/cube.gltf";
+
+	std::string MakeMeshTexturePath(uint32_t meshId)
+	{
+		return "Mesh:" + std::to_string(meshId);
+	}
+
+	bool EnsureMeshAssetRegistered(GpuParticleManager* particle, uint32_t meshId, const char* modelPath)
+	{
+		if (!particle) return false;
+		if (particle->FindMeshAsset(meshId)) return true;
+		return particle->LoadMeshAssetsFromAssimp(meshId, modelPath, true);
+	}
+
+	GpuParticleEmitter* GetOrCreateMeshEmitter(
+		GpuParticleManager* particle,
+		const char* name,
+		uint32_t meshId,
+		GpuParticleType particleType,
+		const char* meshModelPath)
+	{
+		if (!EnsureMeshAssetRegistered(particle, meshId, meshModelPath)) return nullptr;
+		if (GpuParticleEmitter* emitter = particle->GetEmitter(name)) return emitter;
+
+		GpuParticleEmitter::EmitterInfo info{};
+		info.textureFilePath = MakeMeshTexturePath(meshId);
+		info.radius = 0.0f;
+		info.loopCount = 0;
+		info.loopFrequency = 0.0f;
+		info.drawType = 0;
+		info.kind = GpuParticleKind::Mesh;
+		info.spriteType = particleType;
+		info.billboardFlags = BillboardMode::None;
+		return particle->CreateEmitter(name, info);
+	}
+
+	void EmitMuzzleSparkMesh(GpuParticleManager* particle, const Vector3& muzzlePosition)
+	{
+		GpuParticleEmitter* emitter = GetOrCreateMeshEmitter(
+			particle,
+			kMuzzleSparkEmitterName,
+			kMuzzleSparkMeshId,
+			GpuParticleType::Spark,
+			kMuzzleSparkMeshModelPath);
+		if (!emitter) return;
+
+		emitter->SetPosition(muzzlePosition);
+		emitter->RequestEmit(kMuzzleSparkBurstCount);
+	}
+
+	void EmitBulletTracerMesh(GpuParticleManager* particle, const Vector3& muzzlePosition, const Vector3& fireDirection)
+	{
+		if (!particle) return;
+		const Vector3 forward = Vector3::Normalize(fireDirection);
+		for (int i = 0; i < kBulletTracerPointCount; ++i)
+		{
+			const std::string emitterName = std::string(kBulletTracerEmitterBaseName) + std::to_string(i);
+			GpuParticleEmitter* emitter = GetOrCreateMeshEmitter(
+				particle,
+				emitterName.c_str(),
+				kBulletTracerMeshId,
+				GpuParticleType::BulletTracer,
+				kBulletTracerMeshModelPath);
+			if (!emitter) continue;
+
+			const float distance = kBulletTracerStartOffset + kBulletTracerStepDistance * static_cast<float>(i);
+			emitter->SetPosition(muzzlePosition + forward * distance);
+			emitter->RequestEmit(kBulletTracerBurstCountPerPoint);
+		}
+	}
+
+	void EmitPlayerWeaponFireEffects(const Vector3& bulletStart, const Vector3& fireDirection)
+	{
+		const Vector3 forward = Vector3::Normalize(fireDirection);
+		const Vector3 muzzlePosition = bulletStart + forward * 0.35f;
+		EffectSystem::GetInstance()->Play("MuzzleFlash", muzzlePosition);
+
+		GpuParticleManager* particle = GpuParticleManager::GetInstance();
+		if (!particle) return;
+		EmitMuzzleSparkMesh(particle, muzzlePosition);
+		EmitBulletTracerMesh(particle, muzzlePosition, forward);
+	}
+}
 
 void BulletManager::Initialize(CollisionManager* collisionManager)
 {
@@ -47,6 +146,7 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 
 	Bullet* raw = b.get();
 	bullets_.push_back(std::move(b));
+	EmitPlayerWeaponFireEffects(startPos, dirNormalized); // 弾生成が成立した射撃だけ、銃口発光・火花・トレーサーを同じ方向へ発生させる。
 	return raw;
 }
 
