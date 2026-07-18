@@ -1,7 +1,7 @@
 #define NOMINMAX
 #include "AimTargetDetector.h"
 
-#include "BossBase.h"
+#include "ApplicationLayer/Character/Boss/Actor/BossActor.h"
 #include "Camera.h"
 #include "Collider.h"
 #include "CollisionManager.h"
@@ -24,30 +24,15 @@ namespace
 
 	AimTargetDetector::ObjectType ToObjectTypeFromTypeId(uint32_t typeId)
 	{
-		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kEnemy))
-		{
-			return AimTargetDetector::ObjectType::Enemy;
-		}
-		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kCrystal))
-		{
-			return AimTargetDetector::ObjectType::Crystal;
-		}
-		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kBoss))
-		{
-			return AimTargetDetector::ObjectType::Boss;
-		}
-		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kWorld))
-		{
-			return AimTargetDetector::ObjectType::Obstacle;
-		}
+		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kEnemy)) return AimTargetDetector::ObjectType::Enemy;
+		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kCrystal)) return AimTargetDetector::ObjectType::Crystal;
+		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kBoss)) return AimTargetDetector::ObjectType::Boss;
+		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kWorld)) return AimTargetDetector::ObjectType::Obstacle;
 		return AimTargetDetector::ObjectType::Other;
 	}
 }
 
-AimTargetDetector::~AimTargetDetector()
-{
-	UnregisterParameters();
-}
+AimTargetDetector::~AimTargetDetector(){ UnregisterParameters(); }
 
 void AimTargetDetector::Initialize()
 {
@@ -58,17 +43,11 @@ void AimTargetDetector::Initialize()
 
 void AimTargetDetector::Update(const K4E::Camera& camera, const CollisionManager& collisionManager)
 {
-	if (!initialized_)
-	{
-		Initialize();
-	}
+	if (!initialized_) Initialize();
 	ApplyParameters();
-
-	// カメラ中心からRayを作成する処理。HUD照準用なのでカメラ位置と前方だけを使う。
 	const K4E::Vector3 origin = camera.GetTranslate();
 	const K4E::Vector3 direction = K4E::Vector3::NormalizeSafe(camera.GetForward(), { 0.0f, 0.0f, 1.0f });
 	ResetResultForRay(origin, direction);
-
 	SelectTargetFromTrace(collisionManager, origin, direction);
 }
 
@@ -77,69 +56,42 @@ void AimTargetDetector::DrawImGui()
 #ifdef USE_IMGUI
 	if (ImGui::CollapsingHeader("Aim Target Detector", ImGuiTreeNodeFlags_DefaultOpen))
 	{
-		ImGui::Text("Ray Hit: %s", result_.hit ? "true" : "false");
-		ImGui::Text("Hit ObjectType: %s", ToString(result_.hitObjectType));
-		ImGui::Text("Hit Distance: %.2f", result_.hitDistance);
+		ImGui::Text("Ray Hit: %s / Type: %s", result_.hit ? "true" : "false", ToString(result_.hitObjectType));
+		ImGui::Text("Distance: %.2f / Damageable: %s", result_.hitDistance, result_.isDamageableTarget ? "true" : "false");
 		ImGui::Text("Hit Position: %.2f, %.2f, %.2f", result_.hitPosition.x, result_.hitPosition.y, result_.hitPosition.z);
-		ImGui::Text("Damageable Target: %s", result_.isDamageableTarget ? "true" : "false");
-		ImGui::Text("Blocked By Obstacle: %s", result_.isBlockedByObstacle ? "true" : "false");
-		ImGui::Text("HP Bar Target: %s", result_.isDamageableTarget ? ToString(result_.hitObjectType) : "None");
-		ImGui::Text("Crosshair Red: %s", HasDamageableTarget() ? "true" : "false");
-		ImGui::Text("Ray Origin: %.2f, %.2f, %.2f", debugRayOrigin_.x, debugRayOrigin_.y, debugRayOrigin_.z);
-		ImGui::Text("Ray Direction: %.2f, %.2f, %.2f", debugRayDirection_.x, debugRayDirection_.y, debugRayDirection_.z);
-		ImGui::Text("Ray Length: %.2f", debugRayLength_);
-		ImGui::Text("Debug Draw Requested: %s", aimRayDebugDraw_ ? "true" : "false");
-		ImGui::Text("Target Detection Radius: %.2f (reserved for future SphereTrace)", targetDetectionRadius_);
-		ImGui::Text("Show HPBar Only When Aimed: %s", showHpBarOnlyWhenAimed_ ? "true" : "false");
-		ImGui::Text("Hold Time: %.2f", hpBarVisibleHoldTime_);
+		ImGui::Text("Blocked: %s / Hold: %.2f", result_.isBlockedByObstacle ? "true" : "false", hpBarVisibleHoldTime_);
 	}
 #endif
 }
 
 EnemyBase* AimTargetDetector::GetTargetEnemy() const
 {
-	if (!result_.isDamageableTarget || result_.hitObjectType != ObjectType::Enemy || !result_.hitObjectPointer)
-	{
-		return nullptr;
-	}
-	return result_.hitObjectPointer->GetOwner<EnemyBase>(); // Rayが返すColliderではなく、Colliderが所有するEnemy実体をHP表示対象へ渡す。
+	if (!result_.isDamageableTarget || result_.hitObjectType != ObjectType::Enemy || !result_.hitObjectPointer) return nullptr;
+	return result_.hitObjectPointer->GetOwner<EnemyBase>();
 }
 
 EnemySpawnCrystal* AimTargetDetector::GetTargetCrystal() const
 {
-	if (!result_.isDamageableTarget || result_.hitObjectType != ObjectType::Crystal || !result_.hitObjectPointer)
-	{
-		return nullptr;
-	}
+	if (!result_.isDamageableTarget || result_.hitObjectType != ObjectType::Crystal || !result_.hitObjectPointer) return nullptr;
 	return result_.hitObjectPointer->GetOwner<EnemySpawnCrystal>();
 }
 
-BossBase* AimTargetDetector::GetTargetBoss() const
+K4E::BossActor* AimTargetDetector::GetTargetBoss() const
 {
-	if (!result_.isDamageableTarget || result_.hitObjectType != ObjectType::Boss || !result_.hitObjectPointer)
-	{
-		return nullptr;
-	}
-	return result_.hitObjectPointer->GetOwner<BossBase>();
+	if (!result_.isDamageableTarget || result_.hitObjectType != ObjectType::Boss || !result_.hitObjectPointer) return nullptr;
+	return result_.hitObjectPointer->GetOwner<K4E::BossActor>(); // 新Bossの照準対象はCollider OwnerからActor正本へ解決する。
 }
 
 const char* AimTargetDetector::ToString(ObjectType type)
 {
 	switch (type)
 	{
-	case ObjectType::Enemy:
-		return "Enemy";
-	case ObjectType::Crystal:
-		return "Crystal";
-	case ObjectType::Boss:
-		return "Boss";
-	case ObjectType::Obstacle:
-		return "Obstacle";
-	case ObjectType::Other:
-		return "Other";
-	case ObjectType::None:
-	default:
-		return "None";
+	case ObjectType::Enemy: return "Enemy";
+	case ObjectType::Crystal: return "Crystal";
+	case ObjectType::Boss: return "Boss";
+	case ObjectType::Obstacle: return "Obstacle";
+	case ObjectType::Other: return "Other";
+	default: return "None";
 	}
 }
 
@@ -201,20 +153,11 @@ void AimTargetDetector::SelectTargetFromTrace(const CollisionManager& collisionM
 	query.direction = direction;
 	query.maxDistance = aimRayLength_;
 	query.traceChannel = ETraceChannel::Weapon;
-
-	// Weapon Traceは敵/ボス/クリスタル/WorldStaticを距離順で返す。
-	// 最前HitがWorldStaticなら、壁越しのCrosshair/HPバー対象を作らない。
-	const std::vector<RaycastHit> hits = collisionManager.RaycastAll(query);
-	for (const RaycastHit& hit : hits)
+	for (const RaycastHit& hit : collisionManager.RaycastAll(query))
 	{
 		if (!hit.collider) continue;
-
 		const ObjectType objectType = ToObjectTypeFromTypeId(hit.typeId);
-		if (objectType == ObjectType::Obstacle && !enableObstacleLineOfSightCheck_)
-		{
-			continue;
-		}
-
+		if (objectType == ObjectType::Obstacle && !enableObstacleLineOfSightCheck_) continue;
 		result_.hit = true;
 		result_.hitDistance = hit.distance;
 		result_.hitPosition = hit.point;
