@@ -34,6 +34,10 @@
     <ClCompile Remove="ApplicationLayer\Character\Player\PlayerWeaponController.cpp" />
     <ClCompile Remove="ApplicationLayer\Character\Player\PlayerFsmApi.cpp" />
 
+    <ClCompile Remove="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.cpp" />
+
     <ClInclude Remove="ApplicationLayer\Character\Boss\Core\BossFactory.h" />
     <ClInclude Remove="ApplicationLayer\Character\Boss\Components\BossStatusComponent.h" />
     <ClInclude Remove="ApplicationLayer\Character\Boss\Core\BossStateMachine.h" />
@@ -77,5 +81,10 @@
     <ClInclude Remove="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.h" />
     <ClInclude Remove="ApplicationLayer\Character\Player\PlayerWeaponController.h" />
     <ClInclude Remove="ApplicationLayer\Character\Player\PlayerFsmApi.h" />
+
+    <ClInclude Remove="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Enemy\AI\MeleeAttackPattern.h" />
   </ItemGroup>
 </Project>
