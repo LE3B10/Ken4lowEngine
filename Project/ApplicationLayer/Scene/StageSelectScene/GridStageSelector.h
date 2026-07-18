@@ -10,7 +10,7 @@
 namespace K4E = ::Ken4lowEngine;
 
 /// -------------------------------------------------------------
-///				　	グリッド型ステージセレクター
+///　　　　　　　グリッド型ステージセレクター
 /// -------------------------------------------------------------
 class GridStageSelector : public IStageSelector
 {
@@ -93,6 +93,11 @@ public:
 	void FocusToIndex(int index, bool tween = true) override;
 	void SetOnCenterChanged(std::function<void(uint32_t)> callback) { onCenterChanged_ = callback; }
 	void PlayUnlockAnim(int index);
+	void PlayUnlockPresentation(int index)
+	{
+		TriggerLockedShake();
+		PlayUnlockAnim(index); // 鍵付きカードの揺れと拡大を同じ解除演出として開始する。
+	}
 
 private:
 	void UpdatePress(K4E::Input* input, K4E::Vector2& mp);
