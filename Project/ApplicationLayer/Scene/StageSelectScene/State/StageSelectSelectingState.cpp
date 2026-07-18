@@ -15,8 +15,23 @@ void StageSelectSelectingState::Enter(StageSelectScene* scene)
 {
 	if (!scene) { return; }
 
-	// 念のため状態を初期化しておく
 	scene->SetState(StageSelectScene::State::Selecting);
+	unlockPhase_ = UnlockPhase::None;
+	unlockPhaseTimer_ = 0.0f;
+	unlockSourceIndex_ = -1;
+	unlockTargetIndex_ = scene->GetPendingUnlockIndex();
+	unlockCommitted_ = false;
+
+	const auto& stages = scene->GetStages();
+	if (unlockTargetIndex_ >= 0 && unlockTargetIndex_ < static_cast<int>(stages.size()))
+	{
+		unlockSourceIndex_ = std::max(0, unlockTargetIndex_ - 1);
+		unlockPhase_ = UnlockPhase::HoldSource;
+		if (auto* selector = scene->GetActiveSelector())
+		{
+			selector->FocusToIndex(unlockSourceIndex_, false); // 解除前のステージを最初に見せて進行先を分かりやすくする。
+		}
+	}
 }
 
 void StageSelectSelectingState::Update(StageSelectScene* scene, float deltaTime)
@@ -27,19 +42,16 @@ void StageSelectSelectingState::Update(StageSelectScene* scene, float deltaTime)
 	auto* input = scene->GetInput();
 	if (!dxCommon || !input) { return; }
 
-	// --- セレクタ更新 ---
 	if (auto* selector = scene->GetActiveSelector())
 	{
 		selector->Update(deltaTime);
 	}
 
-	// --- 背景色の補間更新 ---
 	auto& bgNow = scene->GetBgNow();
 	auto& bgTarget = scene->GetBgTarget();
-
-	float t = std::clamp(deltaTime * 4.0f, 0.0f, 1.0f);
+	const float t = std::clamp(deltaTime * 4.0f, 0.0f, 1.0f);
 	bgNow = Lerp(bgNow, bgTarget, t);
-	bgNow.w = 1.0f; // 念のため
+	bgNow.w = 1.0f;
 
 	if (auto* bgSprite = scene->GetBgSprite())
 	{
@@ -47,46 +59,135 @@ void StageSelectSelectingState::Update(StageSelectScene* scene, float deltaTime)
 		bgSprite->Update();
 	}
 
-	// --- ESC でタイトルへ戻る ---
+	if (UpdateUnlockSequence(scene, deltaTime))
+	{
+		return; // 解放演出中は選択・戻る操作より演出進行を優先する。
+	}
+
 	if (input->TriggerKey(DIK_ESCAPE))
 	{
 		if (scene->GetNextScene() == StageSelectScene::NextScene::None)
 		{
 			scene->SetNextScene(StageSelectScene::NextScene::Title);
-			scene->BackToTitle();   // ★即 ChangeScene
+			scene->BackToTitle();
 		}
 		return;
-	}
-
-	// --- アンロック演出（justUnlocked フラグの処理） ---
-	int& pendingIndex = scene->GetPendingUnlockIndex();
-	if (pendingIndex >= 0)
-	{
-		auto* selector = scene->GetActiveSelector();
-
-		if (auto* grid = dynamic_cast<GridStageSelector*>(selector))
-		{
-			grid->PlayUnlockAnim(pendingIndex);
-		}
-		else if (selector)
-		{
-			// Grid 以外でも最低限フォーカスだけは合わせる
-			selector->FocusToIndex(pendingIndex, false);
-		}
-
-		auto& stages = scene->GetStages();
-		if (pendingIndex >= 0 && pendingIndex < static_cast<int>(stages.size()))
-		{
-			stages[pendingIndex].justUnlocked = false;
-			StageRepository::GetInstance().SetStages(stages);
-		}
-
-		pendingIndex = -1; // 一度きり
 	}
 }
 
 void StageSelectSelectingState::Exit(StageSelectScene* scene)
 {
-	// 特にやることなし
-	(void)scene; // 未使用パラメータ抑制
+	(void)scene;
+	unlockPhase_ = UnlockPhase::None;
+	unlockPhaseTimer_ = 0.0f;
+	unlockSourceIndex_ = -1;
+	unlockTargetIndex_ = -1;
+	unlockCommitted_ = false;
+}
+
+bool StageSelectSelectingState::UpdateUnlockSequence(StageSelectScene* scene, float deltaTime)
+{
+	if (!scene || unlockPhase_ == UnlockPhase::None)
+	{
+		return false;
+	}
+
+	auto* selector = scene->GetActiveSelector();
+	if (!selector || unlockTargetIndex_ < 0 || unlockTargetIndex_ >= static_cast<int>(scene->GetStages().size()))
+	{
+		FinishUnlock(scene);
+		return false;
+	}
+
+	unlockPhaseTimer_ += std::max(0.0f, deltaTime);
+	switch (unlockPhase_)
+	{
+	case UnlockPhase::HoldSource:
+		selector->FocusToIndex(unlockSourceIndex_, false);
+		if (unlockPhaseTimer_ >= 0.45f)
+		{
+			selector->FocusToIndex(unlockTargetIndex_, true);
+			unlockPhase_ = UnlockPhase::MoveToTarget;
+			unlockPhaseTimer_ = 0.0f;
+		}
+		break;
+
+	case UnlockPhase::MoveToTarget:
+		if (unlockPhaseTimer_ >= 0.42f)
+		{
+			selector->FocusToIndex(unlockTargetIndex_, false);
+			if (auto* grid = dynamic_cast<GridStageSelector*>(selector))
+			{
+				grid->PlayUnlockAnim(unlockTargetIndex_);
+			}
+			unlockPhase_ = UnlockPhase::UnlockPulse;
+			unlockPhaseTimer_ = 0.0f;
+		}
+		break;
+
+	case UnlockPhase::UnlockPulse:
+		selector->FocusToIndex(unlockTargetIndex_, false);
+		if (!unlockCommitted_ && unlockPhaseTimer_ >= 0.36f)
+		{
+			CommitUnlock(scene);
+		}
+		if (unlockPhaseTimer_ >= 0.66f)
+		{
+			unlockPhase_ = UnlockPhase::Settle;
+			unlockPhaseTimer_ = 0.0f;
+		}
+		break;
+
+	case UnlockPhase::Settle:
+		selector->FocusToIndex(unlockTargetIndex_, false);
+		if (unlockPhaseTimer_ >= 0.24f)
+		{
+			FinishUnlock(scene);
+		}
+		break;
+
+	case UnlockPhase::None:
+	default:
+		break;
+	}
+	return unlockPhase_ != UnlockPhase::None;
+}
+
+void StageSelectSelectingState::CommitUnlock(StageSelectScene* scene)
+{
+	if (!scene || unlockCommitted_) return;
+	auto& stages = scene->GetStages();
+	if (unlockTargetIndex_ < 0 || unlockTargetIndex_ >= static_cast<int>(stages.size())) return;
+
+	stages[unlockTargetIndex_].locked = false;
+	StageRepository::GetInstance().SetStages(stages);
+	scene->RefreshStageSelectUI();
+	unlockCommitted_ = true;
+}
+
+void StageSelectSelectingState::FinishUnlock(StageSelectScene* scene)
+{
+	if (!scene)
+	{
+		unlockPhase_ = UnlockPhase::None;
+		return;
+	}
+
+	auto& stages = scene->GetStages();
+	if (unlockTargetIndex_ >= 0 && unlockTargetIndex_ < static_cast<int>(stages.size()))
+	{
+		stages[unlockTargetIndex_].locked = false;
+		stages[unlockTargetIndex_].justUnlocked = false;
+		StageRepository::GetInstance().SetStages(stages);
+		StageRepository::GetInstance().SetStartIndex(unlockTargetIndex_);
+		scene->SetCurrentStageIndex(unlockTargetIndex_);
+	}
+
+	scene->GetPendingUnlockIndex() = -1;
+	scene->RefreshStageSelectUI();
+	unlockPhase_ = UnlockPhase::None;
+	unlockPhaseTimer_ = 0.0f;
+	unlockSourceIndex_ = -1;
+	unlockTargetIndex_ = -1;
+	unlockCommitted_ = false;
 }
