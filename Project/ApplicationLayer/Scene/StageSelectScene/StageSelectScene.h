@@ -81,6 +81,7 @@ public:
 	SelectorContext& GetSelectorContext() { return context_; }
 	int GetCurrentStageIndex() const { return currentStageIndex_; }
 	void SetCurrentStageIndex(int index) { currentStageIndex_ = index; }
+	void RefreshStageSelectUI();
 
 	void BackToTitle();
 	void GoToGamePlay();
