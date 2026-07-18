@@ -118,7 +118,7 @@ bool StageSelectSelectingState::UpdateUnlockSequence(StageSelectScene* scene, fl
 			selector->FocusToIndex(unlockTargetIndex_, false);
 			if (auto* grid = dynamic_cast<GridStageSelector*>(selector))
 			{
-				grid->PlayUnlockAnim(unlockTargetIndex_);
+				grid->PlayUnlockPresentation(unlockTargetIndex_);
 			}
 			unlockPhase_ = UnlockPhase::UnlockPulse;
 			unlockPhaseTimer_ = 0.0f;
