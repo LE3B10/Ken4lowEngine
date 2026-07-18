@@ -8,23 +8,16 @@
 
 namespace Ken4lowEngine
 {
+	class BossActor;
 	class Camera;
 }
 
-class GuardianBoss;
-
 namespace K4E = ::Ken4lowEngine;
 
-/// -------------------------------------------------------------
-/// クリスタル全破壊後のボス登場演出を管理する。
-///
-/// GamePlayWorldから開始条件と実体だけを受け取り、遅延、カメラ移動、
-/// ボス上昇、通常プレイ再開までの状態遷移をここへ集約する。
-/// -------------------------------------------------------------
+/// クリスタル全破壊後のBossActor登場演出を管理する。
 class BossIntroController
 {
 public:
-	/// ボス登場演出の進行状態。
 	enum class State
 	{
 		None,
@@ -37,7 +30,6 @@ public:
 		Completed,
 	};
 
-	/// ParameterManagerで調整するボス登場演出パラメータ。
 	struct Settings
 	{
 		float bossAppearDelay = 2.0f;
@@ -63,11 +55,10 @@ public:
 
 	void Initialize(const K4E::Vector3& defaultBossPosition);
 	void Finalize();
-
 	void RequestStart(const K4E::Vector3& bossPosition);
 	void Reset();
-	void Update(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
-	void SetDebugSnapshot(const GuardianBoss* boss, const K4E::Camera* camera);
+	void Update(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera);
+	void SetDebugSnapshot(const K4E::BossActor* boss, const K4E::Camera* camera);
 	void DrawImGui();
 
 	bool IsRunning() const { return state_ != State::None && state_ != State::Completed; }
@@ -98,9 +89,9 @@ private:
 	void BeginCutscene(K4E::Camera* camera);
 	void UpdateCameraMove(float deltaTime, K4E::Camera* camera);
 	void BeginBossSpawnImpact(K4E::Camera* camera);
-	void UpdateBossRising(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
-	void UpdateCameraReturn(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
-	void CompleteIntro(GuardianBoss* boss, K4E::Camera* camera);
+	void UpdateBossRising(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera);
+	void UpdateCameraReturn(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera);
+	void CompleteIntro(K4E::BossActor* boss, K4E::Camera* camera);
 	void UpdateBossIntroDust(float deltaTime, float riseT);
 	void EmitBossIntroDustBurst(uint32_t emitCount);
 	void EmitBossIntroImpactBurst(uint32_t shockCount, uint32_t dustCount);
@@ -116,7 +107,6 @@ private:
 
 private:
 	static constexpr const char* kParameterGroupName = "BossIntro";
-
 	Settings settings_{};
 	State state_ = State::None;
 	float stateTimer_ = 0.0f;
