@@ -3,6 +3,7 @@
 #include "ApplicationLayer/Character/Boss/Actor/BossActor.h"
 #include "BossEnemyVfx.h"
 #include "Camera.h"
+#include "CameraManager.h"
 #include "Vector3.h"
 
 #include <algorithm>
@@ -10,10 +11,9 @@
 #include <numbers>
 #include <string>
 
-class GuardianBoss;
 namespace K4E = ::Ken4lowEngine;
 
-/// クリスタル全破壊後のボス登場演出を管理する。
+/// クリスタル全破壊後のBossActor登場演出を管理する。
 class BossIntroController
 {
 public:
@@ -57,11 +57,6 @@ public:
 	void RequestStart(const K4E::Vector3& bossPosition);
 	void Reset();
 
-	/// 比較用の旧Boss登場経路。
-	void Update(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
-	void SetDebugSnapshot(const GuardianBoss* boss, const K4E::Camera* camera);
-
-	/// 本番BossActorを既存カメラ演出へ接続する。
 	void Update(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera)
 	{
 		ApplyParameters();
@@ -91,6 +86,9 @@ public:
 		debugBossHasParent_ = boss ? boss->HasRootParent() : false;
 		debugCameraPosition_ = camera ? camera->GetTranslate() : K4E::Vector3{};
 		debugBossCameraDistance_ = boss && camera ? K4E::Vector3::Length(debugBossWorldPosition_ - debugCameraPosition_) : 0.0f;
+		debugViewProjectionKind_ = camera && K4E::CameraManager::GetInstance()->GetMainCamera() == camera
+			? "Gameplay/MainCamera"
+			: "CameraManager Other/Debug";
 	}
 
 	void DrawImGui();
@@ -121,9 +119,6 @@ private:
 	void BeginCutscene(K4E::Camera* camera);
 	void UpdateCameraMove(float deltaTime, K4E::Camera* camera);
 	void BeginBossSpawnImpact(K4E::Camera* camera);
-	void UpdateBossRising(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
-	void UpdateCameraReturn(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
-	void CompleteIntro(GuardianBoss* boss, K4E::Camera* camera);
 
 	void UpdateBossActorRising(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera)
 	{
@@ -135,7 +130,7 @@ private:
 		{
 			boss->SetPosition(Lerp(GetBossStartPosition(), settings_.bossAppearPosition, t));
 			boss->SetYaw(std::numbers::pi_v<float>);
-			boss->ForceSyncWorldTransform(); // ActorWorldを止めたまま登場座標だけを同フレームへ反映する。
+			boss->ForceSyncWorldTransform(); // ActorWorld停止中も演出座標を同フレームへ反映する。
 		}
 		if (settings_.enableBossIntroCamera && camera) ApplyCameraLookAtBoss(camera, introCameraPosition_, introCameraTarget_);
 		if (t >= 1.0f)
