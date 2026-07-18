@@ -39,10 +39,16 @@ namespace Ken4lowEngine
 			return;
 		}
 
+		observedPhase_ = phase ? phase->GetCurrentPhase() : 1;
+		const float phaseMoveMultiplier = observedPhase_ >= 3 ? 1.45f : (observedPhase_ == 2 ? 1.15f : 1.0f);
+		const float phaseRotateMultiplier = observedPhase_ >= 3 ? 1.35f : (observedPhase_ == 2 ? 1.10f : 1.0f);
+		appliedMoveSpeed_ = moveSpeed_ * phaseMoveMultiplier;
+		appliedRotateSpeed_ = rotateSpeed_ * phaseRotateMultiplier;
+
 		const Vector3 current = root->GetWorldPosition();
 		const Vector3 toTarget = targetActor_->GetTargetPosition() - current;
 		distanceToTarget_ = Vector3::LengthXZ(toTarget);
-		movement->FaceDirectionXZ(toTarget, rotateSpeed_, deltaTime);
+		movement->FaceDirectionXZ(toTarget, appliedRotateSpeed_, deltaTime);
 
 		if (presentation && presentation->IsBlockingBehavior())
 		{
@@ -57,18 +63,22 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		const int currentPhase = phase ? phase->GetCurrentPhase() : 1;
-		if (attack->TryStartBestAttack(distanceToTarget_, currentPhase))
+		if (attack->TryStartBestAttack(distanceToTarget_, observedPhase_))
 		{
 			movement->Stop();
 			stateName_ = "Attack";
 			return;
 		}
 
-		if (distanceToTarget_ > approachDistance_)
+		const float phaseApproachDistance = observedPhase_ >= 3 ? approachDistance_ * 0.82f : approachDistance_;
+		if (distanceToTarget_ > phaseApproachDistance)
 		{
 			const float length = std::max(distanceToTarget_, 0.0001f);
-			movement->SetVelocity({ toTarget.x / length * moveSpeed_, 0.0f, toTarget.z / length * moveSpeed_ });
+			movement->SetVelocity({
+				toTarget.x / length * appliedMoveSpeed_,
+				0.0f,
+				toTarget.z / length * appliedMoveSpeed_
+			});
 			stateName_ = "Approach";
 			return;
 		}
@@ -81,8 +91,9 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("ボス行動判断");
-		ImGui::Text("状態: %s / Target距離: %.2f", stateName_.c_str(), distanceToTarget_);
-		ImGui::Text("移動: %.2f / 旋回: %.2f / 接近停止: %.2f", moveSpeed_, rotateSpeed_, approachDistance_);
+		ImGui::Text("状態: %s / Phase: %d / Target距離: %.2f", stateName_.c_str(), observedPhase_, distanceToTarget_);
+		ImGui::Text("移動: %.2f -> %.2f / 旋回: %.2f -> %.2f", moveSpeed_, appliedMoveSpeed_, rotateSpeed_, appliedRotateSpeed_);
+		ImGui::Text("接近停止: %.2f", approachDistance_);
 #endif
 	}
 
@@ -119,6 +130,9 @@ namespace Ken4lowEngine
 	{
 		behaviorEnabled_ = true;
 		distanceToTarget_ = 0.0f;
-		stateName_ = "Idle";
+		appliedMoveSpeed_ = moveSpeed_;
+		appliedRotateSpeed_ = rotateSpeed_;
+		observedPhase_ = 1;
+		stateName_ = "Idle"; // 再戦時はPhase 1の速度表示へ戻し、前回の高速化状態を残さない。
 	}
 } // namespace Ken4lowEngine
