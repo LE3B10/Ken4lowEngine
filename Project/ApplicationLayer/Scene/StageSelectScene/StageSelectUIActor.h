@@ -45,6 +45,10 @@ public:
 
 	void Update(float deltaTime) override
 	{
+		if (ResolveTextComponents())
+		{
+			ApplyStageText(); // JSON再読込でComponent実体が変わった直後に動的なステージ文字を戻す。
+		}
 		const float safeDeltaTime = std::clamp(deltaTime, 0.0f, 0.1f);
 		transitionTimer_ = std::min(transitionDuration_, transitionTimer_ + safeDeltaTime);
 		guidePulseTimer_ += safeDeltaTime;
@@ -101,6 +105,34 @@ private:
 		return &text;
 	}
 
+	bool ResolveTextComponents()
+	{
+		const auto resolve = [this](const char* name) -> K4E::TextComponent*
+		{
+			return dynamic_cast<K4E::TextComponent*>(FindComponentByName(name));
+		};
+		K4E::TextComponent* newTitle = resolve("Title");
+		K4E::TextComponent* newStageNumber = resolve("Stage Number");
+		K4E::TextComponent* newStageName = resolve("Stage Name");
+		K4E::TextComponent* newCategory = resolve("Category");
+		K4E::TextComponent* newObjective = resolve("Objective");
+		K4E::TextComponent* newDescription = resolve("Description");
+		K4E::TextComponent* newUnlockCondition = resolve("Unlock Condition");
+		K4E::TextComponent* newGuide = resolve("Guide");
+		const bool changed = title_ != newTitle || stageNumber_ != newStageNumber || stageName_ != newStageName ||
+			category_ != newCategory || objective_ != newObjective || description_ != newDescription ||
+			unlockCondition_ != newUnlockCondition || guide_ != newGuide;
+		title_ = newTitle;
+		stageNumber_ = newStageNumber;
+		stageName_ = newStageName;
+		category_ = newCategory;
+		objective_ = newObjective;
+		description_ = newDescription;
+		unlockCondition_ = newUnlockCondition;
+		guide_ = newGuide;
+		return changed;
+	}
+
 	void ApplyDefaultLayout()
 	{
 		const float scaleX = viewportWidth_ / 1920.0f;
@@ -129,6 +161,7 @@ private:
 	{
 		char stageNumberText[32]{};
 		std::snprintf(stageNumberText, sizeof(stageNumberText), "STAGE %02u", stageId_ + 1u);
+		if (title_) title_->SetText("STAGE SELECT");
 		if (stageNumber_) stageNumber_->SetText(stageNumberText);
 		if (stageName_) stageName_->SetText(stageNameText_);
 		if (category_) category_->SetText(GetCategoryDisplayName(categoryText_));
@@ -139,6 +172,7 @@ private:
 			unlockCondition_->SetVisible(locked_);
 			unlockCondition_->SetText(unlockText_.empty() ? "前ステージクリアで解放" : unlockText_);
 		}
+		if (guide_) guide_->SetText("CLICK : SELECT   WHEEL / DRAG : MOVE   ESC : BACK");
 	}
 
 	void ApplyPresentation()
