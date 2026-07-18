@@ -9,7 +9,6 @@
 #include "SkyBoxManager.h"
 #include "JsonDataManager.h"
 #include "Wireframe.h"
-#include "Derived/GuardianBoss/GuardianBoss.h"
 #include "EnemyBase.h"
 #include "EnemyHPBarProjector.h"
 #include "GameplayPhysicsEventHandler.h"

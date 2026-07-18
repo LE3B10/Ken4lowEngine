@@ -188,7 +188,6 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\GuardianShockwaveAttack.cpp" />
-    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossChargeAttack.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossAttackEffects.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.cpp" />
     <ClCompile Include="ApplicationLayer\Character\Enemy\HPBar\EnemyHPBar.cpp" />

@@ -457,19 +457,7 @@
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\PhysicsTestBullet.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossAnimationComponent.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossAttackComponent.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossMovementComponent.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossPhaseComponent.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossStatusComponent.cpp">
       <Filter>ApplicationLayer\Character\Boss\Components</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossWeakPointComponent.cpp">
@@ -493,26 +481,8 @@
     <ClCompile Include="ApplicationLayer\Character\Boss\Core\BossStateMachine.cpp">
       <Filter>ApplicationLayer\Character\Boss\Core</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossMeleeAttackUtility.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossMeleePhaseAttackBase.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.cpp">
       <Filter>ApplicationLayer\Character\Boss\Animations</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\GuardianShockwaveAttack.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossChargeAttack.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossAttackEffects.cpp">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
@@ -1470,12 +1440,6 @@
     <ClInclude Include="ApplicationLayer\EffectLayer\Disintegration\ModelReconstructionEffect.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossMeleeAttackUtility.h">
-      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossMeleePhaseAttackBase.h">
-      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\TitleScene\State\TitleCameraUtility.h">
       <Filter>ApplicationLayer\Scene\TitleScene\State</Filter>
     </ClInclude>
@@ -1656,19 +1620,7 @@
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\PhysicsTestBullet.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossAnimationComponent.h">
-      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossAttackComponent.h">
-      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossMovementComponent.h">
-      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossPhaseComponent.h">
-      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossStatusComponent.h">
       <Filter>ApplicationLayer\Character\Boss\Components</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossWeakPointComponent.h">
@@ -1689,9 +1641,6 @@
     <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.h">
       <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\IBossAttack.h">
-      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.h">
       <Filter>ApplicationLayer\Character\Boss\Derived</Filter>
     </ClInclude>
@@ -1710,9 +1659,6 @@
     <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossStateMachine.h">
       <Filter>ApplicationLayer\Character\Boss\Core</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.h">
-      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossTypes.h">
       <Filter>ApplicationLayer\Character\Boss\Core</Filter>
     </ClInclude>
@@ -1721,15 +1667,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Animations\IBossAttackAnimation.h">
       <Filter>ApplicationLayer\Character\Boss\Animations</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.h">
-      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\GuardianShockwaveAttack.h">
-      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossChargeAttack.h">
-      <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossAttackEffects.h">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>

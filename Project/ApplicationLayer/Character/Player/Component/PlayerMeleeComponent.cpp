@@ -6,7 +6,6 @@
 #include "Collider.h"
 #include "EnemyBase.h"
 #include "EnemySpawnCrystal.h"
-#include "BossBase.h"
 #include <LogString.h>
 
 #include <algorithm>
@@ -236,21 +235,21 @@ void PlayerMeleeComponent::EvaluateHit(const K4E::Vector3& playerPos)
 		crystal->ApplyDamage(damage_);
 		if (onHit_) onHit_();
 	}
-	else if (bestHit->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBoss))
-	{
-		// ボス出現後もプレイヤー攻撃対象に含めるため、BossColliderへのヒット判定を追加する。
-		auto* boss = bestHit->GetOwner<BossBase>();
-		if (!boss || boss->IsDead()) return;
-		hitColliderIds_.insert(bestHit->GetUniqueID());
-		const BossHitResult bossPartHit = boss->CheckDebugHitSphere(attackCenter, radius_);
-		const float bossDamage = bossPartHit.isHit ? static_cast<float>(damage_) * bossPartHit.damageMultiplier : static_cast<float>(damage_);
-		{
-			std::ostringstream oss;
-			oss << "[PlayerAttack] Boss hit damage=" << bossDamage
-				<< ", hpBefore=" << boss->GetHP() << "/" << boss->GetMaxHP();
-			LogPlayerAttack(oss.str());
-		}
-		boss->OnDamaged(bossDamage);
-		if (onHit_) onHit_();
-	}
+	//else if (bestHit->GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBoss))
+	//{
+	//	// ボス出現後もプレイヤー攻撃対象に含めるため、BossColliderへのヒット判定を追加する。
+	//	auto* boss = bestHit->GetOwner<BossBase>();
+	//	if (!boss || boss->IsDead()) return;
+	//	hitColliderIds_.insert(bestHit->GetUniqueID());
+	//	const BossHitResult bossPartHit = boss->CheckDebugHitSphere(attackCenter, radius_);
+	//	const float bossDamage = bossPartHit.isHit ? static_cast<float>(damage_) * bossPartHit.damageMultiplier : static_cast<float>(damage_);
+	//	{
+	//		std::ostringstream oss;
+	//		oss << "[PlayerAttack] Boss hit damage=" << bossDamage
+	//			<< ", hpBefore=" << boss->GetHP() << "/" << boss->GetMaxHP();
+	//		LogPlayerAttack(oss.str());
+	//	}
+	//	boss->OnDamaged(bossDamage);
+	//	if (onHit_) onHit_();
+	//}
 }
