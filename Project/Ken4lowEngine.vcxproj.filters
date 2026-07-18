@@ -2883,6 +2883,7 @@
     <ClInclude Include="Engine\Scene\Management\SceneDefinitionRegistry.h">
       <Filter>Engine\Scene\Management</Filter>
     </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\MidRangeEnemyComponents.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
