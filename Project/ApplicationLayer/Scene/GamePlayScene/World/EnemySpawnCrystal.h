@@ -46,6 +46,11 @@ struct CrystalReactionSettings
 	float breakEffectScale = 1.45f;
 	float damagedHpRate = 0.70f;
 	float criticalHpRate = 0.20f;
+	float visibilityPulseSpeed = 2.6f;
+	float visibilityPulseScale = 0.08f;
+	float visibilityParticleInterval = 0.14f;
+	float approachSoundDistance = 12.0f;
+	float approachSoundResetDistance = 16.0f;
 };
 
 /// -------------------------------------------------------------
@@ -140,11 +145,16 @@ private:
 	void BeginBreaking(const CrystalReactionSettings& reactionSettings);
 	void UpdateStateFromHpRate(const CrystalReactionSettings& reactionSettings);
 	void UpdateReactionTimers(float deltaTime, const CrystalReactionSettings& reactionSettings);
+	void UpdateVisibilityParticles(float deltaTime, const CrystalReactionSettings& reactionSettings);
+	void UpdateApproachSound(const CrystalReactionSettings& reactionSettings);
 	K4E::Vector4 BuildVisualColor(const CrystalReactionSettings& reactionSettings) const;
+	K4E::Vector4 BuildEmissiveColor(const CrystalReactionSettings& reactionSettings) const;
 	K4E::Vector3 BuildVisualPosition(const CrystalReactionSettings& reactionSettings) const;
 	K4E::Vector3 BuildVisualScale(const CrystalReactionSettings& reactionSettings) const;
+	std::string BuildVisibilityEmitterName() const;
 	const char* GetHitSoundName() const;
 	const char* GetBreakSoundName() const;
+	const char* GetApproachSoundName() const;
 
 private:
 	std::string crystalName_ = "Crystal_01";
@@ -168,6 +178,9 @@ private:
 	int hitCount_ = 0;
 	float guideHighlightAlpha_ = 0.0f;
 	float guideHighlightTimer_ = 0.0f;
+	float visibilityTimer_ = 0.0f;
+	float visibilityParticleTimer_ = 0.0f;
+	bool playerInsideApproachRange_ = false;
 	std::unique_ptr<K4E::Object3D> debugCube_;
 	std::vector<const EnemyBase*> spawnedEnemies_;
 	static float s_spawnYOffset_;
