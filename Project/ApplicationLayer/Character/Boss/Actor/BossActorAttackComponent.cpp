@@ -105,7 +105,8 @@ namespace Ken4lowEngine
 				ConfigureAttack(attackId, data);
 				return;
 			}
-			RegisterAttack(std::move(data), CreateAttackBehavior(data.behaviorType));
+			const std::string behaviorType = data.behaviorType;
+			RegisterAttack(std::move(data), CreateAttackBehavior(behaviorType)); // move後のAttackDataを参照せずBehaviorを生成する。
 		};
 
 		AttackData punch{ "Punch", "Melee", "Attack.Melee", 24.0f, 0.95f, 0.22f, 0.12f, 0.32f, 0.0f, 3.2f, 0.0f };
