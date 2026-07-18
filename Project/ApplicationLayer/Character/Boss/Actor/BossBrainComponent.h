@@ -48,6 +48,9 @@ namespace Ken4lowEngine
 		float rotateSpeed_ = 5.5f;
 		float approachDistance_ = 2.8f;
 		float distanceToTarget_ = 0.0f;
+		float appliedMoveSpeed_ = 0.0f;
+		float appliedRotateSpeed_ = 0.0f;
+		int observedPhase_ = 1;
 		bool behaviorEnabled_ = true;
 		std::string stateName_ = "Idle";
 	};
