@@ -103,6 +103,21 @@ void Bullet::SetWeaponMetadata(const WeaponParams& params)
 	deathImpulseScale_ = std::max(0.01f, params.deathImpulseScale);
 }
 
+K4E::CharacterDamageInfo Bullet::BuildDamageInfo(const K4E::Vector3& hitPosition, const K4E::Vector3& hitDirection, K4E::CharacterDamageType damageType) const
+{
+	K4E::CharacterDamageInfo damageInfo{};
+	damageInfo.amount = static_cast<float>(damage_);
+	damageInfo.sourceColliderId = shooterColliderId_;
+	damageInfo.weaponId = weaponID_;
+	damageInfo.damageType = damageType;
+	damageInfo.hitPosition = hitPosition;
+	damageInfo.hasHitPosition = true;
+	damageInfo.hitDirection = NormalizeSafe(hitDirection, NormalizeSafe(moveVelocity_, { 0.0f, 0.0f, 1.0f }));
+	damageInfo.hasHitDirection = LengthSq(hitDirection) > 1.0e-10f || LengthSq(moveVelocity_) > 1.0e-10f;
+	// 弾が持つ命中位置・方向・武器IDを一つのDamage情報へ集約する。
+	return damageInfo;
+}
+
 void Bullet::SetUsePhysicsTrigger(bool enabled)
 {
 	usePhysicsTrigger_ = enabled && IsEligibleForPhysicsTrigger();
@@ -161,7 +176,12 @@ void Bullet::ApplySplashDamageToType(uint32_t targetType, const K4E::Vector3& ce
 		}
 		else if (targetType == static_cast<uint32_t>(CollisionTypeIdDef::kBoss))
 		{
-			if (auto* boss = collider->GetOwner<K4E::BossActor>(); boss && boss->IsAlive()) boss->ApplyBulletDamage(static_cast<float>(finalDamage), collider->GetCenterPosition());
+			if (auto* boss = collider->GetOwner<K4E::BossActor>(); boss && boss->IsAlive())
+			{
+				K4E::CharacterDamageInfo damageInfo = BuildDamageInfo(collider->GetCenterPosition(), NormalizeSafe(toTarget, NormalizeSafe(moveVelocity_)), K4E::CharacterDamageType::Explosion);
+				damageInfo.amount = static_cast<float>(finalDamage);
+				boss->ApplyBulletDamage(damageInfo);
+			}
 		}
 	}
 }
@@ -248,7 +268,10 @@ void Bullet::ProcessHit(K4E::Collider* other, bool fromPhysicsTrigger)
 	const K4E::Vector3 impactPoint = ResolveImpactPoint(*this, other);
 	if (otherType == bossType)
 	{
-		if (auto* boss = other->GetOwner<K4E::BossActor>()) boss->ApplyBulletDamage(static_cast<float>(damage_), impactPoint);
+		if (auto* boss = other->GetOwner<K4E::BossActor>())
+		{
+			boss->ApplyBulletDamage(BuildDamageInfo(impactPoint, moveVelocity_));
+		}
 	}
 	if (HasSplashDamage()) TriggerSplashDamageAt(impactPoint);
 	if (playerBullet && otherType == worldType && !HasSplashDamage() && worldImpactCallback_)
