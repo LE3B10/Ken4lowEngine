@@ -75,7 +75,7 @@ void RegisterApplicationActorTypes()
 	ActorFactory::RegisterActorClass<BossActor>("BossActor");
 	ActorFactory::RegisterActorClass<NonHumanoidBossActor>("NonHumanoidBossActor");
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<BossBrainComponent>("BossBrainComponent", "ボス行動判断", "ボス", "Target追跡と攻撃要求を判断します。"));
-	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<BossAttackComponent>("BossAttackComponent", "ボス攻撃", "ボス", "フェーズ別攻撃選択と共通攻撃実行を管理します。"));
+	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<Ken4lowEngine::BossAttackComponent>("BossAttackComponent", "ボス攻撃", "ボス", "フェーズ別攻撃選択と共通攻撃実行を管理します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<BossPhaseComponent>("BossPhaseComponent", "ボスフェーズ", "ボス", "共通HPからフェーズを判定します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<BossWeakPointComponent>("BossWeakPointComponent", "ボス弱点", "ボス", "人型部位IDを参照して弱点倍率を管理します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<BossPresentationComponent>("BossPresentationComponent", "ボス演出", "ボス", "フェーズ遷移と死亡演出を管理します。"));
