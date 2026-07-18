@@ -28,5 +28,25 @@ public: /// ---------- メンバ関数 ---------- ///
 	/// </summary>
 	/// <param name="scene"></param>
 	void Exit(StageSelectScene* scene) override;
-};
 
+private:
+	enum class UnlockPhase
+	{
+		None,
+		HoldSource,
+		MoveToTarget,
+		UnlockPulse,
+		Settle,
+	};
+
+	bool UpdateUnlockSequence(StageSelectScene* scene, float deltaTime);
+	void CommitUnlock(StageSelectScene* scene);
+	void FinishUnlock(StageSelectScene* scene);
+
+private:
+	UnlockPhase unlockPhase_ = UnlockPhase::None;
+	float unlockPhaseTimer_ = 0.0f;
+	int unlockSourceIndex_ = -1;
+	int unlockTargetIndex_ = -1;
+	bool unlockCommitted_ = false;
+};
