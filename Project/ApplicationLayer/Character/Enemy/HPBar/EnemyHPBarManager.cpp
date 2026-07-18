@@ -1,7 +1,10 @@
 #define NOMINMAX
 #include "EnemyHPBarManager.h"
-#include "EnemyBase.h"
+
 #include "ApplicationLayer/Character/Enemy/Actor/EnemyActor.h"
+#include "EnemyBase.h"
+
+#include <algorithm>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -14,32 +17,18 @@ void EnemyHPBarManager::Initialize()
 
 EnemyHPBarManager::Entry* EnemyHPBarManager::FindEntry(EnemyBase* enemy)
 {
-	for (auto& entry : entries_)
-	{
-		if (entry.enemy == enemy) return &entry;
-	}
-	return nullptr;
+	const auto it = std::find_if(entries_.begin(), entries_.end(), [enemy](const Entry& entry)
+		{
+			return entry.enemy == enemy;
+		});
+	return it != entries_.end() ? &(*it) : nullptr;
 }
 
 EnemyHPBarManager::Entry& EnemyHPBarManager::FindOrCreateEntry(EnemyBase* enemy)
 {
-	if (Entry* found = FindEntry(enemy)) return *found;
-
-	Entry entry{};
-	entry.enemy = enemy;
-	entry.usesWorldGauge = dynamic_cast<K4E::EnemyActor*>(enemy) != nullptr;
-	entry.bar = std::make_unique<EnemyHPBar>();
-	entry.bar->Initialize();
-	if (enemy) entry.cachedWorldPos = enemy->GetHpBarWorldPosition();
-	entries_.push_back(std::move(entry));
+	if (Entry* entry = FindEntry(enemy)) return *entry;
+	entries_.push_back(Entry{ .enemy = enemy });
 	return entries_.back();
-}
-
-void EnemyHPBarManager::RemoveDeadEntries()
-{
-	entries_.erase(
-		std::remove_if(entries_.begin(), entries_.end(), [](const Entry& entry) { return entry.removeRequested; }),
-		entries_.end());
 }
 
 void EnemyHPBarManager::Update(
@@ -53,7 +42,14 @@ void EnemyHPBarManager::Update(
 	bool showOnlyWhenAimed,
 	float visibleHoldTime)
 {
-	for (auto& entry : entries_)
+	(void)viewMatrix;
+	(void)projMatrix;
+	(void)screenWidth;
+	(void)screenHeight;
+
+	const float safeDeltaTime = std::max(0.0f, deltaTime);
+	const float safeVisibleHoldTime = std::max(0.0f, visibleHoldTime);
+	for (Entry& entry : entries_)
 	{
 		entry.updatedThisFrame = false;
 		entry.visibleThisFrame = false;
@@ -61,109 +57,44 @@ void EnemyHPBarManager::Update(
 
 	for (EnemyBase* enemy : enemies)
 	{
-		if (!enemy) continue;
+		auto* enemyActor = dynamic_cast<K4E::EnemyActor*>(enemy);
+		if (!enemyActor) continue;
 
 		Entry& entry = FindOrCreateEntry(enemy);
 		entry.updatedThisFrame = true;
-		entry.cachedWorldPos = enemy->GetHpBarWorldPosition();
-
-		const HpBarProjectResult proj = ProjectWorldToScreen(
-			entry.cachedWorldPos,
-			viewMatrix,
-			projMatrix,
-			screenWidth,
-			screenHeight);
-		if (proj.inFront && proj.inScreen)
+		if (enemy == aimedEnemy)
 		{
-			entry.cachedScreenPos = proj.screenPos;
-			entry.cachedScreenPos.y -= 18.0f;
-			entry.visibleThisFrame = true;
-		}
-
-		float hpRate = 0.0f;
-		if (!enemy->IsDead() && enemy->GetMaxHp() > 0)
-		{
-			hpRate = static_cast<float>(enemy->GetHp()) / static_cast<float>(enemy->GetMaxHp());
+			entry.aimVisibleTimer = safeVisibleHoldTime;
 		}
 		else
 		{
-			entry.deathStarted = true;
+			entry.aimVisibleTimer = std::max(0.0f, entry.aimVisibleTimer - safeDeltaTime);
 		}
-
-		if (enemy == aimedEnemy) entry.aimVisibleTimer = std::max(0.0f, visibleHoldTime);
-		else if (entry.aimVisibleTimer > 0.0f) entry.aimVisibleTimer = std::max(0.0f, entry.aimVisibleTimer - deltaTime);
 
 		const bool aimVisible = !showOnlyWhenAimed || enemy == aimedEnemy || entry.aimVisibleTimer > 0.0f;
-		if (entry.usesWorldGauge)
-		{
-			static_cast<K4E::EnemyActor*>(enemy)->SetHealthBarVisible(!enemy->IsDead() && aimVisible);
-			entry.bar->SetVisible(false); // EnemyActorはWorldGaugeComponentへ描画を統一し、旧Sprite HPバーを二重表示しない。
-			continue;
-		}
-
-		const bool visible = (entry.visibleThisFrame || entry.deathStarted) && aimVisible;
-		entry.bar->Update(entry.cachedScreenPos, hpRate, visible, deltaTime, 72.0f, 8.0f);
+		entry.visibleThisFrame = !enemy->IsDead() && aimVisible;
+		enemyActor->SetHealthBarVisible(entry.visibleThisFrame); // 通常敵のHP描画はActor所有のWorldGaugeだけへ統一する。
 	}
 
-	for (auto& entry : entries_)
-	{
-		if (entry.updatedThisFrame) continue;
-		if (!entry.bar)
+	std::erase_if(entries_, [](const Entry& entry)
 		{
-			entry.removeRequested = true;
-			continue;
-		}
-		if (entry.usesWorldGauge)
-		{
-			entry.bar->SetVisible(false);
-			entry.removeRequested = true; // 実体消滅後は保存済み方式だけを見てEntryを捨て、Enemyポインタへ再アクセスしない。
-			continue;
-		}
-		if (entry.deathStarted)
-		{
-			entry.bar->Update(entry.cachedScreenPos, 0.0f, !showOnlyWhenAimed || entry.aimVisibleTimer > 0.0f, deltaTime, 72.0f, 8.0f);
-		}
-		else
-		{
-			entry.bar->SetVisible(false);
-			entry.removeRequested = true;
-		}
-	}
-
-	for (auto& entry : entries_)
-	{
-		if (!entry.bar)
-		{
-			entry.removeRequested = true;
-			continue;
-		}
-		if (entry.deathStarted)
-		{
-			entry.bar->SetVisible(false);
-			entry.removeRequested = true;
-		}
-	}
-
-	RemoveDeadEntries();
+			return !entry.updatedThisFrame;
+		});
 }
 
 void EnemyHPBarManager::Draw()
 {
-	for (auto& entry : entries_) if (entry.bar) entry.bar->Draw();
+	// WorldGaugeComponentはActorWorldの通常描画で処理されるため、追加描画は不要。
 }
 
 void EnemyHPBarManager::DrawImGuiContent() const
 {
 #ifdef USE_IMGUI
-	ImGui::Text("HPBar Entries: %d", static_cast<int>(entries_.size()));
-	int visibleCount = 0;
-	int deathStartedCount = 0;
-	for (const auto& entry : entries_)
-	{
-		if (entry.visibleThisFrame) ++visibleCount;
-		if (entry.deathStarted) ++deathStartedCount;
-	}
+	const int visibleCount = static_cast<int>(std::count_if(entries_.begin(), entries_.end(), [](const Entry& entry)
+		{
+			return entry.visibleThisFrame;
+		}));
+	ImGui::Text("WorldGauge Entries: %d", static_cast<int>(entries_.size()));
 	ImGui::Text("Visible This Frame: %d", visibleCount);
-	ImGui::Text("Death Animations: %d", deathStartedCount);
 #endif
 }
