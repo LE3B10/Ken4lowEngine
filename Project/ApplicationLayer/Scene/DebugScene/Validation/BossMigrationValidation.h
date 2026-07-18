@@ -11,30 +11,18 @@ namespace Ken4lowEngine
 
 namespace K4E = ::Ken4lowEngine;
 
-/// DebugSceneへBossActorを配置し、操作中のDebugPlayerを実戦Targetとして検証する補助クラス。
+/// DebugSceneへBossActorを配置し、Target・弱点・死亡地点・Prefabを検証する補助クラス。
 class BossMigrationValidation
 {
 public:
-	/// 保存済みPrefabを優先してBossActorを配置し、無い場合だけコード既定値へフォールバックする。
 	void Initialize(K4E::ActorWorld& actorWorld);
-
-	/// Play中にRuntime WorldのDebugPlayerへTarget参照を張り直し、予約操作を処理する。
 	void Update();
-
-	/// Edit・Pause中もEditor WorldのJSON操作と参照再接続を安全に行う。
 	void UpdateEditor();
-
-	/// Bossの共通Component、専用Component、弱点、Target、JSON状態を一覧表示する。
 	void DrawImGui();
-
-	/// ActorWorldへの非所有参照を解除する。
 	void Finalize();
 
 private:
-	/// PIE複製後の現在WorldからBossとDebugPlayerを再取得してTargetを接続する。
 	void RefreshActorReferencesAndBindings();
-
-	/// UIから予約された弱点ダメージ、Reset、JSON操作を更新フェーズで実行する。
 	void ProcessRequests();
 
 private:
@@ -48,6 +36,7 @@ private:
 	bool lastSucceeded_ = false;
 	bool requestHeadDamage_ = false;
 	bool requestBodyDamage_ = false;
+	bool requestDeathPositionTest_ = false;
 	bool requestReset_ = false;
 	bool requestSave_ = false;
 	bool requestReload_ = false;
