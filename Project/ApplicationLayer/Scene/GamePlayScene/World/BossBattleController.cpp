@@ -1,7 +1,9 @@
 #define NOMINMAX
 #include "BossBattleController.h"
 
+#include "ApplicationLayer/Character/Boss/Actor/BossActor.h"
 #include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
+#include "ApplicationLayer/Scene/DebugScene/DebugActorRegistration.h"
 #include "Camera.h"
 #include "CameraManager.h"
 #include "CharacterWorld.h"
@@ -9,9 +11,9 @@
 #include "CollisionPreset.h"
 #include "CollisionTypeIdDef.h"
 #include "CrystalManager.h"
-#include "Derived/GuardianBoss/GuardianBoss.h"
 #include "GamePlayStageContext.h"
 #include "HUDManager.h"
+#include "Scene/Actor/Character/CharacterHealthComponent.h"
 #include "Stage.h"
 #include <LogString.h>
 
@@ -30,23 +32,21 @@ using namespace Ken4lowEngine;
 namespace
 {
 	constexpr float kPi = std::numbers::pi_v<float>;
-	constexpr float kStage1BeginnerBossMaxHP = 900.0f;
+	constexpr float kBeginnerBossMaxHp = 900.0f;
+	constexpr const char* kBossPrefabPath = "Resources/ActorPrefabs/ComponentBoss.json";
 }
 
 void BossClearItem::Initialize(const K4E::Vector3& position)
 {
-	K4E::Vector3 spawnPosition = position;
-	spawnPosition.y += 1.25f;
-	position_ = spawnPosition;
-	basePosition_ = spawnPosition;
+	position_ = position + K4E::Vector3{ 0.0f, 1.25f, 0.0f };
+	basePosition_ = position_;
 	rotation_ = {};
 	floatTimer_ = 0.0f;
 	spawned_ = true;
 	collected_ = false;
 	ApplyCollisionPreset(*this, ECollisionPresetId::Item);
 #ifdef _DEBUG
-	const uint32_t legacyItemTypeId = static_cast<uint32_t>(CollisionTypeIdDef::kItem);
-	assert(GetTypeID() == legacyItemTypeId && "BossClearItem preset must keep legacy kItem TypeID.");
+	assert(GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kItem));
 #endif
 	SetOwner<BossClearItem>(this);
 	SetOBBHalfSize(halfSize_);
@@ -64,7 +64,7 @@ void BossClearItem::Update(float deltaTime)
 	if (!spawned_ || collected_) return;
 	floatTimer_ += deltaTime * 3.0f;
 	position_ = basePosition_;
-	position_.y += std::sinf(floatTimer_) * 0.25f;
+	position_.y += std::sin(floatTimer_) * 0.25f;
 	rotation_.y += deltaTime * 1.2f;
 	SetCenterPosition(position_);
 	SetOrientation(rotation_);
@@ -76,16 +76,11 @@ void BossClearItem::Update(float deltaTime)
 	}
 }
 
-void BossClearItem::Draw()
-{
-	if (spawned_ && !collected_ && object3d_) object3d_->Draw();
-}
+void BossClearItem::Draw(){ if (spawned_ && !collected_ && object3d_) object3d_->Draw(); }
 
 bool BossClearItem::CheckPickup(const IPlayerRuntime& player) const
 {
-	if (!spawned_ || collected_) return false;
-	const K4E::Vector3 diff = position_ - player.GetWorldPosition();
-	return K4E::Vector3::Length(diff) <= pickupRadius_;
+	return spawned_ && !collected_ && K4E::Vector3::Length(position_ - player.GetWorldPosition()) <= pickupRadius_;
 }
 
 void BossClearItem::MarkCollected()
@@ -95,13 +90,15 @@ void BossClearItem::MarkCollected()
 	SetCenterPosition({ 1.0e9f, 1.0e9f, 1.0e9f });
 }
 
-void BossClearItem::OnCollision(K4E::Collider* other) { (void)other; }
+void BossClearItem::OnCollision(K4E::Collider* other){ (void)other; }
 
-void BossBattleController::Initialize(GamePlayStageContext& stageContext, bool stage1BeginnerBalanceEnabled)
+void BossBattleController::Initialize(GamePlayStageContext& stageContext, bool beginnerBalance)
 {
-	stage1BeginnerBalanceEnabled_ = stage1BeginnerBalanceEnabled;
+	stage1BeginnerBalanceEnabled_ = beginnerBalance;
 	bossSpawnPosition_ = stageContext.HasBossSpawnPoint() ? stageContext.GetBossSpawnPoint() : K4E::Vector3{ 0.0f, 2.25f, 30.0f };
 	bossDeathPosition_ = bossSpawnPosition_;
+	bossActor_ = nullptr;
+	clearItem_.reset();
 	bossSpawned_ = false;
 	bossColliderRegistered_ = false;
 	bossSpawnConditionMet_ = false;
@@ -110,22 +107,15 @@ void BossBattleController::Initialize(GamePlayStageContext& stageContext, bool s
 	clearItemSpawned_ = false;
 	clearItemCollected_ = false;
 	isGameClear_ = false;
-	cameraShakeTimer_ = 0.0f;
-	cameraShakeDuration_ = 0.0f;
-	cameraShakeAmplitude_ = 0.0f;
-	cameraShakeFrequency_ = 0.0f;
-	cameraShakeSeed_ = 0.0f;
-	lastPresentedBossPhase_ = BossPhase::Phase1;
-	guardianBoss_.reset();
-	clearItem_.reset();
+	cameraShakeTimer_ = cameraShakeDuration_ = cameraShakeAmplitude_ = cameraShakeFrequency_ = cameraShakeSeed_ = 0.0f;
+	lastPresentedPhaseRevision_ = 0;
 	bossIntroController_.Initialize(bossSpawnPosition_);
 }
 
 void BossBattleController::Finalize(const Dependencies& deps)
 {
-	if (guardianBoss_ && deps.collisionManager) deps.collisionManager->RemoveCollider(guardianBoss_.get());
+	DestroyBossActor(deps);
 	if (clearItem_ && deps.collisionManager) deps.collisionManager->RemoveCollider(clearItem_.get());
-	guardianBoss_.reset();
 	clearItem_.reset();
 	bossIntroController_.Finalize();
 }
@@ -145,47 +135,47 @@ void BossBattleController::UpdateIntro(const Dependencies& deps, float deltaTime
 		ResetIntroForDebug(deps);
 		bossIntroController_.RequestStart(bossIntroController_.GetBossAppearPosition());
 	}
-	if (bossIntroController_.ConsumeDebugClearBossParentRequest() && guardianBoss_)
+	if (bossIntroController_.ConsumeDebugClearBossParentRequest() && bossActor_)
 	{
-		guardianBoss_->ClearRootParentKeepingWorldPosition();
-		guardianBoss_->ForceSyncWorldTransform();
+		bossActor_->ClearRootParentKeepingWorldPosition();
+		bossActor_->ForceSyncWorldTransform();
 	}
-	if (bossIntroController_.ConsumeDebugForceBossToAppearRequest() && guardianBoss_)
+	if (bossIntroController_.ConsumeDebugForceBossToAppearRequest() && bossActor_)
 	{
-		guardianBoss_->ClearRootParentKeepingWorldPosition();
-		guardianBoss_->SetPosition(bossIntroController_.GetBossAppearPosition());
-		guardianBoss_->SetYaw(kPi);
-		guardianBoss_->ForceSyncWorldTransform();
+		bossActor_->ClearRootParentKeepingWorldPosition();
+		bossActor_->SetPosition(bossIntroController_.GetBossAppearPosition());
+		bossActor_->SetYaw(kPi);
+		bossActor_->ForceSyncWorldTransform();
 	}
 	if (bossIntroController_.ConsumeDebugUseGameplayViewProjectionRequest())
 	{
-		IPlayerRuntime* runtime = deps.characters ? deps.characters->GetPlayerRuntime() : nullptr;
-		if (runtime && runtime->GetCamera())
+		IPlayerRuntime* player = deps.characters ? deps.characters->GetPlayerRuntime() : nullptr;
+		if (player && player->GetCamera())
 		{
-			K4E::CameraManager::GetInstance()->SetMainCamera(runtime->GetCamera());
-			runtime->GetCamera()->Update();
+			K4E::CameraManager::GetInstance()->SetMainCamera(player->GetCamera());
+			player->GetCamera()->Update();
 		}
-		if (guardianBoss_) guardianBoss_->ForceSyncWorldTransform();
+		if (bossActor_) bossActor_->ForceSyncWorldTransform();
 	}
 
 	if (!bossIntroController_.IsRunning()) return;
 	IPlayerRuntime* player = deps.characters ? deps.characters->GetPlayerRuntime() : nullptr;
 	K4E::Camera* camera = player ? player->GetCamera() : nullptr;
 	if (camera) K4E::CameraManager::GetInstance()->SetMainCamera(camera);
-	bossIntroController_.Update(deltaTime, guardianBoss_.get(), camera);
+	bossIntroController_.Update(deltaTime, bossActor_, camera);
 
 	if (bossIntroController_.ConsumeBossSpawnRequest())
 	{
 		bossSpawnPosition_ = bossIntroController_.GetBossAppearPosition();
-		SpawnGuardianBoss(deps, false);
+		SpawnBossActor(deps, false);
 	}
 	if (bossIntroController_.ConsumeBossColliderEnableRequest())
 	{
-		RegisterGuardianBossCollider(deps);
+		RegisterBossCollider(deps);
 		if (player) AlignPlayerViewToBossAfterIntro(*player);
 		if (deps.hudManager)
 		{
-			deps.hudManager->NotifyBossIntroCompleted(guardianBoss_ ? guardianBoss_->GetPosition() : bossSpawnPosition_);
+			deps.hudManager->NotifyBossIntroCompleted(bossActor_ ? bossActor_->GetPosition() : bossSpawnPosition_);
 			if (stage1BeginnerBalanceEnabled_) deps.hudManager->NotifyStage1BossAppeared();
 		}
 		StartCameraShake(0.75f, 0.42f, 24.0f);
@@ -195,19 +185,14 @@ void BossBattleController::UpdateIntro(const Dependencies& deps, float deltaTime
 void BossBattleController::UpdateRuntime(const Dependencies& deps, float deltaTime)
 {
 	IPlayerRuntime* player = deps.characters ? deps.characters->GetPlayerRuntime() : nullptr;
-	if (guardianBoss_)
+	if (bossActor_)
 	{
-		if (!bossDeathPositionCaptured_ && guardianBoss_->GetHP() <= 0.0f)
+		if (deps.characters) bossActor_->SetTargetActor(deps.characters->GetPlayer());
+		if (!bossDeathPositionCaptured_ && bossActor_->IsDead())
 		{
-			bossDeathPosition_ = guardianBoss_->GetPosition();
-			bossDeathPositionCaptured_ = true; // 部位爆散でBodyが移動する前の撃破地点を報酬生成用に固定する。
+			bossDeathPosition_ = bossActor_->GetDeathWorldPosition();
+			bossDeathPositionCaptured_ = true; // 部位演出やPhysicsより前にActorが固定した撃破地点を報酬位置の正本にする。
 		}
-		if (player)
-		{
-			guardianBoss_->SetTargetPosition(player->GetWorldPosition());
-			guardianBoss_->SetTargetPlayer(player);
-		}
-		guardianBoss_->Update(deltaTime);
 		HandleBossPhasePresentation(deps);
 	}
 	UpdateCameraShake(deltaTime, player);
@@ -227,153 +212,153 @@ void BossBattleController::UpdatePausedWorld(const Dependencies& deps, float del
 void BossBattleController::UpdateHud(const Dependencies& deps, float deltaTime)
 {
 	(void)deltaTime;
-	if (deps.hudManager) deps.hudManager->SetBossHP(GetBossHP(), GetBossMaxHP(), IsBossBattleActive());
+	if (bossActor_) bossActor_->SetHealthHudVisible(IsBossBattleActive());
+	if (deps.hudManager) deps.hudManager->SetBossHP(GetBossHP(), GetBossMaxHP(), false); // HP描画はBossActorのGauge Componentへ一本化する。
 }
 
 void BossBattleController::UpdateBossGuideHud(IPlayerRuntime& player, HUDManager& hudManager) const
 {
 	K4E::Camera* camera = player.GetCamera();
-	if (!camera)
-	{
-		hudManager.SetBossGuide(player.GetWorldPosition(), bossSpawnPosition_, { 0.0f, 0.0f, 1.0f }, false);
-		return;
-	}
-	const K4E::Vector3 bossPosition = guardianBoss_ ? guardianBoss_->GetPosition() : bossSpawnPosition_;
-	hudManager.SetBossGuide(player.GetWorldPosition(), bossPosition, camera->GetForward(), IsBossBattleActive());
+	const K4E::Vector3 position = bossActor_ ? bossActor_->GetPosition() : bossSpawnPosition_;
+	hudManager.SetBossGuide(player.GetWorldPosition(), position, camera ? camera->GetForward() : K4E::Vector3{ 0.0f, 0.0f, 1.0f }, IsBossBattleActive());
 }
 
 void BossBattleController::DrawBoss()
 {
-	if (guardianBoss_)
-	{
-		guardianBoss_->ForceSyncWorldTransform();
-		guardianBoss_->Draw();
-	}
+	// 通常描画はCharacterWorldのActorWorld PassがBossActorを他Characterと一緒に描く。
 }
 
-void BossBattleController::DrawClearItem() { if (clearItem_) clearItem_->Draw(); }
-void BossBattleController::DrawBossIntro3D() { if (guardianBoss_) { guardianBoss_->ForceSyncWorldTransform(); guardianBoss_->Draw(); } }
-void BossBattleController::DrawShadow() { if (guardianBoss_) guardianBoss_->DrawShadow(); }
-void BossBattleController::DrawBossIntroShadow() { if (guardianBoss_) guardianBoss_->DrawShadow(); }
+void BossBattleController::DrawClearItem(){ if (clearItem_) clearItem_->Draw(); }
+void BossBattleController::DrawBossIntro3D(){ if (bossActor_) { bossActor_->ForceSyncWorldTransform(); bossActor_->Draw(); } }
+void BossBattleController::DrawShadow(){ /* 通常ShadowはCharacterWorldのActorWorld Passへ統一する。 */ }
+void BossBattleController::DrawBossIntroShadow(){ if (bossActor_) bossActor_->DrawShadow(); }
 
-void BossBattleController::DrawImGui(const Dependencies& deps, bool bossIntroPresentationActive)
+void BossBattleController::DrawImGui(const Dependencies& deps, bool introPresentation)
 {
 #ifdef USE_IMGUI
 	ImGui::SeparatorText("ボス状態");
-	ImGui::Text("ボス出現済み: %s", bossSpawned_ ? "はい" : "いいえ");
-	ImGui::Text("ボスCollider登録済み: %s", bossColliderRegistered_ ? "はい" : "いいえ");
-	ImGui::Text("ボス登場演出中: %s", bossIntroController_.IsRunning() ? "はい" : "いいえ");
-	ImGui::Text("ボス登場による進行停止: %s", bossIntroController_.IsGameplayPaused() ? "はい" : "いいえ");
-	ImGui::Text("ボス演出カメラ揺れ: %.2f / %.2f amp %.2f freq %.2f", cameraShakeTimer_, cameraShakeDuration_, cameraShakeAmplitude_, cameraShakeFrequency_);
-	IPlayerRuntime* runtime = deps.characters ? deps.characters->GetPlayerRuntime() : nullptr;
-	bossIntroController_.SetDebugSnapshot(guardianBoss_.get(), runtime ? runtime->GetCamera() : nullptr);
+	ImGui::Text("ActorWorld Boss: %s / Collider: %s", bossSpawned_ ? "spawned" : "none", bossColliderRegistered_ ? "enabled" : "disabled");
+	ImGui::Text("Intro: %s / Presentation camera: %s", bossIntroController_.IsRunning() ? "active" : "inactive", introPresentation ? "yes" : "no");
+	bossIntroController_.SetDebugSnapshot(bossActor_, deps.characters && deps.characters->GetPlayerRuntime() ? deps.characters->GetPlayerRuntime()->GetCamera() : nullptr);
 	bossIntroController_.DrawImGui();
-	ImGui::SeparatorText("Boss Intro Draw Debug");
-	ImGui::Text("Camera Kind: %s", bossIntroPresentationActive ? "BossIntro Camera" : "Gameplay Camera");
-	if (guardianBoss_)
+	if (bossActor_)
 	{
-		ImGui::Text("ボス生存中: %s", guardianBoss_->IsAlive() ? "はい" : "いいえ");
-		ImGui::Text("ボスHP: %.1f / %.1f", guardianBoss_->GetHP(), guardianBoss_->GetMaxHP());
-		ImGui::Text("ボス攻撃ヒット回数: %d", guardianBoss_->GetBossAttackHitCount());
-		ImGui::Text("最後にプレイヤーが受けたボスダメージ: %.1f", guardianBoss_->GetLastPlayerDamage());
+		ImGui::Text("HP: %.1f / %.1f / Phase: %d", bossActor_->GetHP(), bossActor_->GetMaxHP(), bossActor_->GetCurrentPhase());
+		ImGui::Text("Battle: %s / Dead: %s / Death presentation: %s", bossActor_->IsBattleEnabled() ? "on" : "off", bossActor_->IsDead() ? "yes" : "no", bossActor_->IsDeathPresentationComplete() ? "complete" : "running");
 	}
-	ImGui::SeparatorText("クリアCube状態");
-	ImGui::Text("死亡地点保持: %s (%.2f, %.2f, %.2f)", bossDeathPositionCaptured_ ? "はい" : "いいえ", bossDeathPosition_.x, bossDeathPosition_.y, bossDeathPosition_.z);
-	ImGui::Text("クリアCube出現済み: %s", clearItemSpawned_ ? "はい" : "いいえ");
-	ImGui::Text("クリアCube取得済み: %s", clearItemCollected_ ? "はい" : "いいえ");
-	ImGui::Text("ゲームクリア判定: %s", isGameClear_ ? "はい" : "いいえ");
-	if (guardianBoss_) guardianBoss_->DrawImGui();
+	ImGui::Text("Death position: %.2f %.2f %.2f / Clear item: %s", bossDeathPosition_.x, bossDeathPosition_.y, bossDeathPosition_.z, clearItemSpawned_ ? "spawned" : "none");
 #else
-	(void)deps;
-	(void)bossIntroPresentationActive;
+	(void)deps; (void)introPresentation;
 #endif
 }
 
 void BossBattleController::ResetIntroForDebug(const Dependencies& deps)
 {
-	if (guardianBoss_ && deps.collisionManager && bossColliderRegistered_) deps.collisionManager->RemoveCollider(guardianBoss_.get());
-	guardianBoss_.reset();
+	DestroyBossActor(deps);
 	bossSpawned_ = false;
 	bossColliderRegistered_ = false;
 	bossDefeated_ = false;
 	bossDeathPositionCaptured_ = false;
 	bossDeathPosition_ = bossSpawnPosition_;
 	bossSpawnConditionMet_ = false;
+	lastPresentedPhaseRevision_ = 0;
 	bossIntroController_.Reset();
 }
 
-bool BossBattleController::IsBossBattleActive() const { return guardianBoss_ && bossColliderRegistered_ && guardianBoss_->IsAlive() && !bossIntroController_.IsGameplayPaused(); }
-float BossBattleController::GetBossHP() const { return guardianBoss_ ? guardianBoss_->GetHP() : 0.0f; }
-float BossBattleController::GetBossMaxHP() const { return guardianBoss_ ? guardianBoss_->GetMaxHP() : 0.0f; }
-
-void BossBattleController::SpawnGuardianBoss(const Dependencies& deps, bool registerCollider)
+bool BossBattleController::IsBossBattleActive() const
 {
-	if (bossSpawned_) return;
-	guardianBoss_ = std::make_unique<GuardianBoss>();
-	guardianBoss_->Initialize();
-	bossDeathPositionCaptured_ = false;
-	bossDeathPosition_ = bossSpawnPosition_;
-	if (stage1BeginnerBalanceEnabled_)
-	{
-		if (auto* status = guardianBoss_->GetStatusComponent())
-		{
-			status->SetMaxHP(kStage1BeginnerBossMaxHP);
-			status->SetHP(kStage1BeginnerBossMaxHP);
-		}
-	}
-	if (deps.stage)
-	{
-		guardianBoss_->SetStageObstacleAABBs(&deps.stage->GetWallObstacleAABBs());
-		K4E::WorldCollisionSettings bossCollisionSettings{};
-		bossCollisionSettings.half = { 1.25f, 1.75f, 1.25f };
-		bossCollisionSettings.centerOffset = { 0.0f, 0.0f, 0.0f };
-		bossCollisionSettings.eps = 0.002f;
-		guardianBoss_->SetWorldCollisionSettings(bossCollisionSettings);
-	}
-	guardianBoss_->SetPosition(registerCollider ? bossSpawnPosition_ : bossIntroController_.GetBossStartPosition());
-	guardianBoss_->SetYaw(kPi);
-	if (deps.characters && deps.characters->GetPlayerRuntime())
-	{
-		IPlayerRuntime* player = deps.characters->GetPlayerRuntime();
-		guardianBoss_->SetTargetPosition(player->GetWorldPosition());
-		guardianBoss_->SetTargetPlayer(player);
-	}
-	guardianBoss_->Update(0.0f);
-	bossSpawned_ = true;
-	if (registerCollider) RegisterGuardianBossCollider(deps);
+	return bossActor_ && bossColliderRegistered_ && bossActor_->IsAlive() && !bossIntroController_.IsGameplayPaused();
 }
 
-void BossBattleController::RegisterGuardianBossCollider(const Dependencies& deps)
+float BossBattleController::GetBossHP() const { return bossActor_ ? bossActor_->GetHP() : 0.0f; }
+float BossBattleController::GetBossMaxHP() const { return bossActor_ ? bossActor_->GetMaxHP() : 0.0f; }
+
+void BossBattleController::SpawnBossActor(const Dependencies& deps, bool enableBattleImmediately)
 {
-	if (!guardianBoss_ || !deps.collisionManager || bossColliderRegistered_) return;
-	guardianBoss_->ClearRootParentKeepingWorldPosition();
-	guardianBoss_->SetPosition(bossIntroController_.GetBossAppearPosition());
-	guardianBoss_->SetYaw(kPi);
-	guardianBoss_->ForceSyncWorldTransform();
-	deps.collisionManager->AddCollider(guardianBoss_.get());
+	if (bossSpawned_ || !deps.characters) return;
+	RegisterApplicationActorTypes();
+	K4E::ActorWorld& world = deps.characters->GetActorWorld();
+	K4E::BossActor* actor = nullptr;
+	if (K4E::Actor* prefabActor = world.SpawnActorFromJson(kBossPrefabPath))
+	{
+		actor = dynamic_cast<K4E::BossActor*>(prefabActor);
+		if (!actor) world.DestroyActor(prefabActor);
+	}
+	if (!actor) actor = &world.SpawnActor<K4E::BossActor>();
+	else actor->Initialize();
+
+	bossActor_ = actor;
+	bossActor_->SetName("GameplayBossActor");
+	bossActor_->SetLayer("Boss");
+	bossActor_->AddTag("Boss");
+	bossActor_->AddTag("GameplayBoss");
+	bossActor_->SetTargetActor(deps.characters->GetPlayer());
+	if (stage1BeginnerBalanceEnabled_)
+	{
+		if (auto* health = bossActor_->GetHealthComponent()) health->ResetHealth(kBeginnerBossMaxHp);
+	}
+	bossDeathPositionCaptured_ = false;
+	bossDeathPosition_ = bossSpawnPosition_;
+	bossActor_->SetPosition(enableBattleImmediately ? bossSpawnPosition_ : bossIntroController_.GetBossStartPosition());
+	bossActor_->SetYaw(kPi);
+	bossActor_->SetBattleEnabled(enableBattleImmediately);
+	bossActor_->SetHealthHudVisible(enableBattleImmediately);
+	bossActor_->ForceSyncWorldTransform();
+	bossSpawned_ = true;
+	lastPresentedPhaseRevision_ = bossActor_->GetPhaseRevision();
+	if (enableBattleImmediately) RegisterBossCollider(deps);
+}
+
+void BossBattleController::RegisterBossCollider(const Dependencies& deps)
+{
+	if (!bossActor_ || bossColliderRegistered_) return;
+	bossActor_->ClearRootParentKeepingWorldPosition();
+	bossActor_->SetPosition(bossIntroController_.GetBossAppearPosition());
+	bossActor_->SetYaw(kPi);
+	bossActor_->SetBattleEnabled(true);
+	bossActor_->SetHealthHudVisible(true);
+	bossActor_->ForceSyncWorldTransform();
+	if (deps.collisionManager && bossActor_->GetCollisionPrimitive()) deps.collisionManager->AddCollider(bossActor_->GetCollisionPrimitive());
 	bossColliderRegistered_ = true;
-	Log("[GuardianBoss] Collider registered as kBoss.\n");
+	K4E::Log("[BossActor] Legacy query collider registered.\n");
+}
+
+void BossBattleController::DestroyBossActor(const Dependencies& deps)
+{
+	if (!bossActor_) return;
+	if (deps.collisionManager && bossColliderRegistered_ && bossActor_->GetCollisionPrimitive()) deps.collisionManager->RemoveCollider(bossActor_->GetCollisionPrimitive());
+	bossActor_->SetBattleEnabled(false);
+	bossActor_->SetHealthHudVisible(false);
+	bossActor_->SetActive(false);
+	if (deps.characters) deps.characters->GetActorWorld().DestroyActor(bossActor_);
+	bossActor_ = nullptr;
+	bossColliderRegistered_ = false;
 }
 
 void BossBattleController::AlignPlayerViewToBossAfterIntro(IPlayerRuntime& player) const
 {
-	K4E::Camera* resumedCamera = player.GetCamera();
-	if (!resumedCamera) return;
+	K4E::Camera* camera = player.GetCamera();
+	if (!camera) return;
 	float pitch = 0.0f;
 	float yaw = 0.0f;
-	if (CalcLookAnglesToTarget(resumedCamera->GetTranslate(), bossIntroController_.GetBossLookTarget(), pitch, yaw)) player.SetViewLookAngles(pitch, yaw);
-	K4E::CameraManager::GetInstance()->SetMainCamera(resumedCamera);
-	resumedCamera->Update();
+	if (CalcLookAnglesToTarget(camera->GetTranslate(), bossIntroController_.GetBossLookTarget(), pitch, yaw)) player.SetViewLookAngles(pitch, yaw);
+	K4E::CameraManager::GetInstance()->SetMainCamera(camera);
+	camera->Update();
 }
 
 void BossBattleController::UpdateBossClearProgress(const Dependencies& deps, float deltaTime)
 {
-	if (guardianBoss_ && guardianBoss_->IsDead() && !bossDefeated_)
+	if (bossActor_ && bossActor_->IsDead() && !bossDefeated_)
 	{
 		bossDefeated_ = true;
+		if (!bossDeathPositionCaptured_)
+		{
+			bossDeathPosition_ = bossActor_->GetDeathWorldPosition();
+			bossDeathPositionCaptured_ = true;
+		}
 		if (deps.setBossDefeated) deps.setBossDefeated(false);
 	}
-	if (bossDefeated_ && !clearItemSpawned_ && bossDeathPositionCaptured_) SpawnClearItem(deps, bossDeathPosition_);
+	if (bossDefeated_ && bossActor_ && bossActor_->IsDeathPresentationComplete() && !clearItemSpawned_ && bossDeathPositionCaptured_) SpawnClearItem(deps, bossDeathPosition_);
 	if (clearItem_ && !clearItemCollected_)
 	{
 		clearItem_->Update(deltaTime);
@@ -382,32 +367,28 @@ void BossBattleController::UpdateBossClearProgress(const Dependencies& deps, flo
 	}
 }
 
-void BossBattleController::SpawnClearItem(const Dependencies& deps, const K4E::Vector3& bossPosition)
+void BossBattleController::SpawnClearItem(const Dependencies& deps, const K4E::Vector3& deathPosition)
 {
 	if (clearItemSpawned_) return;
-	K4E::Vector3 spawnPosition = bossPosition;
+	K4E::Vector3 position = deathPosition;
 	if (deps.stage)
 	{
-		float selectedFloorY = -std::numeric_limits<float>::infinity();
-		float nearestHeight = std::numeric_limits<float>::infinity();
+		float floorY = -std::numeric_limits<float>::infinity();
+		float nearest = std::numeric_limits<float>::infinity();
 		for (const K4E::AABB& floor : deps.stage->GetFloorAABBs())
 		{
-			if (spawnPosition.x < floor.min.x || spawnPosition.x > floor.max.x || spawnPosition.z < floor.min.z || spawnPosition.z > floor.max.z) continue;
-			const float heightDistance = std::abs(floor.max.y - spawnPosition.y);
-			if (heightDistance < nearestHeight)
-			{
-				nearestHeight = heightDistance;
-				selectedFloorY = floor.max.y;
-			}
+			if (position.x < floor.min.x || position.x > floor.max.x || position.z < floor.min.z || position.z > floor.max.z) continue;
+			const float distance = std::abs(floor.max.y - position.y);
+			if (distance < nearest){ nearest = distance; floorY = floor.max.y; }
 		}
-		if (std::isfinite(selectedFloorY)) spawnPosition.y = selectedFloorY;
+		if (std::isfinite(floorY)) position.y = floorY;
 	}
-	spawnPosition.y = std::max(spawnPosition.y, 0.0f);
+	position.y = std::max(position.y, 0.0f);
 	clearItem_ = std::make_unique<BossClearItem>();
-	clearItem_->Initialize(spawnPosition); // XZは撃破地点を維持し、Yだけ最寄り床面へ合わせる。
+	clearItem_->Initialize(position);
 	if (deps.collisionManager) deps.collisionManager->AddCollider(clearItem_.get());
 	clearItemSpawned_ = true;
-	Log("[GameClear] BossClearItem spawned at captured death position.\n");
+	K4E::Log("[GameClear] BossClearItem spawned at BossActor death position.\n");
 }
 
 void BossBattleController::CollectClearItem(const Dependencies& deps)
@@ -421,25 +402,24 @@ void BossBattleController::CollectClearItem(const Dependencies& deps)
 		if (deps.collisionManager) deps.collisionManager->RemoveCollider(clearItem_.get());
 	}
 	if (deps.setBossDefeated) deps.setBossDefeated(true);
-	Log("[GameClear] Clear item collected.\n");
 }
 
 void BossBattleController::HandleBossPhasePresentation(const Dependencies& deps)
 {
 	(void)deps;
-	if (!guardianBoss_) return;
-	BossPhase phase = BossPhase::Phase1;
-	if (!guardianBoss_->ConsumePhaseTransitionPresentation(phase)) return;
-	lastPresentedBossPhase_ = phase;
-	if (phase == BossPhase::Phase3) StartCameraShake(0.85f, 0.40f, 25.0f);
-	else if (phase == BossPhase::Phase2) StartCameraShake(0.55f, 0.24f, 20.0f);
+	if (!bossActor_) return;
+	const unsigned int revision = bossActor_->GetPhaseRevision();
+	if (revision == lastPresentedPhaseRevision_) return;
+	lastPresentedPhaseRevision_ = revision;
+	const int phase = bossActor_->GetCurrentPhase();
+	if (phase >= 3) StartCameraShake(0.85f, 0.40f, 25.0f);
+	else if (phase >= 2) StartCameraShake(0.55f, 0.24f, 20.0f);
 }
 
 void BossBattleController::StartCameraShake(float duration, float amplitude, float frequency)
 {
 	if (duration <= 0.0f || amplitude <= 0.0f) return;
-	cameraShakeDuration_ = duration;
-	cameraShakeTimer_ = duration;
+	cameraShakeDuration_ = cameraShakeTimer_ = duration;
 	cameraShakeAmplitude_ = amplitude;
 	cameraShakeFrequency_ = std::max(1.0f, frequency);
 	cameraShakeSeed_ += 2.31f;
@@ -458,19 +438,18 @@ void BossBattleController::UpdateCameraShake(float deltaTime, IPlayerRuntime* pl
 K4E::Vector3 BossBattleController::BuildCameraShakeOffset() const
 {
 	if (cameraShakeTimer_ <= 0.0f || cameraShakeDuration_ <= 0.0f) return {};
-	const float remainRate = std::clamp(cameraShakeTimer_ / cameraShakeDuration_, 0.0f, 1.0f);
+	const float rate = std::clamp(cameraShakeTimer_ / cameraShakeDuration_, 0.0f, 1.0f);
 	const float t = (cameraShakeDuration_ - cameraShakeTimer_) * cameraShakeFrequency_ + cameraShakeSeed_;
-	const float amp = cameraShakeAmplitude_ * remainRate * remainRate;
-	return { std::sin(t * 1.51f) * amp, std::cos(t * 1.13f) * amp * 0.50f, std::sin(t * 0.83f) * amp * 0.30f };
+	const float amplitude = cameraShakeAmplitude_ * rate * rate;
+	return { std::sin(t * 1.51f) * amplitude, std::cos(t * 1.13f) * amplitude * 0.50f, std::sin(t * 0.83f) * amplitude * 0.30f };
 }
 
-bool BossBattleController::CalcLookAnglesToTarget(const K4E::Vector3& from, const K4E::Vector3& target, float& outPitch, float& outYaw)
+bool BossBattleController::CalcLookAnglesToTarget(const K4E::Vector3& from, const K4E::Vector3& target, float& pitch, float& yaw)
 {
 	K4E::Vector3 direction = target - from;
 	if (K4E::Vector3::LengthSquared(direction) <= 0.000001f) return false;
 	direction = K4E::Vector3::Normalize(direction);
-	outYaw = std::atan2(-direction.x, direction.z);
-	const float xzLen = std::sqrt(direction.x * direction.x + direction.z * direction.z);
-	outPitch = std::atan2(-direction.y, xzLen);
+	yaw = std::atan2(-direction.x, direction.z);
+	pitch = std::atan2(-direction.y, std::sqrt(direction.x * direction.x + direction.z * direction.z));
 	return true;
 }
