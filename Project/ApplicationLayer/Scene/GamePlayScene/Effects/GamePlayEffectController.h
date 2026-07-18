@@ -40,6 +40,7 @@ public:
 			0.30f);
 		trackedBoss_ = nullptr;
 		lastBossHp_ = 0.0f;
+		playerDamageListenerId_ = 0;
 		BindPlayerDamageCallback(world);
 		BindWeaponFireEffectTransform(world);
 	}
@@ -51,8 +52,10 @@ public:
 	{
 		if (auto* player = world ? world->GetCharacters().GetPlayer() : nullptr)
 		{
+			if (playerDamageListenerId_ != 0) player->RemoveDamageListener(playerDamageListenerId_);
 			player->SetOnDamageTakenCallback({});
 		}
+		playerDamageListenerId_ = 0;
 		if (BulletManager* bulletManager = world ? world->GetBulletManager() : nullptr)
 		{
 			bulletManager->SetShotEffectTransformResolver({});
@@ -116,9 +119,9 @@ private:
 	static bool ResolveDamageSourcePosition(
 		GamePlayWorld* world,
 		const Ken4lowEngine::PlayerActor& player,
+		const Ken4lowEngine::CharacterDamageInfo& damageInfo,
 		Ken4lowEngine::Vector3& outPosition)
 	{
-		const Ken4lowEngine::CharacterDamageInfo& damageInfo = player.GetLastAcceptedDamageInfo();
 		if (damageInfo.sourceActor)
 		{
 			if (const Ken4lowEngine::SceneComponent* sourceRoot = damageInfo.sourceActor->GetRootComponent())
@@ -128,7 +131,7 @@ private:
 			}
 		}
 
-		if (!world) return false;
+		if (!world || damageInfo.hasHitPosition) return false;
 		const Ken4lowEngine::Vector3 playerPosition = player.GetWorldPosition();
 		float nearestDistanceSq = std::numeric_limits<float>::max();
 		bool found = false;
@@ -187,8 +190,11 @@ private:
 	{
 		if (auto* player = world ? world->GetCharacters().GetPlayer() : nullptr)
 		{
-			player->SetOnDamageTakenCallback([this, world]()
+			player->SetOnDamageTakenCallback({});
+			playerDamageListenerId_ = player->AddDamageListener(
+				[this, world](const Ken4lowEngine::CharacterDamageInfo& damageInfo, const Ken4lowEngine::CharacterDamageResult& damageResult)
 				{
+					if (!damageResult.accepted || damageResult.appliedDamage <= 0.0f) return;
 					if (hpPostEffectController_) hpPostEffectController_->NotifyDamageTaken();
 					if (!world) return;
 					auto* currentPlayer = world->GetCharacters().GetPlayer();
@@ -197,10 +203,12 @@ private:
 					if (!currentPlayer || !hud || !camera) return;
 
 					Ken4lowEngine::Vector3 attackerPosition{};
-					if (!ResolveDamageSourcePosition(world, *currentPlayer, attackerPosition)) return;
-					const Ken4lowEngine::Vector3 cameraForward = Ken4lowEngine::Vector3::NormalizeSafe(camera->GetForward(), { 0.0f, 0.0f, 1.0f });
-					const Ken4lowEngine::Vector3 cameraRight{ cameraForward.z, 0.0f, -cameraForward.x };
-					hud->AddDamageIndicator(currentPlayer->GetWorldPosition(), attackerPosition, cameraForward, cameraRight);
+					if (ResolveDamageSourcePosition(world, *currentPlayer, damageInfo, attackerPosition))
+					{
+						const Ken4lowEngine::Vector3 cameraForward = Ken4lowEngine::Vector3::NormalizeSafe(camera->GetForward(), { 0.0f, 0.0f, 1.0f });
+						const Ken4lowEngine::Vector3 cameraRight{ cameraForward.z, 0.0f, -cameraForward.x };
+						hud->AddDamageIndicator(currentPlayer->GetWorldPosition(), attackerPosition, cameraForward, cameraRight);
+					}
 					hud->NotifyPlayerHit(); // 被弾方向とHPリアクションを同じ受理済みDamageフレームで発生させる。
 				});
 		}
@@ -245,6 +253,7 @@ private:
 	}
 
 	std::unique_ptr<PlayerHealthPostEffectController> hpPostEffectController_;
+	Ken4lowEngine::CharacterActor::DamageListenerId playerDamageListenerId_ = 0;
 	GuardianBoss* trackedBoss_ = nullptr;
 	float lastBossHp_ = 0.0f;
 };
