@@ -98,29 +98,29 @@ void AimTargetDetector::DrawImGui()
 
 EnemyBase* AimTargetDetector::GetTargetEnemy() const
 {
-	if (!result_.isDamageableTarget || result_.hitObjectType != ObjectType::Enemy)
+	if (!result_.isDamageableTarget || result_.hitObjectType != ObjectType::Enemy || !result_.hitObjectPointer)
 	{
 		return nullptr;
 	}
-	return static_cast<EnemyBase*>(result_.hitObjectPointer);
+	return result_.hitObjectPointer->GetOwner<EnemyBase>(); // Rayが返すColliderではなく、Colliderが所有するEnemy実体をHP表示対象へ渡す。
 }
 
 EnemySpawnCrystal* AimTargetDetector::GetTargetCrystal() const
 {
-	if (!result_.isDamageableTarget || result_.hitObjectType != ObjectType::Crystal)
+	if (!result_.isDamageableTarget || result_.hitObjectType != ObjectType::Crystal || !result_.hitObjectPointer)
 	{
 		return nullptr;
 	}
-	return static_cast<EnemySpawnCrystal*>(result_.hitObjectPointer);
+	return result_.hitObjectPointer->GetOwner<EnemySpawnCrystal>();
 }
 
 BossBase* AimTargetDetector::GetTargetBoss() const
 {
-	if (!result_.isDamageableTarget || result_.hitObjectType != ObjectType::Boss)
+	if (!result_.isDamageableTarget || result_.hitObjectType != ObjectType::Boss || !result_.hitObjectPointer)
 	{
 		return nullptr;
 	}
-	return static_cast<BossBase*>(result_.hitObjectPointer);
+	return result_.hitObjectPointer->GetOwner<BossBase>();
 }
 
 const char* AimTargetDetector::ToString(ObjectType type)
