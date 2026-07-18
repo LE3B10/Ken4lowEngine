@@ -33,7 +33,7 @@ private:
 	enum class UnlockPhase
 	{
 		None,
-		HoldSource,
+		WaitForUncover,
 		MoveToTarget,
 		UnlockPulse,
 		Settle,
