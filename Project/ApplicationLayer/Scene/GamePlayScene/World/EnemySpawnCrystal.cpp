@@ -1,12 +1,14 @@
 #define NOMINMAX
 #include "EnemySpawnCrystal.h"
 
+#include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
 #include "CharacterWorld.h"
 #include "EnemyBase.h"
 #include "Bullet.h"
 #include "CollisionTypes.h"
 #include "CollisionTypeIdDef.h"
 #include "AudioManager.h"
+#include "GpuParticleManager.h"
 
 #include <algorithm>
 #include <cmath>
@@ -18,6 +20,8 @@ float EnemySpawnCrystal::s_spawnYOffset_ = 0.15f;
 
 namespace
 {
+	constexpr float kTwoPi = 6.28318530718f;
+
 	bool OverlapsObstacle(const Vector3& center, const Vector3& half, const std::vector<AABB>* obstacles)
 	{
 		if (!obstacles) { return false; }
@@ -83,6 +87,16 @@ namespace
 		return std::clamp(value, 0.0f, 1.0f);
 	}
 
+	float Length(const Vector3& value)
+	{
+		return std::sqrt(value.x * value.x + value.y * value.y + value.z * value.z);
+	}
+
+	float MaxAbsComponent(const Vector3& value)
+	{
+		return std::max({ std::fabs(value.x), std::fabs(value.y), std::fabs(value.z) });
+	}
+
 	Vector4 LerpColor(const Vector4& a, const Vector4& b, float t)
 	{
 		t = Clamp01(t);
@@ -109,6 +123,9 @@ void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint, const st
 	hitCount_ = 0;
 	guideHighlightAlpha_ = 0.0f;
 	guideHighlightTimer_ = 0.0f;
+	visibilityTimer_ = 0.0f;
+	visibilityParticleTimer_ = 0.0f;
+	playerInsideApproachRange_ = false;
 	ResetSpawnRuntime();
 
 	ApplyInitialHpSettings(spawnPoint);
@@ -128,27 +145,40 @@ void EnemySpawnCrystal::Initialize(const CrystalSpawnPoint& spawnPoint, const st
 
 	debugCube_ = std::make_unique<Object3D>();
 	debugCube_->Initialize("Sample/cube.gltf");
-	debugCube_->SetColor({ 0.25f, 0.85f, 1.0f, 1.0f });
+	debugCube_->SetPbrEnabled(true);
+	debugCube_->SetMetallic(0.18f);
+	debugCube_->SetRoughness(0.16f);
+	debugCube_->SetReflectivity(0.65f);
+	debugCube_->SetFrustumCullingEnabled(false);
+	debugCube_->SetColor({ 0.20f, 0.82f, 1.0f, 1.0f });
+	debugCube_->SetEmissiveFactor({ 0.15f, 1.4f, 2.5f, 1.0f });
 	SyncTransformToRuntime(floorAABBs, obstacleAABBs);
 }
 
 void EnemySpawnCrystal::Update(const CharacterWorld& characters, float deltaTime, const CrystalReactionSettings& reactionSettings)
 {
 	reactionSettings_ = reactionSettings;
+	const float safeDeltaTime = std::max(0.0f, deltaTime);
+	visibilityTimer_ += safeDeltaTime;
+	guideHighlightTimer_ += safeDeltaTime;
 	RemoveInactiveSpawnedEnemies(characters);
-	UpdateReactionTimers(deltaTime, reactionSettings);
+	UpdateReactionTimers(safeDeltaTime, reactionSettings);
 	UpdateStateFromHpRate(reactionSettings); // HP割合からNormal/Damaged/Criticalへ状態を切り替える。
+	UpdateVisibilityParticles(safeDeltaTime, reactionSettings);
+	UpdateApproachSound(reactionSettings);
 
 	if (debugCube_)
 	{
-		// クリスタルはカメラ基準ではなく、ステージ上の固定ワールド座標に配置する。
+		Vector3 visualRotation = rotation_;
+		visualRotation.y += visibilityTimer_ * 0.42f;
+		// 常時回転と発光を加え、戦闘中でも背景へ埋もれない破壊対象として見せる。
 		debugCube_->SetTranslate(BuildVisualPosition(reactionSettings));
-		debugCube_->SetRotate(rotation_);
+		debugCube_->SetRotate(visualRotation);
 		debugCube_->SetScale(BuildVisualScale(reactionSettings));
 		debugCube_->SetColor(BuildVisualColor(reactionSettings));
+		debugCube_->SetEmissiveFactor(BuildEmissiveColor(reactionSettings));
 		debugCube_->Update();
 	}
-	guideHighlightTimer_ += deltaTime;
 }
 
 void EnemySpawnCrystal::Draw() const
@@ -175,7 +205,6 @@ void EnemySpawnCrystal::ApplyDamage(int damage)
 		BeginBreaking(reactionSettings_); // HP0からBreaking状態へ移行し、即消滅を避ける。
 	}
 }
-
 
 void EnemySpawnCrystal::OnCollisionEnter(K4E::Collider* other)
 {
@@ -313,7 +342,7 @@ EnemyBase* EnemySpawnCrystal::SpawnEnemy(CharacterWorld& characters, float moveS
 		return nullptr;
 	}
 
-	const float angle = RandomRange(0.0f, 6.28318530718f);
+	const float angle = RandomRange(0.0f, kTwoPi);
 	const float distance = RandomRange(0.0f, spawnRadius);
 	const Vector3 spawnPosition{
 		position_.x + std::cos(angle) * distance,
@@ -409,20 +438,130 @@ void EnemySpawnCrystal::UpdateReactionTimers(float deltaTime, const CrystalReact
 		isAlive = false;
 		SetEnabled(false);
 		justBroken_ = true;
+		playerInsideApproachRange_ = false;
 		SetCenterPosition({ 1.0e9f, 1.0e9f, 1.0e9f });
+	}
+}
+
+void EnemySpawnCrystal::UpdateVisibilityParticles(float deltaTime, const CrystalReactionSettings& reactionSettings)
+{
+	if (!IsAlive())
+	{
+		visibilityParticleTimer_ = 0.0f;
+		return;
+	}
+
+	visibilityParticleTimer_ += deltaTime;
+	const float interval = std::max(0.05f, reactionSettings.visibilityParticleInterval);
+	if (visibilityParticleTimer_ < interval)
+	{
+		return;
+	}
+	visibilityParticleTimer_ = std::fmod(visibilityParticleTimer_, interval);
+
+	GpuParticleManager* particleManager = GpuParticleManager::GetInstance();
+	if (!particleManager)
+	{
+		return;
+	}
+
+	const std::string emitterName = BuildVisibilityEmitterName();
+	GpuParticleEmitter* emitter = particleManager->GetEmitter(emitterName);
+	if (!emitter)
+	{
+		GpuParticleEmitter::EmitterInfo info{};
+		info.textureFilePath = "Effects/white.dds";
+		info.kind = GpuParticleKind::Sprite;
+		info.spriteType = GpuParticleType::Ambient;
+		info.billboardFlags = BillboardMode::Camera;
+		info.useDescSpawnOverride = true;
+		info.maxParticles = 64u;
+		info.spawnShape = 1u;
+		info.spawnRadius = std::max(0.5f, MaxAbsComponent(scale_) * 0.75f);
+		info.positionRandom = { 0.12f, 0.20f, 0.12f };
+		info.velocity = { 0.0f, 0.48f, 0.0f };
+		info.velocityRandom = { 0.20f, 0.18f, 0.20f };
+		info.startSize = { 0.055f, 0.055f };
+		info.endSize = { 0.012f, 0.012f };
+		info.startColor = { 0.25f, 0.88f, 1.0f, 0.85f };
+		info.endColor = { 0.55f, 0.96f, 1.0f, 0.0f };
+		info.lifeTime = 0.95f;
+		info.lifeTimeRandom = 0.20f;
+		info.gravity = { 0.0f, 0.10f, 0.0f };
+		info.damping = 0.35f;
+		info.sizeRandom = 0.25f;
+		info.alphaFade = true;
+		emitter = particleManager->CreateRuntimeEmitter(emitterName, info);
+	}
+	if (!emitter)
+	{
+		return;
+	}
+
+	auto& info = emitter->GetInfoMutable();
+	info.spawnRadius = std::max(0.5f, MaxAbsComponent(scale_) * (0.72f + guideHighlightAlpha_ * 0.18f));
+	if (state_ == State::Critical || state_ == State::Breaking)
+	{
+		info.startColor = { 1.0f, 0.20f, 0.10f, 0.90f };
+		info.endColor = { 1.0f, 0.55f, 0.12f, 0.0f };
+	}
+	else if (guideHighlightAlpha_ > 0.0f)
+	{
+		info.startColor = { 1.0f, 0.90f, 0.20f, 0.95f };
+		info.endColor = { 0.35f, 0.95f, 1.0f, 0.0f };
+	}
+	else
+	{
+		info.startColor = { 0.25f, 0.88f, 1.0f, 0.85f };
+		info.endColor = { 0.55f, 0.96f, 1.0f, 0.0f };
+	}
+
+	// 常時の微粒子を低頻度で放出し、遠距離でもクリスタルの存在を追いやすくする。
+	emitter->SetPosition({ position_.x, position_.y + std::fabs(scale_.y) * 0.15f, position_.z });
+	emitter->RequestEmit(guideHighlightAlpha_ > 0.0f ? 5u : 3u);
+}
+
+void EnemySpawnCrystal::UpdateApproachSound(const CrystalReactionSettings& reactionSettings)
+{
+	if (!IsAlive())
+	{
+		playerInsideApproachRange_ = false;
+		return;
+	}
+
+	const IPlayerRuntime* player = IPlayerRuntime::GetActiveRuntimeConst();
+	if (!player)
+	{
+		playerInsideApproachRange_ = false;
+		return;
+	}
+
+	const float enterDistance = std::max(0.0f, reactionSettings.approachSoundDistance);
+	const float resetDistance = std::max(enterDistance + 1.0f, reactionSettings.approachSoundResetDistance);
+	const float distance = Length(player->GetWorldPosition() - position_);
+	if (!playerInsideApproachRange_ && distance <= enterDistance)
+	{
+		Ken4lowEngine::AudioManager::GetInstance()->PlaySE(GetApproachSoundName(), 0.28f, 1.0f);
+		playerInsideApproachRange_ = true;
+	}
+	else if (playerInsideApproachRange_ && distance >= resetDistance)
+	{
+		// 接近距離と解除距離を分け、境界付近でSEが連続再生されないようにする。
+		playerInsideApproachRange_ = false;
 	}
 }
 
 K4E::Vector4 EnemySpawnCrystal::BuildVisualColor(const CrystalReactionSettings& reactionSettings) const
 {
-	Vector4 color{ 0.25f, 0.85f, 1.0f, 1.0f };
+	const float pulse = 0.5f + 0.5f * std::sin(visibilityTimer_ * std::max(0.1f, reactionSettings.visibilityPulseSpeed) * kTwoPi);
+	Vector4 color = LerpColor({ 0.12f, 0.72f, 1.0f, 1.0f }, { 0.42f, 0.96f, 1.0f, 1.0f }, 0.25f + pulse * 0.30f);
 	switch (state_)
 	{
 	case State::Damaged:
-		color = { 0.35f, 0.55f, 1.0f, 1.0f };
+		color = LerpColor({ 0.18f, 0.42f, 1.0f, 1.0f }, { 0.48f, 0.72f, 1.0f, 1.0f }, pulse);
 		break;
 	case State::Critical:
-		color = { 1.0f, 0.25f, 0.20f, 1.0f };
+		color = LerpColor({ 0.90f, 0.08f, 0.04f, 1.0f }, { 1.0f, 0.50f, 0.08f, 1.0f }, pulse);
 		break;
 	case State::Breaking:
 		{
@@ -440,16 +579,48 @@ K4E::Vector4 EnemySpawnCrystal::BuildVisualColor(const CrystalReactionSettings& 
 
 	if (hitFlashTimer_ > 0.0f)
 	{
-		color = LerpColor(color, { 1.0f, 1.0f, 1.0f, color.w }, 0.75f);
+		color = LerpColor(color, { 1.0f, 1.0f, 0.65f, color.w }, 0.88f);
 	}
 	if (guideHighlightAlpha_ > 0.0f && state_ != State::Breaking && state_ != State::Broken)
 	{
-		const float pulse = 0.5f + 0.5f * std::sin(guideHighlightTimer_ * 7.0f);
-		const float highlight = guideHighlightAlpha_ * (0.45f + pulse * 0.35f);
-		color = LerpColor(color, { 1.0f, 0.95f, 0.35f, color.w }, highlight);
+		const float highlight = guideHighlightAlpha_ * (0.55f + pulse * 0.35f);
+		color = LerpColor(color, { 1.0f, 0.92f, 0.18f, color.w }, highlight);
 	}
 
 	return color;
+}
+
+K4E::Vector4 EnemySpawnCrystal::BuildEmissiveColor(const CrystalReactionSettings& reactionSettings) const
+{
+	const float pulse = 0.5f + 0.5f * std::sin(visibilityTimer_ * std::max(0.1f, reactionSettings.visibilityPulseSpeed) * kTwoPi);
+	Vector4 emissive{ 0.12f + pulse * 0.16f, 1.25f + pulse * 0.75f, 2.15f + pulse * 1.15f, 1.0f };
+	if (state_ == State::Damaged)
+	{
+		emissive = { 0.16f, 0.72f + pulse * 0.35f, 2.65f + pulse * 0.85f, 1.0f };
+	}
+	else if (state_ == State::Critical)
+	{
+		emissive = { 2.65f + pulse * 1.15f, 0.12f + pulse * 0.18f, 0.04f, 1.0f };
+	}
+	else if (state_ == State::Breaking)
+	{
+		const float fade = 1.0f - Clamp01(breakingTimer_ / std::max(0.05f, reactionSettings.breakingDuration));
+		emissive = { (3.2f + pulse) * fade, 0.12f * fade, 0.04f * fade, 1.0f };
+	}
+	else if (state_ == State::Broken)
+	{
+		emissive = { 0.0f, 0.0f, 0.0f, 1.0f };
+	}
+
+	if (guideHighlightAlpha_ > 0.0f && state_ != State::Breaking && state_ != State::Broken)
+	{
+		emissive = LerpColor(emissive, { 3.2f, 2.4f, 0.12f, 1.0f }, guideHighlightAlpha_ * (0.45f + pulse * 0.35f));
+	}
+	if (hitFlashTimer_ > 0.0f)
+	{
+		emissive = LerpColor(emissive, { 4.0f, 4.0f, 2.6f, 1.0f }, 0.85f);
+	}
+	return emissive;
 }
 
 K4E::Vector3 EnemySpawnCrystal::BuildVisualPosition(const CrystalReactionSettings& reactionSettings) const
@@ -474,13 +645,23 @@ K4E::Vector3 EnemySpawnCrystal::BuildVisualScale(const CrystalReactionSettings& 
 		const float scaleBoost = 1.0f + (reactionSettings.breakEffectScale - 1.0f) * (1.0f - std::abs(t * 2.0f - 1.0f));
 		visualScale = visualScale * scaleBoost;
 	}
-	else if (guideHighlightAlpha_ > 0.0f)
+	else
 	{
-		// ステージ1開始案内中だけ破壊対象を少し脈動させ、初心者がクリスタルを識別しやすくする。
-		const float pulse = 0.5f + 0.5f * std::sin(guideHighlightTimer_ * 7.0f);
-		visualScale = visualScale * (1.0f + guideHighlightAlpha_ * (0.06f + pulse * 0.08f));
+		const float pulse = 0.5f + 0.5f * std::sin(visibilityTimer_ * std::max(0.1f, reactionSettings.visibilityPulseSpeed) * kTwoPi);
+		float scaleBoost = 1.0f + std::max(0.0f, reactionSettings.visibilityPulseScale) * (0.35f + pulse * 0.65f);
+		if (guideHighlightAlpha_ > 0.0f)
+		{
+			// ステージ1開始案内中は通常脈動へ強調分を重ね、最初の破壊対象を明確にする。
+			scaleBoost += guideHighlightAlpha_ * (0.08f + pulse * 0.10f);
+		}
+		visualScale = visualScale * scaleBoost;
 	}
 	return visualScale;
+}
+
+std::string EnemySpawnCrystal::BuildVisibilityEmitterName() const
+{
+	return "CrystalVisibility_" + crystalName_;
 }
 
 const char* EnemySpawnCrystal::GetHitSoundName() const
@@ -491,4 +672,9 @@ const char* EnemySpawnCrystal::GetHitSoundName() const
 const char* EnemySpawnCrystal::GetBreakSoundName() const
 {
 	return "enemy_death.mp3";
+}
+
+const char* EnemySpawnCrystal::GetApproachSoundName() const
+{
+	return "crystal_near.mp3";
 }
