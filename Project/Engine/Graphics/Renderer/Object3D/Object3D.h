@@ -93,7 +93,6 @@ namespace Ken4lowEngine
 		void ResetMaterialBinding();
 		void SetTextureForAll(const std::string& texturePath);
 		void SetTextureForSubmesh(size_t index, const std::string& texturePath);
-		void SetPointSamplingForAll(bool enabled) { materialUsePointSampling_.assign(materialSRVs_.size(), enabled); } // 低解像度スキンをSubMesh単位で補間せず描画する。
 		size_t GetSubmeshCount() const;
 		BoundingSphere GetWorldBoundsForCulling() const { return GetWorldBounds(); }
 		BoundingSphere GetMeshWorldBoundsForCulling(size_t meshIndex) const { return GetMeshWorldBounds(meshIndex); }
