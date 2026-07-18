@@ -174,6 +174,11 @@ bool StageSelectScene::IsReadyToStartUncover() const
 	return isLoadReady_;
 }
 
+bool StageSelectScene::IsEntranceTransitionFinished() const
+{
+	return !sceneManager_ || !sceneManager_->IsTransitioning(); // Crackを含むフェード処理が完全に終わってから解放演出を開始する。
+}
+
 void StageSelectScene::InitializeStages()
 {
 	stages_.clear();
