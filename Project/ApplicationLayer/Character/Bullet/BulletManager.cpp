@@ -6,6 +6,7 @@
 #include "GpuParticleManager.h"
 
 #include <algorithm>
+#include <cmath>
 #include <string>
 
 using namespace Ken4lowEngine;
@@ -18,12 +19,20 @@ namespace
 	constexpr const char* kMuzzleSparkMeshModelPath = "Sample/cube.gltf";
 
 	constexpr uint32_t kBulletTracerMeshId = 1001u;
-	constexpr uint32_t kBulletTracerBurstCountPerPoint = 10u;
-	constexpr int kBulletTracerPointCount = 18;
-	constexpr float kBulletTracerStartOffset = 0.22f;
-	constexpr float kBulletTracerStepDistance = 0.16f;
+	constexpr uint32_t kBulletTracerBurstCountPerPoint = 4u;
+	constexpr int kBulletTracerMinPointCount = 2;
+	constexpr int kBulletTracerMaxPointCount = 64;
+	constexpr uint32_t kBulletTracerEmitterBankCount = 4u;
+	constexpr float kBulletTracerStartOffset = 0.08f;
+	constexpr float kBulletTracerPointSpacing = 0.75f;
+	constexpr float kBulletTracerLifeScale = 1.25f;
 	constexpr const char* kBulletTracerEmitterBaseName = "BulletTracerMesh_";
 	constexpr const char* kBulletTracerMeshModelPath = "Sample/cube.gltf";
+
+	float Length(const Vector3& value)
+	{
+		return std::sqrt(value.x * value.x + value.y * value.y + value.z * value.z);
+	}
 
 	std::string MakeMeshTexturePath(uint32_t meshId)
 	{
@@ -56,6 +65,10 @@ namespace
 		info.kind = GpuParticleKind::Mesh;
 		info.spriteType = particleType;
 		info.billboardFlags = BillboardMode::None;
+		if (particleType == GpuParticleType::BulletTracer)
+		{
+			info.lifeScale = kBulletTracerLifeScale;
+		}
 		return particle->CreateEmitter(name, info);
 	}
 
@@ -73,13 +86,37 @@ namespace
 		emitter->RequestEmit(kMuzzleSparkBurstCount);
 	}
 
-	void EmitBulletTracerMesh(GpuParticleManager* particle, const Vector3& muzzlePosition, const Vector3& fireDirection)
+	void EmitBulletTracerMesh(GpuParticleManager* particle, const Vector3& muzzlePosition, const Vector3& tracerEndPosition)
 	{
 		if (!particle) return;
-		const Vector3 forward = Vector3::Normalize(fireDirection);
-		for (int i = 0; i < kBulletTracerPointCount; ++i)
+
+		const Vector3 tracerVector = tracerEndPosition - muzzlePosition;
+		const float tracerLength = Length(tracerVector);
+		if (tracerLength <= 1.0e-4f) return;
+
+		const Vector3 forward = tracerVector * (1.0f / tracerLength);
+		const float firstDistance = std::min(kBulletTracerStartOffset, tracerLength);
+		const float drawableLength = std::max(0.0f, tracerLength - firstDistance);
+		const int pointCount = std::clamp(
+			static_cast<int>(std::ceil(drawableLength / kBulletTracerPointSpacing)) + 1,
+			kBulletTracerMinPointCount,
+			kBulletTracerMaxPointCount);
+
+		static uint32_t tracerEmitterBank = 0u;
+		const uint32_t currentBank = tracerEmitterBank;
+		tracerEmitterBank = (tracerEmitterBank + 1u) % kBulletTracerEmitterBankCount;
+
+		// 実際の着弾点までを等間隔で補間し、固定距離で弾道が途中終了しないようにする。
+		for (int i = 0; i < pointCount; ++i)
 		{
-			const std::string emitterName = std::string(kBulletTracerEmitterBaseName) + std::to_string(i);
+			const float ratio = pointCount > 1
+				? static_cast<float>(i) / static_cast<float>(pointCount - 1)
+				: 1.0f;
+			const float distance = firstDistance + drawableLength * ratio;
+			const Vector3 tracerPosition = muzzlePosition + forward * distance;
+			const std::string emitterName = std::string(kBulletTracerEmitterBaseName) +
+				std::to_string(currentBank) + "_" + std::to_string(i);
+
 			GpuParticleEmitter* emitter = GetOrCreateMeshEmitter(
 				particle,
 				emitterName.c_str(),
@@ -88,21 +125,19 @@ namespace
 				kBulletTracerMeshModelPath);
 			if (!emitter) continue;
 
-			const float distance = kBulletTracerStartOffset + kBulletTracerStepDistance * static_cast<float>(i);
-			emitter->SetPosition(muzzlePosition + forward * distance);
+			emitter->SetPosition(tracerPosition);
 			emitter->RequestEmit(kBulletTracerBurstCountPerPoint);
 		}
 	}
 
-	void EmitPlayerWeaponFireEffects(const Vector3& muzzlePosition, const Vector3& fireDirection)
+	void EmitPlayerWeaponFireEffects(const Vector3& muzzlePosition, const Vector3& tracerEndPosition)
 	{
-		const Vector3 forward = Vector3::Normalize(fireDirection);
 		EffectSystem::GetInstance()->Play("MuzzleFlash", muzzlePosition);
 
 		GpuParticleManager* particle = GpuParticleManager::GetInstance();
 		if (!particle) return;
 		EmitMuzzleSparkMesh(particle, muzzlePosition);
-		EmitBulletTracerMesh(particle, muzzlePosition, forward);
+		EmitBulletTracerMesh(particle, muzzlePosition, tracerEndPosition);
 	}
 }
 
@@ -150,6 +185,24 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 	if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
 	{
 		const Vector3 fallbackForward = Vector3::Normalize(dirNormalized);
+		const float maxTracerDistance = std::max(0.0f, speed) * std::max(0.0f, lifeTimeSec);
+		Vector3 tracerEndPosition = startPos + fallbackForward * maxTracerDistance;
+
+		if (collisionManager_ && maxTracerDistance > 0.0f)
+		{
+			RaycastQuery tracerQuery{};
+			tracerQuery.origin = startPos;
+			tracerQuery.direction = fallbackForward;
+			tracerQuery.maxDistance = maxTracerDistance;
+			tracerQuery.traceChannel = ETraceChannel::Weapon;
+
+			RaycastHit tracerHit{};
+			if (collisionManager_->RaycastSingle(tracerQuery, tracerHit) && tracerHit.hit)
+			{
+				tracerEndPosition = tracerHit.point;
+			}
+		}
+
 		Vector3 effectPosition = startPos + fallbackForward * 0.35f;
 		Vector3 effectDirection = fallbackForward;
 		if (shotEffectTransformResolver_)
@@ -159,10 +212,14 @@ Bullet* BulletManager::Spawn(const Vector3& startPos,
 			if (shotEffectTransformResolver_(resolvedPosition, resolvedDirection))
 			{
 				effectPosition = resolvedPosition;
-				effectDirection = resolvedDirection; // ViewModelの銃口座標を使い、カメラ中心の顔位置からVFXを出さない。
+				effectDirection = Vector3::Normalize(resolvedDirection); // ViewModelの銃口座標を使い、カメラ中心の顔位置からVFXを出さない。
 			}
 		}
-		EmitPlayerWeaponFireEffects(effectPosition, effectDirection);
+		if (maxTracerDistance <= 0.0f)
+		{
+			tracerEndPosition = effectPosition + effectDirection;
+		}
+		EmitPlayerWeaponFireEffects(effectPosition, tracerEndPosition);
 	}
 	return raw;
 }
