@@ -19,6 +19,7 @@
 #include "ApplicationLayer/Character/Player/Actor/PlayerActor.h"
 #include "ApplicationLayer/Character/Player/Actor/PlayerHudPresenterComponent.h"
 #include "ApplicationLayer/Character/Player/Actor/PlayerMeleeAttackComponent.h"
+#include "ApplicationLayer/Scene/StageSelectScene/StageSelectUIActor.h"
 #include "Validation/PlayerMigrationValidationComponent.h"
 #include "TestActor.h"
 #include "TestGroundActor.h"
@@ -65,6 +66,7 @@ void RegisterApplicationActorTypes()
 
 	ActorFactory::RegisterActorClass<TestActor>("TestActor");
 	ActorFactory::RegisterActorClass<TestGroundActor>("TestGroundActor");
+	ActorFactory::RegisterActorClass<StageSelectUIActor>("StageSelectUIActor"); // ステージ選択文字UIもPrefab保存・再読込へ参加させる。
 	ActorFactory::RegisterActorClass<EnemyActor>("EnemyActor");
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<EnemyAIComponent>("EnemyAIComponent", "通常敵AI", "通常敵", "A*追跡判断と移動速度出力を管理します。"));
 	ComponentFactory::RegisterComponentType(MakeApplicationComponentTypeInfo<EnemyAttackComponent>("EnemyAttackComponent", "通常敵攻撃", "通常敵", "ScratchとLungeScratchを共通攻撃基盤で管理します。"));
