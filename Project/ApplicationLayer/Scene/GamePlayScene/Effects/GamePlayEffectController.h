@@ -17,27 +17,14 @@
 #include <limits>
 #include <memory>
 
-/// <summary>
-/// GamePlayScene で発生する演出系 Controller です。<br/>
-/// Player の被弾通知、HP連動ポストエフェクト、武器発射VFX、Boss被弾VFXを担当します。
-/// </summary>
 class GamePlayEffectController
 {
 public:
-	/// <summary>
-	/// World 内の Player、弾、Boss と演出システムを接続します。
-	/// </summary>
 	void Initialize(GamePlayWorld* world)
 	{
 		hpPostEffectController_ = std::make_unique<PlayerHealthPostEffectController>();
 		hpPostEffectController_->Initialize(Ken4lowEngine::PostEffectManager::GetInstance());
-		Ken4lowEngine::EffectSystem::GetInstance()->RegisterSpriteEffect(
-			"BossBlood",
-			Ken4lowEngine::GpuParticleType::Blood,
-			64,
-			0,
-			0.0f,
-			0.30f);
+		Ken4lowEngine::EffectSystem::GetInstance()->RegisterSpriteEffect("BossBlood", Ken4lowEngine::GpuParticleType::Blood, 64, 0, 0.0f, 0.30f);
 		trackedBoss_ = nullptr;
 		lastBossHp_ = 0.0f;
 		playerDamageListenerId_ = 0;
@@ -45,9 +32,6 @@ public:
 		BindWeaponFireEffectTransform(world);
 	}
 
-	/// <summary>
-	/// 古い Player・BulletManager・Boss 参照が残らないよう、Scene 終了やリトライ再生成前に接続を解除します。
-	/// </summary>
 	void Finalize(GamePlayWorld* world)
 	{
 		if (auto* player = world ? world->GetCharacters().GetPlayer() : nullptr)
@@ -56,13 +40,9 @@ public:
 			player->SetOnDamageTakenCallback({});
 		}
 		playerDamageListenerId_ = 0;
-		if (BulletManager* bulletManager = world ? world->GetBulletManager() : nullptr)
-		{
-			bulletManager->SetShotEffectTransformResolver({});
-		}
+		if (BulletManager* bulletManager = world ? world->GetBulletManager() : nullptr) bulletManager->SetShotEffectTransformResolver({});
 		trackedBoss_ = nullptr;
 		lastBossHp_ = 0.0f;
-
 		if (hpPostEffectController_)
 		{
 			hpPostEffectController_->Finalize();
@@ -70,30 +50,13 @@ public:
 		}
 	}
 
-	/// <summary>
-	/// HP 状態、Player被弾、Boss被弾に応じた演出を更新します。
-	/// </summary>
 	void Update(float deltaTime, GamePlayWorld* world)
 	{
-		if (hpPostEffectController_)
-		{
-			// 読み取り専用のHP連携から先に具象Player依存を外し、旧コールバック経路は安定するまで残す。
-			hpPostEffectController_->Update(deltaTime, world ? world->GetCharacters().GetPlayerRuntime() : nullptr);
-		}
+		if (hpPostEffectController_) hpPostEffectController_->Update(deltaTime, world ? world->GetCharacters().GetPlayerRuntime() : nullptr);
 		UpdateBossHitBlood(world);
 	}
 
-	/// <summary>
-	/// Player Debug ウィンドウへ、演出調整用の ImGui 内容を描画します。
-	/// </summary>
-	void DrawPlayerDebugContent()
-	{
-		if (hpPostEffectController_)
-		{
-			hpPostEffectController_->DrawImGuiContent();
-		}
-	}
-
+	void DrawPlayerDebugContent(){ if (hpPostEffectController_) hpPostEffectController_->DrawImGuiContent(); }
 	bool HasPlayerDebugContent() const { return hpPostEffectController_ != nullptr; }
 
 private:
@@ -116,22 +79,19 @@ private:
 		return dx * dx + dz * dz;
 	}
 
-	static bool ResolveDamageSourcePosition(
-		GamePlayWorld* world,
-		const Ken4lowEngine::PlayerActor& player,
-		const Ken4lowEngine::CharacterDamageInfo& damageInfo,
-		Ken4lowEngine::Vector3& outPosition)
+	static bool ResolveDamageSourcePosition(GamePlayWorld* world, const Ken4lowEngine::PlayerActor& player,
+		const Ken4lowEngine::CharacterDamageInfo& damageInfo, Ken4lowEngine::Vector3& outPosition)
 	{
 		if (damageInfo.sourceActor)
 		{
 			if (const Ken4lowEngine::SceneComponent* sourceRoot = damageInfo.sourceActor->GetRootComponent())
 			{
 				outPosition = sourceRoot->GetWorldPosition();
-				return true; // Actor／Component攻撃はDamageへ保存した攻撃者を方向表示の正本にする。
+				return true;
 			}
 		}
-
 		if (!world || damageInfo.hasHitPosition) return false;
+
 		const Ken4lowEngine::Vector3 playerPosition = player.GetWorldPosition();
 		float nearestDistanceSq = std::numeric_limits<float>::max();
 		bool found = false;
@@ -145,8 +105,7 @@ private:
 			outPosition = enemyPosition;
 			found = true;
 		}
-
-		if (GuardianBoss* boss = world->GetBoss(); boss && boss->IsAlive())
+		if (Ken4lowEngine::BossActor* boss = world->GetBoss(); boss && boss->IsAlive())
 		{
 			const Ken4lowEngine::Vector3 bossPosition = boss->GetPosition();
 			const float distanceSq = DistanceSqXZ(playerPosition, bossPosition);
@@ -156,34 +115,24 @@ private:
 				found = true;
 			}
 		}
-		return found; // 旧Boss・投擲Damageに発生元情報が無い間だけ、攻撃可能距離内の最寄りCharacterへ補完する。
+		return found; // 発生元情報が無い旧Damageだけ、攻撃可能距離内の最寄りCharacterへ補完する。
 	}
 
-	static bool ResolveWeaponMuzzleTransform(
-		GamePlayWorld* world,
-		Ken4lowEngine::Vector3& outPosition,
-		Ken4lowEngine::Vector3& outDirection)
+	static bool ResolveWeaponMuzzleTransform(GamePlayWorld* world, Ken4lowEngine::Vector3& outPosition, Ken4lowEngine::Vector3& outDirection)
 	{
 		auto* player = world ? world->GetCharacters().GetPlayer() : nullptr;
 		const auto* weaponView = player ? player->GetWeaponViewComponent() : nullptr;
 		const auto* weapon = player ? player->GetWeaponComponent() : nullptr;
 		Ken4lowEngine::Camera* camera = player ? player->GetCamera() : nullptr;
 		if (!weaponView || !weapon || !camera || weapon->IsMeleeWeapon()) return false;
-
 		const Ken4lowEngine::Matrix4x4 cameraRotation = Ken4lowEngine::Matrix4x4::MakeRotateMatrix(camera->GetRotate());
-		const Ken4lowEngine::Vector3 weaponWorldPosition =
-			camera->GetTranslate() + Ken4lowEngine::Vector3::Transform(weaponView->GetLocalPosition(), cameraRotation);
+		const Ken4lowEngine::Vector3 weaponWorldPosition = camera->GetTranslate() + Ken4lowEngine::Vector3::Transform(weaponView->GetLocalPosition(), cameraRotation);
 		const Ken4lowEngine::Vector3 weaponWorldRotation = camera->GetRotate() + weaponView->GetLocalRotation();
-		const Ken4lowEngine::Matrix4x4 weaponWorldMatrix = Ken4lowEngine::Matrix4x4::MakeAffineMatrix(
-			weaponView->GetLocalScale(),
-			weaponWorldRotation,
-			weaponWorldPosition);
-
+		const Ken4lowEngine::Matrix4x4 weaponWorldMatrix = Ken4lowEngine::Matrix4x4::MakeAffineMatrix(weaponView->GetLocalScale(), weaponWorldRotation, weaponWorldPosition);
 		outPosition = Ken4lowEngine::Vector3::Transform(GetMuzzleLocalOffset(weapon->GetWeaponId()), weaponWorldMatrix);
 		outDirection = Ken4lowEngine::Vector3::Normalize(camera->GetForward());
-		const bool finitePosition = std::isfinite(outPosition.x) && std::isfinite(outPosition.y) && std::isfinite(outPosition.z);
-		const bool finiteDirection = std::isfinite(outDirection.x) && std::isfinite(outDirection.y) && std::isfinite(outDirection.z);
-		return finitePosition && finiteDirection; // ModelComponentの描画と同じViewModel行列から銃口位置を復元する。
+		return std::isfinite(outPosition.x) && std::isfinite(outPosition.y) && std::isfinite(outPosition.z) &&
+			std::isfinite(outDirection.x) && std::isfinite(outDirection.y) && std::isfinite(outDirection.z);
 	}
 
 	void BindPlayerDamageCallback(GamePlayWorld* world)
@@ -201,7 +150,6 @@ private:
 					HUDManager* hud = world->GetHUDManager();
 					Ken4lowEngine::Camera* camera = currentPlayer ? currentPlayer->GetCamera() : nullptr;
 					if (!currentPlayer || !hud || !camera) return;
-
 					Ken4lowEngine::Vector3 attackerPosition{};
 					if (ResolveDamageSourcePosition(world, *currentPlayer, damageInfo, attackerPosition))
 					{
@@ -209,7 +157,7 @@ private:
 						const Ken4lowEngine::Vector3 cameraRight{ cameraForward.z, 0.0f, -cameraForward.x };
 						hud->AddDamageIndicator(currentPlayer->GetWorldPosition(), attackerPosition, cameraForward, cameraRight);
 					}
-					hud->NotifyPlayerHit(); // 被弾方向とHPリアクションを同じ受理済みDamageフレームで発生させる。
+					hud->NotifyPlayerHit();
 				});
 		}
 	}
@@ -218,17 +166,14 @@ private:
 	{
 		if (BulletManager* bulletManager = world ? world->GetBulletManager() : nullptr)
 		{
-			bulletManager->SetShotEffectTransformResolver(
-				[world](Ken4lowEngine::Vector3& position, Ken4lowEngine::Vector3& direction)
-				{
-					return ResolveWeaponMuzzleTransform(world, position, direction);
-				});
+			bulletManager->SetShotEffectTransformResolver([world](Ken4lowEngine::Vector3& position, Ken4lowEngine::Vector3& direction)
+				{ return ResolveWeaponMuzzleTransform(world, position, direction); });
 		}
 	}
 
 	void UpdateBossHitBlood(GamePlayWorld* world)
 	{
-		GuardianBoss* boss = world ? world->GetBoss() : nullptr;
+		Ken4lowEngine::BossActor* boss = world ? world->GetBoss() : nullptr;
 		if (boss != trackedBoss_)
 		{
 			trackedBoss_ = boss;
@@ -236,24 +181,20 @@ private:
 			return;
 		}
 		if (!boss) return;
-
 		const float currentHp = boss->GetHP();
 		if (currentHp + 0.001f < lastBossHp_)
 		{
 			const float appliedDamage = lastBossHp_ - currentHp;
 			Ken4lowEngine::Vector3 bloodPosition = boss->GetPosition();
 			bloodPosition.y += 1.15f;
-			const uint32_t emitCount = static_cast<uint32_t>(std::clamp(
-				48L + std::lround(appliedDamage * 1.4f),
-				48L,
-				120L));
-			Ken4lowEngine::EffectSystem::GetInstance()->Play("BossBlood", bloodPosition, emitCount); // Bossの体格と被ダメージ量に合わせて大きな血飛沫を出す。
+			const uint32_t emitCount = static_cast<uint32_t>(std::clamp(48L + std::lround(appliedDamage * 1.4f), 48L, 120L));
+			Ken4lowEngine::EffectSystem::GetInstance()->Play("BossBlood", bloodPosition, emitCount); // 新BossActorの共通Health減少を被弾演出へ接続する。
 		}
 		lastBossHp_ = currentHp;
 	}
 
 	std::unique_ptr<PlayerHealthPostEffectController> hpPostEffectController_;
 	Ken4lowEngine::CharacterActor::DamageListenerId playerDamageListenerId_ = 0;
-	GuardianBoss* trackedBoss_ = nullptr;
+	Ken4lowEngine::BossActor* trackedBoss_ = nullptr;
 	float lastBossHp_ = 0.0f;
 };
