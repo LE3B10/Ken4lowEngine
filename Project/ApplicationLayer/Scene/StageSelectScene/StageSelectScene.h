@@ -1,236 +1,120 @@
-﻿#pragma once
+#pragma once
+
 #include "BaseScene.h"
+#include "GridStageSelector.h"
+#include "IStageSelector.h"
+#include "IStageSelectSceneState.h"
+
+#include <ActorWorld.h>
 #include <Sprite.h>
 
-#include <string>
-#include <vector>
 #include <memory>
-#include <optional>
-#include <limits>
-
-#include "IStageSelector.h"        // StageInfo / SelectorContext / IStageSelector
-#include "GridStageSelector.h"     // まずは Grid を使う
-#include "IStageSelectSceneState.h" // ステート基底クラス
-
-#include <TextSpriteDrawer.h>
+#include <vector>
 
 namespace K4E = ::Ken4lowEngine;
 
-/// ---------- 前方宣言 ---------- ///
-namespace Ken4lowEngine { class DirectXCommon; }
-namespace Ken4lowEngine { class Input; }
+class StageSelectUIActor;
 
+namespace Ken4lowEngine
+{
+	class DirectXCommon;
+	class Input;
+}
 
 /// -------------------------------------------------------------
-///				　	ステージセレクトシーン
+/// ステージセレクトシーン。
+/// サムネイル操作はIStageSelector、文字UIはStageSelectUIActorへ分離する。
 /// -------------------------------------------------------------
 class StageSelectScene : public K4E::BaseScene
 {
-private: /// ---------- 構造体 ---------- ///
-
-	struct StageSelectTextLayoutDebug
-	{
-		// 表示ON/OFF
-		bool enableImGui = true;
-
-		// タイトル
-		float titleY = 40.0f;
-		float titleScale = 1.15f;
-
-		// ステージ情報
-		float stageNoY = -750.0f;
-		float stageNoScale = 0.60f;
-
-		// ステージ名
-		float stageNameY = -70.0f;
-		float stageNameScale = 0.90f;
-
-		// カテゴリ
-		float categoryY = -390.0f;
-		float categoryScale = 0.62f;
-
-		// キャッチコピー
-		float catchY = -340.0f;
-		float catchScale = 0.56f;
-
-		// ステージ説明
-		float descY = -300.0f;
-		float descScale = 0.50f;
-
-		// アンロック条件
-		float unlockY = -420.0f;
-		float unlockScale = 0.46f;
-
-		// 操作ガイド
-		float guideY = -50.0f;
-		float guideScale = 0.40f;
-
-		// 全体オフセット
-		float centerXOffset = 0.0f;
-	};
-
-	struct TextAnimState
-	{
-		int prevStageIndex = -1;          // 前回の選択ステージ
-		float changeTimer = 0.0f;         // 切替演出タイマー
-		float changeDuration = 0.28f;     // 切替演出時間
-
-		float guidePulseTimer = 0.0f;     // 操作ガイド点滅用
-	};
-
-public: /// ---------- 型定義 ---------- ///
-
-	// シーンの状態を管理する列挙型
+public:
 	enum class State
 	{
-		Selecting,  // ステージセレクト中
-		Loading,    // ローディング中
+		Selecting,
+		Loading,
 	};
 
-	// 次に遷移するシーン
 	enum class NextScene
 	{
-		None,	  // なし
-		Title,	  // タイトルへ
-		GamePlay, // ゲームプレイへ
+		None,
+		Title,
+		GamePlay,
 	};
 
-public: /// ---------- メンバ関数 ---------- ///
+public:
+	~StageSelectScene() override = default;
 
-	// 仮想デストラクタ
-	virtual ~StageSelectScene() = default;
-
-	// 初期化処理
 	void Initialize() override;
-
-	// 更新処理
 	void Update() override;
-
-	// Editor中はステージ決定/戻る入力を止め、表示確認に必要な軽い更新だけ行う。
 	void UpdateEditor(float deltaTime) override;
-
-	// 3Dオブジェクトの描画
 	void Draw3DObjects() override;
-
-	// シャドウマップ描画処理
 	void DrawShadowObjects() override;
-
-	// 2Dオブジェクトの描画
 	void Draw2DSprites() override;
-
-	// 終了処理
 	void Finalize() override;
-
-	// ImGui描画処理
 	void DrawImGui() override;
-
-	// World OutlinerへStageSelectSceneの主要オブジェクトを公開する。
 	void CollectEditorObjects(std::vector<Ken4lowEngine::EditorObjectInfo>& outObjects) override;
+	K4E::ActorWorld* GetEditorActorWorld() override { return &uiActorWorld_; }
 
-	// Details Inspectorと専用StageSelect Text Layoutウィンドウで同じ調整UIを共有する。
-	void DrawStageSelectTextLayoutInspectorContent();
-
-	// SceneManager/FadeManagerのCover後ロードとUncover開始判定を担う既存override。
 	void StartLoad() override;
-
 	void UpdateLoad() override;
-
 	bool IsReadyToStartUncover() const override;
 
-private: /// ---------- メンバ関数 ---------- ///
-
-	// ステージ情報初期化
-	void InitializeStages();
-
-	// セレクター初期化
-	void InitializeSelectors();
-
-	// 背景初期化
-	void InitializeBackground();
-
-	StageSelectTextLayoutDebug CreateDefaultTextLayoutDebug() const;
-
-public: /// ---------- 状態管理 ---------- ///
-
-	// ステート差し替え
 	void ChangeState(std::unique_ptr<IStageSelectSceneState> newState);
 
-	// 現在の enum 状態
 	State GetState() const { return state_; }
-	void SetState(State s) { state_ = s; }
+	void SetState(State state) { state_ = state; }
 
-	// ステート用アクセサ（ステートクラスから必要な情報だけ触れるようにする）
 	K4E::DirectXCommon* GetDxCommon() const { return dxCommon_; }
 	K4E::Input* GetInput() const { return input_; }
 
 	std::vector<StageInfo>& GetStages() { return stages_; }
 	const std::vector<StageInfo>& GetStages() const { return stages_; }
-
 	IStageSelector* GetActiveSelector() const { return activeSelector_; }
 
 	K4E::Sprite* GetBgSprite() const { return bg_.get(); }
 	K4E::Vector4& GetBgNow() { return bgNow_; }
 	K4E::Vector4& GetBgTarget() { return bgTarget_; }
 
-	// ペンディングアンロックインデックス
 	int& GetPendingUnlockIndex() { return pendingUnlockIndex_; }
-
-	// 次に遷移するシーンの設定
-	void SetNextScene(NextScene n) { nextScene_ = n; }
+	void SetNextScene(NextScene nextScene) { nextScene_ = nextScene; }
 	NextScene GetNextScene() const { return nextScene_; }
-
 	SelectorContext& GetSelectorContext() { return context_; }
-
 	int GetCurrentStageIndex() const { return currentStageIndex_; }
 	void SetCurrentStageIndex(int index) { currentStageIndex_ = index; }
 
-public: /// ---------- シーン遷移ヘルパー ---------- ///
+	void BackToTitle();
+	void GoToGamePlay();
 
-	// シーン遷移のヘルパー
-	void BackToTitle();     // ← TitleScene へ戻る
+private:
+	void InitializeStages();
+	void InitializeSelectors();
+	void InitializeBackground();
+	void InitializeStageSelectUI();
+	void SyncStageSelectUI();
 
-	void GoToGamePlay();    // ← GamePlayScene へ進む
-
-private: /// ---------- メンバ変数 ---------- ///
-
-	// 状態管理
-	State state_ = State::Selecting; // とりあえず「セレクト中」から始める
-	std::unique_ptr<IStageSelectSceneState> currentState_; // 現在のステート
-
-	// テキストスプライト描画
-	std::unique_ptr<K4E::TextSpriteDrawer> textJPDrawer_;
-	std::unique_ptr<K4E::TextSpriteDrawer> textLatinDrawer_;
-	bool isTextReady_ = false; // テキスト描画の準備ができているかどうか
-
-	StageSelectTextLayoutDebug textLayoutDebug_{};
-
-	TextAnimState textAnim_{};
-
-	// 次に遷移するシーン
+private:
+	State state_ = State::Selecting;
+	std::unique_ptr<IStageSelectSceneState> currentState_;
 	NextScene nextScene_ = NextScene::None;
 
-	// 依存注入
 	K4E::DirectXCommon* dxCommon_ = nullptr;
 	K4E::Input* input_ = nullptr;
 
-	// データ
 	std::vector<StageInfo> stages_;
-
-	// セレクタ
 	SelectorContext context_{};
-	std::unique_ptr<IStageSelector> gridSelector_ = nullptr;
-	IStageSelector* activeSelector_ = nullptr; // 生ポインタでアクセス
+	std::unique_ptr<IStageSelector> gridSelector_;
+	IStageSelector* activeSelector_ = nullptr;
 
-	// 背景色
+	K4E::ActorWorld uiActorWorld_{};
+	StageSelectUIActor* stageSelectUIActor_ = nullptr;
+	int syncedUiStageIndex_ = -1;
+
 	std::unique_ptr<K4E::Sprite> bg_;
-	K4E::Vector4 bgNow_ = { 0.18f, 0.49f, 0.20f, 1.0f }; // 現在の色
-	K4E::Vector4 bgTarget_ = bgNow_; // 目標の色
+	K4E::Vector4 bgNow_{ 0.18f, 0.49f, 0.20f, 1.0f };
+	K4E::Vector4 bgTarget_ = bgNow_;
 
 	int pendingUnlockIndex_ = -1;
-
-	int loadStep_ = 0; // ロード段階
-	bool isLoadReady_ = false; // ロード完了フラグ
-
-	int currentStageIndex_ = 0; // 現在選択中のステージインデックス
+	int loadStep_ = 0;
+	bool isLoadReady_ = false;
+	int currentStageIndex_ = 0;
 };
-
