@@ -19,16 +19,14 @@ namespace
 	constexpr const char* kMuzzleSparkEmitterName = "MuzzleSparkMesh";
 	constexpr const char* kMuzzleSparkMeshModelPath = "Sample/cube.gltf";
 
-	constexpr uint32_t kBulletTracerMeshId = 1001u;
-	constexpr uint32_t kBulletTracerBurstCountPerPoint = 4u;
-	constexpr int kBulletTracerMinPointCount = 2;
-	constexpr int kBulletTracerMaxPointCount = 64;
-	constexpr uint32_t kBulletTracerEmitterBankCount = 4u;
+	constexpr uint32_t kBulletTracerEmitterBankCount = 32u;
+	constexpr uint32_t kBulletTracerMaxParticlesPerEmitter = 4u;
 	constexpr float kBulletTracerStartOffset = 0.08f;
-	constexpr float kBulletTracerPointSpacing = 0.75f;
-	constexpr float kBulletTracerLifeScale = 1.25f;
-	constexpr const char* kBulletTracerEmitterBaseName = "BulletTracerMesh_";
-	constexpr const char* kBulletTracerMeshModelPath = "Sample/cube.gltf";
+	constexpr float kBulletTracerWidth = 0.035f;
+	constexpr float kBulletTracerLifeTime = 0.075f;
+	constexpr float kBulletTracerDirectionSpeed = 0.001f;
+	constexpr const char* kBulletTracerEmitterBaseName = "BulletTracerRibbon_";
+	constexpr const char* kBulletTracerTexturePath = "Effects/white.dds";
 
 	float Length(const Vector3& value)
 	{
@@ -66,10 +64,40 @@ namespace
 		info.kind = GpuParticleKind::Mesh;
 		info.spriteType = particleType;
 		info.billboardFlags = BillboardMode::None;
-		if (particleType == GpuParticleType::BulletTracer)
-		{
-			info.lifeScale = kBulletTracerLifeScale;
-		}
+		return particle->CreateEmitter(name, info);
+	}
+
+	GpuParticleEmitter* GetOrCreateBulletTracerRibbonEmitter(GpuParticleManager* particle, const char* name)
+	{
+		if (!particle) return nullptr;
+		if (GpuParticleEmitter* emitter = particle->GetEmitter(name)) return emitter;
+
+		GpuParticleEmitter::EmitterInfo info{};
+		info.textureFilePath = kBulletTracerTexturePath;
+		info.radius = 0.0f;
+		info.loopCount = 0;
+		info.loopFrequency = 0.0f;
+		info.drawType = 0;
+		info.kind = GpuParticleKind::Ribbon;
+		info.ribbonType = GpuRibbonType::Trail;
+		info.billboardFlags = BillboardMode::Camera;
+		info.useDescSpawnOverride = true;
+		info.maxParticles = kBulletTracerMaxParticlesPerEmitter;
+		info.positionRandom = {};
+		info.velocity = { 0.0f, kBulletTracerDirectionSpeed, 0.0f };
+		info.velocityRandom = {};
+		info.startSize = { kBulletTracerWidth, 1.0f };
+		info.endSize = { kBulletTracerWidth * 0.35f, 1.0f };
+		info.startColor = { 0.82f, 0.92f, 1.0f, 0.95f };
+		info.endColor = { 1.0f, 1.0f, 1.0f, 0.0f };
+		info.lifeTime = kBulletTracerLifeTime;
+		info.lifeTimeRandom = 0.0f;
+		info.gravity = {};
+		info.damping = 0.0f;
+		info.speed = 0.0f;
+		info.speedRandom = 0.0f;
+		info.sizeRandom = 0.0f;
+		info.alphaFade = true;
 		return particle->CreateEmitter(name, info);
 	}
 
@@ -87,48 +115,37 @@ namespace
 		emitter->RequestEmit(kMuzzleSparkBurstCount);
 	}
 
-	void EmitBulletTracerMesh(GpuParticleManager* particle, const Vector3& muzzlePosition, const Vector3& tracerEndPosition)
+	void EmitBulletTracerRibbon(GpuParticleManager* particle, const Vector3& muzzlePosition, const Vector3& tracerEndPosition)
 	{
 		if (!particle) return;
 
-		const Vector3 tracerVector = tracerEndPosition - muzzlePosition;
-		const float tracerLength = Length(tracerVector);
-		if (tracerLength <= 1.0e-4f) return;
+		const Vector3 fullTracerVector = tracerEndPosition - muzzlePosition;
+		const float fullTracerLength = Length(fullTracerVector);
+		if (fullTracerLength <= 1.0e-4f) return;
 
-		const Vector3 forward = tracerVector * (1.0f / tracerLength);
-		const float firstDistance = std::min(kBulletTracerStartOffset, tracerLength);
-		const float drawableLength = std::max(0.0f, tracerLength - firstDistance);
-		const int pointCount = std::clamp(
-			static_cast<int>(std::ceil(drawableLength / kBulletTracerPointSpacing)) + 1,
-			kBulletTracerMinPointCount,
-			kBulletTracerMaxPointCount);
+		const Vector3 forward = fullTracerVector * (1.0f / fullTracerLength);
+		const float startOffset = std::min(kBulletTracerStartOffset, fullTracerLength * 0.5f);
+		const Vector3 tracerStartPosition = muzzlePosition + forward * startOffset;
+		const Vector3 drawableVector = tracerEndPosition - tracerStartPosition;
+		const float drawableLength = Length(drawableVector);
+		if (drawableLength <= 1.0e-4f) return;
 
 		static uint32_t tracerEmitterBank = 0u;
 		const uint32_t currentBank = tracerEmitterBank;
 		tracerEmitterBank = (tracerEmitterBank + 1u) % kBulletTracerEmitterBankCount;
+		const std::string emitterName = std::string(kBulletTracerEmitterBaseName) + std::to_string(currentBank);
 
-		// 実際の着弾点までを等間隔で補間し、固定距離で弾道が途中終了しないようにする。
-		for (int i = 0; i < pointCount; ++i)
-		{
-			const float ratio = pointCount > 1
-				? static_cast<float>(i) / static_cast<float>(pointCount - 1)
-				: 1.0f;
-			const float distance = firstDistance + drawableLength * ratio;
-			const Vector3 tracerPosition = muzzlePosition + forward * distance;
-			const std::string emitterName = std::string(kBulletTracerEmitterBaseName) +
-				std::to_string(currentBank) + "_" + std::to_string(i);
+		GpuParticleEmitter* emitter = GetOrCreateBulletTracerRibbonEmitter(particle, emitterName.c_str());
+		if (!emitter) return;
 
-			GpuParticleEmitter* emitter = GetOrCreateMeshEmitter(
-				particle,
-				emitterName.c_str(),
-				kBulletTracerMeshId,
-				GpuParticleType::BulletTracer,
-				kBulletTracerMeshModelPath);
-			if (!emitter) continue;
+		auto& info = emitter->GetInfoMutable();
+		info.velocity = forward * kBulletTracerDirectionSpeed;
+		info.startSize = { kBulletTracerWidth, drawableLength };
+		info.endSize = { kBulletTracerWidth * 0.35f, drawableLength };
 
-			emitter->SetPosition(tracerPosition);
-			emitter->RequestEmit(kBulletTracerBurstCountPerPoint);
-		}
+		// 1枚の擬似Ribbonを始点と着弾点の中点へ置き、長手方向を射線へ合わせる。
+		emitter->SetPosition((tracerStartPosition + tracerEndPosition) * 0.5f);
+		emitter->RequestEmit(1u);
 	}
 
 	void EmitPlayerWeaponFireEffects(const Vector3& muzzlePosition, const Vector3& tracerEndPosition)
@@ -138,7 +155,7 @@ namespace
 		GpuParticleManager* particle = GpuParticleManager::GetInstance();
 		if (!particle) return;
 		EmitMuzzleSparkMesh(particle, muzzlePosition);
-		EmitBulletTracerMesh(particle, muzzlePosition, tracerEndPosition);
+		EmitBulletTracerRibbon(particle, muzzlePosition, tracerEndPosition);
 	}
 }
 
