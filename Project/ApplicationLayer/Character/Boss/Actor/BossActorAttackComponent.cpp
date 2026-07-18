@@ -28,11 +28,6 @@ namespace Ken4lowEngine
 
 	bool BossAttackComponent::TryStartBestAttack(float distanceToTarget, int bossPhase)
 	{
-		(void)distanceToTarget; // 最終的な水平距離と高さ差は共通AttackComponentがAttackDataから一元判定する。
-		static constexpr std::array<std::string_view, 2> phase1{ "Punch", "HeavyPunch" };
-		static constexpr std::array<std::string_view, 3> phase2{ "Charge", "HeavyPunch", "Punch" };
-		static constexpr std::array<std::string_view, 4> phase3{ "Shockwave", "Charge", "HeavyPunch", "Punch" };
-
 		auto tryCandidates = [this](const auto& candidates)
 		{
 			for (const std::string_view attackId : candidates)
@@ -44,36 +39,105 @@ namespace Ken4lowEngine
 			return false;
 		};
 
-		if (bossPhase >= 3) return tryCandidates(phase3);
-		if (bossPhase == 2) return tryCandidates(phase2);
-		return tryCandidates(phase1);
+		if (bossPhase >= 3)
+		{
+			if (distanceToTarget > 4.5f)
+			{
+				static constexpr std::array<std::string_view, 4> farCandidates{
+					"FrenzyCharge", "FastShockwave", "Charge", "Shockwave"
+				};
+				return tryCandidates(farCandidates);
+			}
+			if (distanceToTarget > 2.2f)
+			{
+				static constexpr std::array<std::string_view, 6> middleCandidates{
+					"FastShockwave", "RapidPunch", "GroundSlam", "FrenzyCharge", "HeavyPunch", "Punch"
+				};
+				return tryCandidates(middleCandidates);
+			}
+
+			static constexpr std::array<std::string_view, 4> nearCandidates{
+				"RapidPunch", "GroundSlam", "Punch", "HeavyPunch"
+			};
+			return tryCandidates(nearCandidates);
+		}
+
+		if (bossPhase == 2)
+		{
+			if (distanceToTarget > 4.5f)
+			{
+				static constexpr std::array<std::string_view, 3> farCandidates{
+					"Charge", "Shockwave", "GroundSlam"
+				};
+				return tryCandidates(farCandidates);
+			}
+			if (distanceToTarget > 2.2f)
+			{
+				static constexpr std::array<std::string_view, 5> middleCandidates{
+					"Shockwave", "GroundSlam", "HeavyPunch", "Punch", "Charge"
+				};
+				return tryCandidates(middleCandidates);
+			}
+
+			static constexpr std::array<std::string_view, 3> nearCandidates{
+				"GroundSlam", "HeavyPunch", "Punch"
+			};
+			return tryCandidates(nearCandidates);
+		}
+
+		if (distanceToTarget > 3.4f)
+		{
+			static constexpr std::array<std::string_view, 1> farCandidates{ "Charge" };
+			return tryCandidates(farCandidates);
+		}
+
+		static constexpr std::array<std::string_view, 2> nearCandidates{ "HeavyPunch", "Punch" };
+		return tryCandidates(nearCandidates); // Phase 1は突進で接近し、近距離では既存の近接攻撃へ切り替える。
 	}
 
 	void BossAttackComponent::RegisterDefaultAttacks()
 	{
-		if (!FindAttackData("Punch"))
+		auto upsertAttack = [this](AttackData data)
 		{
-			AttackData data{ "Punch", "Melee", "Attack.Melee", 24.0f, 1.0f, 0.22f, 0.12f, 0.35f, 0.0f, 3.2f, 0.0f };
-			data.maxHeightDifference = 3.0f;
-			RegisterAttack(std::move(data), CreateAttackBehavior("Melee"));
-		}
-		if (!FindAttackData("HeavyPunch"))
-		{
-			AttackData data{ "HeavyPunch", "Melee", "Attack.Melee", 42.0f, 1.8f, 0.45f, 0.16f, 0.55f, 0.0f, 4.0f, 0.0f };
-			data.maxHeightDifference = 3.5f;
-			RegisterAttack(std::move(data), CreateAttackBehavior("Melee"));
-		}
-		if (!FindAttackData("Charge"))
-		{
-			AttackData data{ "Charge", "Charge", "Attack.Charge", 36.0f, 3.0f, 0.35f, 0.70f, 0.45f, 2.5f, 12.0f, 8.0f };
-			data.maxHeightDifference = 2.5f;
-			RegisterAttack(std::move(data), CreateAttackBehavior("Charge"));
-		}
-		if (!FindAttackData("Shockwave"))
-		{
-			AttackData data{ "Shockwave", "Shockwave", "Attack.Shockwave", 55.0f, 4.0f, 0.65f, 0.12f, 0.65f, 1.5f, 8.0f, 0.0f };
-			data.maxHeightDifference = 2.0f; // 地面付近を伝わる衝撃波なので、高所Targetには命中させない。
-			RegisterAttack(std::move(data), CreateAttackBehavior("Shockwave"));
-		}
+			const std::string attackId = data.id;
+			if (FindAttackData(attackId))
+			{
+				ConfigureAttack(attackId, data);
+				return;
+			}
+			RegisterAttack(std::move(data), CreateAttackBehavior(data.behaviorType));
+		};
+
+		AttackData punch{ "Punch", "Melee", "Attack.Melee", 24.0f, 0.95f, 0.22f, 0.12f, 0.32f, 0.0f, 3.2f, 0.0f };
+		punch.maxHeightDifference = 3.0f;
+		upsertAttack(std::move(punch));
+
+		AttackData heavyPunch{ "HeavyPunch", "Melee", "Attack.Melee", 42.0f, 1.65f, 0.42f, 0.16f, 0.48f, 0.0f, 4.0f, 0.0f };
+		heavyPunch.maxHeightDifference = 3.5f;
+		upsertAttack(std::move(heavyPunch));
+
+		AttackData charge{ "Charge", "Charge", "Attack.Charge", 36.0f, 2.35f, 0.42f, 0.68f, 0.35f, 3.2f, 14.0f, 10.5f };
+		charge.maxHeightDifference = 2.5f;
+		upsertAttack(std::move(charge));
+
+		AttackData shockwave{ "Shockwave", "Shockwave", "Attack.Shockwave", 44.0f, 3.15f, 0.72f, 0.12f, 0.52f, 2.0f, 10.0f, 0.0f };
+		shockwave.maxHeightDifference = 2.0f;
+		upsertAttack(std::move(shockwave));
+
+		AttackData groundSlam{ "GroundSlam", "Shockwave", "Attack.Shockwave", 52.0f, 3.75f, 0.82f, 0.14f, 0.62f, 0.0f, 5.8f, 0.0f };
+		groundSlam.maxHeightDifference = 2.3f;
+		upsertAttack(std::move(groundSlam));
+
+		AttackData rapidPunch{ "RapidPunch", "Melee", "Attack.Melee", 30.0f, 0.52f, 0.14f, 0.10f, 0.18f, 0.0f, 3.4f, 0.0f };
+		rapidPunch.maxHeightDifference = 3.0f;
+		upsertAttack(std::move(rapidPunch));
+
+		AttackData frenzyCharge{ "FrenzyCharge", "Charge", "Attack.Charge", 42.0f, 1.55f, 0.24f, 0.56f, 0.20f, 3.0f, 15.0f, 14.0f };
+		frenzyCharge.maxHeightDifference = 2.5f;
+		upsertAttack(std::move(frenzyCharge));
+
+		AttackData fastShockwave{ "FastShockwave", "Shockwave", "Attack.Shockwave", 48.0f, 1.90f, 0.38f, 0.10f, 0.28f, 1.5f, 10.5f, 0.0f };
+		fastShockwave.maxHeightDifference = 2.0f;
+		upsertAttack(std::move(fastShockwave));
 	}
 } // namespace Ken4lowEngine
