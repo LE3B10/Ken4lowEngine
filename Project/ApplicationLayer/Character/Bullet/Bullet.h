@@ -3,7 +3,7 @@
 #include "ContactRecord.h"
 #include "Object3D.h"
 #include "CollisionTypeIdDef.h"
-#include "BossBase.h"
+#include "ApplicationLayer/Character/Boss/Actor/BossActor.h"
 #include "EnemyBase.h"
 #include "EnemySpawnCrystal.h"
 #include <Vector3.h>
@@ -26,7 +26,6 @@ class Bullet : public K4E::Collider
 {
 public:
 	Bullet() = default;
-
 	void Initialize(const K4E::Vector3& startPos,
 		const K4E::Vector3& velocity,
 		int damage = 1,
@@ -38,14 +37,12 @@ public:
 	void Update(float dt);
 	void Draw();
 	void DrawImGui();
-
 	void OnCollisionEnter(K4E::Collider* other) override;
 	void OnCollisionEnter(const K4E::CollisionHit& hit) override;
 	void OnOverlapBegin(const K4E::CollisionHit& hit) override;
 	void OnCollisionExit(K4E::Collider* other) override
 	{
 		if (!other || GetTypeID() != static_cast<uint32_t>(CollisionTypeIdDef::kBullet) || !damageableHitCallback_) return;
-
 		const uint32_t type = other->GetTypeID();
 		bool killed = false;
 		if (type == static_cast<uint32_t>(CollisionTypeIdDef::kEnemy))
@@ -56,7 +53,7 @@ public:
 		}
 		else if (type == static_cast<uint32_t>(CollisionTypeIdDef::kBoss))
 		{
-			const BossBase* boss = other->GetOwner<BossBase>();
+			const K4E::BossActor* boss = other->GetOwner<K4E::BossActor>();
 			if (!boss) return;
 			killed = boss->IsDead();
 		}
@@ -66,12 +63,8 @@ public:
 			if (!crystal) return;
 			killed = crystal->IsDestroyed();
 		}
-		else
-		{
-			return;
-		}
-
-		damageableHitCallback_(killed); // Exit時点で対象側Damage処理が完了しているためHITとKILLを正しく分ける。
+		else return;
+		damageableHitCallback_(killed); // Exit時点のActor状態からHITとKILLを分ける。
 	}
 
 	bool IsDead() const { return isDead_; }
@@ -86,26 +79,15 @@ public:
 	void ClearPhysicsHit();
 	bool IsEligibleForPhysicsTrigger() const;
 	void HandlePhysicsTriggerHit(K4E::Collider* other);
-
 	void SetShooterPosition(const K4E::Vector3& pos) { shooterPosition_ = pos; }
 	const K4E::Vector3& GetShooterPosition() const { return shooterPosition_; }
 	void SetShooterColliderId(uint32_t id) { shooterColliderId_ = id; }
 	uint32_t GetShooterColliderId() const { return shooterColliderId_; }
 	void SetCollisionManager(CollisionManager* collisionManager) { collisionManager_ = collisionManager; }
-
-	static void SetDamageableHitCallback(std::function<void(bool)> callback)
-	{
-		damageableHitCallback_ = std::move(callback);
-	}
-
-	void SetWorldImpactCallback(std::function<void(const K4E::Vector3&, const K4E::Vector3&)> callback)
-	{
-		worldImpactCallback_ = std::move(callback);
-	}
-
+	static void SetDamageableHitCallback(std::function<void(bool)> callback) { damageableHitCallback_ = std::move(callback); }
+	void SetWorldImpactCallback(std::function<void(const K4E::Vector3&, const K4E::Vector3&)> callback) { worldImpactCallback_ = std::move(callback); }
 	void SetModelDrawEnabled(bool enabled) { drawModel_ = enabled; }
 	bool IsModelDrawEnabled() const { return drawModel_; }
-
 	void ConfigureSplashDamage(const WeaponParams& params);
 	bool HasSplashDamage() const { return splashRadius_ > 0.0f && splashDamage_ > 0; }
 	float GetSplashRadius() const { return splashRadius_; }
@@ -127,9 +109,9 @@ private:
 
 private:
 	inline static std::function<void(bool)> damageableHitCallback_{};
-	K4E::Vector3 moveVelocity_ = { 0.0f, 0.0f, 0.0f };
-	K4E::Vector4 debugColor_ = { 1.0f, 1.0f, 0.0f, 1.0f };
-	K4E::Vector3 shooterPosition_ = { 0.0f, 0.0f, 0.0f };
+	K4E::Vector3 moveVelocity_{};
+	K4E::Vector4 debugColor_{ 1.0f, 1.0f, 0.0f, 1.0f };
+	K4E::Vector3 shooterPosition_{};
 	uint32_t shooterColliderId_ = 0u;
 	CollisionManager* collisionManager_ = nullptr;
 	std::function<void(const K4E::Vector3&, const K4E::Vector3&)> worldImpactCallback_{};
@@ -155,6 +137,6 @@ private:
 	int damage_ = 1;
 	float lifeTimer_ = 0.0f;
 	float lifeTimeSec_ = 3.0f;
-	K4E::Vector3 prevPos_ = { 0.0f, 0.0f, 0.0f };
-	K4E::Vector3 scale_ = { 0.1f, 0.1f, 0.1f };
+	K4E::Vector3 prevPos_{};
+	K4E::Vector3 scale_{ 0.1f, 0.1f, 0.1f };
 };
