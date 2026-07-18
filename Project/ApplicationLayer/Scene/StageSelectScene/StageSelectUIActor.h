@@ -148,7 +148,7 @@ private:
 
 		// サムネイル上端と下端を空け、見出しと説明を別々の情報帯として配置する。
 		setLayout(title_, 64.0f, 48.0f);
-		setLayout(stageNumber_, 348.0f, 26.0f);
+		setLayout(stageNumber_, 322.0f, 26.0f);
 		setLayout(stageName_, 734.0f, 40.0f);
 		setLayout(category_, 790.0f, 28.0f);
 		setLayout(objective_, 838.0f, 26.0f);
