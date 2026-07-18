@@ -114,6 +114,7 @@ public:
 	void SetRoughness(float roughness) { materialData_->roughness = roughness; }
 	void SetNormalScale(float normalScale) { materialData_->normalScale = normalScale; }
 	void SetOcclusionStrength(float occlusionStrength) { materialData_->occlusionStrength = occlusionStrength; }
+	void SetEmissiveFactor(const Vector4& emissiveFactor) { materialData_->emissiveFactor = emissiveFactor; } // 発光量を毎フレーム変更できるようCPU側の値へ直接反映する。
 
 private:
 	MaterialCBData materialCpuData_{};
