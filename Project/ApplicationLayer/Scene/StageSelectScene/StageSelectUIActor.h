@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstdio>
 #include <string>
 
@@ -19,6 +20,7 @@ class StageSelectUIActor final : public K4E::Actor
 public:
 	void Initialize() override
 	{
+		const bool hasSavedLayout = FindComponentByName("Title") != nullptr;
 		if (!GetRootComponent())
 		{
 			auto& root = CreateRootComponent<K4E::SceneComponent>();
@@ -36,7 +38,7 @@ public:
 
 		if (title_) title_->SetText("STAGE SELECT");
 		if (guide_) guide_->SetText("CLICK : SELECT   WHEEL / DRAG : MOVE   ESC : BACK");
-		ApplyDefaultLayout();
+		if (!hasSavedLayout) ApplyDefaultLayout(); // Prefab復元時は保存済みの位置と文字サイズを維持する。
 		ApplyStageText();
 		ApplyPresentation();
 	}
@@ -73,7 +75,7 @@ public:
 	void SetStageInfo(const StageInfo& stage)
 	{
 		const bool changed = stageId_ != stage.id || stageNameText_ != stage.name || categoryText_ != stage.category ||
-			descriptionText_ != stage.description || locked_ != stage.locked;
+			descriptionText_ != stage.description || unlockText_ != stage.unlockCondition || locked_ != stage.locked;
 		stageId_ = stage.id;
 		stageNameText_ = stage.name;
 		categoryText_ = stage.category;
