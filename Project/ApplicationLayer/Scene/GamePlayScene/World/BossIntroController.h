@@ -1,20 +1,19 @@
 #pragma once
 
-#include "Vector3.h"
+#include "ApplicationLayer/Character/Boss/Actor/BossActor.h"
 #include "BossEnemyVfx.h"
+#include "Camera.h"
+#include "Vector3.h"
 
+#include <algorithm>
 #include <cstdint>
+#include <numbers>
 #include <string>
 
-namespace Ken4lowEngine
-{
-	class BossActor;
-	class Camera;
-}
-
+class GuardianBoss;
 namespace K4E = ::Ken4lowEngine;
 
-/// クリスタル全破壊後のBossActor登場演出を管理する。
+/// クリスタル全破壊後のボス登場演出を管理する。
 class BossIntroController
 {
 public:
@@ -57,10 +56,44 @@ public:
 	void Finalize();
 	void RequestStart(const K4E::Vector3& bossPosition);
 	void Reset();
-	void Update(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera);
-	void SetDebugSnapshot(const K4E::BossActor* boss, const K4E::Camera* camera);
-	void DrawImGui();
 
+	/// 比較用の旧Boss登場経路。
+	void Update(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
+	void SetDebugSnapshot(const GuardianBoss* boss, const K4E::Camera* camera);
+
+	/// 本番BossActorを既存カメラ演出へ接続する。
+	void Update(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera)
+	{
+		ApplyParameters();
+		SetDebugSnapshot(boss, camera);
+		switch (state_)
+		{
+		case State::WaitingAfterCrystalsBroken:
+			stateTimer_ += deltaTime;
+			if (stateTimer_ >= std::max(0.0f, settings_.bossAppearDelay)) ChangeState(State::StartCutscene);
+			break;
+		case State::StartCutscene: BeginCutscene(camera); break;
+		case State::CameraMoveToBoss: UpdateCameraMove(deltaTime, camera); break;
+		case State::BossSpawnImpact: BeginBossSpawnImpact(camera); break;
+		case State::BossRising: UpdateBossActorRising(deltaTime, boss, camera); break;
+		case State::FinishCutscene: UpdateBossActorCameraReturn(deltaTime, boss, camera); break;
+		default: break;
+		}
+	}
+
+	void SetDebugSnapshot(const K4E::BossActor* boss, const K4E::Camera* camera)
+	{
+		debugHasBoss_ = boss != nullptr;
+		debugHasCamera_ = camera != nullptr;
+		debugBossPosition_ = boss ? boss->GetPosition() : K4E::Vector3{};
+		debugBossLocalPosition_ = boss ? boss->GetRootLocalPosition() : K4E::Vector3{};
+		debugBossWorldPosition_ = boss ? boss->GetRootWorldPosition() : K4E::Vector3{};
+		debugBossHasParent_ = boss ? boss->HasRootParent() : false;
+		debugCameraPosition_ = camera ? camera->GetTranslate() : K4E::Vector3{};
+		debugBossCameraDistance_ = boss && camera ? K4E::Vector3::Length(debugBossWorldPosition_ - debugCameraPosition_) : 0.0f;
+	}
+
+	void DrawImGui();
 	bool IsRunning() const { return state_ != State::None && state_ != State::Completed; }
 	bool IsWaitingDelay() const { return state_ == State::WaitingAfterCrystalsBroken; }
 	bool IsGameplayPaused() const;
@@ -74,7 +107,6 @@ public:
 	bool ConsumeDebugForceBossToAppearRequest();
 	bool ConsumeDebugClearBossParentRequest();
 	bool ConsumeDebugUseGameplayViewProjectionRequest();
-
 	State GetState() const { return state_; }
 	const Settings& GetSettings() const { return settings_; }
 	const K4E::Vector3& GetBossAppearPosition() const { return settings_.bossAppearPosition; }
@@ -89,9 +121,59 @@ private:
 	void BeginCutscene(K4E::Camera* camera);
 	void UpdateCameraMove(float deltaTime, K4E::Camera* camera);
 	void BeginBossSpawnImpact(K4E::Camera* camera);
-	void UpdateBossRising(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera);
-	void UpdateCameraReturn(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera);
-	void CompleteIntro(K4E::BossActor* boss, K4E::Camera* camera);
+	void UpdateBossRising(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
+	void UpdateCameraReturn(float deltaTime, GuardianBoss* boss, K4E::Camera* camera);
+	void CompleteIntro(GuardianBoss* boss, K4E::Camera* camera);
+
+	void UpdateBossActorRising(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera)
+	{
+		stateTimer_ += deltaTime;
+		UpdateCameraShake(deltaTime);
+		const float t = settings_.bossRiseTime <= 0.0f ? 1.0f : Clamp01(stateTimer_ / settings_.bossRiseTime);
+		UpdateBossIntroDust(deltaTime, t);
+		if (boss)
+		{
+			boss->SetPosition(Lerp(GetBossStartPosition(), settings_.bossAppearPosition, t));
+			boss->SetYaw(std::numbers::pi_v<float>);
+			boss->ForceSyncWorldTransform(); // ActorWorldを止めたまま登場座標だけを同フレームへ反映する。
+		}
+		if (settings_.enableBossIntroCamera && camera) ApplyCameraLookAtBoss(camera, introCameraPosition_, introCameraTarget_);
+		if (t >= 1.0f)
+		{
+			ChangeState(settings_.enableBossIntroCamera ? State::FinishCutscene : State::Completed);
+			if (state_ == State::Completed) CompleteBossActorIntro(boss, camera);
+		}
+	}
+
+	void UpdateBossActorCameraReturn(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera)
+	{
+		stateTimer_ += deltaTime;
+		UpdateCameraShake(deltaTime);
+		const float t = settings_.cameraReturnTime <= 0.0f ? 1.0f : Clamp01(stateTimer_ / settings_.cameraReturnTime);
+		if (camera) ApplyCameraLookAtBoss(camera, Lerp(introCameraPosition_, savedCameraPosition_, t), introCameraTarget_);
+		if (t >= 1.0f) CompleteBossActorIntro(boss, camera);
+	}
+
+	void CompleteBossActorIntro(K4E::BossActor* boss, K4E::Camera* camera)
+	{
+		if (boss)
+		{
+			boss->ClearRootParentKeepingWorldPosition();
+			boss->SetPosition(settings_.bossAppearPosition);
+			boss->SetYaw(std::numbers::pi_v<float>);
+			boss->ForceSyncWorldTransform();
+		}
+		if (!bossIntroEndDustDone_)
+		{
+			EmitBossIntroDustBurst(settings_.dustEndBurstCount);
+			bossIntroEndDustDone_ = true;
+		}
+		SetDebugSnapshot(boss, camera);
+		bossColliderEnableRequested_ = true;
+		hasPlayedBossIntro_ = true;
+		ChangeState(State::Completed);
+	}
+
 	void UpdateBossIntroDust(float deltaTime, float riseT);
 	void EmitBossIntroDustBurst(uint32_t emitCount);
 	void EmitBossIntroImpactBurst(uint32_t shockCount, uint32_t dustCount);
