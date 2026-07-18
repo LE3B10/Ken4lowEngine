@@ -1,32 +1,22 @@
 #define NOMINMAX
 #include "BossIntroController.h"
 
-#include "Camera.h"
-#include "CameraManager.h"
-#include "Derived/GuardianBoss/GuardianBoss.h"
+#include "BossAttackEffects.h"
 #include "GpuParticleManager.h"
 #include "GpuParticleType.h"
 #include "ParameterManager.h"
-#include "BossAttackEffects.h"
 #include <LogString.h>
 
 #include <algorithm>
 #include <cmath>
-#include <numbers>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif
 
-namespace
-{
-	constexpr float kPi = std::numbers::pi_v<float>;
-}
-
 void BossIntroController::Initialize(const K4E::Vector3& defaultBossPosition)
 {
 	settings_.bossAppearPosition = defaultBossPosition;
-	// ボス登場演出で使う土煙GPUパーティクルを、カットシーン管理側でまとめて登録する。
 	bossEnemyVfx_.Initialize(K4E::GpuParticleManager::GetInstance(), "BossIntro");
 	RegisterParameters();
 	ApplyParameters();
@@ -36,18 +26,13 @@ void BossIntroController::Initialize(const K4E::Vector3& defaultBossPosition)
 void BossIntroController::Finalize()
 {
 	UnregisterParameters();
-	// リトライやシーン破棄時に、古いEmitter参照を保持し続けないようにする。
 	bossEnemyVfx_.Reset();
-	ResetBossIntroDustState();
+	ResetBossIntroDustState(); // Scene再生成時にEmitterと演出タイマーを持ち越さない。
 }
 
 void BossIntroController::RequestStart(const K4E::Vector3& bossPosition)
 {
-	if (hasPlayedBossIntro_ || IsRunning())
-	{
-		return;
-	}
-
+	if (hasPlayedBossIntro_ || IsRunning()) return;
 	settings_.bossAppearPosition = bossPosition;
 	ApplyParameters();
 	stateTimer_ = 0.0f;
@@ -71,138 +56,37 @@ void BossIntroController::Reset()
 	ResetBossIntroDustState();
 }
 
-void BossIntroController::Update(float deltaTime, GuardianBoss* boss, K4E::Camera* camera)
-{
-	ApplyParameters();
-	SetDebugSnapshot(boss, camera);
-
-	switch (state_)
-	{
-	case State::WaitingAfterCrystalsBroken:
-		stateTimer_ += deltaTime;
-		if (stateTimer_ >= std::max(0.0f, settings_.bossAppearDelay))
-		{
-			// 全クリスタル破壊後、緊張を作るための遅延が終わってから登場カットシーンへ入る。
-			ChangeState(State::StartCutscene);
-		}
-		break;
-
-	case State::StartCutscene:
-		BeginCutscene(camera);
-		break;
-
-	case State::CameraMoveToBoss:
-		UpdateCameraMove(deltaTime, camera);
-		break;
-
-	case State::BossSpawnImpact:
-		BeginBossSpawnImpact(camera);
-		break;
-
-	case State::BossRising:
-		UpdateBossRising(deltaTime, boss, camera);
-		break;
-
-	case State::FinishCutscene:
-		UpdateCameraReturn(deltaTime, boss, camera);
-		break;
-
-	case State::None:
-	case State::Completed:
-	default:
-		break;
-	}
-}
-
-void BossIntroController::SetDebugSnapshot(const GuardianBoss* boss, const K4E::Camera* camera)
-{
-	debugHasBoss_ = boss != nullptr;
-	debugHasCamera_ = camera != nullptr;
-	debugBossPosition_ = boss ? boss->GetPosition() : K4E::Vector3{};
-	debugBossLocalPosition_ = boss ? boss->GetRootLocalPosition() : K4E::Vector3{};
-	debugBossWorldPosition_ = boss ? boss->GetRootWorldPosition() : K4E::Vector3{};
-	debugBossHasParent_ = boss ? boss->HasRootParent() : false;
-	debugCameraPosition_ = camera ? camera->GetTranslate() : K4E::Vector3{};
-	debugBossCameraDistance_ = (boss && camera) ? K4E::Vector3::Length(debugBossWorldPosition_ - debugCameraPosition_) : 0.0f;
-	debugViewProjectionKind_ = (camera && K4E::CameraManager::GetInstance()->GetMainCamera() == camera)
-		? "Gameplay/MainCamera"
-		: "CameraManager Other/Debug";
-}
-
 void BossIntroController::DrawImGui()
 {
 #ifdef USE_IMGUI
-	if (!ImGui::CollapsingHeader("BossIntro", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		return;
-	}
-
+	if (!ImGui::CollapsingHeader("BossIntro", ImGuiTreeNodeFlags_DefaultOpen)) return;
 	ImGui::Text("State: %s", ToStateLabel(state_));
-	ImGui::Text("Played: %s", hasPlayedBossIntro_ ? "true" : "false");
-	ImGui::Text("Active: %s", IsRunning() ? "true" : "false");
-	ImGui::Text("Gameplay Pause: %s", IsGameplayPaused() ? "true" : "false");
+	ImGui::Text("Played: %s / Active: %s / Pause: %s", hasPlayedBossIntro_ ? "true" : "false", IsRunning() ? "true" : "false", IsGameplayPaused() ? "true" : "false");
 	ImGui::Text("Timer: %.2f", stateTimer_);
-	ImGui::Text("Boss Position: %.2f, %.2f, %.2f%s",
-		debugBossPosition_.x, debugBossPosition_.y, debugBossPosition_.z, debugHasBoss_ ? "" : " (none)");
-	ImGui::Text("Boss Local Position: %.2f, %.2f, %.2f",
-		debugBossLocalPosition_.x, debugBossLocalPosition_.y, debugBossLocalPosition_.z);
-	ImGui::Text("Boss World Position: %.2f, %.2f, %.2f",
-		debugBossWorldPosition_.x, debugBossWorldPosition_.y, debugBossWorldPosition_.z);
+	ImGui::Text("Boss Position: %.2f, %.2f, %.2f%s", debugBossPosition_.x, debugBossPosition_.y, debugBossPosition_.z, debugHasBoss_ ? "" : " (none)");
+	ImGui::Text("Boss Local: %.2f, %.2f, %.2f", debugBossLocalPosition_.x, debugBossLocalPosition_.y, debugBossLocalPosition_.z);
+	ImGui::Text("Boss World: %.2f, %.2f, %.2f", debugBossWorldPosition_.x, debugBossWorldPosition_.y, debugBossWorldPosition_.z);
 	ImGui::Text("Boss Parent nullptr: %s", debugBossHasParent_ ? "false" : "true");
-	ImGui::Text("Boss Final Position: %.2f, %.2f, %.2f",
-		settings_.bossAppearPosition.x, settings_.bossAppearPosition.y, settings_.bossAppearPosition.z);
-	ImGui::Text("Camera Position: %.2f, %.2f, %.2f%s",
-		debugCameraPosition_.x, debugCameraPosition_.y, debugCameraPosition_.z, debugHasCamera_ ? "" : " (none)");
-	ImGui::Text("ViewProjection: %s", debugViewProjectionKind_);
-	ImGui::Text("Boss-Camera Distance: %.2f", debugBossCameraDistance_);
-	ImGui::Text("Dust Enabled: %s", settings_.enableBossIntroDust ? "true" : "false");
-	ImGui::Text("Dust Timer: %.2f", bossIntroDustEmitTimer_);
-	ImGui::Text("Spawn Impact Triggered: %s", bossSpawnImpactTriggered_ ? "true" : "false");
-	ImGui::Text("Camera Shake: %.2f / %.2f amp %.2f freq %.2f",
-		cameraShakeTimer_,
-		cameraShakeDuration_,
-		cameraShakeAmplitude_,
-		cameraShakeFrequency_);
-
-	if (ImGui::Button("Start Boss Intro"))
-	{
-		debugStartRequested_ = true;
-	}
+	ImGui::Text("Boss Final: %.2f, %.2f, %.2f", settings_.bossAppearPosition.x, settings_.bossAppearPosition.y, settings_.bossAppearPosition.z);
+	ImGui::Text("Camera: %.2f, %.2f, %.2f%s", debugCameraPosition_.x, debugCameraPosition_.y, debugCameraPosition_.z, debugHasCamera_ ? "" : " (none)");
+	ImGui::Text("ViewProjection: %s / Distance: %.2f", debugViewProjectionKind_, debugBossCameraDistance_);
+	ImGui::Text("Dust: %s / Timer %.2f / Impact %s", settings_.enableBossIntroDust ? "on" : "off", bossIntroDustEmitTimer_, bossSpawnImpactTriggered_ ? "yes" : "no");
+	ImGui::Text("Shake: %.2f / %.2f amp %.2f freq %.2f", cameraShakeTimer_, cameraShakeDuration_, cameraShakeAmplitude_, cameraShakeFrequency_);
+	if (ImGui::Button("Start Boss Intro")) debugStartRequested_ = true;
 	ImGui::SameLine();
-	if (ImGui::Button("Reset Boss Intro"))
-	{
-		debugResetRequested_ = true;
-	}
-	if (ImGui::Button("Force Boss To Appear Position"))
-	{
-		debugForceBossToAppearRequested_ = true;
-	}
+	if (ImGui::Button("Reset Boss Intro")) debugResetRequested_ = true;
+	if (ImGui::Button("Force Boss To Appear Position")) debugForceBossToAppearRequested_ = true;
 	ImGui::SameLine();
-	if (ImGui::Button("Clear Boss Parent"))
-	{
-		debugClearBossParentRequested_ = true;
-	}
-	if (ImGui::Button("Use Gameplay ViewProjection"))
-	{
-		debugUseGameplayViewProjectionRequested_ = true;
-	}
-
+	if (ImGui::Button("Clear Boss Parent")) debugClearBossParentRequested_ = true;
+	if (ImGui::Button("Use Gameplay ViewProjection")) debugUseGameplayViewProjectionRequested_ = true;
 	ImGui::Text("Parameter group: %s", kParameterGroupName);
 #endif
 }
 
 bool BossIntroController::IsGameplayPaused() const
 {
-	if (!settings_.bossIntroPauseGame)
-	{
-		return false;
-	}
-
-	return state_ == State::StartCutscene ||
-		state_ == State::CameraMoveToBoss ||
-		state_ == State::BossSpawnImpact ||
-		state_ == State::BossRising ||
-		state_ == State::FinishCutscene;
+	if (!settings_.bossIntroPauseGame) return false;
+	return state_ == State::StartCutscene || state_ == State::CameraMoveToBoss || state_ == State::BossSpawnImpact || state_ == State::BossRising || state_ == State::FinishCutscene;
 }
 
 bool BossIntroController::ConsumeBossSpawnRequest()
@@ -272,8 +156,6 @@ void BossIntroController::RegisterParameters()
 {
 	auto* parameters = K4E::ParameterManager::GetInstance();
 	parameters->CreateGroup(kParameterGroupName);
-
-	// ボス登場演出はParameterManagerに乗せ、Json/ImGuiから遅延や位置を調整できるようにする。
 	parameters->AddItem(kParameterGroupName, "bossAppearDelay", settings_.bossAppearDelay, 0.0f, 20.0f);
 	parameters->AddItem(kParameterGroupName, "bossAppearPosition", settings_.bossAppearPosition, K4E::Vector3{ -200.0f, -50.0f, -200.0f }, K4E::Vector3{ 200.0f, 100.0f, 200.0f });
 	parameters->AddItem(kParameterGroupName, "bossStartOffsetY", settings_.bossStartOffsetY, -100.0f, 0.0f);
@@ -359,13 +241,9 @@ void BossIntroController::BeginCutscene(K4E::Camera* camera)
 		savedCameraPosition_ = camera->GetTranslate();
 		savedCameraRotation_ = camera->GetRotate();
 	}
-
 	introCameraTarget_ = GetBossLookTarget();
 	introCameraPosition_ = settings_.bossAppearPosition + K4E::Vector3{ 0.0f, 7.0f, -18.0f };
-
-	// ボス登場カットシーンの開始に合わせ、足元の土煙演出も初期化する。
 	ResetBossIntroDustState();
-	// カメラ移動中は揺らさず、ボス出現地点を映してから衝撃の発生源を見せる。
 	ChangeState(settings_.enableBossIntroCamera ? State::CameraMoveToBoss : State::BossSpawnImpact);
 	K4E::Log("[BossIntro] Cutscene started.\n");
 }
@@ -374,19 +252,8 @@ void BossIntroController::UpdateCameraMove(float deltaTime, K4E::Camera* camera)
 {
 	stateTimer_ += deltaTime;
 	const float t = settings_.cameraMoveTime <= 0.0f ? 1.0f : Clamp01(stateTimer_ / settings_.cameraMoveTime);
-
-	if (camera)
-	{
-		// ボス出現地点が画面中央へ入るよう、保存した通常カメラから演出カメラへ補間する。
-		const K4E::Vector3 cameraPosition = Lerp(savedCameraPosition_, introCameraPosition_, t);
-		ApplyCameraLookAtBoss(camera, cameraPosition, introCameraTarget_);
-	}
-
-	if (t >= 1.0f)
-	{
-		// カメラがボス地点を捉えた後に出現インパクトへ進め、揺れの意味を伝わりやすくする。
-		ChangeState(State::BossSpawnImpact);
-	}
+	if (camera) ApplyCameraLookAtBoss(camera, Lerp(savedCameraPosition_, introCameraPosition_, t), introCameraTarget_);
+	if (t >= 1.0f) ChangeState(State::BossSpawnImpact);
 }
 
 void BossIntroController::BeginBossSpawnImpact(K4E::Camera* camera)
@@ -395,130 +262,24 @@ void BossIntroController::BeginBossSpawnImpact(K4E::Camera* camera)
 	{
 		bossSpawnImpactTriggered_ = true;
 		bossSpawnRequested_ = true;
-
-		// 登場シェイクはフェーズ移行シェイクと分け、スポーン衝撃だけを個別に調整できるようにする。
 		StartCameraShake(settings_.spawnShakeDuration, settings_.spawnShakeAmplitude, settings_.spawnShakeFrequency);
-		if (settings_.enableBossIntroCamera && camera)
-		{
-			ApplyCameraLookAtBoss(camera, introCameraPosition_, introCameraTarget_);
-		}
-		// ボス出現の衝撃に合わせて、揺れとパーティクルを同じフレームで一度だけ発生させる。
+		if (settings_.enableBossIntroCamera && camera) ApplyCameraLookAtBoss(camera, introCameraPosition_, introCameraTarget_);
 		EmitBossIntroDustBurst(settings_.dustStartBurstCount);
 		EmitBossIntroImpactBurst(96, settings_.dustStartBurstCount);
 		bossIntroStartDustDone_ = true;
 		K4E::Log("[BossIntro] Spawn impact triggered.\n");
 	}
-
 	ChangeState(State::BossRising);
-}
-
-void BossIntroController::UpdateBossRising(float deltaTime, GuardianBoss* boss, K4E::Camera* camera)
-{
-	stateTimer_ += deltaTime;
-	UpdateCameraShake(deltaTime);
-	const float t = settings_.bossRiseTime <= 0.0f ? 1.0f : Clamp01(stateTimer_ / settings_.bossRiseTime);
-
-	// ボスが地面から上がる間、足元へ土煙を出して登場演出の密度を上げる。
-	UpdateBossIntroDust(deltaTime, t);
-
-	if (boss)
-	{
-		// ボスを最終出現位置の下から上へ補間し、登場完了までAI更新はWorld側で止めておく。
-		const K4E::Vector3 position = Lerp(GetBossStartPosition(), settings_.bossAppearPosition, t);
-		boss->SetPosition(position);
-		boss->SetYaw(kPi);
-		boss->Update(0.0f);
-	}
-
-	if (settings_.enableBossIntroCamera && camera)
-	{
-		ApplyCameraLookAtBoss(camera, introCameraPosition_, introCameraTarget_);
-	}
-
-	if (t >= 1.0f)
-	{
-		ChangeState(settings_.enableBossIntroCamera ? State::FinishCutscene : State::Completed);
-		if (state_ == State::Completed)
-		{
-			CompleteIntro(boss, camera);
-		}
-	}
-}
-
-void BossIntroController::UpdateCameraReturn(float deltaTime, GuardianBoss* boss, K4E::Camera* camera)
-{
-	stateTimer_ += deltaTime;
-	UpdateCameraShake(deltaTime);
-	const float t = settings_.cameraReturnTime <= 0.0f ? 1.0f : Clamp01(stateTimer_ / settings_.cameraReturnTime);
-
-	if (camera)
-	{
-		const K4E::Vector3 cameraPosition = Lerp(introCameraPosition_, savedCameraPosition_, t);
-		if (t < 1.0f)
-		{
-			ApplyCameraLookAtBoss(camera, cameraPosition, introCameraTarget_);
-		}
-		else
-		{
-			// 復帰後もボス方向を向かせ、演出後に位置を見失わないようにする。
-			ApplyCameraLookAtBoss(camera, savedCameraPosition_, introCameraTarget_);
-		}
-	}
-
-	if (t >= 1.0f)
-	{
-		CompleteIntro(boss, camera);
-	}
-}
-
-void BossIntroController::CompleteIntro(GuardianBoss* boss, K4E::Camera* camera)
-{
-	if (boss)
-	{
-		boss->ClearRootParentKeepingWorldPosition();
-		// ボスを最終ワールド座標へ固定し、演出用カメラのWVPが残らないよう描画Transformも再同期する。
-		boss->SetPosition(settings_.bossAppearPosition);
-		boss->SetYaw(kPi);
-		boss->ForceSyncWorldTransform();
-	}
-
-	// 登場完了時に大きめの土煙を一度だけ出し、地面を突き破って出た印象を作る。
-	if (!bossIntroEndDustDone_)
-	{
-		EmitBossIntroDustBurst(settings_.dustEndBurstCount);
-		bossIntroEndDustDone_ = true;
-	}
-
-	SetDebugSnapshot(boss, camera);
-	// 登場完了後にボスAIを有効化するため、WorldへCollider登録と通常Update再開を通知する。
-	bossColliderEnableRequested_ = true;
-	hasPlayedBossIntro_ = true;
-	ChangeState(State::Completed);
-
-	const K4E::Vector3 bossPosition = boss ? boss->GetPosition() : settings_.bossAppearPosition;
-	const K4E::Vector3 cameraPosition = camera ? camera->GetTranslate() : K4E::Vector3{};
-	K4E::Log(
-		"[BossIntro] Completed. boss=(" +
-		std::to_string(bossPosition.x) + "," + std::to_string(bossPosition.y) + "," + std::to_string(bossPosition.z) +
-		") camera=(" +
-		std::to_string(cameraPosition.x) + "," + std::to_string(cameraPosition.y) + "," + std::to_string(cameraPosition.z) +
-		") state=Completed active=false played=true\n");
 }
 
 void BossIntroController::UpdateBossIntroDust(float deltaTime, float riseT)
 {
-	if (!settings_.enableBossIntroDust)
-	{
-		return;
-	}
-
+	if (!settings_.enableBossIntroDust) return;
 	if (!bossIntroStartDustDone_)
 	{
-		// 通常はBossSpawnImpactで発生済みだが、直接上昇へ入った場合だけ土煙を補完する。
 		EmitBossIntroDustBurst(settings_.dustStartBurstCount);
 		bossIntroStartDustDone_ = true;
 	}
-
 	bossIntroDustEmitTimer_ += deltaTime;
 	if (bossIntroDustEmitTimer_ >= settings_.dustEmitInterval && riseT < 1.0f)
 	{
@@ -529,22 +290,15 @@ void BossIntroController::UpdateBossIntroDust(float deltaTime, float riseT)
 
 void BossIntroController::EmitBossIntroDustBurst(uint32_t emitCount)
 {
-	if (!settings_.enableBossIntroDust || emitCount == 0)
-	{
-		return;
-	}
-
+	if (!settings_.enableBossIntroDust || emitCount == 0) return;
 	bossEnemyVfx_.UpdateAppearDust(MakeBossIntroDustPosition(), emitCount);
 }
 
 void BossIntroController::EmitBossIntroImpactBurst(uint32_t shockCount, uint32_t dustCount)
 {
 	const K4E::Vector3 position = MakeBossIntroDustPosition();
-
-	// 登場地点の衝撃波と砂煙を同時に出し、ボスが地面へ着地した重さを見せる。
 	BossAttackEffects::EmitGuardianHitEffect("BossIntroSpawnShockwave", K4E::GpuParticleType::Shockwave, position, shockCount, 3.2f, 0.9f, 1.7f);
 	BossAttackEffects::EmitGuardianAttackPresenceEffect("BossIntroGroundBurst", K4E::GpuParticleType::Dust, position, dustCount, 2.6f, 0.75f, 1.4f);
-
 	K4E::Vector3 pillarPosition = position;
 	pillarPosition.y += 1.1f;
 	BossAttackEffects::EmitGuardianAttackPresenceEffect("BossIntroRisingPillar", K4E::GpuParticleType::Trail, pillarPosition, std::max<uint32_t>(16, shockCount / 3), 1.35f, 1.0f, 1.2f);
@@ -553,7 +307,6 @@ void BossIntroController::EmitBossIntroImpactBurst(uint32_t shockCount, uint32_t
 K4E::Vector3 BossIntroController::MakeBossIntroDustPosition() const
 {
 	K4E::Vector3 dustPosition = settings_.bossAppearPosition;
-	// BossSpawnPointはボス中心寄りなので、土煙は地面付近へ下げて発生させる。
 	dustPosition.y = std::max(0.05f, dustPosition.y - settings_.dustGroundOffsetY);
 	return dustPosition;
 }
@@ -573,11 +326,7 @@ void BossIntroController::ResetBossIntroDustState()
 
 void BossIntroController::StartCameraShake(float duration, float amplitude, float frequency)
 {
-	if (!settings_.enableBossIntroCameraShake || duration <= 0.0f || amplitude <= 0.0f)
-	{
-		return;
-	}
-
+	if (!settings_.enableBossIntroCameraShake || duration <= 0.0f || amplitude <= 0.0f) return;
 	cameraShakeDuration_ = duration;
 	cameraShakeTimer_ = duration;
 	cameraShakeAmplitude_ = amplitude;
@@ -587,45 +336,24 @@ void BossIntroController::StartCameraShake(float duration, float amplitude, floa
 
 void BossIntroController::UpdateCameraShake(float deltaTime)
 {
-	if (cameraShakeTimer_ <= 0.0f)
-	{
-		return;
-	}
-
+	if (cameraShakeTimer_ <= 0.0f) return;
 	cameraShakeTimer_ = std::max(0.0f, cameraShakeTimer_ - deltaTime);
 }
 
 K4E::Vector3 BossIntroController::GetCameraShakeOffset() const
 {
-	if (cameraShakeTimer_ <= 0.0f || cameraShakeDuration_ <= 0.0f)
-	{
-		return {};
-	}
-
+	if (cameraShakeTimer_ <= 0.0f || cameraShakeDuration_ <= 0.0f) return {};
 	const float remainRate = Clamp01(cameraShakeTimer_ / cameraShakeDuration_);
 	const float t = (cameraShakeDuration_ - cameraShakeTimer_) * cameraShakeFrequency_ + cameraShakeSeed_;
 	const float amp = cameraShakeAmplitude_ * remainRate * remainRate;
-	return {
-		std::sin(t * 1.37f) * amp,
-		std::cos(t * 1.91f) * amp * 0.55f,
-		std::sin(t * 0.73f) * amp * 0.35f
-	};
+	return { std::sin(t * 1.37f) * amp, std::cos(t * 1.91f) * amp * 0.55f, std::sin(t * 0.73f) * amp * 0.35f };
 }
 
 void BossIntroController::ApplyCameraLookAtBoss(K4E::Camera* camera, const K4E::Vector3& cameraPosition, const K4E::Vector3& targetPosition) const
 {
-	if (!camera)
-	{
-		return;
-	}
-
+	if (!camera) return;
 	K4E::Vector3 direction = targetPosition - cameraPosition;
-	if (K4E::Vector3::LengthSquared(direction) <= 0.000001f)
-	{
-		direction = { 0.0f, 0.0f, 1.0f };
-	}
-
-	// Camera::SetForwardで既存Cameraの回転を使い、急な切り替えではなく補間位置からボスへ向ける。
+	if (K4E::Vector3::LengthSquared(direction) <= 0.000001f) direction = { 0.0f, 0.0f, 1.0f };
 	camera->SetTranslate(cameraPosition + GetCameraShakeOffset());
 	camera->SetForward(direction);
 	camera->Update();
@@ -633,8 +361,7 @@ void BossIntroController::ApplyCameraLookAtBoss(K4E::Camera* camera, const K4E::
 
 K4E::Vector3 BossIntroController::Lerp(const K4E::Vector3& a, const K4E::Vector3& b, float t)
 {
-	t = Clamp01(t);
-	return a + (b - a) * t;
+	return a + (b - a) * Clamp01(t);
 }
 
 float BossIntroController::Clamp01(float value)
@@ -653,8 +380,6 @@ const char* BossIntroController::ToStateLabel(State state)
 	case State::BossRising: return "BossRising";
 	case State::FinishCutscene: return "FinishCutscene";
 	case State::Completed: return "Completed";
-	case State::None:
-	default:
-		return "None";
+	default: return "None";
 	}
 }
