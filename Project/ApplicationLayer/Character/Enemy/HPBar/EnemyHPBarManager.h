@@ -1,20 +1,14 @@
 #pragma once
 
-#include <vector>
-#include <memory>
-#include <algorithm>
-
-#include "EnemyHPBar.h"
-#include "EnemyHPBarProjector.h"
 #include "Matrix4x4.h"
-#include "Vector2.h"
-#include "Vector3.h"
+
+#include <vector>
 
 class EnemyBase;
 
 namespace K4E = ::Ken4lowEngine;
 
-// 複数の敵HPバーをまとめて管理するクラス
+/// 通常敵のWorldGauge表示時間だけを管理し、旧Sprite HPバーを生成しない。
 class EnemyHPBarManager
 {
 public:
@@ -38,24 +32,14 @@ private:
 	struct Entry
 	{
 		EnemyBase* enemy = nullptr;
-		std::unique_ptr<EnemyHPBar> bar;
-
-		K4E::Vector3 cachedWorldPos{ 0.0f, 0.0f, 0.0f };
-		K4E::Vector2 cachedScreenPos{ 0.0f, 0.0f };
-
-		bool visibleThisFrame = false;
-		bool updatedThisFrame = false;
-		bool deathStarted = false;
-		bool removeRequested = false;
-		bool usesWorldGauge = false; // Enemy破棄後に実体ポインタへ触れず、描画方式だけを安全に判定する。
 		float aimVisibleTimer = 0.0f;
+		bool updatedThisFrame = false;
+		bool visibleThisFrame = false;
 	};
 
-private:
 	Entry* FindEntry(EnemyBase* enemy);
 	Entry& FindOrCreateEntry(EnemyBase* enemy);
-	void RemoveDeadEntries();
 
 private:
-	std::vector<Entry> entries_;
+	std::vector<Entry> entries_{};
 };
