@@ -1,0 +1,49 @@
+<Project>
+  <!-- Actor移行後の旧Character実装を、物理削除後も既存vcxproj項目から安全に除外する。 -->
+  <ItemGroup>
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Core\BossFactory.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Components\BossStatusComponent.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Core\BossStateMachine.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Core\BossBrain.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Components\BossAnimationComponent.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Components\BossAttackComponent.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Core\BossBase.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Components\BossMovementComponent.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Attacks\BossMeleeAttackUtility.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Attacks\BossMeleePhaseAttackBase.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Attacks\GuardianShockwaveAttack.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Attacks\BossChargeAttack.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.cpp" />
+
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Core\BossFactory.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Components\BossStatusComponent.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Core\BossStateMachine.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Core\BossBrain.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Components\BossAnimationComponent.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Components\BossAttackComponent.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Core\BossBase.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Components\BossMovementComponent.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\BehaviorTree\BTActionNode.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\BehaviorTree\BTConditionNode.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\BehaviorTree\BTSelectorNode.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\BehaviorTree\BTSequenceNode.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\BehaviorTree\BehaviorStatus.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Core\BossTypes.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Attacks\IBossAttack.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Attacks\BossMeleeAttackUtility.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Attacks\BossMeleePhaseAttackBase.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Attacks\BossPunchAttack.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Attacks\BossHeavyPunchAttack.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Attacks\GuardianShockwaveAttack.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Attacks\BossChargeAttack.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Animations\IBossAttackAnimation.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.h" />
+  </ItemGroup>
+</Project>
