@@ -1,7 +1,9 @@
 #pragma once
 
 #include "BossHudUI.h"
+#include "Crosshair.h"
 #include "DamageIndicatorManager.h"
+#include "HPWidget.h"
 #include "ReloadCircle.h"
 #include "Stage1ObjectiveGuideUI.h"
 #include "Vector2.h"
@@ -56,7 +58,9 @@ public:
 	WeaponSlot* GetWeaponSlot() const { return weaponSlot_.get(); }
 	bool IsBossHPBarDrawEnabled() const { return bossHudUI_.IsHpBarDrawEnabled(); }
 
-	// PlayerActorが自身のScreenSpace UIを描くため、旧Player専用HUD APIは互換呼び出しだけ受け流す。
+	// Editorの旧HUD状態表示はAPI互換だけ維持し、PlayerActor UIとの二重確保は行わない。
+	HPWidget* GetHPWidget() const { return nullptr; }
+	Crosshair* GetCrosshair() const { return nullptr; }
 	void SetHP(float, float) {}
 	void NotifyPlayerHit(float = 1.0f) {}
 	void NotifyEnemyHit(bool = false) {}
