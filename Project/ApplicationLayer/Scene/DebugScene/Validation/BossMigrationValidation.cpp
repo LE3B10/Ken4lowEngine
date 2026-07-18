@@ -27,12 +27,11 @@ namespace
 void BossMigrationValidation::Initialize(K4E::ActorWorld& actorWorld)
 {
 	actorWorld_ = &actorWorld;
-
 	boss_ = &actorWorld_->SpawnActor<K4E::BossActor>();
 	const bool loadedFromPrefab = actorWorld_->ReloadActorFromJson(*boss_, jsonPath_);
 	if (loadedFromPrefab)
 	{
-		boss_->Initialize(); // 古いPrefabに無いBoss HP用Gauge/Text Componentだけを不足分として補完する。
+		boss_->Initialize();
 		lastMessage_ = "BossActorを保存済みPrefabから自動読込しました。";
 		lastSucceeded_ = true;
 	}
@@ -42,25 +41,14 @@ void BossMigrationValidation::Initialize(K4E::ActorWorld& actorWorld)
 		lastMessage_ = "Boss Prefabが無いためコード既定値で生成しました。";
 		lastSucceeded_ = false;
 	}
-
 	boss_->SetName(bossName_);
 	boss_->SetLayer("BossValidation");
 	boss_->AddTag("Boss");
-
 	RefreshActorReferencesAndBindings();
 }
 
-void BossMigrationValidation::Update()
-{
-	RefreshActorReferencesAndBindings();
-	ProcessRequests();
-}
-
-void BossMigrationValidation::UpdateEditor()
-{
-	RefreshActorReferencesAndBindings();
-	ProcessRequests();
-}
+void BossMigrationValidation::Update(){ RefreshActorReferencesAndBindings(); ProcessRequests(); }
+void BossMigrationValidation::UpdateEditor(){ RefreshActorReferencesAndBindings(); ProcessRequests(); }
 
 void BossMigrationValidation::DrawImGui()
 {
@@ -70,7 +58,6 @@ void BossMigrationValidation::DrawImGui()
 		ImGui::End();
 		return;
 	}
-
 	const auto* health = boss_ ? boss_->GetHealthComponent() : nullptr;
 	const auto* movement = boss_ ? boss_->GetMovementComponent() : nullptr;
 	const auto* collider = boss_ ? boss_->GetColliderComponent() : nullptr;
@@ -91,20 +78,25 @@ void BossMigrationValidation::DrawImGui()
 	ImGui::Text("Brain: %s / Attack: %s", brain ? brain->GetStateName().c_str() : "None", attack ? attack->GetLastSelectedAttackId().c_str() : "None");
 	ImGui::Text("Animation: %s / Presentation: %s", animation ? animation->GetAnimationName().c_str() : "None", presentation ? presentation->GetStateName().c_str() : "None");
 	ImGui::Text("Visual: %zu parts / Shadow %s", visual ? visual->GetParts().size() : 0u, visual && visual->IsCastShadowEnabled() ? "ON" : "OFF");
-	ImGui::Text("WeakPoint部位ID: %s / Head x%.2f", weakPoint && weakPoint->HasValidPartReferences() ? "OK" : "未解決", weakPoint ? weakPoint->ResolveDamageMultiplier("Head") : 0.0f);
-	ImGui::Text("Collider: %s / Movement: %s", collider && collider->IsActive() ? "有効" : "停止", movement && movement->IsMovementEnabled() ? "有効" : "停止");
-	ImGui::Text("Physics: %s / Grounded: %s", rigidbody ? "Dynamic" : "None", rigidbody && rigidbody->IsGrounded() ? "Yes" : "No");
+	ImGui::Text("WeakPoint: %s / Head x%.2f", weakPoint && weakPoint->HasValidPartReferences() ? "OK" : "未解決", weakPoint ? weakPoint->ResolveDamageMultiplier("Head") : 0.0f);
+	ImGui::Text("Collider: %s / Movement: %s / Physics: %s", collider && collider->IsActive() ? "有効" : "停止", movement && movement->IsMovementEnabled() ? "有効" : "停止", rigidbody ? "Dynamic" : "None");
+	if (boss_)
+	{
+		const K4E::Vector3 deathPosition = boss_->GetDeathWorldPosition();
+		ImGui::Text("Death position: %.2f %.2f %.2f / Presentation: %s", deathPosition.x, deathPosition.y, deathPosition.z, boss_->IsDeathPresentationComplete() ? "complete" : "running");
+	}
 	ImGui::TextColored(lastSucceeded_ ? ImVec4(0.35f, 1.0f, 0.45f, 1.0f) : ImVec4(1.0f, 0.75f, 0.25f, 1.0f), "%s", lastMessage_.c_str());
 
 	if (ImGui::Button("Headへ100基礎Damage")) requestHeadDamage_ = true;
 	ImGui::SameLine();
 	if (ImGui::Button("Bodyへ100基礎Damage")) requestBodyDamage_ = true;
+	if (ImGui::Button("撃破地点固定テスト")) requestDeathPositionTest_ = true;
 	ImGui::SameLine();
 	if (ImGui::Button("Boss Reset")) requestReset_ = true;
 	if (ImGui::Button("Boss JSON保存")) requestSave_ = true;
 	ImGui::SameLine();
 	if (ImGui::Button("Boss JSON再読込")) requestReload_ = true;
-	ImGui::TextDisabled("起動時はResources/ActorPrefabs/ComponentBoss.jsonを自動読込します。");
+	ImGui::TextDisabled("撃破テスト後も崩壊位置とDeath positionが一致することを確認します。");
 	ImGui::End();
 #endif
 }
@@ -124,7 +116,6 @@ void BossMigrationValidation::RefreshActorReferencesAndBindings()
 		target_ = nullptr;
 		return;
 	}
-
 	boss_ = dynamic_cast<K4E::BossActor*>(actorWorld_->FindActorByName(bossName_));
 	target_ = dynamic_cast<K4E::CharacterActor*>(actorWorld_->FindActorByName(targetName_));
 	if (!boss_)
@@ -133,12 +124,12 @@ void BossMigrationValidation::RefreshActorReferencesAndBindings()
 		lastMessage_ = "BossActorが見つかりません。";
 		return;
 	}
-
-	boss_->SetTargetActor(target_); // PIE複製後も現在WorldのDebugPlayerへ非保存参照を張り直す。
-	lastSucceeded_ = target_ != nullptr;
-	lastMessage_ = lastSucceeded_
-		? "BossActorはDebugPlayerをTargetとして追跡・攻撃しています。"
-		: "DebugPlayerが見つからないためTargetを解除しています。";
+	boss_->SetTargetActor(target_);
+	if (!boss_->IsDead())
+	{
+		lastSucceeded_ = target_ != nullptr;
+		lastMessage_ = lastSucceeded_ ? "BossActorはDebugPlayerをTargetとして追跡・攻撃しています。" : "DebugPlayerが見つかりません。";
+	}
 }
 
 void BossMigrationValidation::ProcessRequests()
@@ -157,6 +148,19 @@ void BossMigrationValidation::ProcessRequests()
 		lastSucceeded_ = result.accepted;
 		lastMessage_ = result.accepted ? "Bodyへ通常倍率ダメージを与えました。" : "Bodyダメージを適用できませんでした。";
 	}
+	if (requestDeathPositionTest_)
+	{
+		requestDeathPositionTest_ = false;
+		if (boss_)
+		{
+			boss_->ResetForValidation(kBossPosition);
+			const K4E::Vector3 before = boss_->GetPosition();
+			const K4E::CharacterDamageResult result = boss_->ApplyDamage(boss_->GetHP() + 1.0f);
+			const K4E::Vector3 after = boss_->GetPosition();
+			lastSucceeded_ = result.killed && K4E::Vector3::LengthSquared(after - before) <= 0.0001f;
+			lastMessage_ = lastSucceeded_ ? "Bossは撃破地点を維持したまま死亡演出へ移行しました。" : "Bossの撃破地点固定に失敗しました。";
+		}
+	}
 	if (requestReset_)
 	{
 		requestReset_ = false;
@@ -173,7 +177,7 @@ void BossMigrationValidation::ProcessRequests()
 	{
 		requestReload_ = false;
 		lastSucceeded_ = actorWorld_ && boss_ && actorWorld_->ReloadActorFromJson(*boss_, jsonPath_);
-		if (lastSucceeded_ && boss_) boss_->Initialize(); // 保存時期が古いPrefabでも現在必須のUI Componentを補完する。
+		if (lastSucceeded_ && boss_) boss_->Initialize();
 		lastMessage_ = lastSucceeded_ ? "BossActorをPrefabから復元しました。" : "BossActor Prefab復元に失敗しました。";
 		RefreshActorReferencesAndBindings();
 	}
