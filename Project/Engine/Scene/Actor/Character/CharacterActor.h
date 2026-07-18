@@ -1,5 +1,4 @@
 #pragma once
-
 #include "Actor.h"
 #include "CharacterDamage.h"
 #include "SceneComponent.h"
@@ -48,6 +47,9 @@ namespace Ken4lowEngine
 		/// HP Componentへダメージ処理を委譲し、死亡へ遷移した場合だけイベントを通知する。
 		CharacterDamageResult ApplyDamage(const CharacterDamageInfo& damageInfo);
 		CharacterDamageResult ApplyDamage(float amount);
+
+		/// 最後に実際へ適用されたDamage情報を返し、被弾方向や演出の発生元解決に使う。
+		const CharacterDamageInfo& GetLastAcceptedDamageInfo() const { return lastAcceptedDamageInfo_; }
 
 		/// HP Componentへ問い合わせて現在の生存状態を返す。
 		bool IsAlive() const;
@@ -156,6 +158,7 @@ namespace Ken4lowEngine
 		std::vector<DeathListenerEntry> deathListeners_;
 		DeathListenerId nextDeathListenerId_ = 1;
 		bool deathNotificationSent_ = false;
+		CharacterDamageInfo lastAcceptedDamageInfo_{}; // 実際にHPへ入ったDamageだけを保持し、無敵・無効Damageで方向UIを出さない。
 		mutable WorldTransformSnapshot worldTransformSnapshot_{};
 	};
 } // namespace Ken4lowEngine
