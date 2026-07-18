@@ -4,7 +4,7 @@
 #include "CollisionTypeIdDef.h"
 #include "CollisionManager.h"
 #include "EnemyBase.h"
-#include "BossBase.h"
+#include "ApplicationLayer/Character/Boss/Actor/BossActor.h"
 #include "GpuParticleManager.h"
 #include "WeaponParams.h"
 
@@ -16,193 +16,37 @@ using namespace Ken4lowEngine;
 
 namespace
 {
-	constexpr uint32_t kRocketDebrisMeshId = 1000;
-	constexpr const char* kRocketDebrisEmitterName = "RocketDebrisMesh";
-	constexpr const char* kRocketDebrisMeshModelPath = "Sample/cube.gltf";
-
-	float LengthSq(const K4E::Vector3& v)
+	float LengthSq(const K4E::Vector3& value){ return value.x * value.x + value.y * value.y + value.z * value.z; }
+	K4E::Vector3 NormalizeSafe(const K4E::Vector3& value, const K4E::Vector3& fallback = { 0.0f, 1.0f, 0.0f })
 	{
-		return v.x * v.x + v.y * v.y + v.z * v.z;
-	}
-
-	float Length(const K4E::Vector3& v)
-	{
-		return std::sqrt(LengthSq(v));
-	}
-
-	K4E::Vector3 NormalizeSafe(const K4E::Vector3& v, const K4E::Vector3& fallback = { 0.0f, 1.0f, 0.0f })
-	{
-		const float len = Length(v);
-		if (len <= 1.0e-5f) return fallback;
-		return v * (1.0f / len);
+		const float lengthSq = LengthSq(value);
+		return lengthSq > 1.0e-10f ? value * (1.0f / std::sqrt(lengthSq)) : fallback;
 	}
 
 	ECollisionPresetId GetProjectilePresetId(uint32_t typeId)
 	{
-		// 既存のCollisionTypeIdDefを入口にして、弾の所属ObjectChannelを安全に選ぶ。
-		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet))
-		{
-			return ECollisionPresetId::EnemyProjectile;
-		}
-		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kBossBullet))
-		{
-			return ECollisionPresetId::BossProjectile;
-		}
+		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet)) return ECollisionPresetId::EnemyProjectile;
+		if (typeId == static_cast<uint32_t>(CollisionTypeIdDef::kBossBullet)) return ECollisionPresetId::BossProjectile;
 		return ECollisionPresetId::PlayerProjectile;
 	}
 
-	float Dot(const K4E::Vector3& a, const K4E::Vector3& b)
+	K4E::Vector3 ResolveImpactPoint(const Bullet& bullet, const K4E::Collider* target)
 	{
-		return a.x * b.x + a.y * b.y + a.z * b.z;
-	}
-
-	K4E::Vector3 AddScaled(const K4E::Vector3& base, const K4E::Vector3& diff, float t)
-	{
-		return { base.x + diff.x * t, base.y + diff.y * t, base.z + diff.z * t };
-	}
-
-	bool TryComputeSegmentObbImpact(const K4E::Segment& seg, const K4E::OBB& obb, K4E::Vector3& outPoint, K4E::Vector3& outNormal)
-	{
-		constexpr float kEpsilon = 1.0e-6f;
-
-		float tMin = 0.0f;
-		float tMax = 1.0f;
-		K4E::Vector3 enterNormal{};
-		K4E::Vector3 exitNormal{};
-
-		const K4E::Vector3 p = seg.origin - obb.center;
-		const float halfSizes[3] = { obb.size.x, obb.size.y, obb.size.z };
-
-		for (int axisIndex = 0; axisIndex < 3; ++axisIndex)
-		{
-			const K4E::Vector3& axis = obb.orientations[axisIndex];
-			const float originOnAxis = Dot(p, axis);
-			const float diffOnAxis = Dot(seg.diff, axis);
-			const float half = halfSizes[axisIndex];
-
-			if (std::fabs(diffOnAxis) < kEpsilon)
-			{
-				if (originOnAxis < -half || originOnAxis > half)
-				{
-					return false;
-				}
-				continue;
-			}
-
-			float t1 = (-half - originOnAxis) / diffOnAxis;
-			float t2 = (half - originOnAxis) / diffOnAxis;
-			K4E::Vector3 normal1 = axis * -1.0f;
-			K4E::Vector3 normal2 = axis;
-			if (t1 > t2)
-			{
-				std::swap(t1, t2);
-				std::swap(normal1, normal2);
-			}
-
-			if (t1 > tMin)
-			{
-				tMin = t1;
-				enterNormal = normal1;
-			}
-			if (t2 < tMax)
-			{
-				tMax = t2;
-				exitNormal = normal2;
-			}
-
-			if (tMin > tMax)
-			{
-				return false;
-			}
-		}
-
-		// 外から入った場合は tMin、すでに内部から始まっていた場合は tMax を使う。
-		const bool enteredFromOutside = tMin > 0.0f;
-		const float t = std::clamp(enteredFromOutside ? tMin : tMax, 0.0f, 1.0f);
-		outPoint = AddScaled(seg.origin, seg.diff, t);
-		outNormal = NormalizeSafe(enteredFromOutside ? enterNormal : exitNormal, NormalizeSafe(seg.diff * -1.0f));
-		return true;
-	}
-
-	K4E::Vector3 ResolveBulletImpactPoint(const Bullet& bullet, K4E::Collider* other)
-	{
-		if (!other)
-		{
-			return bullet.GetCenterPosition();
-		}
-
-		K4E::Vector3 impactPoint{};
-		K4E::Vector3 impactNormal{};
-		const K4E::Segment bulletSegment = bullet.GetSegment();
-		if (TryComputeSegmentObbImpact(bulletSegment, other->GetOBB(), impactPoint, impactNormal))
-		{
-			return impactPoint;
-		}
-
-		// 退避：判定直後の弾座標。other->GetCenterPosition() を使うと、
-		// 巨大なステージコライダーではステージ中心で爆発してしまう。
-		return bullet.GetCenterPosition();
-	}
-
-	K4E::GpuParticleEmitter* PrepareRocketDebrisMeshEmitter(const K4E::Vector3& position)
-	{
-		auto* particle = K4E::GpuParticleManager::GetInstance();
-		if (!particle)
-		{
-			return nullptr;
-		}
-
-		static bool meshAssetLoadRequested = false;
-		if (!meshAssetLoadRequested)
-		{
-			// AssimpLoader は内部で Resources/Models/ を付与するため、
-			// まずは既存の cube.gltf を MeshParticle の確認用に使う。
-			// 専用破片モデルを作ったら Sources/Effects/rocket_debris.gltf などへ差し替える。
-			particle->LoadMeshAssetsFromAssimp(kRocketDebrisMeshId, kRocketDebrisMeshModelPath, true);
-			meshAssetLoadRequested = true;
-		}
-
-		if (auto* emitter = particle->GetEmitter(kRocketDebrisEmitterName))
-		{
-			emitter->SetPosition(position);
-			return emitter;
-		}
-
-		K4E::GpuParticleEmitter::EmitterInfo info{};
-		info.kind = K4E::GpuParticleKind::Mesh;
-		info.spriteType = K4E::GpuParticleType::Debris;
-		info.drawType = static_cast<uint32_t>(K4E::GpuParticleType::Debris);
-		info.billboardFlags = K4E::BillboardMode::None;
-		info.textureFilePath = "Mesh:" + std::to_string(kRocketDebrisMeshId);
-
-		// 半径は発生位置のばらけ幅。破片自体のサイズは GpuParticleEmit.CS.hlsl 側で小さくする。
-		info.radius = 1.35f;
-		info.loopCount = 0;
-		info.loopFrequency = 0.0f;
-
-		K4E::GpuParticleEmitter* emitter = particle->CreateEmitter(kRocketDebrisEmitterName, info);
-		if (!emitter)
-		{
-			emitter = particle->GetEmitter(kRocketDebrisEmitterName);
-		}
-
-		if (emitter)
-		{
-			emitter->SetPosition(position);
-		}
-
-		return emitter;
+		if (!target) return bullet.GetCenterPosition();
+		const K4E::Vector3 origin = bullet.GetSegment().origin;
+		const K4E::Vector3 direction = bullet.GetSegment().diff;
+		const K4E::Vector3 center = target->GetCenterPosition();
+		const float directionLengthSq = LengthSq(direction);
+		if (directionLengthSq <= 1.0e-8f) return bullet.GetCenterPosition();
+		const float projection = std::clamp(
+			((center.x - origin.x) * direction.x + (center.y - origin.y) * direction.y + (center.z - origin.z) * direction.z) / directionLengthSq,
+			0.0f, 1.0f);
+		return origin + direction * projection; // Segment上の対象中心に最も近い点を着弾位置として共有する。
 	}
 }
 
-void Bullet::Initialize(const K4E::Vector3& startPos,
-	const K4E::Vector3& velocity,
-	int damage,
-	float lifeTimeSec,
-	const K4E::Vector3& shooterPosition,
-	uint32_t shooterColliderId,
-	uint32_t typeId
-)
+void Bullet::Initialize(const K4E::Vector3& startPos, const K4E::Vector3& velocity, int damage, float lifeTimeSec,
+	const K4E::Vector3& shooterPosition, uint32_t shooterColliderId, uint32_t typeId)
 {
 	damage_ = damage;
 	moveVelocity_ = velocity;
@@ -210,35 +54,23 @@ void Bullet::Initialize(const K4E::Vector3& startPos,
 	lifeTimer_ = 0.0f;
 	shooterPosition_ = shooterPosition;
 	shooterColliderId_ = shooterColliderId;
-
 	ApplyCollisionPreset(*this, GetProjectilePresetId(typeId));
 	Collider::SetOwner(this);
-
-	// デバッグ表示したいなら
 	model_ = std::make_unique<K4E::Object3D>();
 	model_->Initialize("Sample/cube.gltf");
-
-	// 弾種で色を変えたいなら（任意）
-	// if (typeId == (uint32_t)CollisionTypeIdDef::kEnemyBullet) debugColor_ = {1,0,0,1};
-
-	// セグメント判定が主なので OBB は小さめでOK
 	Collider::SetOBBHalfSize(scale_);
-
 	prevPos_ = startPos;
 	Collider::SetCenterPosition(startPos);
-	if (model_) {
+	if (model_)
+	{
 		model_->SetScale(scale_);
 		model_->SetTranslate(startPos);
 		model_->SetColor(debugColor_);
 		model_->Update();
 	}
-
-	// 初期セグメント長さ0
-	K4E::Segment seg{};
-	seg.origin = startPos;
-	seg.diff = { 0.0f, 0.0f, 0.0f };
-	Collider::SetSegment(seg);
-
+	K4E::Segment segment{};
+	segment.origin = startPos;
+	Collider::SetSegment(segment);
 	isDead_ = false;
 	removable_ = false;
 	deadFrames_ = 0;
@@ -253,10 +85,8 @@ void Bullet::ConfigureSplashDamage(const WeaponParams& params)
 	splashRadius_ = std::max(0.0f, params.splashRadius);
 	splashDamage_ = std::max(0, params.splashDamage);
 	splashCanDamageSelf_ = params.splashCanDamageSelf;
-
 	if (HasSplashDamage())
 	{
-		// デバッグ視認性を少し上げる
 		debugColor_ = { 1.0f, 0.35f, 0.05f, 1.0f };
 		if (model_) model_->SetColor(debugColor_);
 	}
@@ -275,296 +105,158 @@ void Bullet::SetWeaponMetadata(const WeaponParams& params)
 
 void Bullet::SetUsePhysicsTrigger(bool enabled)
 {
-	// 通常弾だけをPhysicsWorld Triggerへ移す。対象外の弾は要求されてもLegacy側へ残す。
 	usePhysicsTrigger_ = enabled && IsEligibleForPhysicsTrigger();
-	if (!usePhysicsTrigger_)
-	{
-		ClearPhysicsHit();
-	}
+	if (!usePhysicsTrigger_) ClearPhysicsHit();
 }
 
-void Bullet::MarkPhysicsHit()
-{
-	hasPhysicsHit_ = true;
-}
-
-void Bullet::ClearPhysicsHit()
-{
-	hasPhysicsHit_ = false;
-}
+void Bullet::MarkPhysicsHit(){ hasPhysicsHit_ = true; }
+void Bullet::ClearPhysicsHit(){ hasPhysicsHit_ = false; }
 
 bool Bullet::IsEligibleForPhysicsTrigger() const
 {
-	// Heavy/Special/Splash/Rocket系を避け、明確に通常のPrimaryプレイヤー弾だけを移行対象にする。
-	return GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBullet) &&
-		weaponCategory_ == EWeaponCategory::Primary &&
-		!HasSplashDamage() &&
-		deathExplosionRadius_ <= 0.0f;
+	return GetTypeID() == static_cast<uint32_t>(CollisionTypeIdDef::kBullet) && weaponCategory_ == EWeaponCategory::Primary && !HasSplashDamage() && deathExplosionRadius_ <= 0.0f;
 }
 
 void Bullet::HandlePhysicsTriggerHit(K4E::Collider* other)
 {
-	// TriggerEnterを実Bulletのヒット処理へ変換する。Stayでは呼ばない前提で、二重処理もここで止める。
-	if (!usePhysicsTrigger_ || hasPhysicsHit_)
-	{
-		return;
-	}
-
+	if (!usePhysicsTrigger_ || hasPhysicsHit_) return;
 	ProcessHit(other, true);
 }
 
 void Bullet::KillAndMoveFar()
 {
-	// Exit 解決用に 1フレーム残す
 	isDead_ = true;
 	deadFrames_ = 0;
 	SetEnabled(false);
-
-	const K4E::Vector3 far_ = { 1e9f, 1e9f, 1e9f };
-	Collider::SetCenterPosition(far_);
-	if (model_) model_->SetTranslate(far_);
-
-	K4E::Segment s{};
-	s.origin = far_;
-	s.diff = { 0.0f, 0.0f, 0.0f };
-	Collider::SetSegment(s);
-
+	const K4E::Vector3 farPosition{ 1.0e9f, 1.0e9f, 1.0e9f };
+	Collider::SetCenterPosition(farPosition);
+	if (model_) model_->SetTranslate(farPosition);
+	K4E::Segment segment{};
+	segment.origin = farPosition;
+	Collider::SetSegment(segment);
 	if (model_) model_->Update();
 }
 
 void Bullet::ApplySplashDamageToType(uint32_t targetType, const K4E::Vector3& center)
 {
 	if (!collisionManager_ || !HasSplashDamage()) return;
-
-	const auto& targets = collisionManager_->GetCollidersByType(targetType);
 	const float radiusSq = splashRadius_ * splashRadius_;
-
-	for (K4E::Collider* col : targets)
+	for (K4E::Collider* collider : collisionManager_->GetCollidersByType(targetType))
 	{
-		if (!col) continue;
-		if (!splashCanDamageSelf_ && shooterColliderId_ != 0u && col->GetUniqueID() == shooterColliderId_) continue;
+		if (!collider) continue;
+		if (!splashCanDamageSelf_ && shooterColliderId_ != 0u && collider->GetUniqueID() == shooterColliderId_) continue;
+		const K4E::Vector3 toTarget = collider->GetCenterPosition() - center;
+		const float distanceSq = LengthSq(toTarget);
+		if (distanceSq > radiusSq) continue;
+		const float distanceRate = splashRadius_ > 0.0f ? std::clamp(std::sqrt(std::max(0.0f, distanceSq)) / splashRadius_, 0.0f, 1.0f) : 1.0f;
+		const int finalDamage = std::max(1, static_cast<int>(std::round(static_cast<float>(splashDamage_) * (1.0f - distanceRate))));
 
-		K4E::Vector3 toTarget = col->GetCenterPosition() - center;
-		const float distSq = LengthSq(toTarget);
-		if (distSq > radiusSq) continue;
-
-		const float dist = std::sqrt(std::max(0.0f, distSq));
-		const float t = (splashRadius_ > 0.0f) ? std::clamp(dist / splashRadius_, 0.0f, 1.0f) : 1.0f;
-		const float damageRate = 1.0f - t;
-		const int finalDamage = std::max(1, static_cast<int>(std::round(static_cast<float>(splashDamage_) * damageRate)));
-
-		// Colliderのownerはvoid*なので、タイプ別に取得してボスをEnemyBaseとして誤解釈しない。
 		if (targetType == static_cast<uint32_t>(CollisionTypeIdDef::kEnemy))
 		{
-			if (auto* enemy = col->GetOwner<EnemyBase>())
+			if (auto* enemy = collider->GetOwner<EnemyBase>(); enemy && !enemy->IsDead())
 			{
-				if (enemy->IsDead())
-				{
-					continue;
-				}
-
-				const K4E::Vector3 hitDir = NormalizeSafe(toTarget, NormalizeSafe(moveVelocity_, { 0.0f, 0.0f, 1.0f }));
-				enemy->SpawnHitEffectAt(col->GetCenterPosition());
-				enemy->TakeDamage(finalDamage, hitDir, 1.8f);
+				enemy->SpawnHitEffectAt(collider->GetCenterPosition());
+				enemy->TakeDamage(finalDamage, NormalizeSafe(toTarget, NormalizeSafe(moveVelocity_)), 1.8f);
 			}
 		}
 		else if (targetType == static_cast<uint32_t>(CollisionTypeIdDef::kBoss))
 		{
-			if (auto* boss = col->GetOwner<BossBase>(); boss && boss->IsAlive())
-			{
-				boss->OnBulletDamaged(static_cast<float>(finalDamage));
-			}
+			if (auto* boss = collider->GetOwner<K4E::BossActor>(); boss && boss->IsAlive()) boss->ApplyBulletDamage(static_cast<float>(finalDamage), collider->GetCenterPosition());
 		}
 	}
 }
 
 void Bullet::TriggerSplashDamageAt(const K4E::Vector3& center)
 {
-	if (!HasSplashDamage()) return;
-	if (splashTriggered_) return;
+	if (!HasSplashDamage() || splashTriggered_) return;
 	splashTriggered_ = true;
-
 	ApplySplashDamageToType(static_cast<uint32_t>(CollisionTypeIdDef::kEnemy), center);
 	ApplySplashDamageToType(static_cast<uint32_t>(CollisionTypeIdDef::kBoss), center);
-
-	if (auto* particleManager = K4E::GpuParticleManager::GetInstance())
+	if (auto* particles = K4E::GpuParticleManager::GetInstance())
 	{
-		particleManager->EmitBurst(
-			"HeavySplashImpact",
-			K4E::GpuParticleType::DeathBurstCore,
-			center,
-			52);
-
-		// 範囲攻撃であることを見せる外周リング。
-		// splashRadius と同じ大きさに近づけるため、発生前にエミッター半径を上書きする。
-		if (auto* shockwave = particleManager->EmitBurst(
-			"RocketSplashRadiusRing",
-			K4E::GpuParticleType::Shockwave,
-			center,
-			96))
+		particles->EmitBurst("HeavySplashImpact", K4E::GpuParticleType::DeathBurstCore, center, 52);
+		if (auto* shockwave = particles->EmitBurst("RocketSplashRadiusRing", K4E::GpuParticleType::Shockwave, center, 96))
 		{
 			shockwave->GetInfoMutable().radius = std::max(1.0f, splashRadius_);
 			shockwave->SetPosition(center);
 		}
-
-		// 煙を減らし、破片と範囲リングが隠れないようにする。
-		particleManager->EmitBurst(
-			"HeavySplashSmoke",
-			K4E::GpuParticleType::Smoke,
-			center,
-			18);
-	}
-
-	// ロケットランチャー用：着弾時に小さな砂粒・小石を飛ばす
-	if (auto* debrisEmitter = PrepareRocketDebrisMeshEmitter(center))
-	{
-		debrisEmitter->RequestEmit(72);
+		particles->EmitBurst("HeavySplashSmoke", K4E::GpuParticleType::Smoke, center, 18);
+		particles->EmitBurst("RocketSplashDebris", K4E::GpuParticleType::Debris, center, 72);
 	}
 }
 
-void Bullet::Update(float dt)
+void Bullet::Update(float deltaTime)
 {
 	if (removable_) return;
-
-	// 死亡済み：Exit 解決のため 1フレーム残す
 	if (isDead_)
 	{
-		++deadFrames_;
-		if (deadFrames_ >= 2) removable_ = true;
+		if (++deadFrames_ >= 2) removable_ = true;
 		return;
 	}
-
-	lifeTimer_ += dt;
+	lifeTimer_ += deltaTime;
 	if (lifeTimer_ >= lifeTimeSec_)
 	{
-		if (HasSplashDamage())
-		{
-			TriggerSplashDamageAt(GetCenterPosition());
-		}
+		if (HasSplashDamage()) TriggerSplashDamageAt(GetCenterPosition());
 		KillAndMoveFar();
 		return;
 	}
-
 	const K4E::Vector3 current = GetCenterPosition();
-	const K4E::Vector3 delta = moveVelocity_ * dt;
+	const K4E::Vector3 delta = moveVelocity_ * deltaTime;
 	const K4E::Vector3 next = current + delta;
-
-	// このフレームの移動分を Segment にする（すり抜け防止）
-	K4E::Segment seg{};
-	seg.origin = current;
-	seg.diff = delta;
-	SetSegment(seg);
-
+	K4E::Segment segment{};
+	segment.origin = current;
+	segment.diff = delta;
+	SetSegment(segment);
 	prevPos_ = current;
 	Collider::SetCenterPosition(next);
-	// Bulletの現在位置をTrigger判定用Colliderへ同期する。PhysicsWorldはこのCollider中心/Segmentを読む。
 	if (model_) model_->SetTranslate(next);
-
-	// ざっくり範囲外で消す（必要なら world bounds に置換）
-	if (next.x > 1000.0f || next.x < -1000.0f || next.z > 1000.0f || next.z < -1000.0f)
+	if (std::abs(next.x) > 1000.0f || std::abs(next.z) > 1000.0f)
 	{
 		KillAndMoveFar();
 		return;
 	}
-
 	if (model_) model_->Update();
 }
 
-void Bullet::Draw()
-{
-	if (removable_) return;
-	if (!drawModel_) return;
-	if (model_) model_->Draw();
-}
-
-void Bullet::DrawImGui()
-{
-	if (model_) model_->DrawImGui();
-}
+void Bullet::Draw(){ if (!removable_ && drawModel_ && model_) model_->Draw(); }
+void Bullet::DrawImGui(){ if (model_) model_->DrawImGui(); }
 
 void Bullet::OnCollisionEnter(K4E::Collider* other)
 {
-	// PhysicsWorld移行済みBulletの二重処理を防ぐため、Legacy CollisionManager側の命中処理をスキップする。
-	if (usePhysicsTrigger_) return;
-	ProcessHit(other, false);
+	if (!usePhysicsTrigger_) ProcessHit(other, false);
 }
 
 void Bullet::ProcessHit(K4E::Collider* other, bool fromPhysicsTrigger)
 {
-	if (!other) return;
-	if (isDead_ || removable_) return;
-	if (shooterColliderId_ != 0u && other->GetUniqueID() == shooterColliderId_) return; // 自分を撃ったコライダーとの接触は無視
-
+	if (!other || isDead_ || removable_) return;
+	if (shooterColliderId_ != 0u && other->GetUniqueID() == shooterColliderId_) return;
 	const uint32_t selfType = GetTypeID();
 	const uint32_t otherType = other->GetTypeID();
+	const uint32_t playerType = static_cast<uint32_t>(CollisionTypeIdDef::kPlayer);
+	const uint32_t enemyType = static_cast<uint32_t>(CollisionTypeIdDef::kEnemy);
+	const uint32_t bossType = static_cast<uint32_t>(CollisionTypeIdDef::kBoss);
+	const uint32_t worldType = static_cast<uint32_t>(CollisionTypeIdDef::kWorld);
+	const uint32_t crystalType = static_cast<uint32_t>(CollisionTypeIdDef::kCrystal);
+	const bool playerBullet = selfType == static_cast<uint32_t>(CollisionTypeIdDef::kBullet);
+	const bool hostileBullet = selfType == static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet) || selfType == static_cast<uint32_t>(CollisionTypeIdDef::kBossBullet);
+	const bool shouldHit = (playerBullet && (otherType == enemyType || otherType == bossType || otherType == crystalType || otherType == worldType)) ||
+		(hostileBullet && (otherType == playerType || otherType == worldType));
+	if (!shouldHit || contactRecord_.Check(other->GetUniqueID())) return;
+	contactRecord_.Add(other->GetUniqueID());
+	if (fromPhysicsTrigger) MarkPhysicsHit();
 
-	// どこに当たったら消すかは「弾種」で決める
-	const uint32_t kPlayer = static_cast<uint32_t>(CollisionTypeIdDef::kPlayer);
-	const uint32_t kEnemy = static_cast<uint32_t>(CollisionTypeIdDef::kEnemy);
-	const uint32_t kBoss = static_cast<uint32_t>(CollisionTypeIdDef::kBoss);
-	const uint32_t kWorld = static_cast<uint32_t>(CollisionTypeIdDef::kWorld);
-	const uint32_t kCrystal = static_cast<uint32_t>(CollisionTypeIdDef::kCrystal);
-
-	bool shouldHit = false;
-	if (selfType == static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
+	const K4E::Vector3 impactPoint = ResolveImpactPoint(*this, other);
+	if (otherType == bossType)
 	{
-		// プレイヤー弾：敵/ボス/クリスタル/ワールド
-		shouldHit = (otherType == kEnemy || otherType == kBoss || otherType == kCrystal || otherType == kWorld);
+		if (auto* boss = other->GetOwner<K4E::BossActor>()) boss->ApplyBulletDamage(static_cast<float>(damage_), impactPoint);
 	}
-	else if (selfType == static_cast<uint32_t>(CollisionTypeIdDef::kEnemyBullet) ||
-		selfType == static_cast<uint32_t>(CollisionTypeIdDef::kBossBullet))
+	if (HasSplashDamage()) TriggerSplashDamageAt(impactPoint);
+	if (playerBullet && otherType == worldType && !HasSplashDamage() && worldImpactCallback_)
 	{
-		// 敵弾/ボス弾：プレイヤー/ワールド
-		shouldHit = (otherType == kPlayer || otherType == kWorld);
+		worldImpactCallback_(impactPoint, NormalizeSafe(moveVelocity_ * -1.0f));
 	}
-
-	if (!shouldHit) return;
-
-	// 多段ヒット防止（基本は当たったら即死なので保険）
-	const uint32_t otherId = other->GetUniqueID();
-	if (contactRecord_.Check(otherId)) return;
-	contactRecord_.Add(otherId);
-	if (fromPhysicsTrigger)
-	{
-		MarkPhysicsHit();
-	}
-
-	if (otherType == kBoss)
-	{
-		if (auto* boss = other->GetOwner<BossBase>())
-		{
-			// プレイヤー銃弾がボスへ当たったら、非貫通弾として1回だけダメージを与える。
-			boss->OnBulletDamaged(static_cast<float>(damage_));
-		}
-	}
-
-	if (HasSplashDamage())
-	{
-		const K4E::Vector3 impactPoint = ResolveBulletImpactPoint(*this, other);
-		TriggerSplashDamageAt(impactPoint);
-	}
-
-	if (selfType == static_cast<uint32_t>(CollisionTypeIdDef::kBullet) && otherType == kWorld &&
-		!HasSplashDamage() && worldImpactCallback_)
-	{
-		K4E::Vector3 impactPoint = GetCenterPosition();
-		K4E::Vector3 impactNormal = NormalizeSafe(moveVelocity_ * -1.0f, { 0.0f, 1.0f, 0.0f });
-		// ステージOBBとの交点と面法線を求め、敵ヒットとは分離したWorld着弾演出だけを通知する。
-		TryComputeSegmentObbImpact(GetSegment(), other->GetOBB(), impactPoint, impactNormal);
-		worldImpactCallback_(impactPoint, impactNormal);
-	}
-
 	KillAndMoveFar();
 }
 
-void Bullet::OnCollisionEnter(const K4E::CollisionHit& hit)
-{
-	// Collision Event Systemの詳細Hit入口も、既存の弾命中処理へ集約して二重実装を避ける。
-	OnCollisionEnter(hit.other);
-}
-
-void Bullet::OnOverlapBegin(const K4E::CollisionHit& hit)
-{
-	// ProjectileはPreset上ほぼBlockだが、将来Trigger対象に当たった場合もEnter一回処理へ寄せる。
-	OnCollisionEnter(hit.other);
-}
+void Bullet::OnCollisionEnter(const K4E::CollisionHit& hit){ OnCollisionEnter(hit.other); }
+void Bullet::OnOverlapBegin(const K4E::CollisionHit& hit){ OnCollisionEnter(hit.other); }
