@@ -23,6 +23,8 @@ namespace Ken4lowEngine
 	class CharacterActor : public Actor
 	{
 	public:
+		using DamageListenerId = std::uint64_t;
+		using DamageListener = std::function<void(const CharacterDamageInfo&, const CharacterDamageResult&)>;
 		using DeathListenerId = std::uint64_t;
 		using DeathListener = std::function<void(const CharacterDeathEvent&)>;
 
@@ -120,6 +122,10 @@ namespace Ken4lowEngine
 		virtual void OnOverlapStay(const CollisionHit& hit);
 		virtual void OnOverlapEnd(const CollisionHit& hit);
 
+		DamageListenerId AddDamageListener(DamageListener listener);
+		bool RemoveDamageListener(DamageListenerId listenerId);
+		bool HasDamageListener(DamageListenerId listenerId) const;
+		void ClearDamageListeners();
 		DeathListenerId AddDeathListener(DeathListener listener);
 		bool RemoveDeathListener(DeathListenerId listenerId);
 		bool HasDeathListener(DeathListenerId listenerId) const;
@@ -145,16 +151,25 @@ namespace Ken4lowEngine
 			worldTransformSnapshot_.scale_ = root->GetWorldScale();
 		}
 
+		/// 受理済みDamageを登録Listenerへ通知する。
+		void NotifyDamageAccepted(const CharacterDamageInfo& damageInfo, const CharacterDamageResult& damageResult);
 		/// 派生処理と登録Listenerへ死亡イベントを一度だけ通知する。
 		void NotifyDeath(const CharacterDamageInfo& damageInfo, const CharacterDamageResult& damageResult);
 
 	private:
+		struct DamageListenerEntry
+		{
+			DamageListenerId id = 0;
+			DamageListener listener;
+		};
 		struct DeathListenerEntry
 		{
 			DeathListenerId id = 0;
 			DeathListener listener;
 		};
 
+		std::vector<DamageListenerEntry> damageListeners_;
+		DamageListenerId nextDamageListenerId_ = 1;
 		std::vector<DeathListenerEntry> deathListeners_;
 		DeathListenerId nextDeathListenerId_ = 1;
 		bool deathNotificationSent_ = false;
