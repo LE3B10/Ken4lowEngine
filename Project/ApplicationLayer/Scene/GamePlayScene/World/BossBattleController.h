@@ -1,7 +1,6 @@
 #pragma once
 
 #include "BossIntroController.h"
-#include "GuardianBoss.h"
 #include "Collider.h"
 #include "Object3D.h"
 #include "Vector3.h"
@@ -11,6 +10,7 @@
 
 namespace Ken4lowEngine
 {
+	class BossActor;
 	class Matrix4x4;
 	class Stage;
 }
@@ -52,7 +52,7 @@ private:
 	bool collected_ = false;
 };
 
-/// ボス出現、登場演出、Runtime Playerへの攻撃、撃破後クリアItemを管理する。
+/// ボス出現、登場演出、ActorWorld所有BossActor、撃破後クリアItemを管理する。
 class BossBattleController
 {
 public:
@@ -99,11 +99,12 @@ public:
 	float GetBossHP() const;
 	float GetBossMaxHP() const;
 	const K4E::Vector3& GetBossSpawnPosition() const { return bossSpawnPosition_; }
-	GuardianBoss* GetBoss() const { return guardianBoss_.get(); }
+	K4E::BossActor* GetBoss() const { return bossActor_; }
 
 private:
-	void SpawnGuardianBoss(const Dependencies& deps, bool registerCollider);
-	void RegisterGuardianBossCollider(const Dependencies& deps);
+	void SpawnBossActor(const Dependencies& deps, bool enableBattleImmediately);
+	void RegisterBossCollider(const Dependencies& deps);
+	void DestroyBossActor(const Dependencies& deps);
 	void AlignPlayerViewToBossAfterIntro(IPlayerRuntime& player) const;
 	void UpdateBossClearProgress(const Dependencies& deps, float deltaTime);
 	void SpawnClearItem(const Dependencies& deps, const K4E::Vector3& bossPosition);
@@ -115,7 +116,7 @@ private:
 	static bool CalcLookAnglesToTarget(const K4E::Vector3& from, const K4E::Vector3& target, float& outPitch, float& outYaw);
 
 private:
-	std::unique_ptr<GuardianBoss> guardianBoss_;
+	K4E::BossActor* bossActor_ = nullptr; // 実体はCharacterWorldのActorWorldが所有する。
 	std::unique_ptr<BossClearItem> clearItem_;
 	K4E::Vector3 bossSpawnPosition_{ 0.0f, 2.25f, 30.0f };
 	K4E::Vector3 bossDeathPosition_{};
@@ -134,5 +135,5 @@ private:
 	float cameraShakeAmplitude_ = 0.0f;
 	float cameraShakeFrequency_ = 0.0f;
 	float cameraShakeSeed_ = 0.0f;
-	BossPhase lastPresentedBossPhase_ = BossPhase::Phase1;
+	unsigned int lastPresentedPhaseRevision_ = 0;
 };
