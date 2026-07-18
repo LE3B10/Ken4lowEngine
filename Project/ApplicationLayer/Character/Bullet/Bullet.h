@@ -3,6 +3,7 @@
 #include "ContactRecord.h"
 #include "Object3D.h"
 #include "CollisionTypeIdDef.h"
+#include "Scene/Actor/Character/CharacterDamage.h"
 #include "ApplicationLayer/Character/Boss/Actor/BossActor.h"
 #include "EnemyBase.h"
 #include "EnemySpawnCrystal.h"
@@ -100,6 +101,7 @@ public:
 	float GetDeathKnockbackUpPower() const { return deathKnockbackUpPower_; }
 	float GetDeathExplosionRadius() const { return deathExplosionRadius_; }
 	float GetDeathImpulseScale() const { return deathImpulseScale_; }
+	K4E::CharacterDamageInfo BuildDamageInfo(const K4E::Vector3& hitPosition, const K4E::Vector3& hitDirection, K4E::CharacterDamageType damageType = K4E::CharacterDamageType::Projectile) const;
 
 private:
 	void KillAndMoveFar();
