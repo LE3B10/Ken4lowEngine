@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EnemySpawnCrystal.h"
+#include "EnemyHPBar.h"
 #include "Matrix4x4.h"
 #include "Vector2.h"
 #include "Vector3.h"
@@ -9,8 +10,6 @@
 #include <memory>
 #include <string>
 #include <vector>
-
-class EnemyHPBar;
 
 /// -------------------------------------------------------------
 /// クリスタル頭上HPバーの生成・更新・描画・Debug表示を担当するクラス。
