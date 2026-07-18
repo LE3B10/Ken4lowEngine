@@ -65,12 +65,14 @@ namespace Ken4lowEngine
 
 		Actor::Initialize();
 		deathNotificationSent_ = !IsAlive(); // 初期JSONが死亡状態でも生成直後の死亡イベントは発行しない。
+		lastAcceptedDamageInfo_ = {};
 	}
 
 	void CharacterActor::Finalize()
 	{
 		ClearDeathListeners();
 		deathNotificationSent_ = false;
+		lastAcceptedDamageInfo_ = {};
 		Actor::Finalize();
 	}
 
@@ -84,6 +86,10 @@ namespace Ken4lowEngine
 
 		if (health->IsAlive()) deathNotificationSent_ = false; // Component側で復活した後は次の死亡通知を許可する。
 		result = health->ApplyDamage(damageInfo);
+		if (result.accepted && result.appliedDamage > 0.0f)
+		{
+			lastAcceptedDamageInfo_ = damageInfo; // 被弾UIは無敵判定を通過した最後の攻撃元だけを参照する。
+		}
 		if (result.killed && !deathNotificationSent_)
 		{
 			deathNotificationSent_ = true;
