@@ -42,7 +42,7 @@ void EnemyParticleEffectSystem::SpawnHitEffect(const Vector3& hitWorldPos)
 
     auto* effects = EffectSystem::GetInstance();
     effects->Play("EnemyHitSpark", hitWorldPos);
-    effects->Play("EnemyBlood", AddY(hitWorldPos, 0.55f));
+    effects->Play("EnemyBlood", hitWorldPos); // 火花と血飛沫は同じ実命中座標から発生させる。
 }
 
 void EnemyParticleEffectSystem::SpawnDeathEffect(const Vector3& deathWorldPos)
