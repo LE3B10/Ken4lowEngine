@@ -20,7 +20,16 @@ namespace Ken4lowEngine
 			AttackExecutionResult execution{};
 			execution.executed = true;
 			if (!context.target || context.target->IsDead()) return execution;
-			const CharacterDamageResult damageResult = context.target->ApplyDamage(damage);
+
+			CharacterDamageInfo damageInfo{};
+			damageInfo.amount = damage;
+			damageInfo.sourceActor = context.owner;
+			if (context.target)
+			{
+				damageInfo.hitPosition = context.target->GetTargetPosition();
+				damageInfo.hasHitPosition = true; // 攻撃者と命中位置をDamageへ残し、被弾方向UIと将来の着弾演出で共有する。
+			}
+			const CharacterDamageResult damageResult = context.target->ApplyDamage(damageInfo);
 			execution.accepted = damageResult.accepted;
 			execution.appliedDamage = damageResult.appliedDamage;
 			return execution;
