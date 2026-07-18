@@ -151,6 +151,8 @@ void WorldDebugView::DrawGameDebugImGui(const Dependencies& deps)
 	ImGui::Text("SoA Active Enemies: %zu", bulletEnemySoAStats.activeEnemyCount);
 	ImGui::Text("SoA Hit Count: %zu", bulletEnemySoAStats.hitCount);
 	ImGui::Text("SoA Collision Checks: %zu", bulletEnemySoAStats.collisionChecks);
+#else
+(void)deps;
 #endif
 }
 
@@ -165,6 +167,8 @@ void WorldDebugView::DrawEnemyDebugImGui(const Dependencies& deps)
 			deps.enemyHpBarManager->DrawImGuiContent();
 		}
 	}
+#else
+	(void)deps;
 #endif
 }
 
@@ -176,5 +180,7 @@ void WorldDebugView::DrawCollisionDebugImGui(const Dependencies& deps)
 	{
 		deps.collisionManager->DrawImGui();
 	}
+#else
+	(void)deps;
 #endif
 }

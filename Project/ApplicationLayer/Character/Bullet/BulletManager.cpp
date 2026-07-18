@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "BulletManager.h"
 #include "Bullet.h"
 #include "CollisionManager.h"
