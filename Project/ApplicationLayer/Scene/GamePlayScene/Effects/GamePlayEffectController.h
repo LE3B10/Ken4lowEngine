@@ -3,15 +3,18 @@
 #include "GamePlayWorld.h"
 #include "PostEffect/PlayerHealthPostEffectController.h"
 
+#include <Actor.h>
 #include <Camera.h>
 #include <GpuParticleManager.h>
 #include <Matrix4x4.h>
 #include <ModelComponent.h>
 #include <PostEffectManager.h>
 #include <Player.h>
+#include <SceneComponent.h>
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <memory>
 
 /// <summary>
@@ -103,6 +106,56 @@ private:
 		}
 	}
 
+	static float DistanceSqXZ(const Ken4lowEngine::Vector3& first, const Ken4lowEngine::Vector3& second)
+	{
+		const float dx = first.x - second.x;
+		const float dz = first.z - second.z;
+		return dx * dx + dz * dz;
+	}
+
+	static bool ResolveDamageSourcePosition(
+		GamePlayWorld* world,
+		const Ken4lowEngine::PlayerActor& player,
+		Ken4lowEngine::Vector3& outPosition)
+	{
+		const Ken4lowEngine::CharacterDamageInfo& damageInfo = player.GetLastAcceptedDamageInfo();
+		if (damageInfo.sourceActor)
+		{
+			if (const Ken4lowEngine::SceneComponent* sourceRoot = damageInfo.sourceActor->GetRootComponent())
+			{
+				outPosition = sourceRoot->GetWorldPosition();
+				return true; // Actor／Component攻撃はDamageへ保存した攻撃者を方向表示の正本にする。
+			}
+		}
+
+		if (!world) return false;
+		const Ken4lowEngine::Vector3 playerPosition = player.GetWorldPosition();
+		float nearestDistanceSq = std::numeric_limits<float>::max();
+		bool found = false;
+		for (EnemyBase* enemy : world->GetCharacters().GetEnemyRawList())
+		{
+			if (!enemy || enemy->IsDead()) continue;
+			const Ken4lowEngine::Vector3 enemyPosition = enemy->GetCenterPosition();
+			const float distanceSq = DistanceSqXZ(playerPosition, enemyPosition);
+			if (distanceSq >= nearestDistanceSq || distanceSq > 32.0f * 32.0f) continue;
+			nearestDistanceSq = distanceSq;
+			outPosition = enemyPosition;
+			found = true;
+		}
+
+		if (GuardianBoss* boss = world->GetBoss(); boss && boss->IsAlive())
+		{
+			const Ken4lowEngine::Vector3 bossPosition = boss->GetPosition();
+			const float distanceSq = DistanceSqXZ(playerPosition, bossPosition);
+			if (distanceSq < nearestDistanceSq && distanceSq <= 40.0f * 40.0f)
+			{
+				outPosition = bossPosition;
+				found = true;
+			}
+		}
+		return found; // 旧Boss・投擲Damageに発生元情報が無い間だけ、攻撃可能距離内の最寄りCharacterへ補完する。
+	}
+
 	static bool ResolveWeaponMuzzleTransform(
 		GamePlayWorld* world,
 		Ken4lowEngine::Vector3& outPosition,
@@ -134,12 +187,21 @@ private:
 	{
 		if (auto* player = world ? world->GetCharacters().GetPlayer() : nullptr)
 		{
-			player->SetOnDamageTakenCallback([this]()
+			player->SetOnDamageTakenCallback([this, world]()
 				{
-					if (hpPostEffectController_)
-					{
-						hpPostEffectController_->NotifyDamageTaken();
-					}
+					if (hpPostEffectController_) hpPostEffectController_->NotifyDamageTaken();
+					if (!world) return;
+					auto* currentPlayer = world->GetCharacters().GetPlayer();
+					HUDManager* hud = world->GetHUDManager();
+					Ken4lowEngine::Camera* camera = currentPlayer ? currentPlayer->GetCamera() : nullptr;
+					if (!currentPlayer || !hud || !camera) return;
+
+					Ken4lowEngine::Vector3 attackerPosition{};
+					if (!ResolveDamageSourcePosition(world, *currentPlayer, attackerPosition)) return;
+					const Ken4lowEngine::Vector3 cameraForward = Ken4lowEngine::Vector3::NormalizeSafe(camera->GetForward(), { 0.0f, 0.0f, 1.0f });
+					const Ken4lowEngine::Vector3 cameraRight{ cameraForward.z, 0.0f, -cameraForward.x };
+					hud->AddDamageIndicator(currentPlayer->GetWorldPosition(), attackerPosition, cameraForward, cameraRight);
+					hud->NotifyPlayerHit(); // 被弾方向とHPリアクションを同じ受理済みDamageフレームで発生させる。
 				});
 		}
 	}
