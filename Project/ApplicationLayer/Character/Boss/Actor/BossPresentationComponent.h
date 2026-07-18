@@ -34,6 +34,9 @@ namespace Ken4lowEngine
 		/// Brainが行動を止めるべき演出中か返す。
 		bool IsBlockingBehavior() const { return phaseTransitionActive_ || deathPresentationActive_; }
 
+		/// 死亡演出が指定時間まで進んだか返す。
+		bool IsDeathPresentationComplete() const { return deathPresentationActive_ && elapsed_ >= deathPresentationDuration_; }
+
 		/// 現在の演出状態名を返す。
 		const std::string& GetStateName() const { return stateName_; }
 
