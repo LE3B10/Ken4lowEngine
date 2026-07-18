@@ -26,7 +26,11 @@ namespace Ken4lowEngine
 		{
 			std::string lowered = texturePath;
 			std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-			return lowered.find("face") != std::string::npos || lowered.find("pixel") != std::string::npos || lowered.find("dot") != std::string::npos;
+			return lowered.find("face") != std::string::npos ||
+				lowered.find("pixel") != std::string::npos ||
+				lowered.find("dot") != std::string::npos ||
+				lowered.find("characters/") != std::string::npos ||
+				lowered.find("skin") != std::string::npos; // Player・Enemyを含む低解像度キャラクタースキンは補間せず描画する。
 		}
 	}
 
@@ -255,7 +259,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///					　モデルの設定
+	///					モデルの設定
 	/// -------------------------------------------------------------
 	void Object3D::SetModel(const std::string& filePath)
 	{
@@ -305,7 +309,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///					テクスチャの設定
+	///				テクスチャの設定
 	/// -------------------------------------------------------------
 	void Object3D::SetTextureForAll(const std::string& texturePath)
 	{
@@ -320,7 +324,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///				指定サブメッシュのテクスチャ設定
+	///			指定サブメッシュのテクスチャ設定
 	/// -------------------------------------------------------------
 	void Object3D::SetTextureForSubmesh(size_t index, const std::string& texturePath)
 	{
@@ -351,7 +355,7 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///					ディゾルブ用のリソース生成
+	///				ディゾルブ用リソース生成
 	/// -------------------------------------------------------------
 	void Object3D::InitializeDissolveResource()
 	{
