@@ -279,6 +279,19 @@ void StageSelectScene::InitializeBackground()
 		startIndex = std::clamp(*savedIndex, 0, static_cast<int>(stages_.size()) - 1);
 	}
 
+	pendingUnlockIndex_ = -1;
+	for (int index = 0; index < static_cast<int>(stages_.size()); ++index)
+	{
+		if (!stages_[index].justUnlocked) continue;
+		pendingUnlockIndex_ = index;
+		stages_[index].locked = true;
+		startIndex = std::max(0, index - 1);
+		// 解除演出が終わるまでロック状態を保存し、途中終了しても次回に演出を再開できるようにする。
+		repository.SetStages(stages_);
+		repository.SetStartIndex(startIndex);
+		break;
+	}
+
 	bg_ = std::make_unique<K4E::Sprite>();
 	bg_->Initialize("Effects/white.dds");
 	bg_->SetPosition({});
@@ -304,10 +317,6 @@ void StageSelectScene::InitializeBackground()
 	activeSelector_ = gridSelector_.get();
 	currentStageIndex_ = startIndex;
 	activeSelector_->FocusToIndex(startIndex, false);
-	if (stages_[startIndex].justUnlocked)
-	{
-		pendingUnlockIndex_ = startIndex;
-	}
 
 	bgNow_ = bgTarget_ = stages_[startIndex].color;
 	bg_->SetColor(bgNow_);
@@ -340,6 +349,12 @@ void StageSelectScene::SyncStageSelectUI()
 		stageSelectUIActor_->SetStageInfo(stages_[safeIndex]);
 		syncedUiStageIndex_ = safeIndex;
 	}
+}
+
+void StageSelectScene::RefreshStageSelectUI()
+{
+	syncedUiStageIndex_ = -1;
+	SyncStageSelectUI();
 }
 
 void StageSelectScene::ChangeState(std::unique_ptr<IStageSelectSceneState> newState)
