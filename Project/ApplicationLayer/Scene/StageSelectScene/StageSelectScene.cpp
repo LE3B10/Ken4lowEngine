@@ -249,14 +249,14 @@ void StageSelectScene::InitializeSelectors()
 
 	context_.onRequestBack = [this]()
 	{
-		if (nextScene_ != NextScene::None) return;
+		if (pendingUnlockIndex_ >= 0 || nextScene_ != NextScene::None) return;
 		nextScene_ = NextScene::Title;
 		BackToTitle();
 	};
 
 	context_.onRequestMap = [this](uint32_t stageIndex)
 	{
-		if (nextScene_ != NextScene::None) return;
+		if (pendingUnlockIndex_ >= 0 || nextScene_ != NextScene::None) return;
 		StageRepository::GetInstance().SetStages(stages_);
 		StageRepository::GetInstance().SetStartIndex(static_cast<int>(stageIndex));
 		nextScene_ = NextScene::GamePlay;
