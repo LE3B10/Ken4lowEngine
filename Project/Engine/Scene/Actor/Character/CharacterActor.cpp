@@ -70,6 +70,7 @@ namespace Ken4lowEngine
 
 	void CharacterActor::Finalize()
 	{
+		ClearDamageListeners();
 		ClearDeathListeners();
 		deathNotificationSent_ = false;
 		lastAcceptedDamageInfo_ = {};
@@ -88,7 +89,8 @@ namespace Ken4lowEngine
 		result = health->ApplyDamage(damageInfo);
 		if (result.accepted && result.appliedDamage > 0.0f)
 		{
-			lastAcceptedDamageInfo_ = damageInfo; // 被弾UIは無敵判定を通過した最後の攻撃元だけを参照する。
+			lastAcceptedDamageInfo_ = damageInfo;
+			NotifyDamageAccepted(damageInfo, result); // 通常敵・Boss・環境Damageを同じ受理済み通知へ集約する。
 		}
 		if (result.killed && !deathNotificationSent_)
 		{
@@ -220,6 +222,35 @@ namespace Ken4lowEngine
 		return GetCharacterComponent<AttackComponent>();
 	}
 
+	CharacterActor::DamageListenerId CharacterActor::AddDamageListener(DamageListener listener)
+	{
+		if (!listener) return 0;
+		const DamageListenerId listenerId = nextDamageListenerId_++;
+		damageListeners_.push_back({ listenerId, std::move(listener) });
+		return listenerId;
+	}
+
+	bool CharacterActor::RemoveDamageListener(DamageListenerId listenerId)
+	{
+		if (listenerId == 0) return false;
+		const auto listenerIt = std::find_if(damageListeners_.begin(), damageListeners_.end(),
+			[listenerId](const DamageListenerEntry& entry) { return entry.id == listenerId; });
+		if (listenerIt == damageListeners_.end()) return false;
+		damageListeners_.erase(listenerIt);
+		return true;
+	}
+
+	bool CharacterActor::HasDamageListener(DamageListenerId listenerId) const
+	{
+		return listenerId != 0 && std::any_of(damageListeners_.begin(), damageListeners_.end(),
+			[listenerId](const DamageListenerEntry& entry) { return entry.id == listenerId; });
+	}
+
+	void CharacterActor::ClearDamageListeners()
+	{
+		damageListeners_.clear();
+	}
+
 	CharacterActor::DeathListenerId CharacterActor::AddDeathListener(DeathListener listener)
 	{
 		if (!listener) return 0;
@@ -247,6 +278,17 @@ namespace Ken4lowEngine
 	void CharacterActor::ClearDeathListeners()
 	{
 		deathListeners_.clear();
+	}
+
+	void CharacterActor::NotifyDamageAccepted(const CharacterDamageInfo& damageInfo, const CharacterDamageResult& damageResult)
+	{
+		std::vector<DamageListener> listeners;
+		listeners.reserve(damageListeners_.size());
+		for (const DamageListenerEntry& entry : damageListeners_)
+		{
+			if (entry.listener) listeners.push_back(entry.listener); // 通知中にListenerが自身を解除しても走査を壊さない。
+		}
+		for (const DamageListener& listener : listeners) listener(damageInfo, damageResult);
 	}
 
 	void CharacterActor::NotifyDeath(const CharacterDamageInfo& damageInfo, const CharacterDamageResult& damageResult)
