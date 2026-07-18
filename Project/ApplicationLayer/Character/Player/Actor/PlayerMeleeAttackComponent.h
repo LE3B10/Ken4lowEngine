@@ -3,7 +3,7 @@
 #include "PlayerCameraComponent.h"
 #include "WeaponComponent.h"
 
-#include "BossBase.h"
+#include "ApplicationLayer/Character/Boss/Actor/BossActor.h"
 #include "CollisionManager.h"
 #include "CollisionTypeIdDef.h"
 #include "EnemyBase.h"
@@ -25,7 +25,7 @@
 
 namespace Ken4lowEngine
 {
-	/// Playerの近接入力・予備動作・有効判定・硬直を管理し、旧Playerを経由せず対象へダメージを与えるComponent。
+	/// Playerの近接入力・予備動作・有効判定・硬直を管理し、Actor所有対象へ直接ダメージを与えるComponent。
 	class PlayerMeleeAttackComponent final : public ActorComponent
 	{
 	public:
@@ -33,13 +33,11 @@ namespace Ken4lowEngine
 		{
 			const float safeDeltaTime = (std::max)(0.0f, deltaTime);
 			cooldownRemaining_ = (std::max)(0.0f, cooldownRemaining_ - safeDeltaTime);
-
 			if (attackRequested_)
 			{
 				attackRequested_ = false;
 				TryStartAttack();
 			}
-
 			if (!attacking_) return;
 			attackTimer_ += safeDeltaTime;
 			const float activeStart = startupDuration_;
@@ -49,7 +47,6 @@ namespace Ken4lowEngine
 				EvaluateHit();
 				hitEvaluated_ = true; // 一度の近接攻撃で同じ対象へ多重ダメージを与えない。
 			}
-
 			if (attackTimer_ >= startupDuration_ + activeDuration_ + recoveryDuration_)
 			{
 				attacking_ = false;
@@ -138,15 +135,15 @@ namespace Ken4lowEngine
 			Collider* nearest = nullptr;
 			float nearestDistanceSq = 0.0f;
 			auto selectNearest = [&](Collider* candidate)
+			{
+				if (!candidate) return;
+				const float distanceSq = DistanceSquared(segment.origin, candidate->GetCenterPosition());
+				if (!nearest || distanceSq < nearestDistanceSq)
 				{
-					if (!candidate) return;
-					const float distanceSq = DistanceSquared(segment.origin, candidate->GetCenterPosition());
-					if (!nearest || distanceSq < nearestDistanceSq)
-					{
-						nearest = candidate;
-						nearestDistanceSq = distanceSq;
-					}
-				};
+					nearest = candidate;
+					nearestDistanceSq = distanceSq;
+				}
+			};
 			selectNearest(enemyHit);
 			selectNearest(bossHit);
 			selectNearest(crystalHit);
@@ -165,10 +162,11 @@ namespace Ken4lowEngine
 			}
 			else if (type == static_cast<uint32_t>(CollisionTypeIdDef::kBoss))
 			{
-				BossBase* boss = nearest->GetOwner<BossBase>();
+				BossActor* boss = nearest->GetOwner<BossActor>();
 				if (!boss || boss->IsDead()) return;
-				boss->OnDamaged(static_cast<float>(damage_));
-				killed = boss->IsDead();
+				const bool wasDead = boss->IsDead();
+				boss->ApplyBulletDamage(static_cast<float>(damage_), nearest->GetCenterPosition()); // 近接もBossActorの共通Health経路へ集約する。
+				killed = !wasDead && boss->IsDead();
 			}
 			else if (type == static_cast<uint32_t>(CollisionTypeIdDef::kCrystal))
 			{
