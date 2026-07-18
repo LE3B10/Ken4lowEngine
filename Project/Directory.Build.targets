@@ -1,5 +1,5 @@
 <Project>
-  <!-- Actor移行後の旧Character実装を、物理削除後も既存vcxproj項目から安全に除外する。 -->
+  <!-- Actor移行後に削除した旧Character実装を、残存vcxproj項目から安全に除外する。 -->
   <ItemGroup>
     <ClCompile Remove="ApplicationLayer\Character\Boss\Core\BossFactory.cpp" />
     <ClCompile Remove="ApplicationLayer\Character\Boss\Components\BossStatusComponent.cpp" />
@@ -19,8 +19,15 @@
     <ClCompile Remove="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.cpp" />
     <ClCompile Remove="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.cpp" />
 
+    <ClCompile Remove="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.cpp" />
+    <ClCompile Remove="ApplicationLayer\DebugTools\EnemyScalability\EnemyScalabilitySystem.cpp" />
+
     <ClCompile Remove="ApplicationLayer\Character\Player\Player.cpp" />
     <ClCompile Remove="ApplicationLayer\Character\Player\PlayerDamageCollider.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Player\PlayerWeaponController.cpp" />
+    <ClCompile Remove="ApplicationLayer\Character\Player\PlayerFsmApi.cpp" />
     <ClCompile Remove="ApplicationLayer\Character\Player\Effect\PlayerVfx.cpp" />
     <ClCompile Remove="ApplicationLayer\Character\Player\Component\PlayerWeaponComponent.cpp" />
     <ClCompile Remove="ApplicationLayer\Character\Player\Component\PlayerMotorComponent.cpp" />
@@ -31,12 +38,7 @@
     <ClCompile Remove="ApplicationLayer\Character\Player\Component\PlayerCombatComponent.cpp" />
     <ClCompile Remove="ApplicationLayer\Character\Player\Component\PlayerDamageComponent.cpp" />
     <ClCompile Remove="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.cpp" />
-    <ClCompile Remove="ApplicationLayer\Character\Player\PlayerWeaponController.cpp" />
-    <ClCompile Remove="ApplicationLayer\Character\Player\PlayerFsmApi.cpp" />
-
-    <ClCompile Remove="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.cpp" />
-    <ClCompile Remove="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.cpp" />
-    <ClCompile Remove="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.cpp" />
+    <ClCompile Remove="Engine\Graphics\Camera\FPS\FpsCamera.cpp" />
 
     <ClInclude Remove="ApplicationLayer\Character\Boss\Core\BossFactory.h" />
     <ClInclude Remove="ApplicationLayer\Character\Boss\Components\BossStatusComponent.h" />
@@ -65,10 +67,16 @@
     <ClInclude Remove="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.h" />
     <ClInclude Remove="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.h" />
 
-    <ClInclude Remove="ApplicationLayer\Character\Player\Player.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Enemy\AI\MeleeAttackPattern.h" />
+    <ClInclude Remove="ApplicationLayer\DebugTools\EnemyScalability\EnemyScalabilitySystem.h" />
+
     <ClInclude Remove="ApplicationLayer\Character\Player\PlayerDamageCollider.h" />
-    <ClInclude Remove="ApplicationLayer\Character\Player\PlayerInputSnapshot.h" />
     <ClInclude Remove="ApplicationLayer\Character\Player\PlayerStateMachines.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Player\PlayerWeaponController.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Player\PlayerFsmApi.h" />
     <ClInclude Remove="ApplicationLayer\Character\Player\Effect\PlayerVfx.h" />
     <ClInclude Remove="ApplicationLayer\Character\Player\Component\PlayerWeaponComponent.h" />
     <ClInclude Remove="ApplicationLayer\Character\Player\Component\PlayerMotorComponent.h" />
@@ -79,12 +87,6 @@
     <ClInclude Remove="ApplicationLayer\Character\Player\Component\PlayerCombatComponent.h" />
     <ClInclude Remove="ApplicationLayer\Character\Player\Component\PlayerDamageComponent.h" />
     <ClInclude Remove="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.h" />
-    <ClInclude Remove="ApplicationLayer\Character\Player\PlayerWeaponController.h" />
-    <ClInclude Remove="ApplicationLayer\Character\Player\PlayerFsmApi.h" />
-
-    <ClInclude Remove="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.h" />
-    <ClInclude Remove="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.h" />
-    <ClInclude Remove="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.h" />
-    <ClInclude Remove="ApplicationLayer\Character\Enemy\AI\MeleeAttackPattern.h" />
+    <ClInclude Remove="Engine\Graphics\Camera\FPS\FpsCamera.h" />
   </ItemGroup>
 </Project>
