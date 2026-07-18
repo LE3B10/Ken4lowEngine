@@ -26,10 +26,10 @@ void StageSelectSelectingState::Enter(StageSelectScene* scene)
 	if (unlockTargetIndex_ >= 0 && unlockTargetIndex_ < static_cast<int>(stages.size()))
 	{
 		unlockSourceIndex_ = std::max(0, unlockTargetIndex_ - 1);
-		unlockPhase_ = UnlockPhase::HoldSource;
+		unlockPhase_ = UnlockPhase::WaitForUncover;
 		if (auto* selector = scene->GetActiveSelector())
 		{
-			selector->FocusToIndex(unlockSourceIndex_, false); // 解除前のステージを最初に見せて進行先を分かりやすくする。
+			selector->FocusToIndex(unlockSourceIndex_, false); // フェード中は解除前のステージを中央へ固定する。
 		}
 	}
 }
@@ -99,19 +99,21 @@ bool StageSelectSelectingState::UpdateUnlockSequence(StageSelectScene* scene, fl
 		return false;
 	}
 
-	unlockPhaseTimer_ += std::max(0.0f, deltaTime);
-	switch (unlockPhase_)
+	if (unlockPhase_ == UnlockPhase::WaitForUncover)
 	{
-	case UnlockPhase::HoldSource:
 		selector->FocusToIndex(unlockSourceIndex_, false);
-		if (unlockPhaseTimer_ >= 0.45f)
+		if (scene->IsEntranceTransitionFinished())
 		{
-			selector->FocusToIndex(unlockTargetIndex_, true);
+			selector->FocusToIndex(unlockTargetIndex_, true); // フェードが完全に終わった最初のフレームで次ステージへ移動する。
 			unlockPhase_ = UnlockPhase::MoveToTarget;
 			unlockPhaseTimer_ = 0.0f;
 		}
-		break;
+		return true;
+	}
 
+	unlockPhaseTimer_ += std::max(0.0f, deltaTime);
+	switch (unlockPhase_)
+	{
 	case UnlockPhase::MoveToTarget:
 		if (unlockPhaseTimer_ >= 0.42f)
 		{
@@ -146,6 +148,7 @@ bool StageSelectSelectingState::UpdateUnlockSequence(StageSelectScene* scene, fl
 		}
 		break;
 
+	case UnlockPhase::WaitForUncover:
 	case UnlockPhase::None:
 	default:
 		break;
