@@ -83,6 +83,10 @@ namespace Ken4lowEngine
 		void SetTranslate(const Vector3& translate) { worldTransform_.translate_ = translate; }
 		Vector3 GetTranslate() const { return worldTransform_.translate_; }
 		void SetColor(const Vector4& color) { material_.SetColor(color); }
+		void SetPbrEnabled(bool enabled) { material_.SetPbrEnabled(enabled); }
+		void SetMetallic(float metallic) { material_.SetMetallic(metallic); }
+		void SetRoughness(float roughness) { material_.SetRoughness(roughness); }
+		void SetEmissiveFactor(const Vector4& emissiveFactor) { material_.SetEmissiveFactor(emissiveFactor); } // ゲーム側の脈動演出からObject3Dの発光量を安全に変更する。
 		void SetCamera(Camera* camera) { camera_ = camera; }
 		void SetReflectivity(float reflectivity) { material_.SetReflection(reflectivity); }
 		void ApplyMaterialDesc(const MaterialDesc& desc);
