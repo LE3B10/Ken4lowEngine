@@ -34,6 +34,7 @@ namespace Ken4lowEngine
 	public: /// ---------- 描画設定関数 ---------- ///
 
 		void SetRenderSetting();
+		void SetAlphaRenderSetting();
 		void SetInstancedRenderSetting();
 		void SetShadowMapRenderSetting();
 		void SetInstancedShadowMapRenderSetting();
@@ -93,4 +94,4 @@ namespace Ken4lowEngine
 		CullingCameraMode cullingCameraMode_ = CullingCameraMode::MainCamera;
 		bool showBoundsDebug_ = false;
 	};
-}
+} // namespace Ken4lowEngine
