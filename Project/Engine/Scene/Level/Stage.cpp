@@ -19,10 +19,11 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		const std::string primaryStageModelPath = instancedOnly
+		const bool effectiveInstancedOnly = instancedOnly || defaultModelName.empty();
+		const std::string primaryStageModelPath = effectiveInstancedOnly
 			? std::string{}
 			: StageAssetLoader::ResolveStageModelName(*levelData_, defaultModelName);
-		if (!instancedOnly)
+		if (!effectiveInstancedOnly)
 		{
 			stageModel_ = StageAssetLoader::BuildStageModel(*levelData_, defaultModelName, offset_);
 			if (stageModel_)
@@ -31,7 +32,7 @@ namespace Ken4lowEngine
 				RebuildStageChunks();
 			}
 		}
-		stageInstancingManager_.Build(*levelData_, primaryStageModelPath, offset_); // Instanced-onlyでは全StaticMesh配置をGPUバッチ対象にする。
+		stageInstancingManager_.Build(*levelData_, primaryStageModelPath, offset_); // 空Model指定では全StaticMesh配置をGPUバッチ対象にする。
 
 		StageCollisionBuildResult collisionResult =
 			StageCollisionBuilder::Build(*levelData_, offset_);
