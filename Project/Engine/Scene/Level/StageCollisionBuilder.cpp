@@ -42,18 +42,35 @@ namespace Ken4lowEngine
 			return aabb;
 		}
 
+		std::string ToLower(std::string text)
+		{
+			std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+			return text;
+		}
+
 		bool ContainsLadderName(const std::string& name)
 		{
-			// 既存Levelデータ向けに大文字小文字を無視してObject名のLadderを暫定識別する。
-			std::string lowered = name;
-			std::transform(lowered.begin(), lowered.end(), lowered.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-			return lowered.find("ladder") != std::string::npos;
+			return ToLower(name).find("ladder") != std::string::npos;
+		}
+
+		bool IsWalkableObstacleSurface(const ObjectData& data)
+		{
+			const std::string loweredName = ToLower(data.name);
+			const bool lowCover = loweredName.find("cover") != std::string::npos ||
+				loweredName.find("rubble") != std::string::npos ||
+				loweredName.find("brokenbeam") != std::string::npos;
+			const bool structural = loweredName.find("wall") != std::string::npos ||
+				loweredName.find("gate") != std::string::npos ||
+				loweredName.find("pillar") != std::string::npos ||
+				loweredName.find("ceiling") != std::string::npos ||
+				loweredName.find("rockdetail") != std::string::npos ||
+				(loweredName.find("beam") != std::string::npos && !lowCover);
+			return lowCover && !structural; // 低い遮蔽物だけを登れる面にし、壁・柱・梁・天井岩の上へ立てなくする。
 		}
 	}
 
 	StageCollisionBuildResult StageCollisionBuilder::Build(const LevelData& levelData, const Vector3& offset)
 	{
-		// LevelData上のステージColliderを、移動解決・Navigation・汎用通知の用途別データへ分解する。
 		StageCollisionBuildResult result{};
 		result.worldAABBs.reserve(levelData.objects.size());
 		result.floorAABBs.reserve(levelData.objects.size());
@@ -69,22 +86,13 @@ namespace Ken4lowEngine
 
 		for (const ObjectData& data : levelData.objects)
 		{
-			if (!data.collider.enabled)
-			{
-				continue;
-			}
-
-			if (data.collider.type != "BOX")
-			{
-				continue;
-			}
+			if (!data.collider.enabled || data.collider.type != "BOX") continue;
 
 			const Vector3 centerW = {
 				data.position.x + data.collider.center.x * data.scale.x + offset.x,
 				data.position.y + data.collider.center.y * data.scale.y + offset.y,
 				data.position.z + data.collider.center.z * data.scale.z + offset.z
 			};
-
 			const Vector3 halfW = {
 				0.5f * data.collider.size.x * data.scale.x,
 				0.5f * data.collider.size.y * data.scale.y,
@@ -102,14 +110,12 @@ namespace Ken4lowEngine
 			};
 			collider->SetOrientation(colliderRotation);
 			collider->SetDebugName(data.name);
-			// 正式形状はColliderの回転OBBとし、包み込みAABBはBroadPhase・簡易判定用に併存させる。
 			const AABB aabb = BuildAABBFromRotatedOBB(centerW, halfW, colliderRotation);
 			const OBB colliderObb = collider->GetOBB();
 			const std::string& collisionType = data.collider.collisionType;
 			const bool isLadder = collisionType == "Ladder" || ContainsLadderName(data.name);
 			if (isLadder)
 			{
-				// Ladderは静的Triggerとして専用配列へ分離し、床・壁・Navigationの押し戻し経路へ混ぜない。
 				collider->SetTrigger(true);
 				collider->SetCollisionTag("Ladder");
 				collider->SetCollisionLayer(kLadderPhysicsLayer);
@@ -119,25 +125,20 @@ namespace Ken4lowEngine
 			}
 			else if (collisionType == "Floor")
 			{
-				// Floorは接地・スポーン補正向けに分け、壁押し戻しやNavigation障害物とは混ぜない。
 				result.worldAABBs.push_back(aabb);
 				result.floorAABBs.push_back(aabb);
 			}
 			else if (collisionType == "Obstacle" || collisionType == "Pillar" || collisionType == "Fence" || collisionType == "Tree")
 			{
-				// Obstacle系AABBはBroadPhase用、OBBは見た目に沿う最終横押し戻し用として対で保持する。
 				result.worldAABBs.push_back(aabb);
 				result.wallObstacleAABBs.push_back(aabb);
 				result.navigationObstacleAABBs.push_back(aabb);
-				// NarrowPhaseとOBB表示にはCollider::GetOBB()由来の姿勢をそのまま使う。
 				result.wallObstacleOBBs.push_back(colliderObb);
-				// 現段階ではObstacle上面を歩行可能とし、将来JSONのwalkable指定へ差し替えられる配列を併設する。
-				result.wallObstacleWalkable.push_back(1u);
+				result.wallObstacleWalkable.push_back(IsWalkableObstacleSurface(data) ? 1u : 0u);
 				result.navigationObstacleOBBs.push_back(colliderObb);
 			}
 			else
 			{
-				// 未分類Colliderは従来どおりStage汎用AABBへ残し、既存Levelの衝突挙動を維持する。
 				result.worldAABBs.push_back(aabb);
 			}
 
@@ -149,15 +150,11 @@ namespace Ken4lowEngine
 
 	std::vector<Collider*> StageCollisionBuilder::GetColliders(const StageCollisionBuildResult& result)
 	{
-		// StageCollisionBuilderが生成したColliderの所有権は移さず、PhysicsWorld登録用の生ポインタだけを集める。
 		std::vector<Collider*> colliders{};
 		colliders.reserve(result.worldColliders.size());
 		for (const std::unique_ptr<Collider>& collider : result.worldColliders)
 		{
-			if (collider)
-			{
-				colliders.push_back(collider.get());
-			}
+			if (collider) colliders.push_back(collider.get());
 		}
 		return colliders;
 	}
