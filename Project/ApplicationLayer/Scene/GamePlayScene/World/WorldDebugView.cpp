@@ -37,9 +37,10 @@ void WorldDebugView::DrawGameDebugImGui(const Dependencies& deps)
 		ImGui::Text("Objective: %s", snapshot.title.c_str());
 		ImGui::Text("Status: %s", StageObjectiveManager::GetStatusDebugName(snapshot.status));
 		ImGui::Text("Detail: %s", snapshot.detail.c_str());
+		ImGui::Text("Objective Value: %d / %d", snapshot.currentValue, snapshot.targetValue);
 		ImGui::Text("Progress: %.1f%%", snapshot.normalizedProgress * 100.0f);
 		ImGui::Text("Stage Time: %.2f sec", deps.stageObjectiveManager->GetStageElapsedSec());
-		ImGui::Text("Activated Devices: %d / %d", deps.stageObjectiveManager->GetActivatedDeviceCount(), deps.stageObjectiveManager->GetDevicePointCount());
+		ImGui::Text("Device Points: %d", deps.stageObjectiveManager->GetDevicePointCount());
 		ImGui::Text("Defense Targets: %d", deps.stageObjectiveManager->GetDefenseTargetPointCount());
 		ImGui::Text("Goal Points: %d", deps.stageObjectiveManager->GetGoalPointCount());
 		ImGui::Text("Boss Spawn Point: %s", deps.stageObjectiveManager->HasBossSpawnPoint() ? "true" : "false");
