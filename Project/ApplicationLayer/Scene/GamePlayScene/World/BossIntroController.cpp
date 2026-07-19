@@ -27,18 +27,21 @@ void BossIntroController::Finalize()
 {
 	UnregisterParameters();
 	bossEnemyVfx_.Reset();
+	hasRequestedBossPosition_ = false;
 	ResetBossIntroDustState(); // Scene再生成時にEmitterと演出タイマーを持ち越さない。
 }
 
 void BossIntroController::RequestStart(const K4E::Vector3& bossPosition)
 {
 	if (hasPlayedBossIntro_ || IsRunning()) return;
-	settings_.bossAppearPosition = bossPosition;
 	ApplyParameters();
+	requestedBossPosition_ = bossPosition;
+	hasRequestedBossPosition_ = true;
+	settings_.bossAppearPosition = requestedBossPosition_; // Stage固有座標をParameter読込後に確定し、演出中の再適用でも維持する。
 	stateTimer_ = 0.0f;
 	ResetBossIntroDustState();
 	ChangeState(State::WaitingAfterCrystalsBroken);
-	K4E::Log("[BossIntro] Waiting after all crystals broken.\n");
+	K4E::Log("[BossIntro] Waiting after objective completed.\n");
 }
 
 void BossIntroController::Reset()
@@ -53,6 +56,8 @@ void BossIntroController::Reset()
 	debugForceBossToAppearRequested_ = false;
 	debugClearBossParentRequested_ = false;
 	debugUseGameplayViewProjectionRequested_ = false;
+	hasRequestedBossPosition_ = false;
+	requestedBossPosition_ = {};
 	ResetBossIntroDustState();
 }
 
