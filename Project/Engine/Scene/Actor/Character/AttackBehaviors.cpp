@@ -15,6 +15,7 @@ namespace Ken4lowEngine
 	namespace
 	{
 		constexpr float kChargeDriveForce = 5000.0f;
+		constexpr float kChargeFacingSpeed = 1000.0f;
 
 		/// 単一TargetへDamageを適用し、共通攻撃イベント用の結果へ変換する。
 		AttackExecutionResult ApplyDamageOnce(AttackContext& context, float damage)
@@ -135,6 +136,8 @@ namespace Ken4lowEngine
 	void ChargeAttackBehavior::Begin(AttackContext& context, const AttackData& data)
 	{
 		(void)data;
+		chargeDirection_ = {};
+		directionLocked_ = false;
 		hit_ = false;
 		driveForceOverridden_ = false;
 		if (!context.owner) return;
@@ -148,15 +151,22 @@ namespace Ken4lowEngine
 
 	AttackExecutionResult ChargeAttackBehavior::Execute(AttackContext& context, const AttackData& data, float deltaTime, float normalizedActiveTime)
 	{
-		(void)deltaTime;
 		(void)normalizedActiveTime;
 		if (!context.owner || !context.target) return {};
 		CharacterMovementComponent* movement = context.owner->GetMovementComponent();
 		const SceneComponent* root = context.owner->GetRootComponent();
 		if (movement && root)
 		{
-			const Vector3 direction = NormalizeXZ(context.target->GetTargetPosition() - root->GetWorldPosition());
-			movement->SetVelocity(direction * data.movementSpeed); // 突進も位置を直接変更せず共通Movementへ速度を渡す。
+			if (!directionLocked_)
+			{
+				chargeDirection_ = NormalizeXZ(context.target->GetTargetPosition() - root->GetWorldPosition());
+				directionLocked_ = Vector3::LengthXZ(chargeDirection_) > 0.0001f; // Active開始時の方向だけを保存し、突進中のホーミングを止める。
+			}
+			if (directionLocked_)
+			{
+				movement->FaceDirectionXZ(chargeDirection_, kChargeFacingSpeed, deltaTime);
+				movement->SetVelocity(chargeDirection_ * data.movementSpeed);
+			}
 		}
 
 		const float contactRange = std::max(1.2f, data.minRange + 0.35f);
@@ -182,6 +192,8 @@ namespace Ken4lowEngine
 				if (driveForceOverridden_) movement->SetMaxDriveForce(originalDriveForce_);
 			}
 		}
+		chargeDirection_ = {};
+		directionLocked_ = false;
 		driveForceOverridden_ = false;
 		hit_ = false;
 	}
