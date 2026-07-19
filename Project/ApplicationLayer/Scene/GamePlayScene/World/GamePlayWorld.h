@@ -21,6 +21,7 @@
 #include "BulletEnemyCollisionSoA.h"
 
 #include <memory>
+#include <string>
 
 namespace K4E = ::Ken4lowEngine;
 
@@ -69,8 +70,19 @@ public:
 	K4E::Stage* GetStage() const { return stage_.get(); }
 	K4E::SkyBox* GetSkyBox() const { return skyBox_.get(); }
 	CollisionManager* GetCollisionManager() const { return collisionManager_.get(); }
+	const StageObjectiveManager::Snapshot* GetStageObjectiveSnapshot() const
+	{
+		return stageObjectiveManager_ ? &stageObjectiveManager_->GetSnapshot() : nullptr; // HUDやEditorはManager本体ではなく共通スナップショットを参照する。
+	}
 
 	const K4E::Matrix4x4& GetShadowLightViewProjection() const { return shadowLightViewProjection_; }
+	bool NotifyStageDeviceActivated(const std::string& deviceId)
+	{
+		return stageObjectiveManager_ && stageObjectiveManager_->NotifyDeviceActivated(deviceId); // 同じ装置の重複接触をObjective側で除外する。
+	}
+	void NotifyStageGoalReached() { SetReachedGoal(true); }
+	void NotifyStageDefenseTargetDestroyed() { SetDefenseTargetDestroyed(true); }
+	void NotifyStageBossDefeated() { SetBossDefeated(true); }
 	void AddActivatedDeviceCount(int amount = 1);
 	void SetReachedGoal(bool reached);
 	void SetBossDefeated(bool defeated);
