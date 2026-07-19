@@ -3,10 +3,23 @@
 
 #include "ApplicationLayer/Character/Player/Actor/PlayerActor.h"
 #include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
+#include "FontAtlasLoader.h"
+#include "TextSpriteDrawer.h"
+
+#include <Sprite.h>
 
 #include <algorithm>
 #include <array>
 #include <string>
+
+namespace K4E = ::Ken4lowEngine;
+
+namespace
+{
+	constexpr K4E::Vector2 kObjectiveCenter{ 250.0f, 104.0f };
+	constexpr K4E::Vector2 kObjectivePanelSize{ 430.0f, 86.0f };
+	constexpr float kObjectiveProgressWidth = 360.0f;
+}
 
 HUDManager::~HUDManager() = default;
 
@@ -34,6 +47,7 @@ void HUDManager::Initialize()
 	damageIndicatorManager_->Initialize();
 	bossHudUI_.Initialize();
 	stage1ObjectiveGuideUI_.Initialize();
+	InitializeStageObjectiveUI();
 	SetRuntimeWeaponHudVisible(runtimeWeaponHudVisible_); // 旧Player用HUDを生成せず、現役Runtime表示だけ初期化する。
 }
 
@@ -55,6 +69,7 @@ void HUDManager::Update(float deltaTime)
 	if (waveUI_) waveUI_->Update(deltaTime);
 	bossHudUI_.Update(deltaTime);
 	stage1ObjectiveGuideUI_.Update(deltaTime);
+	UpdateStageObjectiveUI(deltaTime);
 }
 
 void HUDManager::Draw()
@@ -65,6 +80,7 @@ void HUDManager::Draw()
 		if (weaponSlot_) weaponSlot_->Draw();
 	}
 	if (waveUI_ && IsWaveUIDrawEnabled()) waveUI_->Draw();
+	DrawStageObjectiveUI();
 	stage1ObjectiveGuideUI_.Draw();
 	bossHudUI_.Draw();
 	if (damageIndicatorManager_) damageIndicatorManager_->Draw();
@@ -137,6 +153,121 @@ void HUDManager::UpdateWeaponSlotFromRuntime()
 	ammo.currentAmmo = runtime->GetMagazineAmmo();
 	ammo.reserveAmmo = runtime->GetReserveAmmo();
 	weaponSlot_->Update(snapshot);
+}
+
+void HUDManager::InitializeStageObjectiveUI()
+{
+	stageObjectiveBackSprite_ = std::make_unique<K4E::Sprite>();
+	stageObjectiveBackSprite_->Initialize("Effects/white.dds");
+	stageObjectiveBackSprite_->SetAnchorPoint({ 0.5f, 0.5f });
+
+	stageObjectiveAccentSprite_ = std::make_unique<K4E::Sprite>();
+	stageObjectiveAccentSprite_->Initialize("Effects/white.dds");
+	stageObjectiveAccentSprite_->SetAnchorPoint({ 0.5f, 0.5f });
+
+	stageObjectiveProgressBackSprite_ = std::make_unique<K4E::Sprite>();
+	stageObjectiveProgressBackSprite_->Initialize("Effects/white.dds");
+	stageObjectiveProgressBackSprite_->SetAnchorPoint({ 0.0f, 0.5f });
+
+	stageObjectiveProgressFillSprite_ = std::make_unique<K4E::Sprite>();
+	stageObjectiveProgressFillSprite_->Initialize("Effects/white.dds");
+	stageObjectiveProgressFillSprite_->SetAnchorPoint({ 0.0f, 0.5f });
+
+	stageObjectiveTextDrawer_ = std::make_unique<K4E::TextSpriteDrawer>();
+	stageObjectiveTextReady_ = false;
+	try
+	{
+		auto fontDefJP = K4E::FontAtlasLoader::LoadFromJson(
+			"UI/Font/JP/DotGothic16-Regular_atlas.dds",
+			"Resources/Fonts/Compiled/JP/DotGothic16-Regular.json",
+			32.0f,
+			32.0f,
+			U'?');
+		stageObjectiveTextDrawer_->Initialize(fontDefJP);
+		stageObjectiveTextReady_ = true;
+	}
+	catch (...)
+	{
+		stageObjectiveTextReady_ = false;
+	}
+}
+
+void HUDManager::UpdateStageObjectiveUI(float deltaTime)
+{
+	const float targetAlpha = stageObjectiveDisplayState_.visible ? 0.82f : 0.0f;
+	const float approach = std::clamp(deltaTime * 8.0f, 0.0f, 1.0f);
+	stageObjectiveAlpha_ += (targetAlpha - stageObjectiveAlpha_) * approach;
+
+	K4E::Vector4 accentColor{ 0.35f, 0.86f, 1.0f, stageObjectiveAlpha_ };
+	if (stageObjectiveDisplayState_.cleared) accentColor = { 0.38f, 1.0f, 0.55f, stageObjectiveAlpha_ };
+	else if (stageObjectiveDisplayState_.failed) accentColor = { 1.0f, 0.36f, 0.32f, stageObjectiveAlpha_ };
+
+	if (stageObjectiveBackSprite_)
+	{
+		stageObjectiveBackSprite_->SetPosition(kObjectiveCenter);
+		stageObjectiveBackSprite_->SetSize(kObjectivePanelSize);
+		stageObjectiveBackSprite_->SetColor({ 0.03f, 0.035f, 0.045f, stageObjectiveAlpha_ * 0.86f });
+		stageObjectiveBackSprite_->Update();
+	}
+	if (stageObjectiveAccentSprite_)
+	{
+		stageObjectiveAccentSprite_->SetPosition({ kObjectiveCenter.x, kObjectiveCenter.y + kObjectivePanelSize.y * 0.5f - 4.0f });
+		stageObjectiveAccentSprite_->SetSize({ kObjectivePanelSize.x * 0.92f, 4.0f });
+		stageObjectiveAccentSprite_->SetColor(accentColor);
+		stageObjectiveAccentSprite_->Update();
+	}
+
+	const float progress = std::clamp(stageObjectiveDisplayState_.normalizedProgress, 0.0f, 1.0f);
+	const K4E::Vector2 progressPosition{ kObjectiveCenter.x - kObjectiveProgressWidth * 0.5f, kObjectiveCenter.y + 29.0f };
+	if (stageObjectiveProgressBackSprite_)
+	{
+		stageObjectiveProgressBackSprite_->SetPosition(progressPosition);
+		stageObjectiveProgressBackSprite_->SetSize({ kObjectiveProgressWidth, 5.0f });
+		stageObjectiveProgressBackSprite_->SetColor({ 0.12f, 0.14f, 0.18f, stageObjectiveDisplayState_.showProgress ? stageObjectiveAlpha_ : 0.0f });
+		stageObjectiveProgressBackSprite_->Update();
+	}
+	if (stageObjectiveProgressFillSprite_)
+	{
+		stageObjectiveProgressFillSprite_->SetPosition(progressPosition);
+		stageObjectiveProgressFillSprite_->SetSize({ kObjectiveProgressWidth * progress, 5.0f });
+		stageObjectiveProgressFillSprite_->SetColor({ accentColor.x, accentColor.y, accentColor.z, stageObjectiveDisplayState_.showProgress ? stageObjectiveAlpha_ : 0.0f });
+		stageObjectiveProgressFillSprite_->Update();
+	}
+}
+
+void HUDManager::DrawStageObjectiveUI()
+{
+	if (!stageObjectiveDisplayState_.visible || stageObjectiveAlpha_ <= 0.01f)
+	{
+		return;
+	}
+
+	if (stageObjectiveBackSprite_) stageObjectiveBackSprite_->Draw();
+	if (stageObjectiveAccentSprite_) stageObjectiveAccentSprite_->Draw();
+	if (stageObjectiveDisplayState_.showProgress)
+	{
+		if (stageObjectiveProgressBackSprite_) stageObjectiveProgressBackSprite_->Draw();
+		if (stageObjectiveProgressFillSprite_) stageObjectiveProgressFillSprite_->Draw();
+	}
+	if (!stageObjectiveTextReady_ || !stageObjectiveTextDrawer_)
+	{
+		return;
+	}
+
+	stageObjectiveTextDrawer_->Reset();
+	stageObjectiveTextDrawer_->SetLetterSpacing(1.0f);
+	stageObjectiveTextDrawer_->SetScale(0.66f);
+	stageObjectiveTextDrawer_->SetColor({ 0.96f, 0.98f, 1.0f, stageObjectiveAlpha_ });
+	stageObjectiveTextDrawer_->DrawTextCentered(stageObjectiveDisplayState_.title, { kObjectiveCenter.x, kObjectiveCenter.y - 18.0f });
+	stageObjectiveTextDrawer_->SetScale(0.48f);
+	stageObjectiveTextDrawer_->SetColor({ 0.58f, 0.90f, 1.0f, stageObjectiveAlpha_ });
+	stageObjectiveTextDrawer_->DrawTextCentered(stageObjectiveDisplayState_.detail, { kObjectiveCenter.x, kObjectiveCenter.y + 8.0f });
+}
+
+void HUDManager::SetStageObjectiveDisplayState(const StageObjectiveDisplayState& state)
+{
+	stageObjectiveDisplayState_ = state;
+	stageObjectiveDisplayState_.normalizedProgress = std::clamp(state.normalizedProgress, 0.0f, 1.0f); // Stage別実装から範囲外の進捗が来てもHUD形状を崩さない。
 }
 
 void HUDManager::SetBossHP(float hp, float maxHp, bool bossBattleActive) { bossHudUI_.SetBossHP(hp, maxHp, bossBattleActive); }
