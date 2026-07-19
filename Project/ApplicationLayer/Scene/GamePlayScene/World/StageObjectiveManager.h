@@ -37,6 +37,7 @@ public:
 	void Initialize(const GamePlayStageContext& stageContext);
 	void Update(float deltaTime);
 	void SetRequiresBossAfterDevices(bool required);
+	void SetBossArenaReached(bool reached);
 
 	bool UsesWaveSystem() const { return stageRule_.useWaveSystem; }
 	float GetStageElapsedSec() const { return stageElapsedSec_; }
@@ -50,6 +51,7 @@ public:
 	bool IsDefenseTargetDestroyed() const { return defenseTargetDestroyed_; }
 	bool AreRequiredDevicesActivated() const { return activatedDeviceCount_ >= GetRequiredDeviceCount(); }
 	bool RequiresBossAfterDevices() const { return requiresBossAfterDevices_; }
+	bool HasReachedBossArena() const { return bossArenaReached_; }
 	Status GetStatus() const { return status_; }
 	const Snapshot& GetSnapshot() const { return snapshot_; }
 
@@ -66,6 +68,7 @@ public:
 
 private:
 	int GetRequiredDeviceCount() const;
+	bool IsDevicePassagePhase() const;
 	bool IsDeviceBossPhase() const;
 	bool EvaluateCleared() const;
 	bool EvaluateFailed() const;
@@ -86,6 +89,7 @@ private:
 	float stageElapsedSec_ = 0.0f;
 	bool reachedGoal_ = false;
 	bool bossDefeated_ = false;
+	bool bossArenaReached_ = false;
 	bool defenseTargetDestroyed_ = false;
 	bool allWavesCleared_ = false;
 	bool requiresBossAfterDevices_ = false;
