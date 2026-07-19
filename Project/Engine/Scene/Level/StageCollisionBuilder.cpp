@@ -2,6 +2,7 @@
 #include "CollisionPreset.h"
 #include "CollisionTypeIdDef.h"
 #include "Matrix4x4.h"
+#include "MineHiddenArenaLayout.h"
 #include <algorithm>
 #include <cctype>
 #include <limits>
@@ -64,29 +65,33 @@ namespace Ken4lowEngine
 				loweredName.find("pillar") != std::string::npos ||
 				loweredName.find("ceiling") != std::string::npos ||
 				loweredName.find("rockdetail") != std::string::npos ||
+				loweredName.find("support") != std::string::npos ||
+				loweredName.find("dome") != std::string::npos ||
 				(loweredName.find("beam") != std::string::npos && !lowCover);
-			return lowCover && !structural; // 低い遮蔽物だけを登れる面にし、壁・柱・梁・天井岩の上へ立てなくする。
+			return lowCover && !structural; // 低い遮蔽物だけを登れる面にし、通路壁・ドーム壁・天井の上へ立てなくする。
 		}
 	}
 
 	StageCollisionBuildResult StageCollisionBuilder::Build(const LevelData& levelData, const Vector3& offset)
 	{
 		StageCollisionBuildResult result{};
-		result.worldAABBs.reserve(levelData.objects.size());
-		result.floorAABBs.reserve(levelData.objects.size());
-		result.wallObstacleAABBs.reserve(levelData.objects.size());
-		result.navigationObstacleAABBs.reserve(levelData.objects.size());
-		result.worldColliders.reserve(levelData.objects.size());
-		result.wallObstacleOBBs.reserve(levelData.objects.size());
-		result.wallObstacleWalkable.reserve(levelData.objects.size());
-		result.navigationObstacleOBBs.reserve(levelData.objects.size());
-		result.ladderColliders.reserve(levelData.objects.size());
-		result.ladderAABBs.reserve(levelData.objects.size());
-		result.ladderOBBs.reserve(levelData.objects.size());
+		const std::vector<ObjectData> hiddenArenaObjects = MineHiddenArenaLayout::Build(levelData);
+		const size_t estimatedCount = levelData.objects.size() + hiddenArenaObjects.size();
+		result.worldAABBs.reserve(estimatedCount);
+		result.floorAABBs.reserve(estimatedCount);
+		result.wallObstacleAABBs.reserve(estimatedCount);
+		result.navigationObstacleAABBs.reserve(estimatedCount);
+		result.worldColliders.reserve(estimatedCount);
+		result.wallObstacleOBBs.reserve(estimatedCount);
+		result.wallObstacleWalkable.reserve(estimatedCount);
+		result.navigationObstacleOBBs.reserve(estimatedCount);
+		result.ladderColliders.reserve(estimatedCount);
+		result.ladderAABBs.reserve(estimatedCount);
+		result.ladderOBBs.reserve(estimatedCount);
 
-		for (const ObjectData& data : levelData.objects)
+		auto appendCollider = [&](const ObjectData& data)
 		{
-			if (!data.collider.enabled || data.collider.type != "BOX") continue;
+			if (!data.collider.enabled || data.collider.type != "BOX") return;
 
 			const Vector3 centerW = {
 				data.position.x + data.collider.center.x * data.scale.x + offset.x,
@@ -143,7 +148,10 @@ namespace Ken4lowEngine
 			}
 
 			result.worldColliders.push_back(std::move(collider));
-		}
+		};
+
+		for (const ObjectData& data : levelData.objects) appendCollider(data);
+		for (const ObjectData& data : hiddenArenaObjects) appendCollider(data); // 追加広間の見た目と同じ配置からFloor/Wall判定を生成する。
 
 		return result;
 	}
