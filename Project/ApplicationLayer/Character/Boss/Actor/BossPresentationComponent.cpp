@@ -294,8 +294,11 @@ namespace Ken4lowEngine
 		telegraphParticleTimer_ += deltaTime;
 		if (telegraphElapsed_ >= telegraphDuration_)
 		{
-			FinishAttackTelegraph();
-			return;
+			attackTelegraphActive_ = false;
+			telegraphElapsed_ = telegraphDuration_;
+			telegraphParticleTimer_ = 0.0f;
+			if (!phaseTransitionActive_ && !deathPresentationActive_) stateName_ = "Attack: " + activeAttackId_;
+			return; // 明滅だけを止め、Active着地イベントが攻撃IDとTarget方向を引き続き参照できるようにする。
 		}
 		if (telegraphParticleTimer_ >= telegraphParticleInterval_)
 		{
