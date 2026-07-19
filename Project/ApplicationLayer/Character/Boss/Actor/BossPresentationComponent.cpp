@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "BossPresentationComponent.h"
 
 #include "BossActor.h"
