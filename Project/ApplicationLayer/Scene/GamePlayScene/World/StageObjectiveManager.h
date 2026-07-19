@@ -6,9 +6,6 @@
 #include <unordered_set>
 #include <utility>
 
-/// -------------------------------------------------------------
-///                 ステージ目的の進行状態管理クラス
-/// -------------------------------------------------------------
 class StageObjectiveManager
 {
 public:
@@ -39,6 +36,7 @@ public:
 
 	void Initialize(const GamePlayStageContext& stageContext);
 	void Update(float deltaTime);
+	void SetRequiresBossAfterDevices(bool required);
 
 	bool UsesWaveSystem() const { return stageRule_.useWaveSystem; }
 	float GetStageElapsedSec() const { return stageElapsedSec_; }
@@ -51,10 +49,7 @@ public:
 	bool IsBossDefeated() const { return bossDefeated_; }
 	bool IsDefenseTargetDestroyed() const { return defenseTargetDestroyed_; }
 	bool AreRequiredDevicesActivated() const { return activatedDeviceCount_ >= GetRequiredDeviceCount(); }
-	bool RequiresBossAfterDevices() const
-	{
-		return stageRule_.objectiveType == GamePlayStageContext::StageObjectiveType::ActivateDevices && stageRule_.hasBoss;
-	}
+	bool RequiresBossAfterDevices() const { return requiresBossAfterDevices_; }
 	Status GetStatus() const { return status_; }
 	const Snapshot& GetSnapshot() const { return snapshot_; }
 
@@ -93,6 +88,7 @@ private:
 	bool bossDefeated_ = false;
 	bool defenseTargetDestroyed_ = false;
 	bool allWavesCleared_ = false;
+	bool requiresBossAfterDevices_ = false;
 	Status status_ = Status::Inactive;
 	Snapshot snapshot_{};
 	std::unordered_set<std::string> activatedDeviceIds_;
