@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace Ken4lowEngine
@@ -114,6 +115,17 @@ private:
 		K4E::Vector3 openPosition{};
 	};
 
+	struct MineDeviceRuntime
+	{
+		std::string name;
+		K4E::Vector3 position{};
+		std::unique_ptr<K4E::Object3D> visual;
+		float activateTime = 1.5f;
+		float activationProgress = 0.0f;
+		float pulseTimer = 0.0f;
+		bool activated = false;
+	};
+
 	void SpawnBossActor(const Dependencies& deps, bool enableBattleImmediately);
 	void RegisterBossCollider(const Dependencies& deps);
 	void DestroyBossActor(const Dependencies& deps);
@@ -130,6 +142,8 @@ private:
 	void EnsureMineArenaInitialized(const Dependencies& deps);
 	void FinalizeMineArena(const Dependencies& deps);
 	void BuildMinePassageAndArena(const Dependencies& deps);
+	void BuildMineDevices(const Dependencies& deps);
+	void UpdateMineDevices(const Dependencies& deps, float deltaTime);
 	void UpdateMineArena(const Dependencies& deps, float deltaTime);
 	void DrawMineArena();
 	void DrawMineArenaShadow();
@@ -182,6 +196,10 @@ private:
 	K4E::Vector3 minePassageDoorCenter_{ 0.0f, 3.5f, 45.0f };
 	K4E::Vector3 mineArenaGateCenter_{ 0.0f, 3.5f, 82.0f };
 	std::vector<MineArenaBlock> mineArenaBlocks_;
+	std::vector<MineDeviceRuntime> mineDevices_;
+	int mineRequiredDeviceCount_ = 3;
+	int mineActivatedDeviceCount_ = 0;
+	int mineFocusedDeviceIndex_ = -1;
 	size_t minePassageDoorLeftIndex_ = kInvalidMineBlockIndex;
 	size_t minePassageDoorRightIndex_ = kInvalidMineBlockIndex;
 	size_t mineArenaGateLeftIndex_ = kInvalidMineBlockIndex;
