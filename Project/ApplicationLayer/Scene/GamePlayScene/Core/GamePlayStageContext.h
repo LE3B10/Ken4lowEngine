@@ -29,6 +29,7 @@ public: /// ---------- 構造体 ---------- ///
 	{
 		std::string jsonPath;
 		std::string modelPath;
+		bool instancedOnly = false; // 一体型glTFを使わず、JSON内のStaticMesh配置だけで描画する。
 	};
 
 	struct StageRule
