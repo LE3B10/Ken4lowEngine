@@ -14,6 +14,8 @@ namespace Ken4lowEngine
 {
 	namespace
 	{
+		constexpr float kChargeDriveForce = 5000.0f;
+
 		/// 単一TargetへDamageを適用し、共通攻撃イベント用の結果へ変換する。
 		AttackExecutionResult ApplyDamageOnce(AttackContext& context, float damage)
 		{
@@ -132,9 +134,16 @@ namespace Ken4lowEngine
 
 	void ChargeAttackBehavior::Begin(AttackContext& context, const AttackData& data)
 	{
-		(void)context;
 		(void)data;
-		hit_ = false; // 突進中の接触ダメージは攻撃1回につき一度だけ許可する。
+		hit_ = false;
+		driveForceOverridden_ = false;
+		if (!context.owner) return;
+		if (CharacterMovementComponent* movement = context.owner->GetMovementComponent())
+		{
+			originalDriveForce_ = movement->GetMaxDriveForce();
+			movement->SetMaxDriveForce(std::max(originalDriveForce_, kChargeDriveForce)); // 突進中だけ加速上限を上げ、重いBossでも設定速度へすぐ到達させる。
+			driveForceOverridden_ = true;
+		}
 	}
 
 	AttackExecutionResult ChargeAttackBehavior::Execute(AttackContext& context, const AttackData& data, float deltaTime, float normalizedActiveTime)
@@ -167,8 +176,13 @@ namespace Ken4lowEngine
 		(void)interrupted;
 		if (context.owner)
 		{
-			if (CharacterMovementComponent* movement = context.owner->GetMovementComponent()) movement->Stop();
+			if (CharacterMovementComponent* movement = context.owner->GetMovementComponent())
+			{
+				movement->Stop();
+				if (driveForceOverridden_) movement->SetMaxDriveForce(originalDriveForce_);
+			}
 		}
+		driveForceOverridden_ = false;
 		hit_ = false;
 	}
 
