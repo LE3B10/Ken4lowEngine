@@ -1,5 +1,8 @@
 #pragma once
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <iterator>
 #include <optional>
 #include <utility>
 #include <vector>
