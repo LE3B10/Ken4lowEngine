@@ -35,10 +35,10 @@ public:
 		if (stageContext.GetCurrentStageAssets().jsonPath.find("wasureraretakoudou") != std::string::npos)
 		{
 			pendingDevicePoints_ = {
-				{ "MineDevice_West", { -34.0f, 0.0f, -10.0f } },
-				{ "MineDevice_East", { 38.0f, 0.0f, 45.0f } },
-				{ "MineDevice_Deep", { 0.0f, 0.0f, 110.0f } }
-			}; // 拡張した長方形マップでは装置間距離を広げ、前半・中盤・最奥へ分散する。
+				{ "MineDevice_West", { -34.0f, 1.2f, -10.0f } },
+				{ "MineDevice_East", { 38.0f, 2.0f, 45.0f } },
+				{ "MineDevice_Deep", { 0.0f, 2.0f, 110.0f } }
+			}; // 各装置を西作業床・東採掘床・最奥ボス床の実際の床面Yへ配置する。
 		}
 		requiredDeviceCount_ = std::max(1, rule.requiredDeviceCount);
 	}
@@ -91,7 +91,7 @@ public:
 			}
 			else
 			{
-				bossPhaseStarted_ = true; // 最終装置では通常増援を止め、続くボス登場演出へ戦闘密度を切り替える。
+				bossPhaseStarted_ = true;
 			}
 			if (onActivated) onActivated(device->GetDeviceId());
 		}
@@ -144,7 +144,7 @@ private:
 			const std::string id = point.name.empty() ? "Stage2Device_" + std::to_string(index + 1) : point.name;
 			actor.Configure(id, point.position);
 			actor.Update(0.0f);
-			devices_.push_back(&actor); // Player・Enemyと同じActorWorldへ置き、描画とShadow Passを共通化する。
+			devices_.push_back(&actor);
 		}
 	}
 
@@ -174,10 +174,10 @@ private:
 		const K4E::Vector3 playerPosition = player->GetWorldPosition();
 		const std::array<K4E::Vector3, 5> centers = {{
 			{ 0.0f, 0.0f, -31.0f },
-			{ -34.0f, 0.0f, -10.0f },
+			{ -34.0f, 1.2f, -10.0f },
 			{ 0.0f, 0.0f, 22.0f },
-			{ 36.0f, 0.0f, 45.0f },
-			{ 0.0f, 0.0f, 78.0f }
+			{ 36.0f, 2.0f, 45.0f },
+			{ 0.0f, 1.5f, 82.0f }
 		}};
 		const std::array<float, 5> radii = { 18.0f, 16.0f, 18.0f, 16.0f, 20.0f };
 
@@ -188,7 +188,7 @@ private:
 			const float distanceSq = delta.x * delta.x + delta.z * delta.z;
 			if (distanceSq > radii[index] * radii[index]) continue;
 			SpawnAmbientEncounter(index, characters);
-			encounterTriggered_[index] = true; // 各区画へ初めて入った時だけ敵群を出し、長いマップの移動中にも戦闘を作る。
+			encounterTriggered_[index] = true;
 			break;
 		}
 	}
@@ -203,10 +203,10 @@ private:
 			characters.SpawnEnemyAt({ 0.0f, 2.0f, -14.0f }, EnemyType::MidRange);
 			break;
 		case 1:
-			characters.SpawnEnemyAt({ -43.0f, 2.0f, -17.0f }, EnemyType::Melee);
-			characters.SpawnEnemyAt({ -27.0f, 2.0f, -16.0f }, EnemyType::Melee);
-			characters.SpawnEnemyAt({ -42.0f, 2.0f, 1.0f }, EnemyType::Melee);
-			characters.SpawnEnemyAt({ -25.0f, 2.0f, 2.0f }, EnemyType::MidRange);
+			characters.SpawnEnemyAt({ -43.0f, 3.2f, -17.0f }, EnemyType::Melee);
+			characters.SpawnEnemyAt({ -27.0f, 3.2f, -16.0f }, EnemyType::Melee);
+			characters.SpawnEnemyAt({ -42.0f, 3.2f, 1.0f }, EnemyType::Melee);
+			characters.SpawnEnemyAt({ -25.0f, 3.2f, 2.0f }, EnemyType::MidRange);
 			break;
 		case 2:
 			characters.SpawnEnemyAt({ -8.0f, 2.0f, 18.0f }, EnemyType::Melee);
@@ -215,19 +215,19 @@ private:
 			characters.SpawnEnemyAt({ 6.0f, 2.0f, 36.0f }, EnemyType::MidRange);
 			break;
 		case 3:
-			characters.SpawnEnemyAt({ 27.0f, 2.0f, 37.0f }, EnemyType::Melee);
-			characters.SpawnEnemyAt({ 43.0f, 2.0f, 39.0f }, EnemyType::Melee);
-			characters.SpawnEnemyAt({ 29.0f, 2.0f, 55.0f }, EnemyType::Melee);
-			characters.SpawnEnemyAt({ 43.0f, 2.0f, 54.0f }, EnemyType::MidRange);
+			characters.SpawnEnemyAt({ 27.0f, 4.0f, 37.0f }, EnemyType::Melee);
+			characters.SpawnEnemyAt({ 43.0f, 4.0f, 39.0f }, EnemyType::Melee);
+			characters.SpawnEnemyAt({ 29.0f, 4.0f, 55.0f }, EnemyType::Melee);
+			characters.SpawnEnemyAt({ 43.0f, 4.0f, 54.0f }, EnemyType::MidRange);
 			break;
 		case 4:
 		default:
-			characters.SpawnEnemyAt({ -21.0f, 2.0f, 82.0f }, EnemyType::Melee);
-			characters.SpawnEnemyAt({ 21.0f, 2.0f, 82.0f }, EnemyType::Melee);
-			characters.SpawnEnemyAt({ -12.0f, 2.0f, 94.0f }, EnemyType::Melee);
-			characters.SpawnEnemyAt({ 12.0f, 2.0f, 96.0f }, EnemyType::Melee);
-			characters.SpawnEnemyAt({ -20.0f, 2.0f, 103.0f }, EnemyType::MidRange);
-			characters.SpawnEnemyAt({ 20.0f, 2.0f, 104.0f }, EnemyType::MidRange);
+			characters.SpawnEnemyAt({ -21.0f, 3.5f, 82.0f }, EnemyType::Melee);
+			characters.SpawnEnemyAt({ 21.0f, 3.5f, 82.0f }, EnemyType::Melee);
+			characters.SpawnEnemyAt({ -12.0f, 4.0f, 94.0f }, EnemyType::Melee);
+			characters.SpawnEnemyAt({ 12.0f, 4.0f, 96.0f }, EnemyType::Melee);
+			characters.SpawnEnemyAt({ -20.0f, 4.0f, 103.0f }, EnemyType::MidRange);
+			characters.SpawnEnemyAt({ 20.0f, 4.0f, 104.0f }, EnemyType::MidRange);
 			break;
 		}
 	}
@@ -241,7 +241,7 @@ private:
 		if (activationSequence_ >= 2)
 		{
 			characters.SpawnEnemyAt(center + K4E::Vector3{ -2.0f, 2.0f, 8.0f }, EnemyType::Melee);
-			characters.SpawnEnemyAt(center + K4E::Vector3{ 8.0f, 2.0f, -5.0f }, EnemyType::MidRange); // 2基目は5体の増援にして中盤の圧力を上げる。
+			characters.SpawnEnemyAt(center + K4E::Vector3{ 8.0f, 2.0f, -5.0f }, EnemyType::MidRange); // 増援は装置床面を基準に高さを加え、段差内部への埋没を防ぐ。
 		}
 	}
 
