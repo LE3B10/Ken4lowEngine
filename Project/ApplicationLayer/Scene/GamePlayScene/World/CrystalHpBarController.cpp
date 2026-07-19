@@ -23,6 +23,13 @@ namespace
 	{
 		return std::sqrt(value.x * value.x + value.y * value.y + value.z * value.z);
 	}
+
+	K4E::Vector4 ResolveHpTextColor(float hpRate)
+	{
+		if (hpRate <= 0.20f) return { 1.0f, 0.30f, 0.18f, 1.0f };
+		if (hpRate <= 0.45f) return { 1.0f, 0.78f, 0.20f, 1.0f };
+		return { 0.48f, 0.92f, 1.0f, 1.0f };
+	}
 }
 
 CrystalHpBarController::~CrystalHpBarController()
@@ -63,6 +70,8 @@ void CrystalHpBarController::Update(const std::vector<EnemySpawnCrystal>& crysta
 	EnsureBarCount(crystals.size());
 	UpdateObjectiveNotice(crystals, deltaTime);
 
+	const float displayWidth = std::max(140.0f, settings_.width);
+	const float displayHeight = std::max(14.0f, settings_.height);
 	const IPlayerRuntime* player = IPlayerRuntime::GetActiveRuntimeConst();
 	const bool hasPlayerPosition = player != nullptr;
 	const K4E::Vector3 playerPosition = hasPlayerPosition ? player->GetWorldPosition() : K4E::Vector3{};
@@ -70,11 +79,12 @@ void CrystalHpBarController::Update(const std::vector<EnemySpawnCrystal>& crysta
 	for (size_t i = 0; i < crystals.size(); ++i)
 	{
 		const EnemySpawnCrystal& crystal = crystals[i];
+		const bool availableForUi = crystal.IsAlive() && !crystal.IsBreaking();
 		DebugInfo debug{};
 		debug.hp = crystal.GetHp();
 		debug.maxHp = crystal.GetMaxHp();
 		debug.hpRate = std::clamp(crystal.GetHpRate(), 0.0f, 1.0f);
-		debug.active = crystal.IsAlive();
+		debug.active = availableForUi;
 		debug.broken = crystal.IsDestroyed();
 		debug.distance = hasPlayerPosition ? Length(crystal.GetPosition() - playerPosition) : 0.0f;
 
@@ -88,18 +98,18 @@ void CrystalHpBarController::Update(const std::vector<EnemySpawnCrystal>& crysta
 			aimTimers_[i] = std::max(0.0f, aimTimers_[i] - deltaTime);
 		}
 
-		if (crystal.IsDestroyed())
+		if (!availableForUi)
 		{
 			visible = false;
-			debug.hiddenReason = "Broken";
+			debug.hiddenReason = crystal.IsBreaking() ? "Breaking" : "Broken";
 		}
-		else if (showOnlyWhenAimed && &crystal != aimedCrystal && aimTimers_[i] <= 0.0f)
+		else if (showOnlyWhenAimed && !settings_.alwaysVisible && &crystal != aimedCrystal && aimTimers_[i] <= 0.0f)
 		{
-			// 照準対象だけHPバーを表示し、外れ際は短い保持時間でチラつきを抑える。
+			// 常時表示設定を優先し、照準表示モードでは外れ際だけ短く保持する。
 			visible = false;
 			debug.hiddenReason = "Not aimed";
 		}
-		else if (!settings_.alwaysVisible && crystal.GetHp() >= crystal.GetMaxHp())
+		else if (!settings_.alwaysVisible && crystal.GetHp() >= crystal.GetMaxHp() && &crystal != aimedCrystal)
 		{
 			visible = false;
 			debug.hiddenReason = "Full HP";
@@ -107,7 +117,6 @@ void CrystalHpBarController::Update(const std::vector<EnemySpawnCrystal>& crysta
 
 		const K4E::Vector3& pos = crystal.GetPosition();
 		const K4E::Vector3& scale = crystal.GetScale();
-		// クリスタル頭上にHPバーを出すため、モデルScaleと調整用Offsetを加味して表示位置を作る。
 		const K4E::Vector3 hpBarWorldPos{ pos.x, pos.y + std::abs(scale.y) * 0.65f + settings_.offsetY, pos.z };
 		debug.worldPosition = hpBarWorldPos;
 		const HpBarProjectResult projected = ProjectWorldToScreen(hpBarWorldPos, viewMatrix, projMatrix, screenWidth_, screenHeight_);
@@ -121,27 +130,26 @@ void CrystalHpBarController::Update(const std::vector<EnemySpawnCrystal>& crysta
 		}
 
 		debug.visible = visible;
-		if (visible)
-		{
-			++visibleCount_;
-		}
+		debug.hpLabelVisible = visible;
+		debug.hpLabelPosition = { projected.screenPos.x, projected.screenPos.y - displayHeight * 0.95f - 9.0f };
+		if (visible) ++visibleCount_;
 
 		if (i < hpBars_.size() && hpBars_[i])
 		{
-			hpBars_[i]->Update(projected.screenPos, debug.hpRate, visible, deltaTime, settings_.width, settings_.height);
+			hpBars_[i]->Update(projected.screenPos, debug.hpRate, visible, deltaTime, displayWidth, displayHeight);
 		}
 
-		debug.markerVisible = settings_.showOffscreenMarker && crystal.IsAlive() && (!projected.inFront || !projected.inScreen);
+		debug.markerVisible = settings_.showOffscreenMarker && availableForUi && (!projected.inFront || !projected.inScreen);
 		if (debug.markerVisible)
 		{
 			debug.markerPosition = BuildOffscreenMarkerPosition(hpBarWorldPos, viewMatrix, screenWidth_, screenHeight_);
 			debug.distanceLabelPosition = { debug.markerPosition.x, debug.markerPosition.y + settings_.markerSize * 0.85f };
 		}
-		else if (crystal.IsAlive() && projected.inFront && projected.inScreen)
+		else if (availableForUi && projected.inFront && projected.inScreen)
 		{
-			debug.distanceLabelPosition = { projected.screenPos.x, projected.screenPos.y + 25.0f };
+			debug.distanceLabelPosition = { projected.screenPos.x, projected.screenPos.y + displayHeight + 18.0f };
 		}
-		debug.distanceVisible = settings_.showDistance && hasPlayerPosition && crystal.IsAlive() && (debug.markerVisible || (projected.inFront && projected.inScreen));
+		debug.distanceVisible = settings_.showDistance && hasPlayerPosition && availableForUi && (debug.markerVisible || (projected.inFront && projected.inScreen));
 
 		if (i < directionMarkers_.size() && directionMarkers_[i])
 		{
@@ -174,36 +182,35 @@ void CrystalHpBarController::Draw()
 	drawCalled_ = true;
 	for (auto& bar : hpBars_)
 	{
-		if (bar)
-		{
-			bar->Draw();
-		}
+		if (bar) bar->Draw();
 	}
 	for (size_t i = 0; i < directionMarkers_.size() && i < debugInfos_.size(); ++i)
 	{
-		if (directionMarkers_[i] && debugInfos_[i].markerVisible)
-		{
-			directionMarkers_[i]->Draw();
-		}
+		if (directionMarkers_[i] && debugInfos_[i].markerVisible) directionMarkers_[i]->Draw();
 	}
 
-	if (!textReady_ || !textDrawer_)
-	{
-		return;
-	}
+	if (!textReady_ || !textDrawer_) return;
 
 	textDrawer_->Reset();
 	textDrawer_->SetLetterSpacing(0.5f);
 	textDrawer_->SetLineSpacing(2.0f);
-	textDrawer_->SetScale(settings_.distanceTextScale);
+
 	for (const DebugInfo& info : debugInfos_)
 	{
-		if (!info.distanceVisible)
-		{
-			continue;
-		}
+		if (!info.hpLabelVisible) continue;
+		const std::string hpText = "CRYSTAL  " + std::to_string(info.hp) + " / " + std::to_string(info.maxHp);
+		textDrawer_->SetScale(settings_.hpTextScale);
+		textDrawer_->SetColor({ 0.01f, 0.02f, 0.04f, 0.94f });
+		textDrawer_->DrawTextCentered(hpText, { info.hpLabelPosition.x + 2.0f, info.hpLabelPosition.y + 2.0f });
+		textDrawer_->SetColor(ResolveHpTextColor(info.hpRate));
+		textDrawer_->DrawTextCentered(hpText, info.hpLabelPosition); // 数値と対象名を併記し、ゲージだけより残量を読み取りやすくする。
+	}
 
+	for (const DebugInfo& info : debugInfos_)
+	{
+		if (!info.distanceVisible) continue;
 		const std::string distanceText = std::to_string(static_cast<int>(std::round(info.distance))) + "m";
+		textDrawer_->SetScale(settings_.distanceTextScale);
 		textDrawer_->SetColor({ 0.01f, 0.02f, 0.04f, 0.90f });
 		textDrawer_->DrawTextCentered(distanceText, { info.distanceLabelPosition.x + 2.0f, info.distanceLabelPosition.y + 2.0f });
 		textDrawer_->SetColor(info.markerVisible
@@ -231,7 +238,7 @@ void CrystalHpBarController::DrawImGui() const
 	ImGui::Text("表示: %s", settings_.visible ? "ON" : "OFF");
 	ImGui::Text("常時表示: %s", settings_.alwaysVisible ? "ON" : "OFF");
 	ImGui::Text("距離 / 画面外マーカー: %s / %s", settings_.showDistance ? "ON" : "OFF", settings_.showOffscreenMarker ? "ON" : "OFF");
-	ImGui::Text("OffsetY / Size: %.2f / %.1f x %.1f", settings_.offsetY, settings_.width, settings_.height);
+	ImGui::Text("OffsetY / Size: %.2f / %.1f x %.1f", settings_.offsetY, std::max(140.0f, settings_.width), std::max(14.0f, settings_.height));
 	ImGui::Text("Marker Margin / Size: %.1f / %.1f", settings_.markerMargin, settings_.markerSize);
 	ImGui::Text("被弾後表示時間: %.2f 秒", settings_.showTime);
 	ImGui::Text("Draw呼び出し: %s", drawCalled_ ? "はい" : "いいえ");
@@ -256,18 +263,9 @@ void CrystalHpBarController::DrawImGui() const
 
 void CrystalHpBarController::EnsureBarCount(size_t crystalCount)
 {
-	if (debugInfos_.size() != crystalCount)
-	{
-		debugInfos_.resize(crystalCount);
-	}
-	if (aimTimers_.size() != crystalCount)
-	{
-		aimTimers_.assign(crystalCount, 0.0f);
-	}
-	if (hpBars_.size() == crystalCount && directionMarkers_.size() == crystalCount)
-	{
-		return;
-	}
+	if (debugInfos_.size() != crystalCount) debugInfos_.resize(crystalCount);
+	if (aimTimers_.size() != crystalCount) aimTimers_.assign(crystalCount, 0.0f);
+	if (hpBars_.size() == crystalCount && directionMarkers_.size() == crystalCount) return;
 
 	hpBars_.clear();
 	directionMarkers_.clear();
