@@ -42,13 +42,16 @@ struct CrystalReactionSettings
 	float hitFlashTime = 0.18f;
 	float hitShakePower = 0.18f;
 	float hitShakeTime = 0.20f;
-	float breakingDuration = 1.4f;
+	float breakingDuration = 0.65f;
 	float breakEffectScale = 1.45f;
 	float damagedHpRate = 0.70f;
 	float criticalHpRate = 0.20f;
 	float visibilityPulseSpeed = 2.6f;
 	float visibilityPulseScale = 0.08f;
 	float visibilityParticleInterval = 0.14f;
+	float visibilityAuraRadiusScale = 1.55f;
+	float visibilityAuraHighlightScale = 2.05f;
+	float visibilityParticleSizeScale = 1.65f;
 	float approachSoundDistance = 12.0f;
 	float approachSoundResetDistance = 16.0f;
 };
@@ -97,7 +100,7 @@ public:
 	State GetState() const { return state_; }
 	bool IsActive() const { return isActive_; }
 	const std::string& GetCrystalName() const { return crystalName_; }
-	bool IsColliderEnabled() const { return IsAlive(); }
+	bool IsColliderEnabled() const { return IsAlive() && !IsBreaking(); }
 	int GetHitCount() const { return hitCount_; }
 	int GetHp() const { return hp; }
 	int GetMaxHp() const { return maxHp; }
