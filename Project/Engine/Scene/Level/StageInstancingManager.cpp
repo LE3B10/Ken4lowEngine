@@ -68,9 +68,14 @@ namespace Ken4lowEngine
 			sourcesByModel[source.modelPath].push_back(source);
 		};
 
-		for (const ObjectData& data : levelData.objects) appendSource(data);
 		const std::vector<ObjectData> hiddenArenaObjects = MineHiddenArenaLayout::Build(levelData);
-		for (const ObjectData& data : hiddenArenaObjects) appendSource(data); // Stage2追加区画も既存cubeバッチへ合流させ、DrawCallを増やさない。
+		const bool hasHiddenArena = !hiddenArenaObjects.empty();
+		for (const ObjectData& data : levelData.objects)
+		{
+			if (hasHiddenArena && data.name == "Wall_North") continue; // 旧終端壁だけを外し、中央の封鎖は可動Gateへ置き換える。
+			appendSource(data);
+		}
+		for (const ObjectData& data : hiddenArenaObjects) appendSource(data);
 
 		for (auto& [modelPath, sources] : sourcesByModel)
 		{
