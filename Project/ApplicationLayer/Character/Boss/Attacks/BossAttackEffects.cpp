@@ -72,3 +72,8 @@ void BossAttackEffects::EmitGuardianAttackPresenceEffect(const char* emitterName
 	const std::string meshEmitterName = std::string(emitterName) + "MeshDebris";
 	EmitGuardianMeshDebrisEffect(meshEmitterName.c_str(), Ken4lowEngine::GpuParticleType::Debris, position, std::max<uint32_t>(2, spawnCount / 2), spawnRadius * 0.65f, lifetimeScale, initialSpeedScale * 1.15f);
 }
+
+void BossAttackEffects::EmitGuardianTelegraphEffect(const char* emitterName, Ken4lowEngine::GpuParticleType particleType, const Ken4lowEngine::Vector3& position, uint32_t spawnCount, float spawnRadius, float lifetimeScale, float initialSpeedScale)
+{
+	EmitGpuParticle(emitterName, Ken4lowEngine::GpuParticleKind::Sprite, particleType, position, spawnCount, spawnRadius, lifetimeScale, initialSpeedScale); // Windup中はSpriteだけを使い、連続予兆でMesh破片が増えすぎないようにする。
+}
