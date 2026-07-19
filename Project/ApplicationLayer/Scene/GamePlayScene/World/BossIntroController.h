@@ -56,6 +56,7 @@ public:
 	void Finalize();
 	void RequestStart(const K4E::Vector3& bossPosition);
 	void Reset();
+	void ClearRuntimeBossPositionOverride() { hasRuntimeBossPositionOverride_ = false; }
 	void SetRuntimeBossPositionOverride(const K4E::Vector3& position)
 	{
 		runtimeBossPositionOverride_ = position;
@@ -66,6 +67,7 @@ public:
 	void Update(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera)
 	{
 		ApplyParameters();
+		if (hasRuntimeBossPositionOverride_) settings_.bossAppearPosition = runtimeBossPositionOverride_;
 		SetDebugSnapshot(boss, camera);
 		switch (state_)
 		{
