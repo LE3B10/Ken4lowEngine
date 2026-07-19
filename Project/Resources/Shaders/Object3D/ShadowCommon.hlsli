@@ -4,6 +4,9 @@
 static const float kEpsilon = 1e-5f;
 static const float kDefaultShadowStrength = 0.60f;
 static const int kPCFRadius = 1;
+static const float kMinimumReceiverDepthBias = 0.00025f;
+static const float kReceiverSlopeBiasScale = 1.25f;
+static const float kMaximumReceiverSlope = 4.0f;
 
 static const uint SHADOW_TECHNIQUE_OFF = 0;
 static const uint SHADOW_TECHNIQUE_DIRECTIONAL = 1;
@@ -43,6 +46,27 @@ float ResolveShadowVisibility(float visibility, float strength)
     return lerp(1.0f - saturate(strength), 1.0f, visibility);
 }
 
+float CalculateReceiverSlope(float NoL)
+{
+    const float clampedNoL = saturate(NoL);
+    const float safeNoL = max(clampedNoL, 0.20f);
+    const float sinTheta = sqrt(saturate(1.0f - clampedNoL * clampedNoL));
+    return min(sinTheta / safeNoL, kMaximumReceiverSlope);
+}
+
+float ResolveReceiverDepthBias(float configuredBias, float NoL, float distanceScale)
+{
+    const float baseBias = max(configuredBias, kMinimumReceiverDepthBias);
+    const float slopeBoost = 1.0f + CalculateReceiverSlope(NoL) * kReceiverSlopeBiasScale;
+    return baseBias * max(distanceScale, 1.0f) * slopeBoost; // 光へ斜めな面だけBiasを増やし、正面の影が浮く量を抑える。
+}
+
+float ResolveReceiverNormalBias(float configuredNormalBias, float NoL, float distanceScale)
+{
+    const float grazingWeight = saturate(1.0f - NoL);
+    return max(configuredNormalBias, 0.0f) * max(distanceScale, 1.0f) * grazingWeight;
+}
+
 float SampleShadowMapPCF(
     Texture2D<float> shadowMap,
     SamplerComparisonState shadowSampler,
@@ -80,8 +104,11 @@ float CalculateProjectedShadowPCF(
     Texture2D<float> shadowMap,
     SamplerComparisonState shadowSampler)
 {
-    const float NoL = saturate(dot(normal, lightDir));
-    const float3 biasedWorldPosition = worldPosition + normal * normalBias * (1.0f - NoL);
+    const float3 surfaceNormal = normalize(normal);
+    const float3 surfaceLightDir = normalize(lightDir);
+    const float NoL = saturate(dot(surfaceNormal, surfaceLightDir));
+    const float resolvedNormalBias = ResolveReceiverNormalBias(normalBias, NoL, 1.0f);
+    const float3 biasedWorldPosition = worldPosition + surfaceNormal * resolvedNormalBias;
     const float4 shadowPosition = mul(float4(biasedWorldPosition, 1.0f), lightViewProjection);
 
     if (shadowPosition.w <= kEpsilon)
@@ -96,7 +123,8 @@ float CalculateProjectedShadowPCF(
         return 1.0f;
     }
 
-    const float visibility = SampleShadowMapPCF(shadowMap, shadowSampler, uv, projected.z - shadowBias);
+    const float resolvedDepthBias = ResolveReceiverDepthBias(shadowBias, NoL, 1.0f);
+    const float visibility = SampleShadowMapPCF(shadowMap, shadowSampler, uv, projected.z - resolvedDepthBias);
     return ResolveShadowVisibility(visibility, shadowStrength);
 }
 
@@ -172,8 +200,11 @@ float CalculateSpotLinearShadow(
     const float3 lightPosition = shadowParam.pointLightPositionAndFar.xyz;
     const float farZ = max(shadowParam.pointLightPositionAndFar.w, 0.02f);
     const float nearZ = clamp(shadowParam.cameraPositionAndPointNear.w, 0.01f, farZ * 0.5f);
-    const float NoL = saturate(dot(normal, lightDir));
-    const float3 biasedPosition = worldPosition + normal * shadowParam.normalBias * (1.0f - NoL);
+    const float3 surfaceNormal = normalize(normal);
+    const float3 surfaceLightDir = normalize(lightDir);
+    const float NoL = saturate(dot(surfaceNormal, surfaceLightDir));
+    const float resolvedNormalBias = ResolveReceiverNormalBias(shadowParam.normalBias, NoL, 1.0f);
+    const float3 biasedPosition = worldPosition + surfaceNormal * resolvedNormalBias;
     const float4 shadowPosition = mul(float4(biasedPosition, 1.0f), shadowParam.cascadeLightViewProjection[0]);
 
     if (shadowPosition.w <= kEpsilon)
@@ -190,7 +221,8 @@ float CalculateSpotLinearShadow(
     }
 
     const float minimumWorldBias = 0.01f / farZ;
-    const float compareDepth = saturate(distanceToLight / farZ) - max(shadowParam.shadowBias, minimumWorldBias);
+    const float resolvedDepthBias = ResolveReceiverDepthBias(max(shadowParam.shadowBias, minimumWorldBias), NoL, 1.0f);
+    const float compareDepth = saturate(distanceToLight / farZ) - resolvedDepthBias;
     const float visibility = SampleShadowMapPCF(shadowMap, shadowSampler, uv, compareDepth);
     return ResolveShadowVisibility(visibility, shadowParam.shadowStrength);
 }
@@ -231,8 +263,14 @@ float CalculateCsmShadow(
 
     const float cameraDepth = CalculateCsmCameraDepth(worldPosition, shadowParam);
     const uint cascadeIndex = SelectShadowCascade(cameraDepth, shadowParam);
-    const float NoL = saturate(dot(normal, lightDir));
-    const float3 biasedPosition = worldPosition + normal * shadowParam.normalBias * (1.0f - NoL);
+    const float firstCascadeEnd = max(shadowParam.cascadeSplits.x, kEpsilon);
+    const float currentCascadeEnd = max(shadowParam.cascadeSplits[cascadeIndex], firstCascadeEnd);
+    const float cascadeBiasScale = clamp(sqrt(currentCascadeEnd / firstCascadeEnd), 1.0f, 3.0f);
+    const float3 surfaceNormal = normalize(normal);
+    const float3 surfaceLightDir = normalize(lightDir);
+    const float NoL = saturate(dot(surfaceNormal, surfaceLightDir));
+    const float resolvedNormalBias = ResolveReceiverNormalBias(shadowParam.normalBias, NoL, cascadeBiasScale);
+    const float3 biasedPosition = worldPosition + surfaceNormal * resolvedNormalBias;
     const float4 shadowPosition = mul(float4(biasedPosition, 1.0f), shadowParam.cascadeLightViewProjection[cascadeIndex]);
     if (shadowPosition.w <= kEpsilon) { return 1.0f; }
 
@@ -243,6 +281,7 @@ float CalculateCsmShadow(
     uint width, height, layers;
     csmShadowMaps.GetDimensions(width, height, layers);
     const float2 texelSize = 1.0f / max(float2(width, height), float2(1.0f, 1.0f));
+    const float resolvedDepthBias = ResolveReceiverDepthBias(shadowParam.shadowBias, NoL, cascadeBiasScale);
     float visibility = 0.0f;
     [unroll]
     for (int y = -kPCFRadius; y <= kPCFRadius; ++y)
@@ -253,7 +292,7 @@ float CalculateCsmShadow(
             visibility += csmShadowMaps.SampleCmpLevelZero(
                 shadowSampler,
                 float3(uv + float2(x, y) * texelSize, (float)cascadeIndex),
-                projected.z - shadowParam.shadowBias);
+                projected.z - resolvedDepthBias);
         }
     }
 
@@ -273,14 +312,18 @@ float CalculatePointCubeShadow(
     const float3 lightPosition = shadowParam.pointLightPositionAndFar.xyz;
     const float farZ = max(shadowParam.pointLightPositionAndFar.w, 0.02f);
     const float nearZ = clamp(shadowParam.cameraPositionAndPointNear.w, 0.01f, farZ * 0.5f);
-    const float NoL = saturate(dot(normal, lightDir));
-    const float3 biasedPosition = worldPosition + normal * shadowParam.normalBias * (1.0f - NoL);
+    const float3 surfaceNormal = normalize(normal);
+    const float3 surfaceLightDir = normalize(lightDir);
+    const float NoL = saturate(dot(surfaceNormal, surfaceLightDir));
+    const float resolvedNormalBias = ResolveReceiverNormalBias(shadowParam.normalBias, NoL, 1.0f);
+    const float3 biasedPosition = worldPosition + surfaceNormal * resolvedNormalBias;
     const float3 fromLight = biasedPosition - lightPosition;
     const float distanceToLight = length(fromLight);
     if (distanceToLight <= nearZ || distanceToLight >= farZ) { return 1.0f; }
 
     const float minimumWorldBias = 0.01f / farZ;
-    const float compareDepth = saturate(distanceToLight / farZ) - max(shadowParam.shadowBias, minimumWorldBias);
+    const float resolvedDepthBias = ResolveReceiverDepthBias(max(shadowParam.shadowBias, minimumWorldBias), NoL, 1.0f);
+    const float compareDepth = saturate(distanceToLight / farZ) - resolvedDepthBias;
     const float3 sampleDirection = normalize(fromLight);
 
     uint shadowWidth, shadowHeight, mipLevels;
