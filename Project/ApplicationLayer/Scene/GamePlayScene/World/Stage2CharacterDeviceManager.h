@@ -1,6 +1,12 @@
 #pragma once
 
-#include "Stage2DeviceSystem.h"
+#include "ApplicationLayer/Character/CharacterWorld/CharacterWorld.h"
+#include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
+#include "ApplicationLayer/Scene/GamePlayScene/Core/GamePlayStageContext.h"
+#include "Stage2DeviceActor.h"
+
+#include <ActorWorld.h>
+#include <Input.h>
 
 #include <algorithm>
 #include <functional>
@@ -11,7 +17,12 @@
 class Stage2CharacterDeviceManager final
 {
 public:
-	using PromptSnapshot = Stage2DeviceManager::PromptSnapshot;
+	struct PromptSnapshot
+	{
+		bool visible = false;
+		std::string text;
+		float normalizedProgress = 0.0f;
+	};
 
 	void Initialize(const GamePlayStageContext& stageContext)
 	{
