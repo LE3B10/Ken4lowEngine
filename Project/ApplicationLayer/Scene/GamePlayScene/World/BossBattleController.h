@@ -7,6 +7,7 @@
 
 #include <functional>
 #include <memory>
+#include <string>
 
 namespace Ken4lowEngine
 {
@@ -99,6 +100,7 @@ public:
 	float GetBossHP() const;
 	float GetBossMaxHP() const;
 	const K4E::Vector3& GetBossSpawnPosition() const { return bossSpawnPosition_; }
+	const std::string& GetBossPrefabPath() const { return bossPrefabPath_; }
 	K4E::BossActor* GetBoss() const { return bossActor_; }
 
 private:
@@ -118,6 +120,7 @@ private:
 private:
 	K4E::BossActor* bossActor_ = nullptr;
 	std::unique_ptr<BossClearItem> clearItem_;
+	std::string bossPrefabPath_ = "Resources/ActorPrefabs/ComponentBoss.json";
 	K4E::Vector3 bossSpawnPosition_{ 0.0f, 2.25f, 30.0f };
 	K4E::Vector3 bossDeathPosition_{};
 	BossIntroController bossIntroController_;
