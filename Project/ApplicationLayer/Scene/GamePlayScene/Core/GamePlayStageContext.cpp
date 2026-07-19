@@ -22,8 +22,8 @@ namespace
 			"",
 			false,
 			0u,
-		{ 0.18f, 0.49f, 0.20f, 1.0f },
-		false
+			{ 0.18f, 0.49f, 0.20f, 1.0f },
+			false
 			});
 
 		stages.push_back({
@@ -84,16 +84,16 @@ namespace
 	bool IsEnemySpawnType(const std::string& type) { return type == "EnemySpawnPoint"; }
 	bool IsBossSpawnType(const std::string& type) { return type == "BossSpawnPoint"; }
 
-	bool IsDevicePointType(const std::string& type) { return type == "DevicePoint"; }
-	bool IsDefenseTargetPointType(const std::string& type) { return type == "DefenseTargetPoint"; }
-	bool IsGoalPointType(const std::string& type) { return type == "GoalPoint"; }
+	bool IsDevicePointType(const std::string& type) { return type == "DevicePoint" || type == "DeviceObjective"; }
+	bool IsDefenseTargetPointType(const std::string& type) { return type == "DefenseTargetPoint" || type == "DefenseTarget"; }
+	bool IsGoalPointType(const std::string& type) { return type == "GoalPoint" || type == "EscapePoint"; }
 
 	std::vector<GamePlayStageContext::DevicePointInfo> BuildStage2FallbackDevicePoints()
 	{
 		return {
-			{ "MineDevice_West",  { -28.0f, 1.0f, -12.0f } },
-			{ "MineDevice_East",  {  27.0f, 1.0f,   8.0f } },
-			{ "MineDevice_Deep",  {   0.0f, 1.0f,  35.0f } }
+			{ "MineDevice_West",  { -31.0f, 0.0f, -7.0f } },
+			{ "MineDevice_East",  {  31.0f, 0.0f,  0.0f } },
+			{ "MineDevice_Deep",  {   0.0f, 0.0f, 28.0f } }
 		};
 	}
 }
@@ -149,13 +149,13 @@ GamePlayStageContext::StageAssetPaths GamePlayStageContext::GetStageAssetPaths(i
 {
 	switch (stageIndex)
 	{
-	case 0: return { "stages/hajimarinoheigen.json", "Stages/hajimarinoheigen.gltf" };
-	case 1: return { "stages/fps_stage01.json", "Stages/fps_stage01.gltf" }; // 空だった旧坑道JSONではなく、地形とColliderが一致する既存LevelをStage2へ使用する。
-	case 2: return { "stages/fps_stage02.json", "Stages/fps_stage02.gltf" };
-	case 3: return { "stages/fps_stage03.json", "Stages/fps_stage03.gltf" };
-	case 4: return { "stages/fps_stage04.json", "Stages/fps_stage04.gltf" };
+	case 0: return { "stages/hajimarinoheigen.json", "Stages/hajimarinoheigen.gltf", false };
+	case 1: return { "stages/wasureraretakoudou.json", "", true }; // Stage2は一体型glTFを読まず、JSONのモジュール配置だけをインスタンス描画する。
+	case 2: return { "stages/fps_stage02.json", "Stages/fps_stage02.gltf", false };
+	case 3: return { "stages/fps_stage03.json", "Stages/fps_stage03.gltf", false };
+	case 4: return { "stages/fps_stage04.json", "Stages/fps_stage04.gltf", false };
 	default:
-		return { "stages/fps_stage00.json", "Stages/fps_stage00.gltf" };
+		return { "stages/fps_stage00.json", "Stages/fps_stage00.gltf", false };
 	}
 }
 
@@ -166,11 +166,11 @@ GamePlayStageContext::StageRule GamePlayStageContext::GetStageRule(int stageInde
 	case 0:
 		return {
 			StageObjectiveType::ClearAllWaves,
-			true,   // useWaveSystem
-			false,  // hasBoss
-			0,      // requiredDeviceCount
-			0.0f,   // defendTimeSec
-			0.0f    // timeLimitSec
+			true,
+			false,
+			0,
+			0.0f,
+			0.0f
 		};
 
 	case 1:
@@ -247,7 +247,7 @@ void GamePlayStageContext::LoadSpawnPointsFromLevel(const std::string& jsonPath)
 		if (currentStageIndex_ == 1)
 		{
 			devicePoints_ = BuildStage2FallbackDevicePoints();
-			playerSpawnPoint_ = { 0.0f, 1.25f, -42.0f };
+			playerSpawnPoint_ = { 0.0f, 1.0f, -43.0f };
 			hasPlayerSpawnPoint_ = true; // Level読込失敗時もStage2の操作確認だけは開始できる安全なFallbackを持つ。
 		}
 		return;
@@ -273,10 +273,9 @@ void GamePlayStageContext::LoadSpawnPointsFromLevel(const std::string& jsonPath)
 				info.wave = (object.spawnProps.wave > 0) ? object.spawnProps.wave : 1;
 				info.group = object.spawnProps.group;
 				info.count = (object.spawnProps.count > 0) ? object.spawnProps.count : 1;
-				// stage JSONから敵種別を受け取り、Wave生成時にFactoryへ渡す。
 				if (object.spawnProps.hasEnemyType)
 				{
-					info.enemyType = ParseEnemyType(object.spawnProps.enemyType);
+					info.enemyType = ParseEnemyType(object.spawnProps.enemyType); // JSONの敵種別をWave生成へ渡す。
 				}
 			}
 
@@ -318,9 +317,11 @@ void GamePlayStageContext::LoadSpawnPointsFromLevel(const std::string& jsonPath)
 		else if (IsDevicePointType(object.type))
 		{
 			DevicePointInfo info{};
-			info.name = object.name;
+			info.name = object.hasDeviceObjectiveProps && !object.deviceObjectiveProps.objectiveId.empty()
+				? object.deviceObjectiveProps.objectiveId
+				: object.name;
 			info.position = object.position;
-			devicePoints_.push_back(info);
+			devicePoints_.push_back(info); // Instanced Stage内のDeviceObjectiveを装置Actor配置へ変換する。
 		}
 		else if (IsDefenseTargetPointType(object.type))
 		{
@@ -340,7 +341,7 @@ void GamePlayStageContext::LoadSpawnPointsFromLevel(const std::string& jsonPath)
 
 	if (currentStageIndex_ == 1 && devicePoints_.empty())
 	{
-		devicePoints_ = BuildStage2FallbackDevicePoints(); // Blender側へDevicePointを追加するまでは探索ルート用の3地点を補完する。
+		devicePoints_ = BuildStage2FallbackDevicePoints(); // JSONのObjectiveが欠けても3基の進行不能を避ける。
 	}
 
 	std::sort(
@@ -354,7 +355,7 @@ void GamePlayStageContext::LoadSpawnPointsFromLevel(const std::string& jsonPath)
 
 void GamePlayStageContext::SetupWaves(WaveManager* waveManager) const
 {
-	if (!waveManager) { return; }
+	if (!waveManager) return;
 
 	std::vector<WaveDefinition> waves;
 
@@ -363,24 +364,17 @@ void GamePlayStageContext::SetupWaves(WaveManager* waveManager) const
 		int maxWave = 0;
 		for (const auto& spawn : enemySpawnInfos_)
 		{
-			if (spawn.wave > maxWave)
-			{
-				maxWave = spawn.wave;
-			}
+			if (spawn.wave > maxWave) maxWave = spawn.wave;
 		}
 
-		if (maxWave <= 0)
-		{
-			maxWave = 1;
-		}
-
+		if (maxWave <= 0) maxWave = 1;
 		waves.resize(static_cast<size_t>(maxWave));
 
 		for (int i = 0; i < maxWave; ++i)
 		{
-			if (i == 0) { waves[static_cast<size_t>(i)].delayBeforeSpawnSec = 0.0f; }
-			else if (i == 1) { waves[static_cast<size_t>(i)].delayBeforeSpawnSec = 2.0f; }
-			else { waves[static_cast<size_t>(i)].delayBeforeSpawnSec = 2.5f; }
+			if (i == 0) waves[static_cast<size_t>(i)].delayBeforeSpawnSec = 0.0f;
+			else if (i == 1) waves[static_cast<size_t>(i)].delayBeforeSpawnSec = 2.0f;
+			else waves[static_cast<size_t>(i)].delayBeforeSpawnSec = 2.5f;
 		}
 
 		for (const auto& spawn : enemySpawnInfos_)
@@ -392,8 +386,7 @@ void GamePlayStageContext::SetupWaves(WaveManager* waveManager) const
 			entry.enemyType = spawn.enemyType;
 			if (IsBeginningPlainStage() && entry.enemyType == EnemyType::MidRange)
 			{
-				// ステージ1は初心者向けにするため、通常Waveも近接敵のみを出現させる。
-				entry.enemyType = EnemyType::Melee;
+				entry.enemyType = EnemyType::Melee; // Stage1は初心者向けに近接敵へ統一する。
 			}
 
 			const int spawnCount = std::max(1, spawn.count);
