@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <array>
 #include <string>
+#include <utility>
 
 namespace
 {
@@ -84,7 +85,7 @@ namespace
 			Vector3 scale;
 		};
 
-		constexpr std::array<BoxSpec, 16> walls = {{
+		const std::array<BoxSpec, 16> walls = {{
 			{ "MainWall_L_01", { -14.0f, 2.5f, -24.0f }, { 1.0f, 2.5f, 8.0f } },
 			{ "MainWall_L_02", { -14.0f, 2.5f, 10.0f }, { 1.0f, 2.5f, 16.0f } },
 			{ "MainWall_L_03", { -14.0f, 2.5f, 45.0f }, { 1.0f, 2.5f, 8.0f } },
@@ -107,7 +108,7 @@ namespace
 			AddMineBox(levelData, wall.name, wall.position, wall.scale, "Obstacle");
 		}
 
-		constexpr std::array<Vector3, 24> pillarPositions = {{
+		const std::array<Vector3, 24> pillarPositions = {{
 			{ -8.0f, 2.2f, -44.0f }, { 8.0f, 2.2f, -44.0f },
 			{ -8.0f, 2.2f, -24.0f }, { 8.0f, 2.2f, -24.0f },
 			{ -40.0f, 2.2f, -18.0f }, { -28.0f, 2.2f, -18.0f },
@@ -131,7 +132,7 @@ namespace
 				"Pillar");
 		}
 
-		constexpr std::array<BoxSpec, 14> covers = {{
+		const std::array<BoxSpec, 14> covers = {{
 			{ "Cover_01", { -6.0f, 1.1f, -46.0f }, { 2.2f, 1.1f, 1.2f } },
 			{ "Cover_02", { 7.0f, 1.1f, -40.0f }, { 1.5f, 1.1f, 1.8f } },
 			{ "Cover_03", { -6.0f, 1.1f, -14.0f }, { 2.0f, 1.1f, 1.0f } },
@@ -152,7 +153,7 @@ namespace
 			AddMineBox(levelData, cover.name, cover.position, cover.scale, "Obstacle");
 		}
 
-		constexpr std::array<float, 9> beamZ = { -44.0f, -24.0f, -4.0f, 16.0f, 36.0f, 56.0f, 78.0f, 98.0f, 116.0f };
+		const std::array<float, 9> beamZ = { -44.0f, -24.0f, -4.0f, 16.0f, 36.0f, 56.0f, 78.0f, 98.0f, 116.0f };
 		for (size_t index = 0; index < beamZ.size(); ++index)
 		{
 			const float halfWidth = beamZ[index] < 72.0f ? 14.0f : 30.0f;
@@ -163,7 +164,7 @@ namespace
 				{ halfWidth, 0.35f, 0.7f });
 		}
 
-		constexpr std::array<float, 10> stripZ = { -46.0f, -28.0f, -10.0f, 8.0f, 26.0f, 44.0f, 62.0f, 80.0f, 98.0f, 116.0f };
+		const std::array<float, 10> stripZ = { -46.0f, -28.0f, -10.0f, 8.0f, 26.0f, 44.0f, 62.0f, 80.0f, 98.0f, 116.0f };
 		for (size_t index = 0; index < stripZ.size(); ++index)
 		{
 			AddMineBox(
