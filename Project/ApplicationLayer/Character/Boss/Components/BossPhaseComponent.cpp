@@ -16,6 +16,7 @@ namespace Ken4lowEngine
 	{
 		SanitizeSettings();
 		currentPhase_ = std::clamp(currentPhase_, 1, 3);
+		healthCapacityApplied_ = false;
 		phaseInvulnerabilityRemaining_ = 0.0f;
 		phaseInvulnerabilityActive_ = false;
 		wasInvulnerableBeforePhase_ = false;
@@ -27,6 +28,7 @@ namespace Ken4lowEngine
 		CharacterHealthComponent* health = owner ? owner->GetHealthComponent() : nullptr;
 		if (!health) return;
 
+		ApplyConfiguredHealthCapacity(*health);
 		UpdatePhaseInvulnerability(*health, deltaTime);
 		if (health->IsDead() || phaseInvulnerabilityActive_) return;
 
@@ -45,6 +47,7 @@ namespace Ken4lowEngine
 		{
 			if (phaseInvulnerabilityActive_) EndPhaseInvulnerability(*health);
 		}
+		healthCapacityApplied_ = false;
 		phaseInvulnerabilityRemaining_ = 0.0f;
 		phaseInvulnerabilityActive_ = false;
 		wasInvulnerableBeforePhase_ = false;
@@ -54,6 +57,7 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("ボスフェーズ");
+		ImGui::Text("最大HP設定: %.0f", configuredMaxHealth_);
 		ImGui::Text("現在: Phase %d / Revision %u", currentPhase_, phaseRevision_);
 		ImGui::Text("Phase 2: HP %.0f%% / Phase 3: HP %.0f%%", phase2HealthRatio_ * 100.0f, phase3HealthRatio_ * 100.0f);
 		ImGui::Text("移行無敵: %s %.2f / %.2f", phaseInvulnerabilityActive_ ? "有効" : "無効", phaseInvulnerabilityRemaining_, phaseInvulnerabilityDuration_);
@@ -63,6 +67,7 @@ namespace Ken4lowEngine
 	void BossPhaseComponent::ToJson(nlohmann::json& outJson) const
 	{
 		ActorComponent::ToJson(outJson);
+		outJson["ConfiguredMaxHealth"] = configuredMaxHealth_;
 		outJson["Phase2HealthRatio"] = phase2HealthRatio_;
 		outJson["Phase3HealthRatio"] = phase3HealthRatio_;
 		outJson["PhaseInvulnerabilityDuration"] = phaseInvulnerabilityDuration_;
@@ -72,12 +77,14 @@ namespace Ken4lowEngine
 	void BossPhaseComponent::FromJson(const nlohmann::json& inJson)
 	{
 		ActorComponent::FromJson(inJson);
+		configuredMaxHealth_ = inJson.value("ConfiguredMaxHealth", configuredMaxHealth_);
 		phase2HealthRatio_ = inJson.value("Phase2HealthRatio", phase2HealthRatio_);
 		phase3HealthRatio_ = inJson.value("Phase3HealthRatio", phase3HealthRatio_);
 		phaseInvulnerabilityDuration_ = inJson.value("PhaseInvulnerabilityDuration", phaseInvulnerabilityDuration_);
 		currentPhase_ = inJson.value("CurrentPhase", currentPhase_);
 		SanitizeSettings();
 		currentPhase_ = std::clamp(currentPhase_, 1, 3);
+		healthCapacityApplied_ = false;
 	}
 
 	void BossPhaseComponent::ResetPhase()
@@ -88,6 +95,7 @@ namespace Ken4lowEngine
 			if (phaseInvulnerabilityActive_) EndPhaseInvulnerability(*health);
 		}
 		currentPhase_ = 1;
+		healthCapacityApplied_ = false;
 		phaseInvulnerabilityRemaining_ = 0.0f;
 		++phaseRevision_; // PresentationへReset後の状態再同期を通知する。
 	}
@@ -101,11 +109,22 @@ namespace Ken4lowEngine
 
 	void BossPhaseComponent::SanitizeSettings()
 	{
+		configuredMaxHealth_ = std::isfinite(configuredMaxHealth_) ? std::clamp(configuredMaxHealth_, 1.0f, 100000.0f) : 2400.0f;
 		phase2HealthRatio_ = std::isfinite(phase2HealthRatio_) ? std::clamp(phase2HealthRatio_, 0.01f, 1.0f) : 0.70f;
 		phase3HealthRatio_ = std::isfinite(phase3HealthRatio_) ? std::clamp(phase3HealthRatio_, 0.0f, phase2HealthRatio_) : 0.35f;
 		phaseInvulnerabilityDuration_ = std::isfinite(phaseInvulnerabilityDuration_)
 			? std::clamp(phaseInvulnerabilityDuration_, 0.10f, 5.0f)
 			: 1.20f;
+	}
+
+	void BossPhaseComponent::ApplyConfiguredHealthCapacity(CharacterHealthComponent& health)
+	{
+		if (healthCapacityApplied_) return;
+		const float previousMaxHealth = std::max(1.0f, health.GetMaxHealth());
+		const float previousRatio = std::clamp(health.GetCurrentHealth() / previousMaxHealth, 0.0f, 1.0f);
+		health.SetMaxHealth(configuredMaxHealth_);
+		health.SetCurrentHealth(configuredMaxHealth_ * previousRatio); // Prefab再読込時は受けたDamage割合を維持し、初回生成は2400で開始する。
+		healthCapacityApplied_ = true;
 	}
 
 	void BossPhaseComponent::BeginPhaseInvulnerability(CharacterHealthComponent& health)
