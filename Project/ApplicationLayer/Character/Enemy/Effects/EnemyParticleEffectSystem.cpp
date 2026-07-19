@@ -41,11 +41,11 @@ void EnemyParticleEffectSystem::SpawnAppearEffect(const Vector3& spawnWorldPos)
         return;
     }
 
-    const Vector3 centerPos = AddY(spawnWorldPos, 0.9f);
-    const Vector3 groundPos = AddY(spawnWorldPos, 0.08f);
+    const Vector3 centerPos = spawnWorldPos;
+    const Vector3 groundPos = AddY(spawnWorldPos, -1.85f);
     auto* effects = EffectSystem::GetInstance();
     effects->Play("EnemySpawnMist", centerPos);
-    effects->Play("EnemySpawnRing", groundPos); // 煙と地面リングを同時に出し、敵が現れる地点を視覚的に知らせる。
+    effects->Play("EnemySpawnRing", groundPos); // Enemy Rootは体の中心なので、リングだけCollider半高さ分下げて足元へ置く。
 }
 
 void EnemyParticleEffectSystem::SpawnHitEffect(const Vector3& hitWorldPos)
