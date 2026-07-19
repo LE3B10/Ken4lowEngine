@@ -28,13 +28,15 @@ namespace
 		std::string name,
 		const Vector3& position,
 		const Vector3& scale,
-		const char* collisionType = nullptr)
+		const char* collisionType = nullptr,
+		const Vector3& rotation = {})
 	{
 		ObjectData data{};
 		data.name = std::move(name);
 		data.type = "StaticMesh";
 		data.modelName = "Sample/cube.gltf";
 		data.position = position;
+		data.rotation = rotation;
 		data.scale = scale;
 		if (collisionType)
 		{
@@ -57,7 +59,7 @@ namespace
 					return data.type == "StaticMesh" || data.type == "MESH";
 				}),
 			levelData.objects.end());
-		levelData.objects.reserve(levelData.objects.size() + 96u);
+		levelData.objects.reserve(levelData.objects.size() + 190u);
 
 		for (int index = 0; index < 10; ++index)
 		{
@@ -74,7 +76,6 @@ namespace
 		AddMineBox(levelData, "Wall_North", { 0.0f, 3.0f, 126.0f }, { 51.0f, 3.0f, 1.0f }, "Obstacle");
 		AddMineBox(levelData, "Wall_West", { -51.0f, 3.0f, 35.0f }, { 1.0f, 3.0f, 91.0f }, "Obstacle");
 		AddMineBox(levelData, "Wall_East", { 51.0f, 3.0f, 35.0f }, { 1.0f, 3.0f, 91.0f }, "Obstacle");
-
 		AddMineBox(levelData, "EntryGate_L", { -30.0f, 2.5f, -34.0f }, { 20.0f, 2.5f, 1.0f }, "Obstacle");
 		AddMineBox(levelData, "EntryGate_R", { 30.0f, 2.5f, -34.0f }, { 20.0f, 2.5f, 1.0f }, "Obstacle");
 
@@ -103,10 +104,7 @@ namespace
 			{ "DeepBack_L", { -22.0f, 2.5f, 119.0f }, { 10.0f, 2.5f, 1.0f } },
 			{ "DeepBack_R", { 22.0f, 2.5f, 119.0f }, { 10.0f, 2.5f, 1.0f } }
 		}};
-		for (const BoxSpec& wall : walls)
-		{
-			AddMineBox(levelData, wall.name, wall.position, wall.scale, "Obstacle");
-		}
+		for (const BoxSpec& wall : walls) AddMineBox(levelData, wall.name, wall.position, wall.scale, "Obstacle");
 
 		const std::array<Vector3, 24> pillarPositions = {{
 			{ -8.0f, 2.2f, -44.0f }, { 8.0f, 2.2f, -44.0f },
@@ -124,12 +122,7 @@ namespace
 		}};
 		for (size_t index = 0; index < pillarPositions.size(); ++index)
 		{
-			AddMineBox(
-				levelData,
-				"Pillar_" + std::to_string(index + 1),
-				pillarPositions[index],
-				{ 1.2f, 2.2f, 1.2f },
-				"Pillar");
+			AddMineBox(levelData, "Pillar_" + std::to_string(index + 1), pillarPositions[index], { 1.2f, 2.2f, 1.2f }, "Pillar");
 		}
 
 		const std::array<BoxSpec, 14> covers = {{
@@ -148,34 +141,140 @@ namespace
 			{ "Cover_13", { 18.0f, 1.1f, 94.0f }, { 1.8f, 1.1f, 1.8f } },
 			{ "Cover_14", { -12.0f, 1.1f, 110.0f }, { 2.0f, 1.1f, 1.0f } }
 		}};
-		for (const BoxSpec& cover : covers)
-		{
-			AddMineBox(levelData, cover.name, cover.position, cover.scale, "Obstacle");
-		}
+		for (const BoxSpec& cover : covers) AddMineBox(levelData, cover.name, cover.position, cover.scale, "Obstacle");
 
 		const std::array<float, 9> beamZ = { -44.0f, -24.0f, -4.0f, 16.0f, 36.0f, 56.0f, 78.0f, 98.0f, 116.0f };
 		for (size_t index = 0; index < beamZ.size(); ++index)
 		{
 			const float halfWidth = beamZ[index] < 72.0f ? 14.0f : 30.0f;
-			AddMineBox(
-				levelData,
-				"Beam_" + std::to_string(index + 1),
-				{ 0.0f, 5.4f, beamZ[index] },
-				{ halfWidth, 0.35f, 0.7f });
+			AddMineBox(levelData, "Beam_" + std::to_string(index + 1), { 0.0f, 5.4f, beamZ[index] }, { halfWidth, 0.35f, 0.7f });
 		}
 
 		const std::array<float, 10> stripZ = { -46.0f, -28.0f, -10.0f, 8.0f, 26.0f, 44.0f, 62.0f, 80.0f, 98.0f, 116.0f };
 		for (size_t index = 0; index < stripZ.size(); ++index)
 		{
-			AddMineBox(
-				levelData,
-				"Strip_Main_" + std::to_string(index + 1),
-				{ 0.0f, 0.04f, stripZ[index] },
-				{ 0.65f, 0.03f, 8.0f });
+			AddMineBox(levelData, "Strip_Main_" + std::to_string(index + 1), { 0.0f, 0.04f, stripZ[index] }, { 0.65f, 0.03f, 8.0f });
 		}
 		AddMineBox(levelData, "Strip_West", { -25.0f, 0.04f, -10.0f }, { 11.0f, 0.03f, 0.55f });
 		AddMineBox(levelData, "Strip_East", { 25.0f, 0.04f, 45.0f }, { 11.0f, 0.03f, 0.55f });
-		// Stage 2は約100m×180mの長方形へ広げ、全モジュールを同一モデルの1インスタンスバッチに維持する。
+
+		const std::array<BoxSpec, 16> raisedFloors = {{
+			{ "RaisedFloor_Entry_L", { -22.0f, 0.12f, -43.0f }, { 9.0f, 0.12f, 5.0f } },
+			{ "RaisedFloor_Entry_R", { 23.0f, 0.20f, -37.0f }, { 10.0f, 0.20f, 4.0f } },
+			{ "RaisedFloor_West_01", { -38.0f, 0.18f, -19.0f }, { 9.0f, 0.18f, 5.0f } },
+			{ "RaisedFloor_West_02", { -27.0f, 0.30f, 1.0f }, { 7.0f, 0.30f, 4.5f } },
+			{ "RaisedFloor_Main_01", { 0.0f, 0.16f, 6.0f }, { 10.0f, 0.16f, 5.0f } },
+			{ "RaisedFloor_Main_02", { -3.0f, 0.28f, 29.0f }, { 9.0f, 0.28f, 4.0f } },
+			{ "RaisedFloor_East_01", { 29.0f, 0.22f, 36.0f }, { 8.0f, 0.22f, 4.5f } },
+			{ "RaisedFloor_East_02", { 40.0f, 0.36f, 55.0f }, { 7.0f, 0.36f, 4.0f } },
+			{ "RaisedFloor_Deep_01", { -18.0f, 0.18f, 80.0f }, { 10.0f, 0.18f, 5.0f } },
+			{ "RaisedFloor_Deep_02", { 18.0f, 0.34f, 88.0f }, { 10.0f, 0.34f, 5.0f } },
+			{ "RaisedFloor_Boss_L", { -18.0f, 0.42f, 108.0f }, { 10.0f, 0.42f, 6.0f } },
+			{ "RaisedFloor_Boss_R", { 18.0f, 0.26f, 111.0f }, { 10.0f, 0.26f, 5.0f } },
+			{ "RaisedFloor_Side_01", { -43.0f, 0.25f, 23.0f }, { 6.0f, 0.25f, 7.0f } },
+			{ "RaisedFloor_Side_02", { 43.0f, 0.18f, 12.0f }, { 6.0f, 0.18f, 6.0f } },
+			{ "RaisedFloor_Side_03", { -42.0f, 0.32f, 69.0f }, { 7.0f, 0.32f, 5.0f } },
+			{ "RaisedFloor_Side_04", { 42.0f, 0.24f, 78.0f }, { 7.0f, 0.24f, 5.0f } }
+		}};
+		for (const BoxSpec& floor : raisedFloors) AddMineBox(levelData, floor.name, floor.position, floor.scale, "Floor");
+
+		const std::array<BoxSpec, 5> bossSteps = {{
+			{ "Step_Deep_01", { 0.0f, 0.08f, 73.5f }, { 11.0f, 0.08f, 2.0f } },
+			{ "Step_Deep_02", { 0.0f, 0.16f, 78.0f }, { 11.0f, 0.16f, 2.0f } },
+			{ "Step_Deep_03", { 0.0f, 0.24f, 82.5f }, { 11.0f, 0.24f, 2.0f } },
+			{ "Step_Deep_04", { 0.0f, 0.32f, 87.0f }, { 11.0f, 0.32f, 2.0f } },
+			{ "Step_Deep_05", { 0.0f, 0.40f, 91.5f }, { 11.0f, 0.40f, 2.0f } }
+		}};
+		for (const BoxSpec& step : bossSteps) AddMineBox(levelData, step.name, step.position, step.scale, "Floor");
+
+		struct RubbleSpec
+		{
+			Vector3 position;
+			Vector3 scale;
+			float yaw;
+		};
+		const std::array<RubbleSpec, 28> rubble = {{
+			{ { -35.0f, 0.45f, -45.0f }, { 2.1f, 0.45f, 1.2f }, 0.32f },
+			{ { -29.0f, 0.30f, -39.0f }, { 1.2f, 0.30f, 1.7f }, -0.48f },
+			{ { 35.0f, 0.55f, -43.0f }, { 2.5f, 0.55f, 1.0f }, 0.72f },
+			{ { 43.0f, 0.35f, -31.0f }, { 1.4f, 0.35f, 1.9f }, -0.25f },
+			{ { -45.0f, 0.60f, -18.0f }, { 2.2f, 0.60f, 1.5f }, 0.55f },
+			{ { -23.0f, 0.38f, -13.0f }, { 1.3f, 0.38f, 2.0f }, -0.62f },
+			{ { -39.0f, 0.28f, 4.0f }, { 1.8f, 0.28f, 1.2f }, 0.18f },
+			{ { -19.0f, 0.48f, 12.0f }, { 2.4f, 0.48f, 1.1f }, 0.88f },
+			{ { 21.0f, 0.42f, 4.0f }, { 1.5f, 0.42f, 2.1f }, -0.37f },
+			{ { 42.0f, 0.58f, 17.0f }, { 2.6f, 0.58f, 1.4f }, 0.41f },
+			{ { -10.0f, 0.34f, 20.0f }, { 1.7f, 0.34f, 1.3f }, -0.76f },
+			{ { 10.0f, 0.52f, 34.0f }, { 2.2f, 0.52f, 1.2f }, 0.29f },
+			{ { 24.0f, 0.30f, 37.0f }, { 1.2f, 0.30f, 1.8f }, 0.61f },
+			{ { 45.0f, 0.46f, 48.0f }, { 2.0f, 0.46f, 1.1f }, -0.53f },
+			{ { 24.0f, 0.62f, 58.0f }, { 2.5f, 0.62f, 1.5f }, 0.22f },
+			{ { -10.0f, 0.40f, 54.0f }, { 1.5f, 0.40f, 2.0f }, -0.44f },
+			{ { 9.0f, 0.30f, 67.0f }, { 1.8f, 0.30f, 1.1f }, 0.70f },
+			{ { -43.0f, 0.55f, 70.0f }, { 2.4f, 0.55f, 1.3f }, -0.18f },
+			{ { 43.0f, 0.36f, 81.0f }, { 1.4f, 0.36f, 2.0f }, 0.49f },
+			{ { -27.0f, 0.44f, 83.0f }, { 2.0f, 0.44f, 1.1f }, -0.66f },
+			{ { 27.0f, 0.52f, 87.0f }, { 2.3f, 0.52f, 1.4f }, 0.35f },
+			{ { -24.0f, 0.32f, 96.0f }, { 1.3f, 0.32f, 1.9f }, -0.28f },
+			{ { 24.0f, 0.60f, 101.0f }, { 2.5f, 0.60f, 1.2f }, 0.74f },
+			{ { -27.0f, 0.42f, 113.0f }, { 1.8f, 0.42f, 1.6f }, -0.57f },
+			{ { 27.0f, 0.36f, 115.0f }, { 1.5f, 0.36f, 2.0f }, 0.24f },
+			{ { -6.0f, 0.25f, 120.0f }, { 1.2f, 0.25f, 1.5f }, 0.62f },
+			{ { 7.0f, 0.48f, 118.0f }, { 2.0f, 0.48f, 1.1f }, -0.31f },
+			{ { 0.0f, 0.32f, 105.0f }, { 1.1f, 0.32f, 1.1f }, 0.45f }
+		}};
+		for (size_t index = 0; index < rubble.size(); ++index)
+		{
+			AddMineBox(
+				levelData,
+				"Rubble_" + std::to_string(index + 1),
+				rubble[index].position,
+				rubble[index].scale,
+				"Obstacle",
+				{ 0.0f, rubble[index].yaw, 0.0f });
+		}
+
+		const std::array<RubbleSpec, 8> fallenBeams = {{
+			{ { -37.0f, 1.0f, -31.0f }, { 7.0f, 0.45f, 0.55f }, 0.42f },
+			{ { 35.0f, 1.2f, -12.0f }, { 8.0f, 0.50f, 0.55f }, -0.58f },
+			{ { -34.0f, 1.0f, 20.0f }, { 6.0f, 0.45f, 0.55f }, -0.35f },
+			{ { 36.0f, 1.1f, 24.0f }, { 7.0f, 0.50f, 0.55f }, 0.55f },
+			{ { -38.0f, 1.0f, 48.0f }, { 6.5f, 0.45f, 0.55f }, 0.31f },
+			{ { 37.0f, 1.2f, 68.0f }, { 8.0f, 0.50f, 0.55f }, -0.46f },
+			{ { -23.0f, 1.0f, 91.0f }, { 6.0f, 0.45f, 0.55f }, 0.64f },
+			{ { 24.0f, 1.0f, 108.0f }, { 6.5f, 0.45f, 0.55f }, -0.39f }
+		}};
+		for (size_t index = 0; index < fallenBeams.size(); ++index)
+		{
+			AddMineBox(
+				levelData,
+				"BrokenBeam_" + std::to_string(index + 1),
+				fallenBeams[index].position,
+				fallenBeams[index].scale,
+				"Obstacle",
+				{ 0.0f, fallenBeams[index].yaw, 0.0f });
+		}
+
+		const std::array<Vector3, 18> rockDetails = {{
+			{ -48.5f, 4.5f, -40.0f }, { 48.5f, 3.8f, -26.0f }, { -48.0f, 5.0f, -8.0f },
+			{ 48.0f, 4.2f, 7.0f }, { -48.5f, 3.5f, 22.0f }, { 48.5f, 5.2f, 34.0f },
+			{ -48.0f, 4.0f, 45.0f }, { 48.0f, 3.6f, 56.0f }, { -48.5f, 5.0f, 70.0f },
+			{ 48.5f, 4.4f, 82.0f }, { -30.0f, 5.3f, 91.0f }, { 30.0f, 4.8f, 99.0f },
+			{ -30.0f, 3.7f, 111.0f }, { 30.0f, 5.0f, 116.0f }, { -12.0f, 5.6f, 76.0f },
+			{ 12.0f, 5.2f, 86.0f }, { -12.0f, 5.0f, 103.0f }, { 12.0f, 5.4f, 113.0f }
+		}};
+		for (size_t index = 0; index < rockDetails.size(); ++index)
+		{
+			const float scale = 1.2f + static_cast<float>(index % 3) * 0.45f;
+			AddMineBox(
+				levelData,
+				"RockDetail_" + std::to_string(index + 1),
+				rockDetails[index],
+				{ scale, 1.1f + static_cast<float>(index % 2) * 0.6f, scale * 0.8f },
+				nullptr,
+				{ 0.18f * static_cast<float>(index % 2), 0.37f * static_cast<float>(index), 0.12f });
+		}
+		// 高低差と瓦礫を追加しても全モジュールは同一モデルを共有し、1インスタンスバッチを維持する。
 	}
 }
 
@@ -184,16 +283,9 @@ namespace Ken4lowEngine
 	void Stage::Initialize(const std::string& levelJsonPath, const std::string& defaultModelName, bool instancedOnly)
 	{
 		Clear();
-
 		levelData_ = LevelLoader::LoadLevel(levelJsonPath);
-		if (!levelData_)
-		{
-			return;
-		}
-		if (IsExpandedMineStage(levelJsonPath))
-		{
-			BuildExpandedMineLayout(*levelData_);
-		}
+		if (!levelData_) return;
+		if (IsExpandedMineStage(levelJsonPath)) BuildExpandedMineLayout(*levelData_);
 
 		const bool effectiveInstancedOnly = instancedOnly || defaultModelName.empty();
 		const std::string primaryStageModelPath = effectiveInstancedOnly
@@ -208,11 +300,9 @@ namespace Ken4lowEngine
 				RebuildStageChunks();
 			}
 		}
-		stageInstancingManager_.Build(*levelData_, primaryStageModelPath, offset_); // 空Model指定では全StaticMesh配置をGPUバッチ対象にする。
+		stageInstancingManager_.Build(*levelData_, primaryStageModelPath, offset_);
 
-		StageCollisionBuildResult collisionResult =
-			StageCollisionBuilder::Build(*levelData_, offset_);
-
+		StageCollisionBuildResult collisionResult = StageCollisionBuilder::Build(*levelData_, offset_);
 		worldAABBs_ = std::move(collisionResult.worldAABBs);
 		floorAABBs_ = std::move(collisionResult.floorAABBs);
 		wallObstacleAABBs_ = std::move(collisionResult.wallObstacleAABBs);
@@ -249,19 +339,12 @@ namespace Ken4lowEngine
 
 	void Stage::Update()
 	{
-		if (stageModel_)
-		{
-			stageModel_->Update();
-		}
+		if (stageModel_) stageModel_->Update();
 	}
 
 	void Stage::Draw()
 	{
-		if (useNormalStageDraw_ && stageModel_ && stageChunkManager_.NeedsRebuild())
-		{
-			RebuildStageChunks();
-		}
-
+		if (useNormalStageDraw_ && stageModel_ && stageChunkManager_.NeedsRebuild()) RebuildStageChunks();
 		if (useNormalStageDraw_ && stageModel_)
 		{
 			if (stageChunkManager_.IsEnabled() && !stageChunkManager_.GetChunks().empty())
@@ -278,19 +361,12 @@ namespace Ken4lowEngine
 				stageModel_->Draw();
 			}
 		}
-
 		if (useNormalStageDraw_)
 		{
 			stageInstancingManager_.DrawUniqueObjects();
-			if (!stageInstancingEnabled_ || !useInstancedStageDraw_)
-			{
-				stageInstancingManager_.DrawBatchSourcesNormally();
-			}
+			if (!stageInstancingEnabled_ || !useInstancedStageDraw_) stageInstancingManager_.DrawBatchSourcesNormally();
 		}
-		if (stageInstancingEnabled_ && useInstancedStageDraw_)
-		{
-			stageInstancingManager_.DrawInstancedBatches();
-		}
+		if (stageInstancingEnabled_ && useInstancedStageDraw_) stageInstancingManager_.DrawInstancedBatches();
 	}
 
 	void Stage::DrawChunkDebug()
@@ -302,70 +378,29 @@ namespace Ken4lowEngine
 
 	void Stage::DrawShadow()
 	{
-		if (useNormalStageDraw_ && stageModel_)
-		{
-			stageModel_->DrawShadow();
-		}
-		stageInstancingManager_.DrawShadow(stageInstancingEnabled_, useInstancedStageDraw_, useNormalStageDraw_); // 一体型Modelが無いStage 2もインスタンス群から影を描く。
+		if (useNormalStageDraw_ && stageModel_) stageModel_->DrawShadow();
+		stageInstancingManager_.DrawShadow(stageInstancingEnabled_, useInstancedStageDraw_, useNormalStageDraw_);
 	}
 
 	void Stage::UpdateShadowMatrix(const Matrix4x4& lightViewProjection)
 	{
-		if (stageModel_)
-		{
-			stageModel_->UpdateShadowMatrix(lightViewProjection);
-		}
+		if (stageModel_) stageModel_->UpdateShadowMatrix(lightViewProjection);
 		stageInstancingManager_.UpdateShadowMatrix(lightViewProjection);
 	}
 
 	void Stage::SetFrustumCullingEnabled(bool enabled)
 	{
-		if (stageModel_)
-		{
-			// まずはステージの静的 Object3D だけを Draw スキップ対象にする。
-			stageModel_->SetFrustumCullingEnabled(enabled);
-		}
+		if (stageModel_) stageModel_->SetFrustumCullingEnabled(enabled);
 	}
 
-	void Stage::SetStageChunkCullingEnabled(bool enabled)
-	{
-		stageChunkManager_.SetEnabled(enabled);
-	}
-
-	bool Stage::IsStageChunkCullingEnabled() const
-	{
-		return stageChunkManager_.IsEnabled();
-	}
-
-	void Stage::SetStageChunkBoundsVisible(bool visible)
-	{
-		stageChunkManager_.SetShowBounds(visible);
-	}
-
-	bool Stage::IsStageChunkBoundsVisible() const
-	{
-		return stageChunkManager_.IsShowBounds();
-	}
-
-	void Stage::SetStageChunkObjectBoundsVisible(bool visible)
-	{
-		stageChunkManager_.SetShowObjectBounds(visible);
-	}
-
-	bool Stage::IsStageChunkObjectBoundsVisible() const
-	{
-		return stageChunkManager_.IsShowObjectBounds();
-	}
-
-	void Stage::SetStageChunkAutoExcludeLargeObjects(bool enabled)
-	{
-		stageChunkManager_.SetAutoExcludeLargeObjects(enabled);
-	}
-
-	bool Stage::IsStageChunkAutoExcludeLargeObjects() const
-	{
-		return stageChunkManager_.IsAutoExcludeLargeObjects();
-	}
+	void Stage::SetStageChunkCullingEnabled(bool enabled) { stageChunkManager_.SetEnabled(enabled); }
+	bool Stage::IsStageChunkCullingEnabled() const { return stageChunkManager_.IsEnabled(); }
+	void Stage::SetStageChunkBoundsVisible(bool visible) { stageChunkManager_.SetShowBounds(visible); }
+	bool Stage::IsStageChunkBoundsVisible() const { return stageChunkManager_.IsShowBounds(); }
+	void Stage::SetStageChunkObjectBoundsVisible(bool visible) { stageChunkManager_.SetShowObjectBounds(visible); }
+	bool Stage::IsStageChunkObjectBoundsVisible() const { return stageChunkManager_.IsShowObjectBounds(); }
+	void Stage::SetStageChunkAutoExcludeLargeObjects(bool enabled) { stageChunkManager_.SetAutoExcludeLargeObjects(enabled); }
+	bool Stage::IsStageChunkAutoExcludeLargeObjects() const { return stageChunkManager_.IsAutoExcludeLargeObjects(); }
 
 	void Stage::SetStageChunkSize(float chunkSize)
 	{
@@ -373,17 +408,14 @@ namespace Ken4lowEngine
 		stageChunkManager_.MarkRebuildRequested();
 	}
 
-	float Stage::GetStageChunkSize() const
-	{
-		return stageChunkManager_.GetChunkSize();
-	}
+	float Stage::GetStageChunkSize() const { return stageChunkManager_.GetChunkSize(); }
 
 	void Stage::RebuildStageChunks()
 	{
 		if (!stageModel_)
 		{
 			stageChunkManager_.Clear();
-			return; // Instanced-only Stageは一体型Model用Chunkを生成しない。
+			return;
 		}
 		stageChunkManager_.Rebuild(stageModel_.get(), stageChunkManager_.GetChunkSize());
 	}
@@ -391,33 +423,25 @@ namespace Ken4lowEngine
 	void Stage::RegisterColliders(CollisionManager* collisionManager)
 	{
 		(void)collisionManager;
-		// Stage2の全Static ColliderをLegacy総当たりへ登録せず、Player Runtimeが周辺集合だけをPhysicsとLegacyへ同期する。
+		// Static ColliderはPlayer Runtimeが周辺集合だけをPhysicsとLegacyへ同期する。
 	}
 
 	bool Stage::CheckLadderOverlap(const AABB& playerAABB) const
 	{
-		// Triggerイベント配送に依存せず、専用AABB群との交差だけで梯子エリア滞在を判定する。
 		for (const AABB& ladderAABB : ladderAABBs_)
 		{
-			if (CollisionUtility::IsCollision(playerAABB, ladderAABB))
-			{
-				return true;
-			}
+			if (CollisionUtility::IsCollision(playerAABB, ladderAABB)) return true;
 		}
 		return false;
 	}
 
 	std::vector<Collider*> Stage::GetWorldColliderPointers() const
 	{
-		// Stageが所有するWorld Colliderを、PhysicsWorldへ渡せる参照ポインタ一覧に変換する。
 		std::vector<Collider*> colliders{};
 		colliders.reserve(worldColliders_.size());
 		for (const std::unique_ptr<Collider>& collider : worldColliders_)
 		{
-			if (collider)
-			{
-				colliders.push_back(collider.get());
-			}
+			if (collider) colliders.push_back(collider.get());
 		}
 		return colliders;
 	}
