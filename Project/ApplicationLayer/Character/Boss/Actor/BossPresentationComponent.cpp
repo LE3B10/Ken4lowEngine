@@ -1,13 +1,24 @@
 #include "BossPresentationComponent.h"
 
+#include "BossActor.h"
 #include "BossActorAttackComponent.h"
+#include "ApplicationLayer/Character/Boss/Attacks/BossAttackEffects.h"
 #include "ApplicationLayer/Character/Boss/Components/BossPhaseComponent.h"
 
+#include <AudioManager.h>
+#include <GpuParticleType.h>
+#include <Object3D.h>
 #include <Scene/Actor/Character/CharacterActor.h>
 #include <Scene/Actor/Character/CharacterAnimationComponent.h>
+#include <Scene/Actor/Character/HumanoidVisualComponent.h>
+#include <SceneComponent.h>
+#include <TextComponent.h>
+#include <Vector4.h>
 
 #include <algorithm>
 #include <cmath>
+#include <numbers>
+#include <string_view>
 
 #ifdef USE_IMGUI
 #include <imgui.h>
@@ -15,18 +26,82 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		constexpr float kTwoPi = std::numbers::pi_v<float> * 2.0f;
+
+		float Clamp01(float value)
+		{
+			return std::clamp(value, 0.0f, 1.0f);
+		}
+
+		Vector4 LerpColor(const Vector4& from, const Vector4& to, float amount)
+		{
+			const float t = Clamp01(amount);
+			return {
+				from.x + (to.x - from.x) * t,
+				from.y + (to.y - from.y) * t,
+				from.z + (to.z - from.z) * t,
+				from.w + (to.w - from.w) * t
+			};
+		}
+
+		bool ContainsAttackToken(std::string_view attackId, std::string_view token)
+		{
+			return attackId.find(token) != std::string_view::npos;
+		}
+
+		bool IsChargeAttack(std::string_view attackId)
+		{
+			return ContainsAttackToken(attackId, "Charge");
+		}
+
+		bool IsGroundSlamAttack(std::string_view attackId)
+		{
+			return ContainsAttackToken(attackId, "GroundSlam");
+		}
+
+		bool IsShockwaveAttack(std::string_view attackId)
+		{
+			return ContainsAttackToken(attackId, "Shockwave");
+		}
+
+		bool IsAreaAttack(std::string_view attackId)
+		{
+			return IsGroundSlamAttack(attackId) || IsShockwaveAttack(attackId);
+		}
+
+		Vector3 NormalizeDirectionXZ(const Vector3& direction)
+		{
+			const float length = Vector3::LengthXZ(direction);
+			return length > 0.0001f ? Vector3{ direction.x / length, 0.0f, direction.z / length } : Vector3{ 0.0f, 0.0f, 1.0f };
+		}
+	}
+
 	void BossPresentationComponent::Initialize()
 	{
 		Actor* owner = GetOwner();
 		const auto* phase = owner ? owner->GetComponent<BossPhaseComponent>() : nullptr;
 		observedPhaseRevision_ = phase ? phase->GetPhaseRevision() : 0;
+		presentedPhase_ = phase ? phase->GetCurrentPhase() : 1;
 		phaseTransitionDuration_ = std::isfinite(phaseTransitionDuration_) ? std::max(0.01f, phaseTransitionDuration_) : 0.8f;
 		deathPresentationDuration_ = std::isfinite(deathPresentationDuration_) ? std::max(0.01f, deathPresentationDuration_) : 1.2f;
+		telegraphParticleInterval_ = std::isfinite(telegraphParticleInterval_) ? std::max(0.03f, telegraphParticleInterval_) : 0.10f;
+		phaseAuraInterval_ = std::isfinite(phaseAuraInterval_) ? std::max(0.05f, phaseAuraInterval_) : 0.18f;
+		EnsureAttackListener();
+		ApplyVisualAppearance();
 	}
 
 	void BossPresentationComponent::Update(float deltaTime)
 	{
-		if (!std::isfinite(deltaTime) || deltaTime <= 0.0f) return;
+		EnsureAttackListener();
+		if (!std::isfinite(deltaTime) || deltaTime <= 0.0f)
+		{
+			ApplyVisualAppearance();
+			return;
+		}
+
+		visualTime_ += deltaTime;
 		Actor* owner = GetOwner();
 		auto* phase = owner ? owner->GetComponent<BossPhaseComponent>() : nullptr;
 		if (!deathPresentationActive_ && phase && phase->GetPhaseRevision() != observedPhaseRevision_)
@@ -35,27 +110,61 @@ namespace Ken4lowEngine
 			StartPhaseTransition(phase->GetCurrentPhase());
 		}
 
-		if (!phaseTransitionActive_ && !deathPresentationActive_) return;
-		elapsed_ += deltaTime;
-		const float duration = deathPresentationActive_ ? deathPresentationDuration_ : phaseTransitionDuration_;
-		if (elapsed_ < duration) return;
+		if (attackTelegraphActive_) UpdateAttackTelegraph(deltaTime);
 
-		if (phaseTransitionActive_)
+		if (!deathPresentationActive_ && presentedPhase_ >= 2)
 		{
-			phaseTransitionActive_ = false;
-			stateName_ = "Idle";
-			if (auto* character = dynamic_cast<CharacterActor*>(owner))
+			phaseParticleTimer_ += deltaTime;
+			const float interval = phaseTransitionActive_ ? 0.07f : (presentedPhase_ >= 3 ? phaseAuraInterval_ : phaseAuraInterval_ * 1.45f);
+			if (phaseParticleTimer_ >= interval)
 			{
-				if (CharacterAnimationComponent* animation = character->GetAnimationComponent()) animation->Play("Idle", 1.5f, true);
+				phaseParticleTimer_ = std::fmod(phaseParticleTimer_, interval);
+				EmitPhasePulse(false);
 			}
 		}
+
+		if (phaseTransitionActive_ || deathPresentationActive_)
+		{
+			elapsed_ += deltaTime;
+			const float duration = deathPresentationActive_ ? deathPresentationDuration_ : phaseTransitionDuration_;
+			if (phaseTransitionActive_ && elapsed_ >= duration)
+			{
+				phaseTransitionActive_ = false;
+				stateName_ = attackTelegraphActive_ ? "Telegraph: " + activeAttackId_ : "Idle";
+				if (auto* character = dynamic_cast<CharacterActor*>(owner))
+				{
+					if (CharacterAnimationComponent* animation = character->GetAnimationComponent()) animation->Play("Idle", 1.5f, true);
+				}
+				if (auto* boss = dynamic_cast<BossActor*>(owner))
+				{
+					if (TextComponent* label = boss->GetHealthLabelComponent()) label->SetText("BOSS HP");
+				}
+			}
+		}
+
+		ApplyVisualAppearance();
+	}
+
+	void BossPresentationComponent::Finalize()
+	{
+		Actor* owner = GetOwner();
+		auto* currentAttack = owner ? owner->GetComponent<BossAttackComponent>() : nullptr;
+		if (currentAttack && currentAttack == boundAttack_ && attackListenerId_ != 0) currentAttack->RemoveAttackListener(attackListenerId_);
+		boundAttack_ = nullptr;
+		telegraphTarget_ = nullptr;
+		attackListenerId_ = 0;
+		activeAttackId_.clear();
+		attackTelegraphActive_ = false;
+		cameraShakePending_ = false;
 	}
 
 	void BossPresentationComponent::DrawImGui()
 	{
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("ボス演出");
-		ImGui::Text("状態: %s / 経過: %.2f", stateName_.c_str(), elapsed_);
+		ImGui::Text("状態: %s / Phase: %d / 経過: %.2f", stateName_.c_str(), presentedPhase_, elapsed_);
+		ImGui::Text("予兆: %s / %.2f / %.2f", attackTelegraphActive_ ? activeAttackId_.c_str() : "None", telegraphElapsed_, telegraphDuration_);
+		ImGui::Text("Shake要求: %s / %.2f", cameraShakePending_ ? "yes" : "no", pendingShakeAmplitude_);
 #endif
 	}
 
@@ -64,6 +173,8 @@ namespace Ken4lowEngine
 		ActorComponent::ToJson(outJson);
 		outJson["PhaseTransitionDuration"] = phaseTransitionDuration_;
 		outJson["DeathPresentationDuration"] = deathPresentationDuration_;
+		outJson["TelegraphParticleInterval"] = telegraphParticleInterval_;
+		outJson["PhaseAuraInterval"] = phaseAuraInterval_;
 	}
 
 	void BossPresentationComponent::FromJson(const nlohmann::json& inJson)
@@ -71,12 +182,17 @@ namespace Ken4lowEngine
 		ActorComponent::FromJson(inJson);
 		phaseTransitionDuration_ = inJson.value("PhaseTransitionDuration", phaseTransitionDuration_);
 		deathPresentationDuration_ = inJson.value("DeathPresentationDuration", deathPresentationDuration_);
+		telegraphParticleInterval_ = inJson.value("TelegraphParticleInterval", telegraphParticleInterval_);
+		phaseAuraInterval_ = inJson.value("PhaseAuraInterval", phaseAuraInterval_);
 		phaseTransitionDuration_ = std::isfinite(phaseTransitionDuration_) ? std::max(0.01f, phaseTransitionDuration_) : 0.8f;
 		deathPresentationDuration_ = std::isfinite(deathPresentationDuration_) ? std::max(0.01f, deathPresentationDuration_) : 1.2f;
+		telegraphParticleInterval_ = std::isfinite(telegraphParticleInterval_) ? std::max(0.03f, telegraphParticleInterval_) : 0.10f;
+		phaseAuraInterval_ = std::isfinite(phaseAuraInterval_) ? std::max(0.05f, phaseAuraInterval_) : 0.18f;
 	}
 
 	void BossPresentationComponent::StartDeathPresentation()
 	{
+		FinishAttackTelegraph();
 		phaseTransitionActive_ = false;
 		deathPresentationActive_ = true;
 		elapsed_ = 0.0f;
@@ -87,6 +203,8 @@ namespace Ken4lowEngine
 		{
 			if (CharacterAnimationComponent* animation = character->GetAnimationComponent()) animation->Play("Boss.Dead", deathPresentationDuration_, false);
 		}
+		RequestCameraShake(0.65f, 0.34f, 22.0f);
+		ApplyVisualAppearance();
 	}
 
 	void BossPresentationComponent::ResetPresentation()
@@ -94,23 +212,290 @@ namespace Ken4lowEngine
 		phaseTransitionActive_ = false;
 		deathPresentationActive_ = false;
 		elapsed_ = 0.0f;
+		visualTime_ = 0.0f;
+		phaseParticleTimer_ = 0.0f;
+		FinishAttackTelegraph();
 		stateName_ = "Idle";
+		cameraShakePending_ = false;
+		pendingShakeDuration_ = pendingShakeAmplitude_ = pendingShakeFrequency_ = 0.0f;
 		Actor* owner = GetOwner();
 		const auto* phase = owner ? owner->GetComponent<BossPhaseComponent>() : nullptr;
 		observedPhaseRevision_ = phase ? phase->GetPhaseRevision() : 0;
+		presentedPhase_ = phase ? phase->GetCurrentPhase() : 1;
 		if (auto* attack = owner ? owner->GetComponent<BossAttackComponent>() : nullptr) attack->SetAttackEnabled(true);
+		if (auto* boss = dynamic_cast<BossActor*>(owner))
+		{
+			if (TextComponent* label = boss->GetHealthLabelComponent()) label->SetText("BOSS HP");
+		}
+		EnsureAttackListener();
+		ApplyVisualAppearance();
+	}
+
+	bool BossPresentationComponent::ConsumeCameraShakeRequest(float& outDuration, float& outAmplitude, float& outFrequency)
+	{
+		if (!cameraShakePending_) return false;
+		outDuration = pendingShakeDuration_;
+		outAmplitude = pendingShakeAmplitude_;
+		outFrequency = pendingShakeFrequency_;
+		cameraShakePending_ = false;
+		pendingShakeDuration_ = pendingShakeAmplitude_ = pendingShakeFrequency_ = 0.0f;
+		return true;
+	}
+
+	void BossPresentationComponent::EnsureAttackListener()
+	{
+		Actor* owner = GetOwner();
+		auto* attack = owner ? owner->GetComponent<BossAttackComponent>() : nullptr;
+		if (attack == boundAttack_ && attackListenerId_ != 0) return;
+		boundAttack_ = attack;
+		attackListenerId_ = 0;
+		if (!boundAttack_) return;
+		attackListenerId_ = boundAttack_->AddAttackListener([this](const AttackEvent& event) { HandleAttackEvent(event); }); // JSON再読込後も新しいAttack実体から予兆イベントを受け取る。
+	}
+
+	void BossPresentationComponent::HandleAttackEvent(const AttackEvent& event)
+	{
+		switch (event.type)
+		{
+		case AttackEventType::Started:
+			StartAttackTelegraph(event);
+			break;
+		case AttackEventType::Executed:
+			EmitAttackTelegraphPulse(true);
+			if (IsGroundSlamAttack(event.attackId)) RequestCameraShake(0.38f, 0.30f, 25.0f);
+			else if (IsShockwaveAttack(event.attackId)) RequestCameraShake(0.26f, ContainsAttackToken(event.attackId, "Fast") ? 0.20f : 0.17f, 24.0f);
+			else if (IsChargeAttack(event.attackId) && event.result.accepted) RequestCameraShake(0.18f, 0.13f, 28.0f);
+			if (IsAreaAttack(event.attackId)) AudioManager::GetInstance()->PlaySE("enemy_death.mp3", 0.18f, ContainsAttackToken(event.attackId, "Fast") ? 1.08f : 0.84f);
+			else if (event.result.accepted) AudioManager::GetInstance()->PlaySE("enemy_hit.mp3", 0.14f, IsChargeAttack(event.attackId) ? 0.72f : 1.05f);
+			break;
+		case AttackEventType::Ended:
+		case AttackEventType::Interrupted:
+			FinishAttackTelegraph();
+			break;
+		default:
+			break;
+		}
+	}
+
+	void BossPresentationComponent::StartAttackTelegraph(const AttackEvent& event)
+	{
+		if (deathPresentationActive_ || phaseTransitionActive_) return;
+		activeAttackId_ = event.attackId;
+		telegraphTarget_ = event.target;
+		telegraphElapsed_ = 0.0f;
+		telegraphParticleTimer_ = telegraphParticleInterval_;
+		const AttackData* attackData = boundAttack_ ? boundAttack_->FindAttackData(activeAttackId_) : nullptr;
+		telegraphDuration_ = attackData ? std::max(0.05f, attackData->windupTime) : 0.15f;
+		attackTelegraphActive_ = true;
+		stateName_ = "Telegraph: " + activeAttackId_;
+
+		const std::string_view attackId(activeAttackId_);
+		const float pitch = IsChargeAttack(attackId) ? (ContainsAttackToken(attackId, "Frenzy") ? 0.56f : 0.68f) : (IsAreaAttack(attackId) ? 0.50f : 0.92f);
+		AudioManager::GetInstance()->PlaySE("enemy_hit.mp3", IsAreaAttack(attackId) ? 0.14f : 0.10f, pitch);
+		EmitAttackTelegraphPulse(false);
+		ApplyVisualAppearance();
+	}
+
+	void BossPresentationComponent::UpdateAttackTelegraph(float deltaTime)
+	{
+		telegraphElapsed_ += deltaTime;
+		telegraphParticleTimer_ += deltaTime;
+		if (telegraphElapsed_ >= telegraphDuration_)
+		{
+			FinishAttackTelegraph();
+			return;
+		}
+		if (telegraphParticleTimer_ >= telegraphParticleInterval_)
+		{
+			telegraphParticleTimer_ = std::fmod(telegraphParticleTimer_, telegraphParticleInterval_);
+			EmitAttackTelegraphPulse(false);
+		}
+	}
+
+	void BossPresentationComponent::FinishAttackTelegraph()
+	{
+		attackTelegraphActive_ = false;
+		telegraphTarget_ = nullptr;
+		telegraphElapsed_ = 0.0f;
+		telegraphDuration_ = 0.0f;
+		telegraphParticleTimer_ = 0.0f;
+		activeAttackId_.clear();
+		if (!phaseTransitionActive_ && !deathPresentationActive_) stateName_ = "Idle";
+	}
+
+	void BossPresentationComponent::EmitAttackTelegraphPulse(bool impact)
+	{
+		auto* boss = dynamic_cast<BossActor*>(GetOwner());
+		if (!boss || activeAttackId_.empty()) return;
+		const std::string_view attackId(activeAttackId_);
+		Vector3 bossPosition = boss->GetPosition();
+		Vector3 targetDirection{ 0.0f, 0.0f, 1.0f };
+		if (telegraphTarget_)
+		{
+			if (const SceneComponent* targetRoot = telegraphTarget_->GetRootComponent()) targetDirection = NormalizeDirectionXZ(targetRoot->GetWorldPosition() - bossPosition);
+		}
+
+		if (IsChargeAttack(attackId))
+		{
+			if (impact)
+			{
+				Vector3 hitPosition = bossPosition + targetDirection * 2.4f;
+				hitPosition.y -= 1.55f;
+				BossAttackEffects::EmitGuardianHitEffect("BossChargeImpact", GpuParticleType::Shockwave, hitPosition, 32u, 0.95f, 0.85f, 1.45f);
+				return;
+			}
+			static constexpr const char* emitterNames[] = {
+				"BossChargeLine01", "BossChargeLine02", "BossChargeLine03", "BossChargeLine04", "BossChargeLine05"
+			};
+			for (size_t index = 0; index < std::size(emitterNames); ++index)
+			{
+				Vector3 linePosition = bossPosition + targetDirection * (1.25f + static_cast<float>(index) * 1.35f);
+				linePosition.y -= 1.45f;
+				BossAttackEffects::EmitGuardianTelegraphEffect(emitterNames[index], GpuParticleType::Spark, linePosition, 4u, 0.22f, 0.52f, 0.35f);
+			}
+			return;
+		}
+
+		if (IsAreaAttack(attackId))
+		{
+			Vector3 groundPosition = bossPosition;
+			groundPosition.y -= 1.85f;
+			const bool groundSlam = IsGroundSlamAttack(attackId);
+			if (impact)
+			{
+				BossAttackEffects::EmitGuardianHitEffect(groundSlam ? "BossGroundSlamImpact" : "BossShockwaveImpact", GpuParticleType::Shockwave, groundPosition, groundSlam ? 72u : 54u, groundSlam ? 2.8f : 2.2f, 1.0f, groundSlam ? 2.0f : 1.6f);
+			}
+			else
+			{
+				BossAttackEffects::EmitGuardianTelegraphEffect(groundSlam ? "BossGroundSlamTelegraph" : "BossShockwaveTelegraph", GpuParticleType::Shockwave, groundPosition, groundSlam ? 14u : 10u, groundSlam ? 2.25f : 1.75f, 0.72f, 0.35f);
+			}
+			return;
+		}
+
+		Vector3 meleePosition = bossPosition + targetDirection * 1.65f;
+		meleePosition.y += 0.35f;
+		if (impact) BossAttackEffects::EmitGuardianHitEffect("BossMeleeImpact", GpuParticleType::Spark, meleePosition, 24u, 0.55f, 0.65f, 1.2f);
+		else BossAttackEffects::EmitGuardianTelegraphEffect("BossMeleeTelegraph", GpuParticleType::Spark, meleePosition, 6u, 0.30f, 0.48f, 0.45f);
+	}
+
+	void BossPresentationComponent::EmitPhasePulse(bool initialBurst)
+	{
+		auto* boss = dynamic_cast<BossActor*>(GetOwner());
+		if (!boss || presentedPhase_ < 2) return;
+		Vector3 position = boss->GetPosition();
+		position.y += 0.45f;
+		if (initialBurst)
+		{
+			BossAttackEffects::EmitGuardianAttackPresenceEffect(presentedPhase_ >= 3 ? "BossPhase3Burst" : "BossPhase2Burst", presentedPhase_ >= 3 ? GpuParticleType::Spark : GpuParticleType::Ambient, position, presentedPhase_ >= 3 ? 64u : 42u, presentedPhase_ >= 3 ? 2.5f : 2.0f, 1.35f, presentedPhase_ >= 3 ? 1.75f : 0.85f);
+			return;
+		}
+		BossAttackEffects::EmitGuardianTelegraphEffect(presentedPhase_ >= 3 ? "BossPhase3Aura" : "BossPhase2Aura", presentedPhase_ >= 3 ? GpuParticleType::Spark : GpuParticleType::Ambient, position, presentedPhase_ >= 3 ? 7u : 4u, presentedPhase_ >= 3 ? 1.65f : 1.35f, 0.85f, presentedPhase_ >= 3 ? 0.95f : 0.45f);
+	}
+
+	void BossPresentationComponent::ApplyVisualAppearance()
+	{
+		auto* boss = dynamic_cast<BossActor*>(GetOwner());
+		HumanoidVisualComponent* visual = boss ? boss->GetHumanoidVisualComponent() : nullptr;
+		if (!visual) return;
+
+		const float pulse = 0.5f + 0.5f * std::sin(visualTime_ * (presentedPhase_ >= 3 ? 5.2f : 2.8f) * kTwoPi);
+		Vector4 color{ 1.0f, 1.0f, 1.0f, 1.0f };
+		Vector4 emissive{ 0.0f, 0.0f, 0.0f, 1.0f };
+		if (presentedPhase_ == 2)
+		{
+			color = { 0.88f, 0.96f, 1.0f, 1.0f };
+			emissive = { 0.04f, 0.16f + pulse * 0.10f, 0.34f + pulse * 0.18f, 1.0f };
+		}
+		else if (presentedPhase_ >= 3)
+		{
+			color = { 1.0f, 0.78f + pulse * 0.12f, 0.72f + pulse * 0.10f, 1.0f };
+			emissive = { 0.52f + pulse * 0.42f, 0.035f, 0.02f, 1.0f };
+		}
+
+		if (attackTelegraphActive_)
+		{
+			const float progress = telegraphDuration_ > 0.0f ? Clamp01(telegraphElapsed_ / telegraphDuration_) : 1.0f;
+			const float warningPulse = 0.5f + 0.5f * std::sin((progress * 5.0f + visualTime_ * 2.0f) * kTwoPi);
+			Vector4 warningColor{ 1.0f, 0.90f, 0.35f, 1.0f };
+			Vector4 warningEmissive{ 1.25f, 0.70f, 0.06f, 1.0f };
+			if (IsChargeAttack(activeAttackId_))
+			{
+				warningColor = { 1.0f, 0.48f, 0.20f, 1.0f };
+				warningEmissive = { 1.65f, 0.18f, 0.02f, 1.0f };
+			}
+			else if (IsAreaAttack(activeAttackId_))
+			{
+				warningColor = IsGroundSlamAttack(activeAttackId_) ? Vector4{ 1.0f, 0.72f, 0.20f, 1.0f } : Vector4{ 0.42f, 0.82f, 1.0f, 1.0f };
+				warningEmissive = IsGroundSlamAttack(activeAttackId_) ? Vector4{ 1.45f, 0.48f, 0.02f, 1.0f } : Vector4{ 0.05f, 0.70f, 1.45f, 1.0f };
+			}
+			const float warningWeight = 0.28f + progress * 0.52f + warningPulse * 0.20f;
+			color = LerpColor(color, warningColor, warningWeight);
+			emissive = LerpColor(emissive, warningEmissive, warningWeight);
+		}
+
+		if (phaseTransitionActive_)
+		{
+			const float progress = Clamp01(elapsed_ / std::max(phaseTransitionDuration_, 0.01f));
+			const float transitionPulse = 0.5f + 0.5f * std::sin((progress * 4.0f + visualTime_) * kTwoPi);
+			const Vector4 phaseColor = presentedPhase_ >= 3 ? Vector4{ 1.0f, 0.28f, 0.12f, 1.0f } : Vector4{ 0.35f, 0.78f, 1.0f, 1.0f };
+			const Vector4 phaseEmissive = presentedPhase_ >= 3 ? Vector4{ 2.2f, 0.08f, 0.02f, 1.0f } : Vector4{ 0.08f, 1.0f, 2.0f, 1.0f };
+			color = LerpColor(color, phaseColor, 0.55f + transitionPulse * 0.35f);
+			emissive = LerpColor(emissive, phaseEmissive, 0.65f + transitionPulse * 0.30f);
+		}
+		else if (deathPresentationActive_)
+		{
+			const float fade = 1.0f - Clamp01(elapsed_ / std::max(deathPresentationDuration_, 0.01f));
+			color = LerpColor({ 0.35f, 0.04f, 0.03f, 1.0f }, { 0.03f, 0.03f, 0.03f, 1.0f }, 1.0f - fade);
+			emissive = { 1.4f * fade, 0.03f, 0.01f, 1.0f };
+		}
+
+		auto applyPart = [&color, &emissive](HumanoidVisualComponent::BodyPart& part)
+		{
+			if (!part.object) return;
+			part.object->SetColor(color);
+			part.object->SetEmissiveFactor(emissive);
+		};
+		applyPart(visual->GetBodyPart());
+		for (HumanoidVisualComponent::BodyPart& part : visual->GetParts()) applyPart(part); // 全部位へ同じPhase色を適用し、Actorの一体感を維持する。
 	}
 
 	void BossPresentationComponent::StartPhaseTransition(int phase)
 	{
+		presentedPhase_ = std::max(1, phase);
+		FinishAttackTelegraph();
 		phaseTransitionActive_ = true;
 		elapsed_ = 0.0f;
-		stateName_ = "Phase " + std::to_string(phase);
+		phaseParticleTimer_ = 0.0f;
+		stateName_ = "Phase " + std::to_string(presentedPhase_);
 		Actor* owner = GetOwner();
 		if (auto* attack = owner ? owner->GetComponent<BossAttackComponent>() : nullptr) attack->InterruptCurrentAttack();
 		if (auto* character = dynamic_cast<CharacterActor*>(owner))
 		{
 			if (CharacterAnimationComponent* animation = character->GetAnimationComponent()) animation->Play("Boss.PhaseTransition", phaseTransitionDuration_, false);
 		}
+		if (auto* boss = dynamic_cast<BossActor*>(owner))
+		{
+			if (TextComponent* label = boss->GetHealthLabelComponent()) label->SetText("BOSS PHASE " + std::to_string(presentedPhase_));
+		}
+		AudioManager::GetInstance()->PlaySE("enemy_death.mp3", presentedPhase_ >= 3 ? 0.32f : 0.25f, presentedPhase_ >= 3 ? 0.58f : 0.74f);
+		EmitPhasePulse(true);
+		RequestCameraShake(presentedPhase_ >= 3 ? 0.85f : 0.55f, presentedPhase_ >= 3 ? 0.40f : 0.24f, presentedPhase_ >= 3 ? 25.0f : 20.0f);
+		ApplyVisualAppearance();
+	}
+
+	void BossPresentationComponent::RequestCameraShake(float duration, float amplitude, float frequency)
+	{
+		if (duration <= 0.0f || amplitude <= 0.0f) return;
+		if (!cameraShakePending_ || amplitude >= pendingShakeAmplitude_)
+		{
+			pendingShakeDuration_ = duration;
+			pendingShakeAmplitude_ = amplitude;
+			pendingShakeFrequency_ = std::max(1.0f, frequency);
+		}
+		else
+		{
+			pendingShakeDuration_ = std::max(pendingShakeDuration_, duration);
+		}
+		cameraShakePending_ = true;
 	}
 } // namespace Ken4lowEngine
