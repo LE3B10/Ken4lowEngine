@@ -10,6 +10,9 @@ public:
     void Initialize();
     bool IsInitialized() const { return isInitialized_; }
 
+    // 敵生成地点へ煙と地面リングを出し、出現位置を事前に伝える。
+    void SpawnAppearEffect(const K4E::Vector3& spawnWorldPos);
+
     // 被弾位置が取れている場合はこちら
     void SpawnHitEffect(const K4E::Vector3& hitWorldPos);
 

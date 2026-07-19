@@ -18,18 +18,34 @@ void EnemyParticleEffectSystem::Initialize()
         return;
     }
 
-    static bool bloodEffectsTuned = false;
-    if (!bloodEffectsTuned)
+    static bool enemyEffectsTuned = false;
+    if (!enemyEffectsTuned)
     {
         auto* effects = EffectSystem::GetInstance();
+        effects->RegisterSpriteEffect("EnemySpawnMist", GpuParticleType::Ambient, 44, 0, 0.0f, 0.42f);
+        effects->RegisterSpriteEffect("EnemySpawnRing", GpuParticleType::Shockwave, 28, 0, 0.0f, 0.22f);
         effects->RegisterSpriteEffect("EnemyBlood", GpuParticleType::Blood, 32, 0, 0.0f, 0.18f);
         effects->RegisterSpriteEffect("EnemyDeathBlood", GpuParticleType::Blood, 56, 0, 0.0f, 0.28f);
-        bloodEffectsTuned = true; // 通常被弾と死亡時の血飛沫を、従来より多く広い範囲へ散らす。
+        enemyEffectsTuned = true; // 生成・被弾・死亡EffectのRuntime登録を全Enemyで一度だけ共有する。
     }
 
     // Sprite系GPUパーティクルはEffectSystem側に登録済みのRuntime effectNameで再生する。
     // Enemy側ではEmitter名・ParameterManager登録・Json保存対象を直接管理しない。
     isInitialized_ = true;
+}
+
+void EnemyParticleEffectSystem::SpawnAppearEffect(const Vector3& spawnWorldPos)
+{
+    if (!isInitialized_)
+    {
+        return;
+    }
+
+    const Vector3 centerPos = spawnWorldPos;
+    const Vector3 groundPos = AddY(spawnWorldPos, -1.85f);
+    auto* effects = EffectSystem::GetInstance();
+    effects->Play("EnemySpawnMist", centerPos);
+    effects->Play("EnemySpawnRing", groundPos); // Enemy Rootは体の中心なので、リングだけCollider半高さ分下げて足元へ置く。
 }
 
 void EnemyParticleEffectSystem::SpawnHitEffect(const Vector3& hitWorldPos)
