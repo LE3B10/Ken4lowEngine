@@ -9,7 +9,7 @@
 
 namespace Ken4lowEngine
 {
-	void Stage::Initialize(const std::string& levelJsonPath, const std::string& defaultModelName)
+	void Stage::Initialize(const std::string& levelJsonPath, const std::string& defaultModelName, bool instancedOnly)
 	{
 		Clear();
 
@@ -19,11 +19,19 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		const std::string primaryStageModelPath = StageAssetLoader::ResolveStageModelName(*levelData_, defaultModelName);
-		stageModel_ = StageAssetLoader::BuildStageModel(*levelData_, defaultModelName, offset_);
-		stageModel_->Update();
-		RebuildStageChunks();
-		stageInstancingManager_.Build(*levelData_, primaryStageModelPath, offset_);
+		const std::string primaryStageModelPath = instancedOnly
+			? std::string{}
+			: StageAssetLoader::ResolveStageModelName(*levelData_, defaultModelName);
+		if (!instancedOnly)
+		{
+			stageModel_ = StageAssetLoader::BuildStageModel(*levelData_, defaultModelName, offset_);
+			if (stageModel_)
+			{
+				stageModel_->Update();
+				RebuildStageChunks();
+			}
+		}
+		stageInstancingManager_.Build(*levelData_, primaryStageModelPath, offset_); // Instanced-onlyでは全StaticMesh配置をGPUバッチ対象にする。
 
 		StageCollisionBuildResult collisionResult =
 			StageCollisionBuilder::Build(*levelData_, offset_);
@@ -117,10 +125,11 @@ namespace Ken4lowEngine
 
 	void Stage::DrawShadow()
 	{
-		if (stageModel_)
+		if (useNormalStageDraw_ && stageModel_)
 		{
 			stageModel_->DrawShadow();
 		}
+		stageInstancingManager_.DrawShadow(stageInstancingEnabled_, useInstancedStageDraw_, useNormalStageDraw_); // 一体型Modelが無いStage 2もインスタンス群から影を描く。
 	}
 
 	void Stage::UpdateShadowMatrix(const Matrix4x4& lightViewProjection)
@@ -129,6 +138,7 @@ namespace Ken4lowEngine
 		{
 			stageModel_->UpdateShadowMatrix(lightViewProjection);
 		}
+		stageInstancingManager_.UpdateShadowMatrix(lightViewProjection);
 	}
 
 	void Stage::SetFrustumCullingEnabled(bool enabled)
@@ -193,6 +203,11 @@ namespace Ken4lowEngine
 
 	void Stage::RebuildStageChunks()
 	{
+		if (!stageModel_)
+		{
+			stageChunkManager_.Clear();
+			return; // Instanced-only Stageは一体型Model用Chunkを生成しない。
+		}
 		stageChunkManager_.Rebuild(stageModel_.get(), stageChunkManager_.GetChunkSize());
 	}
 
