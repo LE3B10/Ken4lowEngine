@@ -539,7 +539,9 @@ void BossBattleController::FinalizeMineArena(const Dependencies& deps)
 	if (!mineArenaEnabled_) return;
 	for (MineArenaBlock& block : mineArenaBlocks_)
 	{
-		if (block.collider && deps.collisionManager) deps.collisionManager->RemoveCollider(block.collider.get());
+		if (!block.collider) continue;
+		if (deps.characters) deps.characters->GetPhysicsWorld().UnregisterCollider(block.collider.get());
+		if (deps.collisionManager) deps.collisionManager->RemoveCollider(block.collider.get());
 	}
 	mineArenaBlocks_.clear();
 	mineCorridorLightIndices_.clear();
@@ -715,6 +717,7 @@ size_t BossBattleController::AddMineArenaBlock(
 		block.collider->SetOBBHalfSize(scale * 0.5f);
 		block.collider->SetOrientation(rotation);
 		block.collider->SetDebugName(debugName ? debugName : "MineArenaBlock");
+		if (deps.characters) deps.characters->GetPhysicsWorld().RegisterCollider(block.collider.get());
 		if (deps.collisionManager) deps.collisionManager->AddCollider(block.collider.get());
 	}
 	mineArenaBlocks_.push_back(std::move(block));
