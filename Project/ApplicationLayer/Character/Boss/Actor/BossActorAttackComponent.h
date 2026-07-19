@@ -10,11 +10,15 @@ namespace Ken4lowEngine
 	class BossAttackComponent final : public AttackComponent
 	{
 	public:
-		/// JSON復元済み攻撃を維持し、不足時だけ標準Boss攻撃を登録する。
+		/// JSON復元済み攻撃プロファイルに応じたBoss攻撃を登録する。
 		void Initialize() override;
 
 		/// 共通攻撃状態にBossの直近選択結果を追加表示する。
 		void DrawImGui() override;
+
+		/// 攻撃プロファイルと共通攻撃データをJSONへ保存する。
+		void ToJson(nlohmann::json& outJson) const override;
+		void FromJson(const nlohmann::json& inJson) override;
 
 		/// JSON保存・復元で使用するComponent識別名を返す。
 		std::string GetClassTypeName() const override { return "BossAttackComponent"; }
@@ -24,12 +28,16 @@ namespace Ken4lowEngine
 
 		/// 直近に開始できた攻撃IDを返す。
 		const std::string& GetLastSelectedAttackId() const { return lastSelectedAttackId_; }
+		const std::string& GetAttackProfile() const { return attackProfile_; }
 
 	private:
-		/// 新規追加されたBossへ標準の近接・突進・衝撃波を登録する。
+		/// 選択されたArchetypeに対応する近接・突進・範囲攻撃を登録する。
 		void RegisterDefaultAttacks();
+		void RegisterGuardianAttacks();
+		void RegisterMineCrusherAttacks();
 
 	private:
+		std::string attackProfile_ = "Guardian";
 		std::string lastSelectedAttackId_ = "None";
 	};
 } // namespace Ken4lowEngine
