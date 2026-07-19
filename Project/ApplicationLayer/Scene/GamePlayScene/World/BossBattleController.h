@@ -32,7 +32,6 @@ public:
 	void Draw();
 	bool CheckPickup(const IPlayerRuntime& player) const;
 	void MarkCollected();
-
 	bool IsSpawned() const { return spawned_; }
 	bool IsCollected() const { return collected_; }
 	const K4E::Vector3& GetPosition() const { return position_; }
@@ -70,6 +69,7 @@ public:
 
 	void Initialize(GamePlayStageContext& stageContext, bool stage1BeginnerBalanceEnabled);
 	void Finalize(const Dependencies& deps);
+	bool RequestBossBattle(const K4E::Vector3& bossPosition);
 	void UpdateSpawnProgress(const Dependencies& deps);
 	void UpdateIntro(const Dependencies& deps, float deltaTime);
 	void UpdateRuntime(const Dependencies& deps, float deltaTime);
@@ -116,12 +116,13 @@ private:
 	static bool CalcLookAnglesToTarget(const K4E::Vector3& from, const K4E::Vector3& target, float& outPitch, float& outYaw);
 
 private:
-	K4E::BossActor* bossActor_ = nullptr; // 実体はCharacterWorldのActorWorldが所有する。
+	K4E::BossActor* bossActor_ = nullptr;
 	std::unique_ptr<BossClearItem> clearItem_;
 	K4E::Vector3 bossSpawnPosition_{ 0.0f, 2.25f, 30.0f };
 	K4E::Vector3 bossDeathPosition_{};
 	BossIntroController bossIntroController_;
 	bool stage1BeginnerBalanceEnabled_ = false;
+	bool manualBossRequest_ = false;
 	bool bossSpawned_ = false;
 	bool bossColliderRegistered_ = false;
 	bool bossSpawnConditionMet_ = false;
