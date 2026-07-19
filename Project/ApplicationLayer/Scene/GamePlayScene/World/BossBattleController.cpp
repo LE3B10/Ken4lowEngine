@@ -99,6 +99,7 @@ void BossBattleController::Initialize(GamePlayStageContext& stageContext, bool b
 	bossDeathPosition_ = bossSpawnPosition_;
 	bossActor_ = nullptr;
 	clearItem_.reset();
+	manualBossRequest_ = false;
 	bossSpawned_ = false;
 	bossColliderRegistered_ = false;
 	bossSpawnConditionMet_ = false;
@@ -120,10 +121,21 @@ void BossBattleController::Finalize(const Dependencies& deps)
 	bossIntroController_.Finalize();
 }
 
+bool BossBattleController::RequestBossBattle(const K4E::Vector3& bossPosition)
+{
+	if (bossSpawned_ || bossIntroController_.HasPlayed() || bossIntroController_.IsRunning()) return false;
+	bossSpawnPosition_ = bossPosition;
+	bossDeathPosition_ = bossPosition;
+	manualBossRequest_ = true;
+	bossSpawnConditionMet_ = true;
+	bossIntroController_.RequestStart(bossSpawnPosition_); // クリスタル以外のObjectiveからも既存の登場演出を再利用する。
+	return true;
+}
+
 void BossBattleController::UpdateSpawnProgress(const Dependencies& deps)
 {
-	if (!deps.crystalManager) return;
-	bossSpawnConditionMet_ = deps.crystalManager->AreAllCrystalsDestroyed() && !bossSpawned_;
+	const bool crystalCondition = deps.crystalManager && deps.crystalManager->AreAllCrystalsDestroyed();
+	bossSpawnConditionMet_ = (manualBossRequest_ || crystalCondition) && !bossSpawned_;
 	if (bossSpawnConditionMet_ && !bossIntroController_.HasPlayed() && !bossIntroController_.IsRunning()) bossIntroController_.RequestStart(bossSpawnPosition_);
 }
 
@@ -191,7 +203,7 @@ void BossBattleController::UpdateRuntime(const Dependencies& deps, float deltaTi
 		if (!bossDeathPositionCaptured_ && bossActor_->IsDead())
 		{
 			bossDeathPosition_ = bossActor_->GetDeathWorldPosition();
-			bossDeathPositionCaptured_ = true; // 部位演出やPhysicsより前にActorが固定した撃破地点を報酬位置の正本にする。
+			bossDeathPositionCaptured_ = true;
 		}
 		HandleBossPhasePresentation(deps);
 	}
@@ -213,7 +225,7 @@ void BossBattleController::UpdateHud(const Dependencies& deps, float deltaTime)
 {
 	(void)deltaTime;
 	if (bossActor_) bossActor_->SetHealthHudVisible(IsBossBattleActive());
-	if (deps.hudManager) deps.hudManager->SetBossHP(GetBossHP(), GetBossMaxHP(), false); // HP描画はBossActorのGauge Componentへ一本化する。
+	if (deps.hudManager) deps.hudManager->SetBossHP(GetBossHP(), GetBossMaxHP(), false);
 }
 
 void BossBattleController::UpdateBossGuideHud(IPlayerRuntime& player, HUDManager& hudManager) const
@@ -246,7 +258,7 @@ void BossBattleController::DrawImGui(const Dependencies& deps, bool introPresent
 		ImGui::Text("HP: %.1f / %.1f / Phase: %d", bossActor_->GetHP(), bossActor_->GetMaxHP(), bossActor_->GetCurrentPhase());
 		ImGui::Text("Battle: %s / Dead: %s / Death presentation: %s", bossActor_->IsBattleEnabled() ? "on" : "off", bossActor_->IsDead() ? "yes" : "no", bossActor_->IsDeathPresentationComplete() ? "complete" : "running");
 	}
-	ImGui::Text("Death position: %.2f %.2f %.2f / Clear item: %s", bossDeathPosition_.x, bossDeathPosition_.y, bossDeathPosition_.z, clearItemSpawned_ ? "spawned" : "none");
+	ImGui::Text("Manual request: %s / Death position: %.2f %.2f %.2f / Clear item: %s", manualBossRequest_ ? "yes" : "no", bossDeathPosition_.x, bossDeathPosition_.y, bossDeathPosition_.z, clearItemSpawned_ ? "spawned" : "none");
 #else
 	(void)deps; (void)introPresentation;
 #endif
@@ -255,6 +267,7 @@ void BossBattleController::DrawImGui(const Dependencies& deps, bool introPresent
 void BossBattleController::ResetIntroForDebug(const Dependencies& deps)
 {
 	DestroyBossActor(deps);
+	manualBossRequest_ = false;
 	bossSpawned_ = false;
 	bossColliderRegistered_ = false;
 	bossDefeated_ = false;
