@@ -78,12 +78,7 @@ public:
 	{
 		if (!stageObjectiveManager_) return false;
 		if (stage2DeviceManager_.IsActive()) stageObjectiveManager_->SetRequiresBossAfterDevices(true);
-		const bool accepted = stageObjectiveManager_->NotifyDeviceActivated(deviceId);
-		if (accepted && stage2DeviceManager_.AreAllDevicesActivated())
-		{
-			bossBattleController_.RequestBossBattle({ 0.0f, 4.35f, 102.0f }); // 高さ2mの最奥採掘床へ坑道破砕体の足元を合わせて登場させる。
-		}
-		return accepted;
+		return stageObjectiveManager_->NotifyDeviceActivated(deviceId); // 3基目は通路だけを開き、Boss開始は大広間への入場判定へ任せる。
 	}
 	void NotifyStageGoalReached() { SetReachedGoal(true); }
 	void NotifyStageDefenseTargetDestroyed() { SetDefenseTargetDestroyed(true); }
@@ -101,7 +96,7 @@ public:
 	bool HasStage1TutorialCompleted() const { return stage1TutorialController_.HasCompletedTutorial(); }
 
 private:
-	void InitializeLighting();
+	void InitializeLighting(const GamePlayStageContext::StageAssetPaths& stageAssets);
 	void InitializeSkyBox();
 	void InitializeCollisionSystems();
 	void InitializeCharacterSystems();
@@ -175,6 +170,7 @@ private:
 	float bulletEnemySoACellSize_ = 2.0f;
 	bool stage1BeginnerBalanceEnabled_ = false;
 	bool skipStage1Tutorial_ = false;
+	bool isMineStage_ = false;
 	Stage1TutorialController stage1TutorialController_{};
 	BossBattleController bossBattleController_{};
 };
