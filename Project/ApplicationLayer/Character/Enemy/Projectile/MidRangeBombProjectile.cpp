@@ -3,12 +3,51 @@
 
 #include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
 #include "ApplicationLayer/Character/Player/Player.h"
+#include "GpuParticleEmitter.h"
+#include "GpuParticleManager.h"
+#include "GpuParticleType.h"
+#include "Stage.h"
 #include "Wireframe.h"
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 
 using namespace Ken4lowEngine;
+
+namespace
+{
+    void EmitBombParticle(
+        const char* emitterName,
+        GpuParticleKind kind,
+        GpuParticleType particleType,
+        const Vector3& position,
+        uint32_t count,
+        float radius,
+        float lifeScale,
+        float speedScale)
+    {
+        if (!emitterName || count == 0) return;
+        GpuParticleManager* manager = GpuParticleManager::GetInstance();
+        if (!manager) return;
+
+        GpuParticleEmitter::EmitterInfo info{};
+        info.textureFilePath = "Effects/white.dds";
+        info.radius = std::max(0.0f, radius);
+        info.kind = kind;
+        info.spriteType = particleType;
+        info.billboardFlags = BillboardMode::Camera;
+        info.lifeScale = std::max(0.01f, lifeScale);
+        info.speedScale = std::max(0.0f, speedScale);
+
+        GpuParticleEmitter* emitter = manager->GetEmitter(emitterName);
+        if (!emitter) emitter = manager->CreateEmitter(emitterName, info);
+        if (!emitter) return;
+        emitter->GetInfoMutable() = info;
+        emitter->SetPosition(position);
+        emitter->RequestEmit(count);
+    }
+}
 
 IPlayerRuntime* MidRangeBombProjectile::s_targetPlayerRuntime_ = nullptr;
 bool MidRangeBombProjectile::s_debugCubeVisible_ = true;
@@ -19,8 +58,11 @@ void MidRangeBombProjectile::Initialize()
     position_ = {};
     velocity_ = {};
     explosionPosition_ = {};
+    telegraphPosition_ = {};
     lifeTimer_ = 0.0f;
     explosionDrawTimer_ = 0.0f;
+    telegraphTime_ = 0.0f;
+    telegraphEmitTimer_ = 0.0f;
     exploded_ = false;
     alive_ = false;
     directDamageApplied_ = false;
@@ -28,7 +70,7 @@ void MidRangeBombProjectile::Initialize()
 
     debugCube_ = std::make_unique<Object3D>();
     debugCube_->Initialize("Sample/cube.gltf");
-    debugCube_->SetColor({ 0.15f, 0.02f, 0.22f, 1.0f });
+    debugCube_->SetColor({ 0.48f, 0.08f, 0.02f, 1.0f });
     UpdateDebugCube();
 }
 
@@ -37,8 +79,12 @@ void MidRangeBombProjectile::Launch(const Vector3& start, const Vector3& target,
     settings_ = settings;
     position_ = start;
     explosionPosition_ = start;
+    telegraphPosition_ = target;
+    telegraphPosition_.y = ResolveFloorY(target) + 0.06f;
     lifeTimer_ = 0.0f;
     explosionDrawTimer_ = 0.0f;
+    telegraphTime_ = 0.0f;
+    telegraphEmitTimer_ = 0.0f;
     exploded_ = false;
     alive_ = true;
     directDamageApplied_ = false;
@@ -46,41 +92,42 @@ void MidRangeBombProjectile::Launch(const Vector3& start, const Vector3& target,
 
     Vector3 directionXZ = target - start;
     directionXZ.y = 0.0f;
-    float lengthXZ = std::sqrt(directionXZ.x * directionXZ.x + directionXZ.z * directionXZ.z);
-    if (lengthXZ > 0.0001f)
-    {
-        directionXZ.x /= lengthXZ;
-        directionXZ.z /= lengthXZ;
-    }
-    else
-    {
-        directionXZ = { 0.0f, 0.0f, 1.0f };
-    }
+    const float lengthXZ = Vector3::LengthXZ(directionXZ);
+    if (lengthXZ > 0.0001f) directionXZ = directionXZ / lengthXZ;
+    else directionXZ = { 0.0f, 0.0f, 1.0f };
 
-    const float maxInitialSpeed = std::max(0.0f, settings_.maxInitialSpeed);
-    velocity_ = directionXZ * std::clamp(settings_.initialSpeed, 0.0f, maxInitialSpeed);
+    float horizontalSpeed = settings_.initialSpeed;
+    if (settings_.useDistanceBasedSpeed)
+    {
+        horizontalSpeed = settings_.minInitialSpeed +
+            std::max(0.0f, lengthXZ - settings_.speedBaseDistance) * settings_.speedPerDistance;
+    }
+    horizontalSpeed = std::clamp(horizontalSpeed, std::max(0.0f, settings_.minInitialSpeed), std::max(settings_.minInitialSpeed, settings_.maxInitialSpeed));
+    velocity_ = directionXZ * horizontalSpeed;
     velocity_.y = std::clamp(settings_.upwardVelocity, 0.0f, 12.0f);
+
+    EmitBombParticle("MidRangeBombLaunchSpark", GpuParticleKind::Sprite, GpuParticleType::Spark, start, 12, 0.35f, 0.45f, 1.2f);
     UpdateDebugCube();
 }
 
 void MidRangeBombProjectile::Update(float deltaTime)
 {
-    constexpr float kFloorY = 0.0f;
     constexpr float kMaxDeltaTime = 1.0f / 30.0f;
     deltaTime = std::clamp(deltaTime, 0.0f, kMaxDeltaTime);
 
     if (alive_)
     {
         lifeTimer_ += deltaTime;
+        UpdateTelegraph(deltaTime);
         velocity_.y -= std::clamp(settings_.gravity, 0.0f, 30.0f) * deltaTime;
         position_ += velocity_ * deltaTime;
         UpdateDebugCube();
 
-        bool shouldExplode = false;
-        if (lifeTimer_ >= settings_.lifeTime) shouldExplode = true;
-        if (position_.y <= kFloorY)
+        bool shouldExplode = lifeTimer_ >= settings_.lifeTime;
+        const float floorY = ResolveFloorY(position_);
+        if (position_.y <= floorY + s_debugCubeSize_ * 0.5f)
         {
-            position_.y = kFloorY + s_debugCubeSize_ * 0.5f;
+            position_.y = floorY + s_debugCubeSize_ * 0.5f;
             UpdateDebugCube();
             shouldExplode = true;
         }
@@ -88,26 +135,49 @@ void MidRangeBombProjectile::Update(float deltaTime)
     }
     else if (exploded_)
     {
-        explosionDrawTimer_ -= deltaTime;
-        if (explosionDrawTimer_ < 0.0f) explosionDrawTimer_ = 0.0f;
+        explosionDrawTimer_ = std::max(0.0f, explosionDrawTimer_ - deltaTime);
     }
 
-    if (s_targetPlayerRuntime_) TryApplyPlayerDamage(*s_targetPlayerRuntime_); // P13では旧MidRangeEnemyのPlayer所有者判定に依存せずRuntimeへ直接Damageを適用する。
+    if (s_targetPlayerRuntime_) TryApplyPlayerDamage(*s_targetPlayerRuntime_);
 }
 
 void MidRangeBombProjectile::Draw() const
 {
-    if (alive_ && s_debugCubeVisible_ && debugCube_) debugCube_->Draw();
-    if (exploded_ && explosionDrawTimer_ > 0.0f) Wireframe::GetInstance()->DrawSphere(explosionPosition_, settings_.explosionRadius, { 1.0f, 0.1f, 0.1f, 0.85f });
+    if (alive_)
+    {
+        if (s_debugCubeVisible_ && debugCube_) debugCube_->Draw();
+        const float pulse = 0.93f + std::sin(telegraphTime_ * 8.0f) * 0.07f;
+        const float radius = settings_.explosionRadius * pulse;
+        Wireframe::GetInstance()->DrawCircle(telegraphPosition_, radius, 48, { 1.0f, 0.16f, 0.02f, 0.95f });
+        Wireframe::GetInstance()->DrawCircle(telegraphPosition_ + Vector3{ 0.0f, 0.02f, 0.0f }, radius * 0.58f, 32, { 1.0f, 0.62f, 0.08f, 0.82f });
+    }
+    if (exploded_ && explosionDrawTimer_ > 0.0f)
+    {
+        Wireframe::GetInstance()->DrawSphere(explosionPosition_, settings_.explosionRadius, { 1.0f, 0.12f, 0.02f, 0.75f });
+        Wireframe::GetInstance()->DrawCircle(explosionPosition_, settings_.explosionRadius, 48, { 1.0f, 0.55f, 0.08f, 0.95f });
+    }
 }
 
 void MidRangeBombProjectile::Explode()
 {
+    if (exploded_) return;
     explosionPosition_ = position_;
-    if (explosionPosition_.y < 0.2f) explosionPosition_.y = 0.2f;
+    const float floorY = ResolveFloorY(explosionPosition_);
+    if (explosionPosition_.y < floorY + 0.2f) explosionPosition_.y = floorY + 0.2f;
     exploded_ = true;
     alive_ = false;
-    explosionDrawTimer_ = 0.2f;
+    explosionDrawTimer_ = 0.45f;
+    EmitExplosionEffect(explosionPosition_, settings_.explosionRadius); // Damage判定と同じ中心・半径を使い、見た目と当たり判定を一致させる。
+}
+
+void MidRangeBombProjectile::EmitExplosionEffect(const Vector3& position, float radius)
+{
+    const float safeRadius = std::max(0.5f, radius);
+    EmitBombParticle("MidRangeBombShockwave", GpuParticleKind::Sprite, GpuParticleType::Shockwave, position, 44, safeRadius * 0.18f, 0.70f, 1.7f);
+    EmitBombParticle("MidRangeBombDust", GpuParticleKind::Sprite, GpuParticleType::Dust, position, 52, safeRadius * 0.55f, 1.15f, 1.25f);
+    EmitBombParticle("MidRangeBombSpark", GpuParticleKind::Sprite, GpuParticleType::Spark, position + Vector3{ 0.0f, 0.35f, 0.0f }, 30, safeRadius * 0.30f, 0.65f, 2.2f);
+    EmitBombParticle("MidRangeBombSmoke", GpuParticleKind::Sprite, GpuParticleType::Smoke, position + Vector3{ 0.0f, 0.45f, 0.0f }, 26, safeRadius * 0.40f, 1.35f, 0.65f);
+    EmitBombParticle("MidRangeBombDebris", GpuParticleKind::Mesh, GpuParticleType::Debris, position, 20, safeRadius * 0.42f, 1.10f, 1.8f);
 }
 
 void MidRangeBombProjectile::SetDebugCubeSize(float size)
@@ -122,6 +192,41 @@ void MidRangeBombProjectile::UpdateDebugCube()
     debugCube_->SetRotate({ lifeTimer_ * 2.0f, lifeTimer_ * 3.5f, lifeTimer_ * 1.5f });
     debugCube_->SetScale({ s_debugCubeSize_, s_debugCubeSize_, s_debugCubeSize_ });
     debugCube_->Update();
+}
+
+void MidRangeBombProjectile::UpdateTelegraph(float deltaTime)
+{
+    telegraphTime_ += deltaTime;
+    telegraphEmitTimer_ += deltaTime;
+    if (telegraphEmitTimer_ < 0.08f) return;
+    telegraphEmitTimer_ = std::fmod(telegraphEmitTimer_, 0.08f);
+    EmitBombParticle(
+        "MidRangeBombTelegraph",
+        GpuParticleKind::Sprite,
+        GpuParticleType::Spark,
+        telegraphPosition_,
+        8,
+        settings_.explosionRadius * 0.90f,
+        0.42f,
+        0.20f);
+}
+
+float MidRangeBombProjectile::ResolveFloorY(const Vector3& samplePosition) const
+{
+    const Stage* stage = Stage::GetActiveRuntimeStage();
+    if (!stage) return 0.0f;
+
+    float bestFloorY = -std::numeric_limits<float>::infinity();
+    for (const AABB& floor : stage->GetFloorAABBs())
+    {
+        if (samplePosition.x < floor.min.x || samplePosition.x > floor.max.x ||
+            samplePosition.z < floor.min.z || samplePosition.z > floor.max.z)
+        {
+            continue;
+        }
+        if (floor.max.y <= samplePosition.y + 1.0f) bestFloorY = std::max(bestFloorY, floor.max.y);
+    }
+    return std::isfinite(bestFloorY) ? bestFloorY : 0.0f;
 }
 
 MidRangeBombProjectile::PlayerHitResult MidRangeBombProjectile::TryApplyPlayerDamage(IPlayerRuntime& player)
@@ -163,7 +268,7 @@ MidRangeBombProjectile::PlayerHitResult MidRangeBombProjectile::TryApplyPlayerDa
 
 MidRangeBombProjectile::PlayerHitResult MidRangeBombProjectile::TryApplyPlayerDamage(Player& player)
 {
-    return TryApplyPlayerDamage(static_cast<IPlayerRuntime&>(player)); // 旧Playerソース比較用の互換入口だけ残す。
+    return TryApplyPlayerDamage(static_cast<IPlayerRuntime&>(player));
 }
 
 bool MidRangeBombProjectile::IsAlive() const
