@@ -52,17 +52,23 @@ public:
     static void SetDebugCubeVisible(bool visible) { s_debugCubeVisible_ = visible; }
     static float GetDebugCubeSize() { return s_debugCubeSize_; }
     static void SetDebugCubeSize(float size);
+    static void EmitExplosionEffect(const Ken4lowEngine::Vector3& position, float radius);
 
 private:
     void UpdateDebugCube();
+    void UpdateTelegraph(float deltaTime);
+    float ResolveFloorY(const Ken4lowEngine::Vector3& samplePosition) const;
 
 private:
     Ken4lowEngine::Vector3 position_{};
     Ken4lowEngine::Vector3 velocity_{};
     Ken4lowEngine::Vector3 explosionPosition_{};
+    Ken4lowEngine::Vector3 telegraphPosition_{};
     BombProjectileSettings settings_{};
     float lifeTimer_ = 0.0f;
     float explosionDrawTimer_ = 0.0f;
+    float telegraphTime_ = 0.0f;
+    float telegraphEmitTimer_ = 0.0f;
     bool exploded_ = false;
     bool alive_ = false;
     bool directDamageApplied_ = false;
