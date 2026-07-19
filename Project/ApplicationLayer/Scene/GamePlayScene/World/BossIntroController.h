@@ -56,6 +56,13 @@ public:
 	void Finalize();
 	void RequestStart(const K4E::Vector3& bossPosition);
 	void Reset();
+	void SetRequestedBossPositionOverride(const K4E::Vector3& position)
+	{
+		requestedBossPosition_ = position;
+		hasRequestedBossPosition_ = true;
+		settings_.bossAppearPosition = position; // Stage固有の登場位置をParameter設定より優先する。
+	}
+	void ClearRequestedBossPositionOverride() { hasRequestedBossPosition_ = false; }
 
 	void Update(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera)
 	{
