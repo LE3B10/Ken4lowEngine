@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "BossBrainComponent.h"
 
 #include "BossActorAttackComponent.h"

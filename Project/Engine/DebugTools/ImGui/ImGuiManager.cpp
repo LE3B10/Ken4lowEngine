@@ -195,6 +195,9 @@ namespace Ken4lowEngine
 
 		initialized_ = true;
 #pragma endregion
+#else
+		(void)winApp;
+		(void)dxCommon;
 #endif // USE_IMGUI
 	}
 

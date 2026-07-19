@@ -41,9 +41,11 @@
             "Active": true,
             "Class": "BossPresentationComponent",
             "DeathPresentationDuration": 1.2000000476837158,
-            "DrawOrder": 0,
+            "DrawOrder": -10,
             "Name": "Boss Presentation",
+            "PhaseAuraInterval": 0.18000000715255737,
             "PhaseTransitionDuration": 0.5,
+            "TelegraphParticleInterval": 0.10000000149011612,
             "Type": "ActorComponent",
             "UpdateOrder": -97
         },
@@ -62,60 +64,116 @@
             "Active": true,
             "Attacks": [
                 {
-                    "Active": 0.1,
+                    "Active": 0.10000000149011612,
                     "Animation": "Attack.Melee",
                     "Behavior": "Melee",
-                    "Cooldown": 0.95,
+                    "Cooldown": 0.949999988079071,
                     "Damage": 24.0,
                     "Id": "Punch",
                     "MaxHeightDifference": 3.0,
-                    "MaxRange": 3.2,
+                    "MaxRange": 3.200000047683716,
                     "MinRange": 0.0,
                     "MovementSpeed": 0.0,
-                    "Recovery": 0.24,
-                    "Windup": 0.17
+                    "Recovery": 0.23999999463558197,
+                    "Windup": 0.17000000178813934
                 },
                 {
-                    "Active": 0.13,
+                    "Active": 0.12999999523162842,
                     "Animation": "Attack.Melee",
                     "Behavior": "Melee",
-                    "Cooldown": 1.65,
+                    "Cooldown": 1.649999976158142,
                     "Damage": 42.0,
                     "Id": "HeavyPunch",
                     "MaxHeightDifference": 3.5,
                     "MaxRange": 4.0,
                     "MinRange": 0.0,
                     "MovementSpeed": 0.0,
-                    "Recovery": 0.36,
-                    "Windup": 0.32
+                    "Recovery": 0.36000001430511475,
+                    "Windup": 0.3199999928474426
                 },
                 {
-                    "Active": 0.6,
+                    "Active": 0.8199999928474426,
                     "Animation": "Attack.Charge",
                     "Behavior": "Charge",
-                    "Cooldown": 2.35,
+                    "Cooldown": 2.3499999046325684,
                     "Damage": 36.0,
                     "Id": "Charge",
                     "MaxHeightDifference": 2.5,
-                    "MaxRange": 14.0,
-                    "MinRange": 3.2,
-                    "MovementSpeed": 10.5,
-                    "Recovery": 0.28,
-                    "Windup": 0.32
+                    "MaxRange": 18.0,
+                    "MinRange": 3.200000047683716,
+                    "MovementSpeed": 18.0,
+                    "Recovery": 0.23999999463558197,
+                    "Windup": 0.2800000011920929
                 },
                 {
-                    "Active": 0.1,
+                    "Active": 0.10000000149011612,
                     "Animation": "Attack.Shockwave",
                     "Behavior": "Shockwave",
-                    "Cooldown": 3.15,
+                    "Cooldown": 3.1500000953674316,
                     "Damage": 44.0,
                     "Id": "Shockwave",
                     "MaxHeightDifference": 2.0,
                     "MaxRange": 10.0,
                     "MinRange": 2.0,
                     "MovementSpeed": 0.0,
-                    "Recovery": 0.38,
-                    "Windup": 0.54
+                    "Recovery": 0.3799999952316284,
+                    "Windup": 0.5400000214576721
+                },
+                {
+                    "Active": 0.10999999940395355,
+                    "Animation": "Attack.Shockwave",
+                    "Behavior": "Shockwave",
+                    "Cooldown": 3.75,
+                    "Damage": 52.0,
+                    "Id": "GroundSlam",
+                    "MaxHeightDifference": 2.299999952316284,
+                    "MaxRange": 5.800000190734863,
+                    "MinRange": 0.0,
+                    "MovementSpeed": 0.0,
+                    "Recovery": 0.44999998807907104,
+                    "Windup": 0.6200000047683716
+                },
+                {
+                    "Active": 0.07999999821186066,
+                    "Animation": "Attack.Melee",
+                    "Behavior": "Melee",
+                    "Cooldown": 0.5199999809265137,
+                    "Damage": 30.0,
+                    "Id": "RapidPunch",
+                    "MaxHeightDifference": 3.0,
+                    "MaxRange": 3.4000000953674316,
+                    "MinRange": 0.0,
+                    "MovementSpeed": 0.0,
+                    "Recovery": 0.14000000059604645,
+                    "Windup": 0.10999999940395355
+                },
+                {
+                    "Active": 0.7799999713897705,
+                    "Animation": "Attack.Charge",
+                    "Behavior": "Charge",
+                    "Cooldown": 1.5499999523162842,
+                    "Damage": 42.0,
+                    "Id": "FrenzyCharge",
+                    "MaxHeightDifference": 2.5,
+                    "MaxRange": 22.0,
+                    "MinRange": 3.0,
+                    "MovementSpeed": 24.0,
+                    "Recovery": 0.12999999523162842,
+                    "Windup": 0.1599999964237213
+                },
+                {
+                    "Active": 0.07999999821186066,
+                    "Animation": "Attack.Shockwave",
+                    "Behavior": "Shockwave",
+                    "Cooldown": 1.899999976158142,
+                    "Damage": 48.0,
+                    "Id": "FastShockwave",
+                    "MaxHeightDifference": 2.0,
+                    "MaxRange": 10.5,
+                    "MinRange": 1.5,
+                    "MovementSpeed": 0.0,
+                    "Recovery": 0.20999999344348907,
+                    "Windup": 0.28999999165534973
                 }
             ],
             "Class": "BossAttackComponent",
@@ -130,7 +188,7 @@
             "Class": "RigidbodyComponent",
             "DrawOrder": 0,
             "DynamicFriction": 0.0,
-            "Mass": 4.0,
+            "Mass": 20.0,
             "Name": "Boss Rigidbody",
             "Restitution": 0.0,
             "SleepEnabled": false,
@@ -265,10 +323,10 @@
         {
             "Active": true,
             "Class": "CharacterHealthComponent",
-            "CurrentHealth": 1200.0,
+            "CurrentHealth": 3000.0,
             "DrawOrder": 0,
             "Invulnerable": false,
-            "MaxHealth": 1200.0,
+            "MaxHealth": 3000.0,
             "Name": "Character Health",
             "Type": "ActorComponent",
             "UpdateOrder": -50
@@ -277,6 +335,8 @@
             "Active": true,
             "Class": "CharacterMovementComponent",
             "DrawOrder": 0,
+            "MaxBrakingForce": 600.0,
+            "MaxDriveForce": 400.0,
             "MovementEnabled": true,
             "Name": "Character Movement",
             "Type": "ActorComponent",
@@ -331,14 +391,14 @@
             "CollisionLayer": 1,
             "DrawOrder": 0,
             "HalfSize": [
-                1.25,
-                1.75,
-                1.25
+                0.699999988079071,
+                1.899999976158142,
+                0.699999988079071
             ],
             "IsTrigger": false,
             "LocalPosition": [
                 0.0,
-                0.0,
+                -0.30000001192092896,
                 0.0
             ],
             "LocalRotation": [
@@ -357,6 +417,71 @@
             "ShapeType": "OBB",
             "Type": "SceneComponent",
             "UpdateOrder": -60
+        },
+        {
+            "Active": true,
+            "BackgroundColor": [
+                0.05000000074505806,
+                0.05000000074505806,
+                0.05000000074505806,
+                0.8799999952316284
+            ],
+            "BorderColor": [
+                1.0,
+                1.0,
+                1.0,
+                0.9200000166893005
+            ],
+            "BorderThickness": 2.0,
+            "Class": "GaugeComponent",
+            "DrawOrder": 100,
+            "FillColor": [
+                0.7799999713897705,
+                0.1599999964237213,
+                0.1599999964237213,
+                1.0
+            ],
+            "FillDirection": "LeftToRight",
+            "MaxValue": 1200.0,
+            "Name": "Boss HP Gauge",
+            "Position": [
+                610.0,
+                44.0
+            ],
+            "Size": [
+                700.0,
+                26.0
+            ],
+            "Type": "ActorComponent",
+            "UpdateOrder": 0,
+            "Value": 1200.0,
+            "Visible": true
+        },
+        {
+            "Active": true,
+            "Anchor": [
+                0.5,
+                0.0
+            ],
+            "Class": "TextComponent",
+            "Color": [
+                1.0,
+                1.0,
+                1.0,
+                1.0
+            ],
+            "DrawOrder": 101,
+            "FontName": "DotGothic16",
+            "FontSize": 24.0,
+            "Name": "Boss HP Label",
+            "Position": [
+                960.0,
+                12.0
+            ],
+            "Text": "BOSS HP",
+            "Type": "ActorComponent",
+            "UpdateOrder": 0,
+            "Visible": true
         }
     ],
     "Layer": "BossValidation",
