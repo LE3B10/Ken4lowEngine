@@ -28,7 +28,13 @@ namespace Ken4lowEngine
 		{
 			std::vector<ObjectData> objects;
 			if (!IsTargetMine(levelData)) return objects;
-			objects.reserve(96);
+			objects.reserve(112);
+
+			AddBox(objects, "MineOuterSeal_West", { -51.0f, 8.5f, 35.0f }, { 1.0f, 0.5f, 91.0f }, "Obstacle");
+			AddBox(objects, "MineOuterSeal_East", { 51.0f, 8.5f, 35.0f }, { 1.0f, 0.5f, 91.0f }, "Obstacle");
+			AddBox(objects, "MineOuterSeal_South", { 0.0f, 8.5f, -56.0f }, { 51.0f, 0.5f, 1.0f }, "Obstacle");
+			AddBox(objects, "MineOuterNorthWall_L", { -32.0f, 4.5f, 126.0f }, { 19.0f, 4.5f, 1.0f }, "Obstacle");
+			AddBox(objects, "MineOuterNorthWall_R", { 32.0f, 4.5f, 126.0f }, { 19.0f, 4.5f, 1.0f }, "Obstacle"); // 旧終端壁の中央だけを通路幅として開け、左右と天井際の外光漏れを塞ぐ。
 
 			AddBox(objects, "HiddenPassageFloor", { 0.0f, 1.0f, 137.0f }, { 12.0f, 1.0f, 18.0f }, "Floor");
 			AddBox(objects, "HiddenPassageWall_L", { -13.0f, 7.0f, 137.0f }, { 1.0f, 5.0f, 18.0f }, "Obstacle");
