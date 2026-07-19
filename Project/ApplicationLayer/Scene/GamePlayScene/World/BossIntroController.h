@@ -13,7 +13,7 @@
 
 namespace K4E = ::Ken4lowEngine;
 
-/// クリスタル全破壊後のBossActor登場演出を管理する。
+/// Objective完了後のBossActor登場演出を管理する。
 class BossIntroController
 {
 public:
@@ -60,6 +60,7 @@ public:
 	void Update(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera)
 	{
 		ApplyParameters();
+		if (hasRequestedBossPosition_) settings_.bossAppearPosition = requestedBossPosition_; // Parameter再適用後もStage固有の登場座標を演出終了まで優先する。
 		SetDebugSnapshot(boss, camera);
 		switch (state_)
 		{
@@ -130,7 +131,7 @@ private:
 		{
 			boss->SetPosition(Lerp(GetBossStartPosition(), settings_.bossAppearPosition, t));
 			boss->SetYaw(std::numbers::pi_v<float>);
-			boss->ForceSyncWorldTransform(); // ActorWorld停止中も演出座標を同フレームへ反映する。
+			boss->ForceSyncWorldTransform();
 		}
 		if (settings_.enableBossIntroCamera && camera) ApplyCameraLookAtBoss(camera, introCameraPosition_, introCameraTarget_);
 		if (t >= 1.0f)
@@ -195,6 +196,8 @@ private:
 	bool debugForceBossToAppearRequested_ = false;
 	bool debugClearBossParentRequested_ = false;
 	bool debugUseGameplayViewProjectionRequested_ = false;
+	K4E::Vector3 requestedBossPosition_{};
+	bool hasRequestedBossPosition_ = false;
 	K4E::Vector3 savedCameraPosition_{};
 	K4E::Vector3 savedCameraRotation_{};
 	K4E::Vector3 introCameraPosition_{ 0.0f, 9.0f, 18.0f };
