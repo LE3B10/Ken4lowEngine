@@ -74,10 +74,10 @@ namespace Ken4lowEngine
 		{
 			GraphicsPipelineDesc desc{};
 			desc.blendState = PipelineStatePresets::MakeBlendOpaque();
-			desc.rasterizerState = PipelineStatePresets::MakeRasterizerCullNone();
-			desc.rasterizerState.DepthBias = 300;
-			desc.rasterizerState.SlopeScaledDepthBias = 0.75f;
-			desc.rasterizerState.DepthBiasClamp = 0.0f;
+			desc.rasterizerState = PipelineStatePresets::MakeRasterizerCullBack();
+			desc.rasterizerState.DepthBias = 600;
+			desc.rasterizerState.SlopeScaledDepthBias = 1.25f;
+			desc.rasterizerState.DepthBiasClamp = 0.0025f; // 表裏両面の競合を避けつつ、傾斜面だけ適度に深度を押し出す。
 			desc.depthStencilState = PipelineStatePresets::MakeDepthReadWrite();
 			desc.numRenderTargets = 0;
 			desc.dsvFormat = DXGI_FORMAT_D32_FLOAT;
