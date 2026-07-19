@@ -149,7 +149,12 @@ namespace Ken4lowEngine
 			const Vector3 direction = NormalizeXZ(context.target->GetTargetPosition() - root->GetWorldPosition());
 			movement->SetVelocity(direction * data.movementSpeed); // 突進も位置を直接変更せず共通Movementへ速度を渡す。
 		}
-		if (hit_ || !IsWithinAttackVolume(context, data)) return {};
+
+		const float contactRange = std::max(1.2f, data.minRange + 0.35f);
+		const bool reachedTarget = context.distanceToTarget <= contactRange &&
+			context.heightDifferenceToTarget <= data.maxHeightDifference;
+		if (hit_ || !reachedTarget) return {}; // 発動可能な遠距離ではなく、実際にTargetへ接触した距離だけDamageを通す。
+
 		hit_ = true;
 		const AttackExecutionResult execution = ApplyDamageOnce(context, data.damage);
 		ApplyAcceptedKnockback(context, execution, 8.0f, 2.2f);
