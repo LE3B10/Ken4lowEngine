@@ -34,9 +34,8 @@ namespace Ken4lowEngine
 		}
 	}
 
-
 	/// -------------------------------------------------------------
-	///					　		初期化処理
+	///　　　　　　　　　　 初期化処理
 	/// -------------------------------------------------------------
 	void Object3D::Initialize(const std::string& fileName)
 	{
@@ -45,49 +44,31 @@ namespace Ken4lowEngine
 
 		SetModel(fileName);
 
-		// 環境マップ
 		TextureManager::GetInstance()->LoadTexture("SkyBox/skybox.dds");
-
-		// 環境マップのハンドルを取得
 		environmentMapHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("SkyBox/skybox.dds");
 
-		// ディゾルブマスクテクスチャの読み込み
 		TextureManager::GetInstance()->LoadTexture("Effects/Masks/noise.dds");
 		dissolveMaskHandle_ = TextureManager::GetInstance()->GetSrvHandleGPU("Effects/Masks/noise.dds");
 
-		// ワールドトランスフォームの初期化
 		worldTransform_.Initialize();
-
-		// マテリアルデータの初期化処理
 		material_.Initialize();
 		materialTextureSlots_.Reset(); // 追加Texture Slotへ常に有効な中立SRVを設定する。
 
-		// カメラデータの初期化処理
 		InitializeCameraResource();
-
-		// ディゾルブ用リソースの初期化
 		InitializeDissolveResource();
-
-		// シャドウマップ用リソースの初期化
 		InitializeShadowResource();
-
-		// 通常描画で使う ShadowParameter 用CBV
 		InitializeShadowParameterResource();
-
-		// ShadowMap の SRV ハンドルを取得
 		AcquireShadowMapHandle();
 	}
 
-
 	/// -------------------------------------------------------------
-	///					　		更新処理
+	///　　　　　　　　　　 更新処理
 	/// -------------------------------------------------------------
 	void Object3D::Update()
 	{
 		material_.Update();
 		worldTransform_.Update();
 
-		// カメラ用バッファ更新
 		cameraData->worldPosition = CameraManager::GetInstance()->GetActiveCameraPosition();
 
 		const auto* lightMgr = LightManager::GetInstance();
@@ -121,43 +102,33 @@ namespace Ken4lowEngine
 	void Object3D::UpdateShadowMatrix(const Matrix4x4& lightViewProjection)
 	{
 		const Matrix4x4& worldMatrix = worldTransform_.matWorld_;
-
-		// シャドウマップ用の行列を計算して定数バッファにセット
 		shadowTransformData_->World = worldMatrix;
 		shadowTransformData_->WVP = Matrix4x4::Multiply(worldMatrix, lightViewProjection);
 		shadowTransformData_->WorldInversedTranspose = Matrix4x4::Transpose(Matrix4x4::Inverse(worldMatrix));
-
-		// シャドウマップ用の行列を GPU に転送
 		shadowParameterData_->lightViewProjection = lightViewProjection;
-
 	}
 
 	/// -------------------------------------------------------------
-	///					　		ImGuiの描画
+	///　　　　　　　　　　 ImGuiの描画
 	/// -------------------------------------------------------------
 	void Object3D::DrawImGui()
 	{
 #ifdef USE_IMGUI
-		// ① IDスコープで衝突を防ぐ（this を使うのが簡単）
 		ImGui::PushID(this);
-
-		// ② 見やすいようにヘッダーでグループ化（任意）
 		if (ImGui::CollapsingHeader("Object", ImGuiTreeNodeFlags_DefaultOpen))
 		{
 			ImGui::DragFloat3("Position##pos", &worldTransform_.translate_.x, 0.01f);
 			ImGui::DragFloat3("Rotation##rot", &worldTransform_.rotate_.x, 0.01f);
 			ImGui::DragFloat3("Scale##scl", &worldTransform_.scale_.x, 0.01f);
 			ImGui::Checkbox("Object Frustum Culling", &frustumCullingEnabled_);
-			material_.DrawImGui(); // マテリアル側も PushID していなければ内部で同様に対応
+			material_.DrawImGui();
 		}
-
 		ImGui::PopID();
 #endif // USE_IMGUI
 	}
 
-
 	/// -------------------------------------------------------------
-	///					　		描画処理
+	///　　　　　　　　　　 描画処理
 	/// -------------------------------------------------------------
 	void Object3D::Draw()
 	{
@@ -178,8 +149,6 @@ namespace Ken4lowEngine
 		if (!meshIndices)
 		{
 			const BoundingSphere objectBounds = GetWorldBounds();
-
-			// Object3D 全体が完全に視錐台外なら、更新系は止めず Draw だけをスキップする。
 			if (!object3DCommon->ShouldDrawObject(objectBounds, frustumCullingEnabled_, HasWorldBounds(), isStageObjectCullingUnit_))
 			{
 				DrawBoundsDebug(objectBounds, false);
@@ -190,7 +159,8 @@ namespace Ken4lowEngine
 
 		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
 
-		object3DCommon->SetRenderSetting();
+		if (alphaBlendEnabled_) object3DCommon->SetAlphaRenderSetting();
+		else object3DCommon->SetRenderSetting(); // 残像だけAlpha Pipelineへ切り替え、通常Object3Dの描画契約は維持する。
 
 		material_.SetPipeline();
 		worldTransform_.SetPipeline();
@@ -199,22 +169,18 @@ namespace Ken4lowEngine
 		TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 4, environmentMapHandle_);
 
 		commandList->SetGraphicsRootConstantBufferView(7, constantBuffer_->GetGPUVirtualAddress());
-		TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 8, dissolveMaskHandle_); // t3
+		TextureManager::GetInstance()->SetGraphicsRootDescriptorTable(commandList, 8, dissolveMaskHandle_);
 
-		commandList->SetGraphicsRootConstantBufferView(9, shadowParameterResource_->GetGPUVirtualAddress()); // シャドウマップ用行列
-		commandList->SetGraphicsRootDescriptorTable(10, shadowMapHandle_); // シャドウマップのSRV
-		materialTextureSlots_.BindAdditionalSlots(commandList, 12, 13, 14, 15); // t6:MR t7:Normal t8:AO t9:Emissive
+		commandList->SetGraphicsRootConstantBufferView(9, shadowParameterResource_->GetGPUVirtualAddress());
+		commandList->SetGraphicsRootDescriptorTable(10, shadowMapHandle_);
+		materialTextureSlots_.BindAdditionalSlots(commandList, 12, 13, 14, 15);
 
-		// StageChunk で可視判定済みのメッシュは二重カリングで欠けないよう、Stage専用ObjectはMesh単位Frustum判定をスキップする。
 		auto& meshes = model_->GetMeshes();
 		const size_t drawCount = meshIndices ? meshIndices->size() : meshes.size();
 		for (size_t drawIndex = 0; drawIndex < drawCount; ++drawIndex)
 		{
 			const size_t i = meshIndices ? (*meshIndices)[drawIndex] : drawIndex;
-			if (i >= meshes.size())
-			{
-				continue;
-			}
+			if (i >= meshes.size()) continue;
 
 			const BoundingSphere meshBounds = GetMeshWorldBounds(i);
 			const bool hasMeshBounds = HasMeshWorldBounds(i);
@@ -223,10 +189,7 @@ namespace Ken4lowEngine
 				? true
 				: object3DCommon->ShouldDrawMesh(meshBounds, frustumCullingEnabled_, hasMeshBounds);
 			DrawBoundsDebug(meshBounds, meshVisible);
-			if (!meshVisible)
-			{
-				continue;
-			}
+			if (!meshVisible) continue;
 
 			if (i < materialSRVs_.size())
 			{
@@ -242,24 +205,18 @@ namespace Ken4lowEngine
 	{
 		if (!model_) { return; }
 
-		// Point 6面/CSM 4層では同じObjectを複数回描くため、現在Sliceの行列をDraw直前に反映する。
 		UpdateShadowMatrix(LightManager::GetInstance()->GetActiveShadowPassLightViewProjection());
 
 		ID3D12GraphicsCommandList* commandList = dxCommon_->GetCommandManager()->GetCommandList();
-
 		Object3DCommon::GetInstance()->SetShadowMapRenderSetting();
-
 		commandList->SetGraphicsRootConstantBufferView(0, shadowTransformResource_->GetGPUVirtualAddress());
 
 		auto& meshes = model_->GetMeshes();
-		for (auto& mesh : meshes)
-		{
-			mesh.Draw();
-		}
+		for (auto& mesh : meshes) mesh.Draw();
 	}
 
 	/// -------------------------------------------------------------
-	///					モデルの設定
+	///　　　　　　　 モデルの設定
 	/// -------------------------------------------------------------
 	void Object3D::SetModel(const std::string& filePath)
 	{
@@ -268,20 +225,20 @@ namespace Ken4lowEngine
 		materialSRVs_.clear();
 		if (model_)
 		{
-			materialSRVs_ = model_->GetMaterialSRVs(); // 共有モデルから初期値をコピー
+			materialSRVs_ = model_->GetMaterialSRVs();
 			materialUsePointSampling_ = model_->GetMaterialPointSamplingFlags();
 		}
 	}
 
 	void Object3D::ApplyMaterialDesc(const MaterialDesc& desc)
 	{
-		material_.ApplyDesc(desc); // MaterialCBDataの既存レイアウトを維持したままBinding結果を反映する。
+		material_.ApplyDesc(desc);
 		materialTextureSlots_.ApplyDesc(desc);
 		materialSRVs_.clear();
 		materialUsePointSampling_.clear();
 		if (model_)
 		{
-			materialSRVs_ = model_->GetMaterialSRVs(); // Texture未指定ならモデルが元から持つSubMesh Textureへ戻す。
+			materialSRVs_ = model_->GetMaterialSRVs();
 			materialUsePointSampling_ = model_->GetMaterialPointSamplingFlags();
 		}
 
@@ -289,7 +246,7 @@ namespace Ken4lowEngine
 		{
 			for (D3D12_GPU_DESCRIPTOR_HANDLE& baseColor : materialSRVs_)
 			{
-				baseColor = materialTextureSlots_.ResolveBaseColor(baseColor); // BaseColor Overrideを全SubMeshへ適用する。
+				baseColor = materialTextureSlots_.ResolveBaseColor(baseColor);
 			}
 		}
 		materialUsePointSampling_.assign(materialSRVs_.size(), desc.legacy.usePointSampling);
@@ -297,7 +254,7 @@ namespace Ken4lowEngine
 
 	void Object3D::ResetMaterialBinding()
 	{
-		material_.ResetToDefault(); // Material未指定へ戻した場合は既存Forwardの既定値を復元する。
+		material_.ResetToDefault();
 		materialTextureSlots_.Reset();
 		materialSRVs_.clear();
 		materialUsePointSampling_.clear();
@@ -309,22 +266,19 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///				テクスチャの設定
+	///　　　　　 テクスチャの設定
 	/// -------------------------------------------------------------
 	void Object3D::SetTextureForAll(const std::string& texturePath)
 	{
 		TextureManager::GetInstance()->LoadTexture(texturePath);
 		auto h = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
 
-		for (auto& srv : materialSRVs_)
-		{
-			srv = h;
-		}
+		for (auto& srv : materialSRVs_) srv = h;
 		materialUsePointSampling_.assign(materialSRVs_.size(), ShouldUsePointSamplingForTexture(texturePath));
 	}
 
 	/// -------------------------------------------------------------
-	///			指定サブメッシュのテクスチャ設定
+	///　　　 指定サブメッシュのテクスチャ設定
 	/// -------------------------------------------------------------
 	void Object3D::SetTextureForSubmesh(size_t index, const std::string& texturePath)
 	{
@@ -332,7 +286,7 @@ namespace Ken4lowEngine
 
 		TextureManager::GetInstance()->LoadTexture(texturePath);
 		materialSRVs_[index] = TextureManager::GetInstance()->GetSrvHandleGPU(texturePath);
-		if (index >= materialUsePointSampling_.size()) { materialUsePointSampling_.resize(materialSRVs_.size(), false); }
+		if (index >= materialUsePointSampling_.size()) materialUsePointSampling_.resize(materialSRVs_.size(), false);
 		materialUsePointSampling_[index] = ShouldUsePointSamplingForTexture(texturePath);
 	}
 
@@ -342,30 +296,22 @@ namespace Ken4lowEngine
 	}
 
 	/// -------------------------------------------------------------
-	///					　		カメラ用のリソース生成
+	///　　　　　　　　 カメラ用のリソース生成
 	/// -------------------------------------------------------------
 	void Object3D::InitializeCameraResource()
 	{
-		// カメラ用のリソースを作る
 		cameraResource = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(CameraForGPU));
-		// 書き込むためのアドレスを取得
 		cameraResource->Map(0, nullptr, reinterpret_cast<void**>(&cameraData));
-		// カメラの初期位置
 		cameraData->worldPosition = camera_->GetTranslate();
 	}
 
 	/// -------------------------------------------------------------
-	///				ディゾルブ用リソース生成
+	///　　　　　 ディゾルブ用リソース生成
 	/// -------------------------------------------------------------
 	void Object3D::InitializeDissolveResource()
 	{
-		// リソースの生成
 		constantBuffer_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(DissolveSetting));
-
-		// データの設定
 		constantBuffer_->Map(0, nullptr, reinterpret_cast<void**>(&dissolveSetting_));
-
-		// ディゾルブの設定
 		dissolveSetting_->threshold = 1.0f;
 		dissolveSetting_->edgeThickness = 0.0f;
 		dissolveSetting_->edgeColor = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -373,13 +319,8 @@ namespace Ken4lowEngine
 
 	void Object3D::InitializeShadowResource()
 	{
-		// 影用の行列バッファを作成
 		shadowTransformResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(TransformationMatrix));
-
-		// データのマッピング
 		shadowTransformResource_->Map(0, nullptr, reinterpret_cast<void**>(&shadowTransformData_));
-
-		// 初期化（単位行列）
 		shadowTransformData_->World = Matrix4x4::MakeIdentity();
 		shadowTransformData_->WVP = Matrix4x4::MakeIdentity();
 		shadowTransformData_->WorldInversedTranspose = Matrix4x4::MakeIdentity();
@@ -388,11 +329,7 @@ namespace Ken4lowEngine
 	void Object3D::InitializeShadowParameterResource()
 	{
 		shadowParameterResource_ = ResourceManager::CreateBufferResource(dxCommon_->GetDevice(), sizeof(ShadowParameterForGPU));
-
-		// データのマッピング
 		shadowParameterResource_->Map(0, nullptr, reinterpret_cast<void**>(&shadowParameterData_));
-
-		// シャドウバイアスの初期値
 		shadowParameterData_->lightViewProjection = Matrix4x4::MakeIdentity();
 		shadowParameterData_->shadowBias = 0.015f;
 		shadowParameterData_->normalBias = 0.02f;
@@ -403,21 +340,13 @@ namespace Ken4lowEngine
 
 	BoundingSphere Object3D::GetWorldBounds() const
 	{
-		if (!HasWorldBounds())
-		{
-			return {};
-		}
-
+		if (!HasWorldBounds()) return {};
 		return TransformLocalBounds(model_->GetLocalBounds());
 	}
 
 	BoundingSphere Object3D::GetMeshWorldBounds(size_t meshIndex) const
 	{
-		if (!HasMeshWorldBounds(meshIndex))
-		{
-			return {};
-		}
-
+		if (!HasMeshWorldBounds(meshIndex)) return {};
 		return TransformLocalBounds(model_->GetMeshLocalBounds(meshIndex));
 	}
 
@@ -446,11 +375,7 @@ namespace Ken4lowEngine
 
 	void Object3D::DrawBoundsDebug(const BoundingSphere& bounds, bool visible) const
 	{
-		if (!Object3DCommon::GetInstance()->IsBoundsDebugVisible() || bounds.radius <= 0.0f)
-		{
-			return;
-		}
-
+		if (!Object3DCommon::GetInstance()->IsBoundsDebugVisible() || bounds.radius <= 0.0f) return;
 		const Vector4 color = visible ? Vector4{ 0.1f, 1.0f, 0.2f, 1.0f } : Vector4{ 1.0f, 0.15f, 0.1f, 1.0f };
 		Wireframe::GetInstance()->DrawSphere(bounds.center, bounds.radius, color);
 	}
@@ -459,5 +384,4 @@ namespace Ken4lowEngine
 	{
 		shadowMapHandle_ = dxCommon_->GetShadowMapSrvHandleGPU();
 	}
-
 } // namespace Ken4lowEngine
