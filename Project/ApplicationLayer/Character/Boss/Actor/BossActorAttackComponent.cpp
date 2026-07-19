@@ -118,9 +118,9 @@ namespace Ken4lowEngine
 		heavyPunch.maxHeightDifference = 3.5f;
 		upsertAttack(std::move(heavyPunch));
 
-		AttackData charge{ "Charge", "Charge", "Attack.Charge", 36.0f, 2.35f, 0.32f, 0.60f, 0.28f, 3.2f, 14.0f, 10.5f };
+		AttackData charge{ "Charge", "Charge", "Attack.Charge", 36.0f, 2.35f, 0.28f, 0.82f, 0.24f, 3.2f, 18.0f, 18.0f };
 		charge.maxHeightDifference = 2.5f;
-		upsertAttack(std::move(charge));
+		upsertAttack(std::move(charge)); // 旧Guardian相当の速度へ戻し、最長距離から近接圏まで一気に詰める。
 
 		AttackData shockwave{ "Shockwave", "Shockwave", "Attack.Shockwave", 44.0f, 3.15f, 0.54f, 0.10f, 0.38f, 2.0f, 10.0f, 0.0f };
 		shockwave.maxHeightDifference = 2.0f;
@@ -134,7 +134,7 @@ namespace Ken4lowEngine
 		rapidPunch.maxHeightDifference = 3.0f;
 		upsertAttack(std::move(rapidPunch));
 
-		AttackData frenzyCharge{ "FrenzyCharge", "Charge", "Attack.Charge", 42.0f, 1.55f, 0.18f, 0.50f, 0.16f, 3.0f, 15.0f, 14.0f };
+		AttackData frenzyCharge{ "FrenzyCharge", "Charge", "Attack.Charge", 42.0f, 1.55f, 0.16f, 0.78f, 0.13f, 3.0f, 22.0f, 24.0f };
 		frenzyCharge.maxHeightDifference = 2.5f;
 		upsertAttack(std::move(frenzyCharge));
 
