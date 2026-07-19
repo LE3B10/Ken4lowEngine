@@ -6,21 +6,9 @@
             "Active": true,
             "Class": "SceneComponent",
             "DrawOrder": 0,
-            "LocalPosition": [
-                0.0,
-                3.0,
-                10.043046951293945
-            ],
-            "LocalRotation": [
-                0.0,
-                -0.0,
-                0.0
-            ],
-            "LocalScale": [
-                1.0,
-                1.0,
-                1.0
-            ],
+            "LocalPosition": [0.0, 3.0, 10.043046951293945],
+            "LocalRotation": [0.0, -0.0, 0.0],
+            "LocalScale": [1.0, 1.0, 1.0],
             "Name": "Boss Root",
             "Parent": "",
             "Type": "SceneComponent",
@@ -29,11 +17,13 @@
         {
             "Active": true,
             "Class": "BossPhaseComponent",
+            "ConfiguredMaxHealth": 2400.0,
             "CurrentPhase": 1,
             "DrawOrder": 0,
             "Name": "Boss Phase",
             "Phase2HealthRatio": 0.699999988079071,
             "Phase3HealthRatio": 0.3499999940395355,
+            "PhaseInvulnerabilityDuration": 1.2,
             "Type": "ActorComponent",
             "UpdateOrder": -98
         },
@@ -138,11 +128,7 @@
             "Type": "ActorComponent",
             "UpdateOrder": -85,
             "UseGravity": true,
-            "Velocity": [
-                0.0,
-                0.0,
-                0.0
-            ]
+            "Velocity": [0.0, 0.0, 0.0]
         },
         {
             "Active": true,
@@ -150,79 +136,19 @@
             "Class": "HumanoidVisualComponent",
             "Definition": {
                 "Parts": [
-                    {
-                        "Id": "Body",
-                        "Model": "Characters/body.gltf"
-                    },
-                    {
-                        "Id": "Head",
-                        "Model": "Characters/head.gltf",
-                        "Parent": "Body",
-                        "Position": [
-                            0.0,
-                            0.75,
-                            0.0
-                        ]
-                    },
-                    {
-                        "Id": "LeftArm",
-                        "Model": "Characters/left_arm.gltf",
-                        "Parent": "Body",
-                        "Position": [
-                            -0.75,
-                            0.75,
-                            0.0
-                        ]
-                    },
-                    {
-                        "Id": "RightArm",
-                        "Model": "Characters/right_arm.gltf",
-                        "Parent": "Body",
-                        "Position": [
-                            0.75,
-                            0.75,
-                            0.0
-                        ]
-                    },
-                    {
-                        "Id": "LeftLeg",
-                        "Model": "Characters/left_leg.gltf",
-                        "Parent": "Body",
-                        "Position": [
-                            -0.25,
-                            -0.75,
-                            0.0
-                        ]
-                    },
-                    {
-                        "Id": "RightLeg",
-                        "Model": "Characters/right_leg.gltf",
-                        "Parent": "Body",
-                        "Position": [
-                            0.25,
-                            -0.75,
-                            0.0
-                        ]
-                    }
+                    {"Id": "Body", "Model": "Characters/body.gltf"},
+                    {"Id": "Head", "Model": "Characters/head.gltf", "Parent": "Body", "Position": [0.0, 0.75, 0.0]},
+                    {"Id": "LeftArm", "Model": "Characters/left_arm.gltf", "Parent": "Body", "Position": [-0.75, 0.75, 0.0]},
+                    {"Id": "RightArm", "Model": "Characters/right_arm.gltf", "Parent": "Body", "Position": [0.75, 0.75, 0.0]},
+                    {"Id": "LeftLeg", "Model": "Characters/left_leg.gltf", "Parent": "Body", "Position": [-0.25, -0.75, 0.0]},
+                    {"Id": "RightLeg", "Model": "Characters/right_leg.gltf", "Parent": "Body", "Position": [0.25, -0.75, 0.0]}
                 ]
             },
             "DefinitionPath": "Resources/JSON/Characters/DefaultHumanoid.json",
             "DrawOrder": 0,
-            "LocalPosition": [
-                0.0,
-                0.0,
-                0.0
-            ],
-            "LocalRotation": [
-                0.0,
-                0.0,
-                0.0
-            ],
-            "LocalScale": [
-                1.0,
-                1.0,
-                1.0
-            ],
+            "LocalPosition": [0.0, 0.0, 0.0],
+            "LocalRotation": [0.0, 0.0, 0.0],
+            "LocalScale": [1.0, 1.0, 1.0],
             "Name": "Boss Humanoid Visual",
             "Parent": "Boss Root",
             "PartVisibility": {
@@ -245,30 +171,18 @@
             "Type": "ActorComponent",
             "UpdateOrder": -40,
             "WeakPoints": [
-                {
-                    "DamageMultiplier": 2.0,
-                    "Enabled": true,
-                    "PartId": "Head"
-                },
-                {
-                    "DamageMultiplier": 1.25,
-                    "Enabled": true,
-                    "PartId": "LeftArm"
-                },
-                {
-                    "DamageMultiplier": 1.25,
-                    "Enabled": true,
-                    "PartId": "RightArm"
-                }
+                {"DamageMultiplier": 2.0, "Enabled": true, "PartId": "Head"},
+                {"DamageMultiplier": 1.25, "Enabled": true, "PartId": "LeftArm"},
+                {"DamageMultiplier": 1.25, "Enabled": true, "PartId": "RightArm"}
             ]
         },
         {
             "Active": true,
             "Class": "CharacterHealthComponent",
-            "CurrentHealth": 1200.0,
+            "CurrentHealth": 2400.0,
             "DrawOrder": 0,
             "Invulnerable": false,
-            "MaxHealth": 1200.0,
+            "MaxHealth": 2400.0,
             "Name": "Character Health",
             "Type": "ActorComponent",
             "UpdateOrder": -50
@@ -281,31 +195,15 @@
             "Name": "Character Movement",
             "Type": "ActorComponent",
             "UpdateOrder": -90,
-            "Velocity": [
-                0.0,
-                0.0,
-                0.0
-            ]
+            "Velocity": [0.0, 0.0, 0.0]
         },
         {
             "Active": true,
             "Class": "CharacterTargetComponent",
             "DrawOrder": 0,
-            "LocalPosition": [
-                0.0,
-                1.0,
-                0.0
-            ],
-            "LocalRotation": [
-                0.0,
-                0.0,
-                0.0
-            ],
-            "LocalScale": [
-                1.0,
-                1.0,
-                1.0
-            ],
+            "LocalPosition": [0.0, 1.0, 0.0],
+            "LocalRotation": [0.0, 0.0, 0.0],
+            "LocalScale": [1.0, 1.0, 1.0],
             "Name": "Character Target",
             "Parent": "Boss Root",
             "Type": "SceneComponent",
@@ -330,27 +228,11 @@
             "Class": "CharacterColliderComponent",
             "CollisionLayer": 1,
             "DrawOrder": 0,
-            "HalfSize": [
-                1.25,
-                1.75,
-                1.25
-            ],
+            "HalfSize": [1.25, 1.75, 1.25],
             "IsTrigger": false,
-            "LocalPosition": [
-                0.0,
-                0.0,
-                0.0
-            ],
-            "LocalRotation": [
-                0.0,
-                0.0,
-                0.0
-            ],
-            "LocalScale": [
-                1.0,
-                1.0,
-                1.0
-            ],
+            "LocalPosition": [0.0, 0.0, 0.0],
+            "LocalRotation": [0.0, 0.0, 0.0],
+            "LocalScale": [1.0, 1.0, 1.0],
             "Name": "Character Collider",
             "Parent": "Boss Root",
             "Radius": 1.0,
@@ -361,7 +243,5 @@
     ],
     "Layer": "BossValidation",
     "Name": "ComponentBoss",
-    "Tags": [
-        "Boss"
-    ]
+    "Tags": ["Boss"]
 }
