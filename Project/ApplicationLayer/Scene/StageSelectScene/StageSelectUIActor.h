@@ -170,7 +170,7 @@ private:
 		if (unlockCondition_)
 		{
 			unlockCondition_->SetVisible(locked_);
-			unlockCondition_->SetText(unlockText_.empty() ? "前のステージをクリアすると開放" : unlockText_);
+			unlockCondition_->SetText(GetUnlockDisplayText());
 		}
 		if (guide_) guide_->SetText("クリック：決定　ホイール／ドラッグ：移動　ESC：戻る");
 	}
@@ -201,6 +201,14 @@ private:
 		const float localTime = std::max(0.0f, transitionTimer_ - delay);
 		const float normalized = duration > 0.0f ? std::clamp(localTime / duration, 0.0f, 1.0f) : 1.0f;
 		return 1.0f - std::pow(1.0f - normalized, 3.0f); // 情報を同時表示せず、任務種別から説明へ順番に読み取れるようにする。
+	}
+
+	std::string GetUnlockDisplayText() const
+	{
+		if (!locked_) return {};
+		char unlockText[64]{};
+		std::snprintf(unlockText, sizeof(unlockText), "ステージ%02uをクリアすると開放", stageId_);
+		return unlockText; // 保存済みの英語表記に依存せず、画面上の開放条件を日本語へ統一する。
 	}
 
 	static const char* GetCategoryDisplayName(const std::string& category)
@@ -245,7 +253,7 @@ private:
 
 	float viewportWidth_ = 1920.0f;
 	float viewportHeight_ = 1080.0f;
-	float transitionTimer_ = 0.46f;
+	float transitionTimer_ = 0.0f;
 	float transitionDuration_ = 0.46f;
 	float guidePulseTimer_ = 0.0f;
 	std::uint32_t stageId_ = 0u;
