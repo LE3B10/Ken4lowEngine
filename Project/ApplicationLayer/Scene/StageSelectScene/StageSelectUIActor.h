@@ -36,8 +36,8 @@ public:
 		unlockCondition_ = EnsureTextComponent("Unlock Condition", 106);
 		guide_ = EnsureTextComponent("Guide", 107);
 
-		if (title_) title_->SetText("STAGE SELECT");
-		if (guide_) guide_->SetText("CLICK : SELECT   WHEEL / DRAG : MOVE   ESC : BACK");
+		if (title_) title_->SetText("ステージ選択");
+		if (guide_) guide_->SetText("クリック：決定　ホイール／ドラッグ：移動　ESC：戻る");
 		if (!hasSavedLayout) ApplyDefaultLayout(); // Prefab復元時は保存済みの位置と文字サイズを維持する。
 		ApplyStageText();
 		ApplyPresentation();
@@ -160,56 +160,66 @@ private:
 	void ApplyStageText()
 	{
 		char stageNumberText[32]{};
-		std::snprintf(stageNumberText, sizeof(stageNumberText), "STAGE %02u", stageId_ + 1u);
-		if (title_) title_->SetText("STAGE SELECT");
+		std::snprintf(stageNumberText, sizeof(stageNumberText), "ステージ %02u", stageId_ + 1u);
+		if (title_) title_->SetText("ステージ選択");
 		if (stageNumber_) stageNumber_->SetText(stageNumberText);
 		if (stageName_) stageName_->SetText(stageNameText_);
 		if (category_) category_->SetText(GetCategoryDisplayName(categoryText_));
-		if (objective_) objective_->SetText(std::string("OBJECTIVE : ") + GetCategoryObjective(categoryText_));
+		if (objective_) objective_->SetText(std::string("目標：") + GetCategoryObjective(categoryText_));
 		if (description_) description_->SetText(descriptionText_);
 		if (unlockCondition_)
 		{
 			unlockCondition_->SetVisible(locked_);
-			unlockCondition_->SetText(unlockText_.empty() ? "前ステージクリアで解放" : unlockText_);
+			unlockCondition_->SetText(unlockText_.empty() ? "前のステージをクリアすると開放" : unlockText_);
 		}
-		if (guide_) guide_->SetText("CLICK : SELECT   WHEEL / DRAG : MOVE   ESC : BACK");
+		if (guide_) guide_->SetText("クリック：決定　ホイール／ドラッグ：移動　ESC：戻る");
 	}
 
 	void ApplyPresentation()
 	{
-		const float normalized = transitionDuration_ > 0.0f ? std::clamp(transitionTimer_ / transitionDuration_, 0.0f, 1.0f) : 1.0f;
-		const float remain = 1.0f - normalized;
-		const float enterAlpha = 1.0f - remain * remain * remain;
+		const float stageAlpha = BuildRevealAlpha(0.00f, 0.18f);
+		const float categoryAlpha = BuildRevealAlpha(0.08f, 0.18f);
+		const float objectiveAlpha = BuildRevealAlpha(0.16f, 0.18f);
+		const float descriptionAlpha = BuildRevealAlpha(0.24f, 0.18f);
+		const float unlockAlpha = BuildRevealAlpha(0.30f, 0.16f);
 		const float pulse = 0.5f + 0.5f * std::sin(guidePulseTimer_ * 2.0f);
 		const K4E::Vector4 accent = GetCategoryAccentColor(categoryText_);
+		const float categoryFlash = 1.0f + (1.0f - categoryAlpha) * 0.28f;
 
 		if (title_) title_->SetColor({ 1.0f, 1.0f, 1.0f, 0.96f });
-		if (stageNumber_) stageNumber_->SetColor({ 0.86f, 0.94f, 1.0f, enterAlpha });
-		if (stageName_) stageName_->SetColor({ 1.0f, 1.0f, 1.0f, enterAlpha });
-		if (category_) category_->SetColor({ accent.x, accent.y, accent.z, enterAlpha });
-		if (objective_) objective_->SetColor({ 1.0f, 0.96f, 0.80f, enterAlpha });
-		if (description_) description_->SetColor({ 0.88f, 0.93f, 0.96f, enterAlpha });
-		if (unlockCondition_) unlockCondition_->SetColor({ 1.0f, 0.72f, 0.72f, enterAlpha });
+		if (stageNumber_) stageNumber_->SetColor({ 0.86f, 0.94f, 1.0f, stageAlpha });
+		if (stageName_) stageName_->SetColor({ 1.0f, 1.0f, 1.0f, stageAlpha });
+		if (category_) category_->SetColor({ std::min(1.0f, accent.x * categoryFlash), std::min(1.0f, accent.y * categoryFlash), std::min(1.0f, accent.z * categoryFlash), categoryAlpha });
+		if (objective_) objective_->SetColor({ 1.0f, 0.96f, 0.80f, objectiveAlpha });
+		if (description_) description_->SetColor({ 0.88f, 0.93f, 0.96f, descriptionAlpha });
+		if (unlockCondition_) unlockCondition_->SetColor({ 1.0f, 0.72f, 0.72f, unlockAlpha });
 		if (guide_) guide_->SetColor({ 1.0f, 1.0f, 1.0f, 0.68f + pulse * 0.25f });
+	}
+
+	float BuildRevealAlpha(float delay, float duration) const
+	{
+		const float localTime = std::max(0.0f, transitionTimer_ - delay);
+		const float normalized = duration > 0.0f ? std::clamp(localTime / duration, 0.0f, 1.0f) : 1.0f;
+		return 1.0f - std::pow(1.0f - normalized, 3.0f); // 情報を同時表示せず、任務種別から説明へ順番に読み取れるようにする。
 	}
 
 	static const char* GetCategoryDisplayName(const std::string& category)
 	{
-		if (category == "WAVE") return "WAVE STAGE";
-		if (category == "SEARCH") return "SEARCH STAGE";
-		if (category == "DEFENSE") return "DEFENSE STAGE";
-		if (category == "ESCAPE") return "ESCAPE STAGE";
-		if (category == "BOSS") return "BOSS STAGE";
-		return "UNKNOWN STAGE";
+		if (category == "WAVE") return "ウェーブ戦";
+		if (category == "SEARCH") return "探索任務";
+		if (category == "DEFENSE") return "防衛任務";
+		if (category == "ESCAPE") return "脱出任務";
+		if (category == "BOSS") return "最終決戦";
+		return "任務情報なし";
 	}
 
 	static const char* GetCategoryObjective(const std::string& category)
 	{
-		if (category == "WAVE") return "正面突破で戦況を切り開け";
-		if (category == "SEARCH") return "探索して進路を切り開け";
-		if (category == "DEFENSE") return "拠点を守り抜け";
-		if (category == "ESCAPE") return "敵をかわして脱出せよ";
-		if (category == "BOSS") return "最終決戦に挑め";
+		if (category == "WAVE") return "敵の波を退け、戦況を切り開け";
+		if (category == "SEARCH") return "坑道を探索し、進路を開放せよ";
+		if (category == "DEFENSE") return "押し寄せる敵から拠点を守り抜け";
+		if (category == "ESCAPE") return "敵の包囲を突破し、出口へ到達せよ";
+		if (category == "BOSS") return "すべてを懸けて最終ボスを撃破せよ";
 		return "ステージ目標を達成せよ";
 	}
 
@@ -235,8 +245,8 @@ private:
 
 	float viewportWidth_ = 1920.0f;
 	float viewportHeight_ = 1080.0f;
-	float transitionTimer_ = 0.28f;
-	float transitionDuration_ = 0.28f;
+	float transitionTimer_ = 0.46f;
+	float transitionDuration_ = 0.46f;
 	float guidePulseTimer_ = 0.0f;
 	std::uint32_t stageId_ = 0u;
 	std::string stageNameText_ = "始まりの平原";
