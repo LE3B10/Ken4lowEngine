@@ -1,9 +1,13 @@
 #pragma once
 
 #include <ActorComponent.h>
+#include <Object3D.h>
 
+#include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -14,12 +18,31 @@ namespace Ken4lowEngine
 	/// フェーズ遷移、攻撃予兆、死亡の見せ方をBrainや攻撃ロジックから分離するComponent。
 	class BossPresentationComponent final : public ActorComponent
 	{
+	private:
+		struct AfterimagePart
+		{
+			std::string partId;
+			std::unique_ptr<Object3D> object;
+			Matrix4x4 worldMatrix{};
+			bool visible = false;
+		};
+
+		struct AfterimageSnapshot
+		{
+			std::vector<AfterimagePart> parts;
+			float age = 0.0f;
+			bool active = false;
+		};
+
 	public:
 		/// 現在Phase Revisionを初期値として保持し、生成直後の不要な演出を防ぐ。
 		void Initialize() override;
 
 		/// Phase変更、攻撃予兆、Aura、攻撃着地Camera Shakeを更新する。
 		void Update(float deltaTime) override;
+
+		/// 本体描画前に固定姿勢の半透明残像を古い順で描画する。
+		void Draw() override;
 
 		/// 攻撃Listenerを解除し、古いAttack Componentへの参照を残さない。
 		void Finalize() override;
@@ -70,6 +93,30 @@ namespace Ken4lowEngine
 		/// 攻撃IDに応じた予兆または着地パーティクルを発生させる。
 		void EmitAttackTelegraphPulse(bool impact);
 
+		/// 現在のBoss位置からTargetへ向かうXZ方向を返す。
+		Vector3 ResolveCurrentTargetDirection() const;
+
+		/// 突進Active時間と固定方向を使う疾走演出を開始する。
+		void BeginChargeTrail(float activeDuration);
+
+		/// 突進中の大型方向ガイドと残像生成を進める。
+		void UpdateChargeTrail(float deltaTime);
+
+		/// 突進終了時に追加生成だけを止め、既存残像は寿命まで残す。
+		void StopChargeTrail();
+
+		/// 人型定義を使って残像用Object3Dを事前生成する。
+		void EnsureAfterimagePool();
+
+		/// 現在の全Body Part姿勢を空き残像枠へ固定保存する。
+		void SpawnChargeAfterimage();
+
+		/// 残像のAlphaと発光を寿命に合わせて更新する。
+		void UpdateAfterimages(float deltaTime);
+
+		/// 残像を全て停止し、再戦時に前回の見た目を残さない。
+		void ResetAfterimages();
+
 		/// Phase変更直後と継続Auraのパーティクルを発生させる。
 		void EmitPhasePulse(bool initialBurst);
 
@@ -91,7 +138,7 @@ namespace Ken4lowEngine
 		std::uint64_t attackListenerId_ = 0;
 		unsigned int observedPhaseRevision_ = 0;
 		int presentedPhase_ = 1;
-		float phaseTransitionDuration_ = 0.50f; // Phase変更を見せつつ操作停止が長く感じない尺にする。
+		float phaseTransitionDuration_ = 0.50f;
 		float deathPresentationDuration_ = 1.2f;
 		float telegraphParticleInterval_ = 0.10f;
 		float phaseAuraInterval_ = 0.18f;
@@ -101,14 +148,23 @@ namespace Ken4lowEngine
 		float telegraphDuration_ = 0.0f;
 		float telegraphParticleTimer_ = 0.0f;
 		float phaseParticleTimer_ = 0.0f;
+		float chargeTrailElapsed_ = 0.0f;
+		float chargeTrailDuration_ = 0.0f;
+		float chargeGuideTimer_ = 0.0f;
+		float afterimageSpawnTimer_ = 0.0f;
 		float cameraShakeTimer_ = 0.0f;
 		float cameraShakeDuration_ = 0.0f;
 		float cameraShakeAmplitude_ = 0.0f;
 		float cameraShakeFrequency_ = 0.0f;
 		float cameraShakeSeed_ = 0.0f;
+		Vector3 chargeDirection_{ 0.0f, 0.0f, 1.0f };
+		std::vector<AfterimageSnapshot> afterimagePool_;
+		std::size_t nextAfterimageIndex_ = 0;
 		bool phaseTransitionActive_ = false;
 		bool deathPresentationActive_ = false;
 		bool attackTelegraphActive_ = false;
+		bool chargeTrailActive_ = false;
+		bool chargeDirectionLocked_ = false;
 		std::string activeAttackId_;
 		std::string stateName_ = "Idle";
 	};
