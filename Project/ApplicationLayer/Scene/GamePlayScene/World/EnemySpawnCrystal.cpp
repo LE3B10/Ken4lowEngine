@@ -21,6 +21,7 @@ float EnemySpawnCrystal::s_spawnYOffset_ = 0.15f;
 namespace
 {
 	constexpr float kTwoPi = 6.28318530718f;
+	constexpr float kMaximumBreakingDuration = 0.65f;
 
 	bool OverlapsObstacle(const Vector3& center, const Vector3& half, const std::vector<AABB>* obstacles)
 	{
@@ -95,6 +96,11 @@ namespace
 	float MaxAbsComponent(const Vector3& value)
 	{
 		return std::max({ std::fabs(value.x), std::fabs(value.y), std::fabs(value.z) });
+	}
+
+	float ResolveBreakingDuration(const CrystalReactionSettings& settings)
+	{
+		return std::clamp(settings.breakingDuration, 0.05f, kMaximumBreakingDuration);
 	}
 
 	Vector4 LerpColor(const Vector4& a, const Vector4& b, float t)
@@ -191,7 +197,7 @@ void EnemySpawnCrystal::Draw() const
 
 void EnemySpawnCrystal::ApplyDamage(int damage)
 {
-	if (!IsAlive() || damage <= 0)
+	if (!IsAlive() || IsBreaking() || damage <= 0)
 	{
 		return;
 	}
@@ -208,7 +214,7 @@ void EnemySpawnCrystal::ApplyDamage(int damage)
 
 void EnemySpawnCrystal::OnCollisionEnter(K4E::Collider* other)
 {
-	if (!IsAlive() || !other || other->GetTypeID() != static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
+	if (!IsColliderEnabled() || !other || other->GetTypeID() != static_cast<uint32_t>(CollisionTypeIdDef::kBullet))
 	{
 		return;
 	}
@@ -362,7 +368,7 @@ EnemyBase* EnemySpawnCrystal::SpawnEnemy(CharacterWorld& characters, float moveS
 void EnemySpawnCrystal::SyncTransformToRuntime(const std::vector<AABB>* floorAABBs, const std::vector<AABB>* obstacleAABBs)
 {
 	position_ = SnapCrystalPosition(position_, scale_, floorAABBs, obstacleAABBs, s_spawnYOffset_);
-	SetCenterPosition(IsAlive() ? position_ : Vector3{ 1.0e9f, 1.0e9f, 1.0e9f });
+	SetCenterPosition(IsColliderEnabled() ? position_ : Vector3{ 1.0e9f, 1.0e9f, 1.0e9f });
 	SetOBBHalfSize(scale_);
 	SetOrientation(rotation_);
 
@@ -389,13 +395,17 @@ void EnemySpawnCrystal::BeginBreaking(const CrystalReactionSettings& reactionSet
 		return;
 	}
 
-	// HP0からBreakingへ入り、破壊演出中は見た目を残しつつ敵スポーンを止める。
+	const float breakingDuration = ResolveBreakingDuration(reactionSettings);
 	state_ = State::Breaking;
 	isAlive = true;
 	enableInfiniteSpawn = false;
 	breakingTimer_ = 0.0f;
 	hitFlashTimer_ = std::max(hitFlashTimer_, reactionSettings.hitFlashTime);
-	hitShakeTimer_ = std::max(hitShakeTimer_, reactionSettings.breakingDuration);
+	hitShakeTimer_ = std::max(hitShakeTimer_, breakingDuration);
+	SetEnabled(false);
+	SetQueryEnabled(false);
+	SetPhysicsEnabled(false);
+	SetCenterPosition({ 1.0e9f, 1.0e9f, 1.0e9f }); // 見た目を残したまま破壊開始フレームから弾・移動の衝突対象を外す。
 	Ken4lowEngine::AudioManager::GetInstance()->PlaySE(GetBreakSoundName(), 0.35f, 0.85f);
 }
 
@@ -432,11 +442,13 @@ void EnemySpawnCrystal::UpdateReactionTimers(float deltaTime, const CrystalReact
 	}
 
 	breakingTimer_ += deltaTime;
-	if (breakingTimer_ >= std::max(0.05f, reactionSettings.breakingDuration))
+	if (breakingTimer_ >= ResolveBreakingDuration(reactionSettings))
 	{
 		state_ = State::Broken;
 		isAlive = false;
 		SetEnabled(false);
+		SetQueryEnabled(false);
+		SetPhysicsEnabled(false);
 		justBroken_ = true;
 		playerInsideApproachRange_ = false;
 		SetCenterPosition({ 1.0e9f, 1.0e9f, 1.0e9f });
@@ -475,21 +487,22 @@ void EnemySpawnCrystal::UpdateVisibilityParticles(float deltaTime, const Crystal
 		info.spriteType = GpuParticleType::Ambient;
 		info.billboardFlags = BillboardMode::Camera;
 		info.useDescSpawnOverride = true;
-		info.maxParticles = 64u;
+		info.maxParticles = 128u;
 		info.spawnShape = 1u;
-		info.spawnRadius = std::max(0.5f, MaxAbsComponent(scale_) * 0.75f);
-		info.positionRandom = { 0.12f, 0.20f, 0.12f };
+		info.spawnRadius = std::max(0.75f, MaxAbsComponent(scale_) * reactionSettings.visibilityAuraRadiusScale);
+		info.positionRandom = { 0.24f, 0.32f, 0.24f };
 		info.velocity = { 0.0f, 0.48f, 0.0f };
-		info.velocityRandom = { 0.20f, 0.18f, 0.20f };
-		info.startSize = { 0.055f, 0.055f };
-		info.endSize = { 0.012f, 0.012f };
+		info.velocityRandom = { 0.34f, 0.22f, 0.34f };
+		const float particleSizeScale = std::max(0.5f, reactionSettings.visibilityParticleSizeScale);
+		info.startSize = { 0.055f * particleSizeScale, 0.055f * particleSizeScale };
+		info.endSize = { 0.012f * particleSizeScale, 0.012f * particleSizeScale };
 		info.startColor = { 0.25f, 0.88f, 1.0f, 0.85f };
 		info.endColor = { 0.55f, 0.96f, 1.0f, 0.0f };
-		info.lifeTime = 0.95f;
-		info.lifeTimeRandom = 0.20f;
+		info.lifeTime = 1.05f;
+		info.lifeTimeRandom = 0.22f;
 		info.gravity = { 0.0f, 0.10f, 0.0f };
 		info.damping = 0.35f;
-		info.sizeRandom = 0.25f;
+		info.sizeRandom = 0.30f;
 		info.alphaFade = true;
 		emitter = particleManager->CreateRuntimeEmitter(emitterName, info);
 	}
@@ -499,7 +512,13 @@ void EnemySpawnCrystal::UpdateVisibilityParticles(float deltaTime, const Crystal
 	}
 
 	auto& info = emitter->GetInfoMutable();
-	info.spawnRadius = std::max(0.5f, MaxAbsComponent(scale_) * (0.72f + guideHighlightAlpha_ * 0.18f));
+	const float normalRadiusScale = std::max(0.5f, reactionSettings.visibilityAuraRadiusScale);
+	const float highlightRadiusScale = std::max(normalRadiusScale, reactionSettings.visibilityAuraHighlightScale);
+	const float radiusScale = normalRadiusScale + (highlightRadiusScale - normalRadiusScale) * guideHighlightAlpha_;
+	info.spawnRadius = std::max(0.75f, MaxAbsComponent(scale_) * radiusScale);
+	const float particleSizeScale = std::max(0.5f, reactionSettings.visibilityParticleSizeScale);
+	info.startSize = { 0.055f * particleSizeScale, 0.055f * particleSizeScale };
+	info.endSize = { 0.012f * particleSizeScale, 0.012f * particleSizeScale };
 	if (state_ == State::Critical || state_ == State::Breaking)
 	{
 		info.startColor = { 1.0f, 0.20f, 0.10f, 0.90f };
@@ -516,9 +535,10 @@ void EnemySpawnCrystal::UpdateVisibilityParticles(float deltaTime, const Crystal
 		info.endColor = { 0.55f, 0.96f, 1.0f, 0.0f };
 	}
 
-	// 常時の微粒子を低頻度で放出し、遠距離でもクリスタルの存在を追いやすくする。
+	// オーラを本体より広く放出し、遠距離でも目標物の占有範囲を読み取れるようにする。
 	emitter->SetPosition({ position_.x, position_.y + std::fabs(scale_.y) * 0.15f, position_.z });
-	emitter->RequestEmit(guideHighlightAlpha_ > 0.0f ? 5u : 3u);
+	const uint32_t emitCount = guideHighlightAlpha_ > 0.0f ? 9u : ((state_ == State::Critical || state_ == State::Breaking) ? 7u : 5u);
+	emitter->RequestEmit(emitCount);
 }
 
 void EnemySpawnCrystal::UpdateApproachSound(const CrystalReactionSettings& reactionSettings)
@@ -565,7 +585,7 @@ K4E::Vector4 EnemySpawnCrystal::BuildVisualColor(const CrystalReactionSettings& 
 		break;
 	case State::Breaking:
 		{
-			const float t = Clamp01(breakingTimer_ / std::max(0.05f, reactionSettings.breakingDuration));
+			const float t = Clamp01(breakingTimer_ / ResolveBreakingDuration(reactionSettings));
 			color = LerpColor({ 1.0f, 0.15f, 0.08f, 1.0f }, { 0.05f, 0.05f, 0.05f, 0.0f }, t);
 			break;
 		}
@@ -604,7 +624,7 @@ K4E::Vector4 EnemySpawnCrystal::BuildEmissiveColor(const CrystalReactionSettings
 	}
 	else if (state_ == State::Breaking)
 	{
-		const float fade = 1.0f - Clamp01(breakingTimer_ / std::max(0.05f, reactionSettings.breakingDuration));
+		const float fade = 1.0f - Clamp01(breakingTimer_ / ResolveBreakingDuration(reactionSettings));
 		emissive = { (3.2f + pulse) * fade, 0.12f * fade, 0.04f * fade, 1.0f };
 	}
 	else if (state_ == State::Broken)
@@ -641,7 +661,7 @@ K4E::Vector3 EnemySpawnCrystal::BuildVisualScale(const CrystalReactionSettings& 
 	Vector3 visualScale = scale_;
 	if (state_ == State::Breaking)
 	{
-		const float t = Clamp01(breakingTimer_ / std::max(0.05f, reactionSettings.breakingDuration));
+		const float t = Clamp01(breakingTimer_ / ResolveBreakingDuration(reactionSettings));
 		const float scaleBoost = 1.0f + (reactionSettings.breakEffectScale - 1.0f) * (1.0f - std::abs(t * 2.0f - 1.0f));
 		visualScale = visualScale * scaleBoost;
 	}
