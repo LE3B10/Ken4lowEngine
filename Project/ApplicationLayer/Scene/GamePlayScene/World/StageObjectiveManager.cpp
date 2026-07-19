@@ -17,6 +17,7 @@ void StageObjectiveManager::Initialize(const GamePlayStageContext& stageContext)
 	stageElapsedSec_ = 0.0f;
 	reachedGoal_ = false;
 	bossDefeated_ = false;
+	bossArenaReached_ = false;
 	defenseTargetDestroyed_ = false;
 	allWavesCleared_ = false;
 	requiresBossAfterDevices_ = stageRule_.objectiveType == GamePlayStageContext::StageObjectiveType::ActivateDevices && stageRule_.hasBoss;
@@ -44,7 +45,15 @@ void StageObjectiveManager::Update(float deltaTime)
 void StageObjectiveManager::SetRequiresBossAfterDevices(bool required)
 {
 	requiresBossAfterDevices_ = required && stageRule_.objectiveType == GamePlayStageContext::StageObjectiveType::ActivateDevices;
-	RefreshOutcome(); // Stage2初期化時だけ二段階条件を有効にし、通常の装置Objectiveへ波及させない。
+	if (!requiresBossAfterDevices_) bossArenaReached_ = false;
+	RefreshOutcome(); // Stage2初期化時だけ三段階条件を有効にし、通常の装置Objectiveへ波及させない。
+}
+
+void StageObjectiveManager::SetBossArenaReached(bool reached)
+{
+	if (!RequiresBossAfterDevices() || !AreRequiredDevicesActivated()) return;
+	bossArenaReached_ = reached;
+	RefreshOutcome(); // 大広間への入場時点で初めて「ボスを撃破せよ」へ切り替える。
 }
 
 bool StageObjectiveManager::IsStageObjectiveCleared(bool allWavesCleared)
@@ -66,7 +75,7 @@ bool StageObjectiveManager::NotifyDeviceActivated(const std::string& deviceId)
 	const auto insertResult = activatedDeviceIds_.insert(deviceId);
 	if (!insertResult.second) return false;
 	activatedDeviceCount_ = std::max(activatedDeviceCount_ + 1, static_cast<int>(activatedDeviceIds_.size()));
-	RefreshOutcome(); // 3基達成後もStage2ではClearedにせず、HUDをボス撃破目標へ切り替える。
+	RefreshOutcome(); // 3基達成後は即Boss表示にせず、隠し通路探索Objectiveへ移行する。
 	return true;
 }
 
@@ -116,9 +125,14 @@ int StageObjectiveManager::GetRequiredDeviceCount() const
 	return std::max(1, configuredCount);
 }
 
+bool StageObjectiveManager::IsDevicePassagePhase() const
+{
+	return RequiresBossAfterDevices() && AreRequiredDevicesActivated() && !bossArenaReached_;
+}
+
 bool StageObjectiveManager::IsDeviceBossPhase() const
 {
-	return RequiresBossAfterDevices() && AreRequiredDevicesActivated(); // 3基目以降は撃破後の達成表示までボスObjectiveを維持する。
+	return RequiresBossAfterDevices() && AreRequiredDevicesActivated() && bossArenaReached_;
 }
 
 bool StageObjectiveManager::EvaluateCleared() const
@@ -187,7 +201,9 @@ void StageObjectiveManager::RefreshSnapshot()
 	snapshot_ = {};
 	snapshot_.type = stageRule_.objectiveType;
 	snapshot_.status = status_;
-	snapshot_.title = IsDeviceBossPhase() ? "ボスを撃破せよ" : GetObjectiveTitle(stageRule_.objectiveType);
+	if (IsDevicePassagePhase()) snapshot_.title = "隠し通路の奥へ進め";
+	else if (IsDeviceBossPhase()) snapshot_.title = "ボスを撃破せよ";
+	else snapshot_.title = GetObjectiveTitle(stageRule_.objectiveType);
 	snapshot_.detail = BuildActiveDetail();
 	snapshot_.elapsedSec = stageElapsedSec_;
 
@@ -199,11 +215,11 @@ void StageObjectiveManager::RefreshSnapshot()
 		snapshot_.normalizedProgress = allWavesCleared_ ? 1.0f : 0.0f;
 		break;
 	case GamePlayStageContext::StageObjectiveType::ActivateDevices:
-		if (IsDeviceBossPhase())
+		if (IsDevicePassagePhase() || IsDeviceBossPhase())
 		{
-			snapshot_.currentValue = bossDefeated_ ? 1 : 0;
+			snapshot_.currentValue = IsDeviceBossPhase() && bossDefeated_ ? 1 : 0;
 			snapshot_.targetValue = 1;
-			snapshot_.normalizedProgress = bossDefeated_ ? 1.0f : 0.0f;
+			snapshot_.normalizedProgress = snapshot_.currentValue > 0 ? 1.0f : 0.0f;
 			snapshot_.usesCount = false;
 		}
 		else
@@ -260,7 +276,8 @@ std::string StageObjectiveManager::BuildActiveDetail() const
 	case GamePlayStageContext::StageObjectiveType::ClearAllWaves:
 		return "すべての敵ウェーブを撃破";
 	case GamePlayStageContext::StageObjectiveType::ActivateDevices:
-		if (IsDeviceBossPhase()) return bossDefeated_ ? "ボス撃破" : "装置の反応で出現したボスと交戦中";
+		if (IsDevicePassagePhase()) return "封鎖壁が開いた　坑道最奥の大広間を探索";
+		if (IsDeviceBossPhase()) return bossDefeated_ ? "ボス撃破" : "坑道破砕体と交戦中";
 		std::snprintf(text, sizeof(text), "起動済み %d / %d", activatedDeviceCount_, GetRequiredDeviceCount());
 		return text;
 	case GamePlayStageContext::StageObjectiveType::DefendTarget:
