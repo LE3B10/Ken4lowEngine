@@ -47,6 +47,7 @@ void GamePlayWorld::Initialize(GamePlayStageContext& stageContext, bool skipStag
 	InitializeWaveSystem(stageContext);
 	InitializeBossState(stageContext);
 	InitializeStage1Crystals();
+	InitializeStage2Devices(stageContext);
 	InitializeRuntimeHelpers();
 }
 
@@ -186,6 +187,11 @@ void GamePlayWorld::InitializeStage1Crystals()
 	crystalManager_.SetProgressDebugStatus(characters_.GetAliveNormalEnemyCount(), bossBattleController_.IsSpawnConditionMet(), bossBattleController_.IsSpawned(), bossBattleController_.GetBossSpawnPosition());
 }
 
+void GamePlayWorld::InitializeStage2Devices(GamePlayStageContext& stageContext)
+{
+	stage2DeviceManager_.Initialize(stageContext); // StageRuleが装置起動型の時だけ専用ActorWorldへ3基を生成する。
+}
+
 void GamePlayWorld::InitializeRuntimeHelpers()
 {
 	enemyHpBarManager_.Initialize();
@@ -197,6 +203,7 @@ void GamePlayWorld::InitializeRuntimeHelpers()
 void GamePlayWorld::Finalize()
 {
 	bossBattleController_.Finalize(BuildBossBattleDependencies());
+	stage2DeviceManager_.Finalize();
 	crystalManager_.Finalize();
 	stageObjectiveManager_.reset();
 	waveManager_.reset();
@@ -251,6 +258,7 @@ bool GamePlayWorld::UpdateBlockingBossIntro(float deltaTime)
 	UpdateShadowLightViewProjection();
 	if (stage_) stage_->UpdateShadowMatrix(shadowLightViewProjection_);
 	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
+	stage2DeviceManager_.UpdateShadowMatrix(shadowLightViewProjection_);
 	if (auto* boss = bossBattleController_.GetBoss()) boss->UpdateShadowMatrix(shadowLightViewProjection_);
 	return true;
 }
@@ -259,6 +267,15 @@ void GamePlayWorld::UpdateGameplayActors(float deltaTime)
 {
 	UpdatePlayerLadderOverlap();
 	characters_.Update(deltaTime);
+	stage2DeviceManager_.Update(
+		characters_.GetPlayerRuntime(),
+		K4E::Input::GetInstance(),
+		characters_,
+		deltaTime,
+		[this](const std::string& deviceId)
+		{
+			NotifyStageDeviceActivated(deviceId); // Device Actorの一度だけの起動イベントを共通Objectiveへ渡す。
+		});
 	crystalManager_.SetDifficultyDirectorEnabled(!stage1TutorialController_.IsGameplayBlocked());
 	crystalManager_.Update(characters_, deltaTime);
 	bossBattleController_.UpdateSpawnProgress(BuildBossBattleDependencies());
@@ -285,6 +302,7 @@ void GamePlayWorld::UpdateShadowRuntime()
 	UpdateShadowLightViewProjection();
 	if (stage_) stage_->UpdateShadowMatrix(shadowLightViewProjection_);
 	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
+	stage2DeviceManager_.UpdateShadowMatrix(shadowLightViewProjection_);
 	if (auto* boss = bossBattleController_.GetBoss()) boss->UpdateShadowMatrix(shadowLightViewProjection_);
 }
 
@@ -341,6 +359,13 @@ void GamePlayWorld::UpdateHudRuntime(float deltaTime)
 	hudManager_->SetCrosshairTargetColors(aimTargetDetector_.GetCrosshairNormalColor(), aimTargetDetector_.GetCrosshairTargetColor());
 	hudManager_->SetCrosshairTargetingEnemy(aimTargetDetector_.HasDamageableTarget());
 	hudManager_->SetHP(player->GetHP(), player->GetMaxHP());
+	const auto& devicePrompt = stage2DeviceManager_.GetPromptSnapshot();
+	HUDManager::InteractionPromptDisplayState interactionState{};
+	interactionState.visible = devicePrompt.visible;
+	interactionState.text = devicePrompt.text;
+	interactionState.normalizedProgress = devicePrompt.normalizedProgress;
+	interactionState.completed = devicePrompt.normalizedProgress >= 1.0f;
+	hudManager_->SetInteractionPromptDisplayState(interactionState); // Stage 2の接近操作と長押し進捗をWorld HUDへ同期する。
 	const bool bossBattleActive = bossBattleController_.IsBossBattleActive();
 	bossBattleController_.UpdateHud(BuildBossBattleDependencies(), deltaTime);
 	stage1TutorialController_.UpdateObjectiveGuideHud(BuildStage1TutorialDependencies(), stage1BeginnerBalanceEnabled_, bossBattleActive, bossBattleController_.IsSpawned(), bossBattleController_.HasIntroPlayed(), bossBattleController_.IsDefeated());
@@ -383,6 +408,7 @@ void GamePlayWorld::UpdateIntroVisuals()
 	UpdateShadowLightViewProjection();
 	if (stage_) stage_->UpdateShadowMatrix(shadowLightViewProjection_);
 	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
+	stage2DeviceManager_.UpdateShadowMatrix(shadowLightViewProjection_);
 	if (skyBox_) skyBox_->Update();
 }
 
@@ -393,6 +419,7 @@ void GamePlayWorld::UpdateEquipIntro(float deltaTime)
 	UpdateShadowLightViewProjection();
 	if (stage_) stage_->UpdateShadowMatrix(shadowLightViewProjection_);
 	characters_.UpdateShadowMatrix(shadowLightViewProjection_);
+	stage2DeviceManager_.UpdateShadowMatrix(shadowLightViewProjection_);
 	if (skyBox_) { skyBox_->Update(); skyBox_->AdvanceCloudLayer(deltaTime); }
 }
 
@@ -416,6 +443,7 @@ void GamePlayWorld::Draw3D(bool hideCharactersDuringIntro)
 		if (debugVisualsEnabled) stage_->DrawChunkDebug();
 #endif
 	}
+	stage2DeviceManager_.Draw();
 	crystalManager_.Draw();
 	if (bulletManager_) bulletManager_->Draw();
 	itemManager_.Draw();
@@ -438,6 +466,7 @@ void GamePlayWorld::DrawBossIntro3D()
 void GamePlayWorld::DrawShadow(bool hideCharactersDuringIntro)
 {
 	if (stage_) stage_->DrawShadow();
+	stage2DeviceManager_.DrawShadow();
 	if (!hideCharactersDuringIntro) { characters_.DrawShadow(); bossBattleController_.DrawShadow(); }
 }
 
