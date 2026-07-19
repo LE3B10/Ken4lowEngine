@@ -15,7 +15,7 @@
 #include "BossBattleController.h"
 #include "AimTargetDetector.h"
 #include "Stage1TutorialController.h"
-#include "Stage2DeviceSystem.h"
+#include "Stage2CharacterDeviceManager.h"
 #include "GameplayPhysicsDebugController.h"
 #include "AmmoRecoveryItemSpawner.h"
 #include "WorldDebugView.h"
@@ -147,7 +147,7 @@ private:
 	ItemManager itemManager_;
 	AmmoRecoveryItemSpawner ammoRecoveryItemSpawner_;
 	CrystalManager crystalManager_;
-	Stage2DeviceManager stage2DeviceManager_;
+	Stage2CharacterDeviceManager stage2DeviceManager_;
 	AimTargetDetector aimTargetDetector_;
 	GameplayPhysicsDebugController gameplayPhysicsDebugController_{};
 	WorldDebugView worldDebugView_{};
