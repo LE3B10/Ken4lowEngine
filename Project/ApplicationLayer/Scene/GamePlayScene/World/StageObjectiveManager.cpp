@@ -19,6 +19,7 @@ void StageObjectiveManager::Initialize(const GamePlayStageContext& stageContext)
 	bossDefeated_ = false;
 	defenseTargetDestroyed_ = false;
 	allWavesCleared_ = false;
+	requiresBossAfterDevices_ = stageRule_.objectiveType == GamePlayStageContext::StageObjectiveType::ActivateDevices && stageRule_.hasBoss;
 	activatedDeviceIds_.clear();
 	status_ = Status::Active;
 	RefreshSnapshot();
@@ -40,6 +41,12 @@ void StageObjectiveManager::Update(float deltaTime)
 	RefreshOutcome();
 }
 
+void StageObjectiveManager::SetRequiresBossAfterDevices(bool required)
+{
+	requiresBossAfterDevices_ = required && stageRule_.objectiveType == GamePlayStageContext::StageObjectiveType::ActivateDevices;
+	RefreshOutcome(); // Stage2初期化時だけ二段階条件を有効にし、通常の装置Objectiveへ波及させない。
+}
+
 bool StageObjectiveManager::IsStageObjectiveCleared(bool allWavesCleared)
 {
 	allWavesCleared_ = allWavesCleared;
@@ -59,7 +66,7 @@ bool StageObjectiveManager::NotifyDeviceActivated(const std::string& deviceId)
 	const auto insertResult = activatedDeviceIds_.insert(deviceId);
 	if (!insertResult.second) return false;
 	activatedDeviceCount_ = std::max(activatedDeviceCount_ + 1, static_cast<int>(activatedDeviceIds_.size()));
-	RefreshOutcome(); // 3基達成後もhasBossならClearedにせず、HUDをボス撃破目標へ切り替える。
+	RefreshOutcome(); // 3基達成後もStage2ではClearedにせず、HUDをボス撃破目標へ切り替える。
 	return true;
 }
 
@@ -121,7 +128,7 @@ bool StageObjectiveManager::EvaluateCleared() const
 	case GamePlayStageContext::StageObjectiveType::ClearAllWaves:
 		return allWavesCleared_;
 	case GamePlayStageContext::StageObjectiveType::ActivateDevices:
-		return AreRequiredDevicesActivated() && (!stageRule_.hasBoss || bossDefeated_);
+		return AreRequiredDevicesActivated() && (!RequiresBossAfterDevices() || bossDefeated_);
 	case GamePlayStageContext::StageObjectiveType::DefendTarget:
 		return !defenseTargetDestroyed_ && defendElapsedSec_ >= std::max(0.0f, stageRule_.defendTimeSec);
 	case GamePlayStageContext::StageObjectiveType::ReachGoal:
