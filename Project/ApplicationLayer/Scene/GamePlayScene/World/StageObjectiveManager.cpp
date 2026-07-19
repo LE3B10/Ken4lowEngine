@@ -253,7 +253,9 @@ void StageObjectiveManager::RefreshSnapshot()
 	case GamePlayStageContext::StageObjectiveType::ReachGoal:
 		snapshot_.usesTimer = stageRule_.timeLimitSec > 0.0f;
 		snapshot_.remainingSec = snapshot_.usesTimer ? std::max(0.0f, stageRule_.timeLimitSec - stageElapsedSec_) : 0.0f;
-		snapshot_.normalizedProgress = reachedGoal_ ? 1.0f : 0.0f;
+		snapshot_.normalizedProgress = snapshot_.usesTimer
+			? std::clamp(snapshot_.remainingSec / stageRule_.timeLimitSec, 0.0f, 1.0f)
+			: (reachedGoal_ ? 1.0f : 0.0f); // 脱出ステージは残り時間を満タンから減るゲージとして表示する。
 		break;
 
 	case GamePlayStageContext::StageObjectiveType::DefeatBoss:
