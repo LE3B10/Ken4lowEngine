@@ -8,13 +8,10 @@
 void StageObjectiveManager::Initialize(const GamePlayStageContext& stageContext)
 {
 	stageRule_ = stageContext.GetCurrentStageRule();
-
-	// ステージ配置点の個数を保持し、ルール未指定時の目的達成数に使う。
 	devicePointCount_ = static_cast<int>(stageContext.GetDevicePoints().size());
 	defenseTargetPointCount_ = static_cast<int>(stageContext.GetDefenseTargetPoints().size());
 	goalPointCount_ = static_cast<int>(stageContext.GetGoalPoints().size());
 	hasBossSpawnPoint_ = stageContext.HasBossSpawnPoint();
-
 	activatedDeviceCount_ = 0;
 	defendElapsedSec_ = 0.0f;
 	stageElapsedSec_ = 0.0f;
@@ -34,15 +31,12 @@ void StageObjectiveManager::Update(float deltaTime)
 		RefreshSnapshot();
 		return;
 	}
-
 	const float safeDeltaTime = std::max(0.0f, deltaTime);
 	stageElapsedSec_ += safeDeltaTime;
-
 	if (stageRule_.objectiveType == GamePlayStageContext::StageObjectiveType::DefendTarget && !defenseTargetDestroyed_)
 	{
 		defendElapsedSec_ += safeDeltaTime;
 	}
-
 	RefreshOutcome();
 }
 
@@ -61,62 +55,38 @@ bool StageObjectiveManager::IsStageObjectiveFailed()
 
 bool StageObjectiveManager::NotifyDeviceActivated(const std::string& deviceId)
 {
-	if (status_ != Status::Active || deviceId.empty())
-	{
-		return false;
-	}
-
+	if (status_ != Status::Active || deviceId.empty()) return false;
 	const auto insertResult = activatedDeviceIds_.insert(deviceId);
-	if (!insertResult.second)
-	{
-		return false;
-	}
-
+	if (!insertResult.second) return false;
 	activatedDeviceCount_ = std::max(activatedDeviceCount_ + 1, static_cast<int>(activatedDeviceIds_.size()));
-	RefreshOutcome(); // 装置イベント直後に達成状態とHUD用進捗を更新する。
+	RefreshOutcome(); // 3基達成後もhasBossならClearedにせず、HUDをボス撃破目標へ切り替える。
 	return true;
 }
 
 void StageObjectiveManager::AddActivatedDeviceCount(int amount)
 {
-	if (status_ != Status::Active)
-	{
-		return;
-	}
-
+	if (status_ != Status::Active) return;
 	activatedDeviceCount_ = std::max(0, activatedDeviceCount_ + amount);
 	RefreshOutcome();
 }
 
 void StageObjectiveManager::SetReachedGoal(bool reached)
 {
-	if (status_ != Status::Active && reached)
-	{
-		return;
-	}
-
+	if (status_ != Status::Active && reached) return;
 	reachedGoal_ = reached;
 	RefreshOutcome();
 }
 
 void StageObjectiveManager::SetBossDefeated(bool defeated)
 {
-	if (status_ != Status::Active && defeated)
-	{
-		return;
-	}
-
+	if (status_ != Status::Active && defeated) return;
 	bossDefeated_ = defeated;
 	RefreshOutcome();
 }
 
 void StageObjectiveManager::SetDefenseTargetDestroyed(bool destroyed)
 {
-	if (status_ != Status::Active && destroyed)
-	{
-		return;
-	}
-
+	if (status_ != Status::Active && destroyed) return;
 	defenseTargetDestroyed_ = destroyed;
 	RefreshOutcome();
 }
@@ -135,8 +105,13 @@ const char* StageObjectiveManager::GetStatusDebugName(Status status)
 
 int StageObjectiveManager::GetRequiredDeviceCount() const
 {
-	const int configuredCount = (stageRule_.requiredDeviceCount > 0) ? stageRule_.requiredDeviceCount : devicePointCount_;
+	const int configuredCount = stageRule_.requiredDeviceCount > 0 ? stageRule_.requiredDeviceCount : devicePointCount_;
 	return std::max(1, configuredCount);
+}
+
+bool StageObjectiveManager::IsDeviceBossPhase() const
+{
+	return RequiresBossAfterDevices() && AreRequiredDevicesActivated() && !bossDefeated_;
 }
 
 bool StageObjectiveManager::EvaluateCleared() const
@@ -145,20 +120,15 @@ bool StageObjectiveManager::EvaluateCleared() const
 	{
 	case GamePlayStageContext::StageObjectiveType::ClearAllWaves:
 		return allWavesCleared_;
-
 	case GamePlayStageContext::StageObjectiveType::ActivateDevices:
-		return activatedDeviceCount_ >= GetRequiredDeviceCount();
-
+		return AreRequiredDevicesActivated() && (!stageRule_.hasBoss || bossDefeated_);
 	case GamePlayStageContext::StageObjectiveType::DefendTarget:
 		return !defenseTargetDestroyed_ && defendElapsedSec_ >= std::max(0.0f, stageRule_.defendTimeSec);
-
 	case GamePlayStageContext::StageObjectiveType::ReachGoal:
 		return reachedGoal_;
-
 	case GamePlayStageContext::StageObjectiveType::DefeatBoss:
 		return bossDefeated_;
 	}
-
 	return false;
 }
 
@@ -168,10 +138,8 @@ bool StageObjectiveManager::EvaluateFailed() const
 	{
 	case GamePlayStageContext::StageObjectiveType::DefendTarget:
 		return defenseTargetDestroyed_;
-
 	case GamePlayStageContext::StageObjectiveType::ReachGoal:
 		return stageRule_.timeLimitSec > 0.0f && stageElapsedSec_ >= stageRule_.timeLimitSec && !reachedGoal_;
-
 	default:
 		return false;
 	}
@@ -192,7 +160,6 @@ void StageObjectiveManager::RefreshOutcome()
 			return;
 		}
 	}
-
 	RefreshSnapshot();
 }
 
@@ -203,13 +170,9 @@ void StageObjectiveManager::TransitionTo(Status nextStatus)
 		RefreshSnapshot();
 		return;
 	}
-
 	status_ = nextStatus;
 	RefreshSnapshot();
-	if (statusChangedCallback_)
-	{
-		statusChangedCallback_(status_, snapshot_);
-	}
+	if (statusChangedCallback_) statusChangedCallback_(status_, snapshot_);
 }
 
 void StageObjectiveManager::RefreshSnapshot()
@@ -217,7 +180,7 @@ void StageObjectiveManager::RefreshSnapshot()
 	snapshot_ = {};
 	snapshot_.type = stageRule_.objectiveType;
 	snapshot_.status = status_;
-	snapshot_.title = GetObjectiveTitle(stageRule_.objectiveType);
+	snapshot_.title = IsDeviceBossPhase() ? "ボスを撃破せよ" : GetObjectiveTitle(stageRule_.objectiveType);
 	snapshot_.detail = BuildActiveDetail();
 	snapshot_.elapsedSec = stageElapsedSec_;
 
@@ -228,17 +191,25 @@ void StageObjectiveManager::RefreshSnapshot()
 		snapshot_.targetValue = 1;
 		snapshot_.normalizedProgress = allWavesCleared_ ? 1.0f : 0.0f;
 		break;
-
 	case GamePlayStageContext::StageObjectiveType::ActivateDevices:
-		snapshot_.usesCount = true;
-		snapshot_.currentValue = activatedDeviceCount_;
-		snapshot_.targetValue = GetRequiredDeviceCount();
-		snapshot_.normalizedProgress = std::clamp(
-			static_cast<float>(snapshot_.currentValue) / static_cast<float>(snapshot_.targetValue),
-			0.0f,
-			1.0f);
+		if (IsDeviceBossPhase())
+		{
+			snapshot_.currentValue = 0;
+			snapshot_.targetValue = 1;
+			snapshot_.normalizedProgress = 0.0f;
+			snapshot_.usesCount = false;
+		}
+		else
+		{
+			snapshot_.usesCount = true;
+			snapshot_.currentValue = activatedDeviceCount_;
+			snapshot_.targetValue = GetRequiredDeviceCount();
+			snapshot_.normalizedProgress = std::clamp(
+				static_cast<float>(snapshot_.currentValue) / static_cast<float>(snapshot_.targetValue),
+				0.0f,
+				1.0f);
+		}
 		break;
-
 	case GamePlayStageContext::StageObjectiveType::DefendTarget:
 	{
 		const float targetSec = std::max(0.0f, stageRule_.defendTimeSec);
@@ -249,15 +220,13 @@ void StageObjectiveManager::RefreshSnapshot()
 		snapshot_.normalizedProgress = targetSec > 0.0f ? std::clamp(defendElapsedSec_ / targetSec, 0.0f, 1.0f) : 1.0f;
 		break;
 	}
-
 	case GamePlayStageContext::StageObjectiveType::ReachGoal:
 		snapshot_.usesTimer = stageRule_.timeLimitSec > 0.0f;
 		snapshot_.remainingSec = snapshot_.usesTimer ? std::max(0.0f, stageRule_.timeLimitSec - stageElapsedSec_) : 0.0f;
 		snapshot_.normalizedProgress = snapshot_.usesTimer
 			? std::clamp(snapshot_.remainingSec / stageRule_.timeLimitSec, 0.0f, 1.0f)
-			: (reachedGoal_ ? 1.0f : 0.0f); // 脱出ステージは残り時間を満タンから減るゲージとして表示する。
+			: (reachedGoal_ ? 1.0f : 0.0f);
 		break;
-
 	case GamePlayStageContext::StageObjectiveType::DefeatBoss:
 		snapshot_.currentValue = bossDefeated_ ? 1 : 0;
 		snapshot_.targetValue = 1;
@@ -283,15 +252,13 @@ std::string StageObjectiveManager::BuildActiveDetail() const
 	{
 	case GamePlayStageContext::StageObjectiveType::ClearAllWaves:
 		return "すべての敵ウェーブを撃破";
-
 	case GamePlayStageContext::StageObjectiveType::ActivateDevices:
+		if (IsDeviceBossPhase()) return "装置の反応で出現したボスと交戦中";
 		std::snprintf(text, sizeof(text), "起動済み %d / %d", activatedDeviceCount_, GetRequiredDeviceCount());
 		return text;
-
 	case GamePlayStageContext::StageObjectiveType::DefendTarget:
 		std::snprintf(text, sizeof(text), "残り %.0f 秒", std::max(0.0f, stageRule_.defendTimeSec - defendElapsedSec_));
 		return text;
-
 	case GamePlayStageContext::StageObjectiveType::ReachGoal:
 		if (stageRule_.timeLimitSec > 0.0f)
 		{
@@ -299,11 +266,9 @@ std::string StageObjectiveManager::BuildActiveDetail() const
 			return text;
 		}
 		return "目標地点を探索中";
-
 	case GamePlayStageContext::StageObjectiveType::DefeatBoss:
 		return "ボス戦進行中";
 	}
-
 	return {};
 }
 
