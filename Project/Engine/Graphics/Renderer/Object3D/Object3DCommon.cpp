@@ -104,6 +104,20 @@ namespace Ken4lowEngine
 		LightManager::GetInstance()->BindExtendedShadowResources(16, 17, 18);
 	}
 
+	void Object3DCommon::SetAlphaRenderSetting()
+	{
+		auto* commandList = dxCommon_->GetCommandManager()->GetCommandList();
+		const PipelineBundle& pipeline = pipelineSet_.GetAlpha();
+
+		commandList->SetGraphicsRootSignature(pipeline.rootSignature.Get());
+		commandList->SetPipelineState(pipeline.pipelineState.Get());
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		LightManager::GetInstance()->BindPunctualLights(5, 6);
+		LightManager::GetInstance()->BindLightingSettings(11);
+		LightManager::GetInstance()->BindExtendedShadowResources(16, 17, 18); // 残像も通常Object3Dと同じLight・Shadow契約で描画する。
+	}
+
 	void Object3DCommon::SetInstancedRenderSetting()
 	{
 		auto* commandList = dxCommon_->GetCommandManager()->GetCommandList();
@@ -187,4 +201,4 @@ namespace Ken4lowEngine
 			commandList->SetGraphicsRootConstantBufferView(2, pointShadowPassResource_->GetGPUVirtualAddress()); // Instancing用Rootのt0を避けてb1をIndex 2へ束縛する。
 		}
 	}
-}
+} // namespace Ken4lowEngine
