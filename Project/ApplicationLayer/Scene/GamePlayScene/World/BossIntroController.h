@@ -56,6 +56,12 @@ public:
 	void Finalize();
 	void RequestStart(const K4E::Vector3& bossPosition);
 	void Reset();
+	void SetRuntimeBossPositionOverride(const K4E::Vector3& position)
+	{
+		runtimeBossPositionOverride_ = position;
+		hasRuntimeBossPositionOverride_ = true; // ステージ固有配置を共通Parameterより優先する。
+		settings_.bossAppearPosition = position;
+	}
 
 	void Update(float deltaTime, K4E::BossActor* boss, K4E::Camera* camera)
 	{
@@ -199,6 +205,8 @@ private:
 	K4E::Vector3 savedCameraRotation_{};
 	K4E::Vector3 introCameraPosition_{ 0.0f, 9.0f, 18.0f };
 	K4E::Vector3 introCameraTarget_{};
+	K4E::Vector3 runtimeBossPositionOverride_{};
+	bool hasRuntimeBossPositionOverride_ = false;
 	K4E::Vector3 debugBossPosition_{};
 	K4E::Vector3 debugBossLocalPosition_{};
 	K4E::Vector3 debugBossWorldPosition_{};
