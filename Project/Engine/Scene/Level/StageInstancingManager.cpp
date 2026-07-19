@@ -26,12 +26,16 @@ namespace Ken4lowEngine
 		Vector4 ResolveStageInstanceColor(const ObjectData& data)
 		{
 			if (ContainsIgnoreCase(data.name, "strip")) return { 0.22f, 0.64f, 0.72f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "rockdetail")) return { 0.24f, 0.23f, 0.22f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "rubble")) return { 0.36f, 0.30f, 0.24f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "brokenbeam")) return { 0.25f, 0.21f, 0.18f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "raisedfloor") || ContainsIgnoreCase(data.name, "step")) return { 0.36f, 0.33f, 0.28f, 1.0f };
 			if (ContainsIgnoreCase(data.name, "beam")) return { 0.17f, 0.19f, 0.20f, 1.0f };
 			if (ContainsIgnoreCase(data.name, "pillar")) return { 0.48f, 0.37f, 0.22f, 1.0f };
 			if (ContainsIgnoreCase(data.name, "cover")) return { 0.39f, 0.31f, 0.24f, 1.0f };
 			if (data.collider.collisionType == "Floor") return { 0.29f, 0.27f, 0.24f, 1.0f };
 			if (data.collider.collisionType == "Obstacle") return { 0.32f, 0.30f, 0.28f, 1.0f };
-			return data.color; // 明示色や未分類モデルはLevelDataの既定色をそのまま使用する。
+			return data.color; // 名前で分類した段差や瓦礫も同一モデルのインスタンス色だけを変える。
 		}
 	}
 
@@ -44,7 +48,6 @@ namespace Ken4lowEngine
 		std::map<std::string, std::vector<StageInstanceSource>> sourcesByModel;
 		for (const ObjectData& data : levelData.objects)
 		{
-			// 一体型ステージはStageChunkManagerへ残し、明示的な外部モデル配置だけを安全に抽出する。
 			if (!IsStageMeshType(data.type) || data.modelName.empty() || (!primaryStageModelPath.empty() && data.modelName == primaryStageModelPath))
 			{
 				continue;
@@ -138,7 +141,7 @@ namespace Ken4lowEngine
 		}
 		if (instancingEnabled && useInstancedDraw)
 		{
-			for (auto& batch : batches_) if (batch.renderer) batch.renderer->DrawShadow(); // Stage 2以降のモジュール群も1バッチのShadow Passへ送る。
+			for (auto& batch : batches_) if (batch.renderer) batch.renderer->DrawShadow();
 		}
 	}
 
