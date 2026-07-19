@@ -18,10 +18,12 @@ namespace Ken4lowEngine
 		void Finalize();
 
 		const PipelineBundle& GetDefault() const { return defaultPipeline_; }
+		const PipelineBundle& GetAlpha() const { return alphaPipeline_; }
 		const PipelineBundle& GetShadow() const { return shadowPipeline_; }
 
 	private:
 		PipelineBundle defaultPipeline_{};
+		PipelineBundle alphaPipeline_{};
 		PipelineBundle shadowPipeline_{};
 	};
-}
+} // namespace Ken4lowEngine
