@@ -15,6 +15,7 @@
 #include "BossBattleController.h"
 #include "AimTargetDetector.h"
 #include "Stage1TutorialController.h"
+#include "Stage2DeviceSystem.h"
 #include "GameplayPhysicsDebugController.h"
 #include "AmmoRecoveryItemSpawner.h"
 #include "WorldDebugView.h"
@@ -106,6 +107,7 @@ private:
 	void InitializeWaveSystem(GamePlayStageContext& stageContext);
 	void InitializeBossState(GamePlayStageContext& stageContext);
 	void InitializeStage1Crystals();
+	void InitializeStage2Devices(GamePlayStageContext& stageContext);
 	void InitializeRuntimeHelpers();
 	void UpdateStageRuntime();
 	bool UpdateBlockingStage1Intro(float deltaTime);
@@ -145,6 +147,7 @@ private:
 	ItemManager itemManager_;
 	AmmoRecoveryItemSpawner ammoRecoveryItemSpawner_;
 	CrystalManager crystalManager_;
+	Stage2DeviceManager stage2DeviceManager_;
 	AimTargetDetector aimTargetDetector_;
 	GameplayPhysicsDebugController gameplayPhysicsDebugController_{};
 	WorldDebugView worldDebugView_{};
