@@ -33,6 +33,7 @@ void BossBattleController::BuildMineDevices(const Dependencies& deps)
 		}
 	}
 
+	mineRequiredDeviceCount_ = std::clamp(mineRequiredDeviceCount_, 1, static_cast<int>(mineDevices_.size()));
 	for (MineDeviceRuntime& device : mineDevices_)
 	{
 		device.visual = std::make_unique<K4E::Object3D>();
