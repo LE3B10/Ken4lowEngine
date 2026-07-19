@@ -31,6 +31,14 @@ public:
 		active_ = rule.objectiveType == GamePlayStageContext::StageObjectiveType::ActivateDevices;
 		if (!active_) return;
 		pendingDevicePoints_ = stageContext.GetDevicePoints();
+		if (stageContext.GetCurrentStageAssets().jsonPath.find("wasureraretakoudou") != std::string::npos)
+		{
+			pendingDevicePoints_ = {
+				{ "MineDevice_West", { -38.0f, 0.0f, -10.0f } },
+				{ "MineDevice_East", { 38.0f, 0.0f, 45.0f } },
+				{ "MineDevice_Deep", { 0.0f, 0.0f, 110.0f } }
+			}; // 拡張した長方形マップでは装置間距離を広げ、前半・中盤・最奥へ分散する。
+		}
 		requiredDeviceCount_ = std::max(1, rule.requiredDeviceCount); // 実体生成はCharacterWorldを参照できる最初のUpdateまで遅延する。
 	}
 
