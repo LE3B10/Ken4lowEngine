@@ -24,6 +24,23 @@ public:
 
 		if (world)
 		{
+			if (HUDManager* hud = world->GetHUDManager())
+			{
+				HUDManager::StageObjectiveDisplayState displayState{};
+				if (const StageObjectiveManager::Snapshot* snapshot = world->GetStageObjectiveSnapshot())
+				{
+					// Stage1は専用ガイドを使い、Stage2以降だけ共通Objective HUDへ表示する。
+					displayState.visible = snapshot->type != GamePlayStageContext::StageObjectiveType::ClearAllWaves;
+					displayState.showProgress = snapshot->usesCount || snapshot->usesTimer;
+					displayState.cleared = snapshot->status == StageObjectiveManager::Status::Cleared;
+					displayState.failed = snapshot->status == StageObjectiveManager::Status::Failed;
+					displayState.title = snapshot->title;
+					displayState.detail = snapshot->detail;
+					displayState.normalizedProgress = snapshot->normalizedProgress;
+				}
+				hud->SetStageObjectiveDisplayState(displayState);
+			}
+
 			// HUD は World が所有するため、表示抑制条件だけ Scene 側から渡す。
 			world->DrawHUD(hideGameplayUI);
 		}
