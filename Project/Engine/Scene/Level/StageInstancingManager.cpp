@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "StageInstancingManager.h"
+#include "MineHiddenArenaLayout.h"
 
 #include <algorithm>
 #include <cctype>
@@ -25,6 +26,13 @@ namespace Ken4lowEngine
 
 		Vector4 ResolveStageInstanceColor(const ObjectData& data)
 		{
+			if (ContainsIgnoreCase(data.name, "hiddenpassageguide")) return { 0.12f, 0.42f, 0.72f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "hiddenpassage")) return { 0.18f, 0.19f, 0.20f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "hiddensupport") || ContainsIgnoreCase(data.name, "hiddengate")) return { 0.23f, 0.21f, 0.18f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "domearena")) return { 0.22f, 0.21f, 0.19f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "domewall") || ContainsIgnoreCase(data.name, "domeentry")) return { 0.19f, 0.18f, 0.17f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "domering") || ContainsIgnoreCase(data.name, "domerib")) return { 0.12f, 0.16f, 0.19f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "domerockseal")) return { 0.25f, 0.23f, 0.20f, 1.0f };
 			if (ContainsIgnoreCase(data.name, "strip")) return { 0.22f, 0.64f, 0.72f, 1.0f };
 			if (ContainsIgnoreCase(data.name, "rockdetail")) return { 0.24f, 0.23f, 0.22f, 1.0f };
 			if (ContainsIgnoreCase(data.name, "rubble")) return { 0.36f, 0.30f, 0.24f, 1.0f };
@@ -35,7 +43,7 @@ namespace Ken4lowEngine
 			if (ContainsIgnoreCase(data.name, "cover")) return { 0.39f, 0.31f, 0.24f, 1.0f };
 			if (data.collider.collisionType == "Floor") return { 0.29f, 0.27f, 0.24f, 1.0f };
 			if (data.collider.collisionType == "Obstacle") return { 0.32f, 0.30f, 0.28f, 1.0f };
-			return data.color; // 名前で分類した段差や瓦礫も同一モデルのインスタンス色だけを変える。
+			return data.color;
 		}
 	}
 
@@ -46,11 +54,11 @@ namespace Ken4lowEngine
 	{
 		Clear();
 		std::map<std::string, std::vector<StageInstanceSource>> sourcesByModel;
-		for (const ObjectData& data : levelData.objects)
+		auto appendSource = [&](const ObjectData& data)
 		{
 			if (!IsStageMeshType(data.type) || data.modelName.empty() || (!primaryStageModelPath.empty() && data.modelName == primaryStageModelPath))
 			{
-				continue;
+				return;
 			}
 
 			StageInstanceSource source{};
@@ -58,7 +66,11 @@ namespace Ken4lowEngine
 			source.worldMatrix = Matrix4x4::MakeAffineMatrix(data.scale, data.rotation, data.position + stageOffset);
 			source.color = ResolveStageInstanceColor(data);
 			sourcesByModel[source.modelPath].push_back(source);
-		}
+		};
+
+		for (const ObjectData& data : levelData.objects) appendSource(data);
+		const std::vector<ObjectData> hiddenArenaObjects = MineHiddenArenaLayout::Build(levelData);
+		for (const ObjectData& data : hiddenArenaObjects) appendSource(data); // Stage2追加区画も既存cubeバッチへ合流させ、DrawCallを増やさない。
 
 		for (auto& [modelPath, sources] : sourcesByModel)
 		{
