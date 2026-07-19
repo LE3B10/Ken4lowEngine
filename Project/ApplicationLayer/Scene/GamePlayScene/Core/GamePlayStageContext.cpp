@@ -87,6 +87,15 @@ namespace
 	bool IsDevicePointType(const std::string& type) { return type == "DevicePoint"; }
 	bool IsDefenseTargetPointType(const std::string& type) { return type == "DefenseTargetPoint"; }
 	bool IsGoalPointType(const std::string& type) { return type == "GoalPoint"; }
+
+	std::vector<GamePlayStageContext::DevicePointInfo> BuildStage2FallbackDevicePoints()
+	{
+		return {
+			{ "MineDevice_West",  { -28.0f, 1.0f, -12.0f } },
+			{ "MineDevice_East",  {  27.0f, 1.0f,   8.0f } },
+			{ "MineDevice_Deep",  {   0.0f, 1.0f,  35.0f } }
+		};
+	}
 }
 
 void GamePlayStageContext::InitializeFromRepository()
@@ -141,7 +150,7 @@ GamePlayStageContext::StageAssetPaths GamePlayStageContext::GetStageAssetPaths(i
 	switch (stageIndex)
 	{
 	case 0: return { "stages/hajimarinoheigen.json", "Stages/hajimarinoheigen.gltf" };
-	case 1: return { "stages/wasureraretakoudou.json", "Stages/wasureraretakoudou.gltf" };
+	case 1: return { "stages/fps_stage01.json", "Stages/fps_stage01.gltf" }; // 空だった旧坑道JSONではなく、地形とColliderが一致する既存LevelをStage2へ使用する。
 	case 2: return { "stages/fps_stage02.json", "Stages/fps_stage02.gltf" };
 	case 3: return { "stages/fps_stage03.json", "Stages/fps_stage03.gltf" };
 	case 4: return { "stages/fps_stage04.json", "Stages/fps_stage04.gltf" };
@@ -235,6 +244,12 @@ void GamePlayStageContext::LoadSpawnPointsFromLevel(const std::string& jsonPath)
 	const std::unique_ptr<K4E::LevelData> levelData = K4E::LevelLoader::LoadLevel(jsonPath);
 	if (!levelData)
 	{
+		if (currentStageIndex_ == 1)
+		{
+			devicePoints_ = BuildStage2FallbackDevicePoints();
+			playerSpawnPoint_ = { 0.0f, 1.25f, -42.0f };
+			hasPlayerSpawnPoint_ = true; // Level読込失敗時もStage2の操作確認だけは開始できる安全なFallbackを持つ。
+		}
 		return;
 	}
 
@@ -321,6 +336,11 @@ void GamePlayStageContext::LoadSpawnPointsFromLevel(const std::string& jsonPath)
 			info.position = object.position;
 			goalPoints_.push_back(info);
 		}
+	}
+
+	if (currentStageIndex_ == 1 && devicePoints_.empty())
+	{
+		devicePoints_ = BuildStage2FallbackDevicePoints(); // Blender側へDevicePointを追加するまでは探索ルート用の3地点を補完する。
 	}
 
 	std::sort(
