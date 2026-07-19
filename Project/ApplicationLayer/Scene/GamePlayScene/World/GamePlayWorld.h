@@ -81,7 +81,7 @@ public:
 		const bool accepted = stageObjectiveManager_->NotifyDeviceActivated(deviceId);
 		if (accepted && stage2DeviceManager_.AreAllDevicesActivated())
 		{
-			bossBattleController_.RequestBossBattle({ 0.0f, 2.25f, 94.0f }); // 3基目の起動直後に最奥制御室で既存ボス登場演出へ移行する。
+			bossBattleController_.RequestBossBattle({ 0.0f, 4.35f, 102.0f }); // 高さ2mの最奥採掘床へ坑道破砕体の足元を合わせて登場させる。
 		}
 		return accepted;
 	}
