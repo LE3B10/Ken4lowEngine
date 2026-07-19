@@ -104,6 +104,8 @@ namespace Ken4lowEngine
 		void SetIgnoreStageChunkCulling(bool ignore) { ignoreStageChunkCulling_ = ignore; }
 		bool IsIgnoreStageChunkCulling() const { return ignoreStageChunkCulling_; }
 		bool HasWorldBoundsForCulling() const { return HasWorldBounds(); }
+		void SetAlphaBlendEnabled(bool enabled) { alphaBlendEnabled_ = enabled; }
+		bool IsAlphaBlendEnabled() const { return alphaBlendEnabled_; }
 
 		void SetDissolveThreshold(float threshold) { dissolveSetting_->threshold = threshold; }
 		void SetDissolveEdgeThickness(float thickness) { dissolveSetting_->edgeThickness = thickness; }
@@ -149,5 +151,6 @@ namespace Ken4lowEngine
 		bool frustumCullingEnabled_ = true;
 		bool isStageObjectCullingUnit_ = false;
 		bool ignoreStageChunkCulling_ = false;
+		bool alphaBlendEnabled_ = false;
 	};
 } // namespace Ken4lowEngine
