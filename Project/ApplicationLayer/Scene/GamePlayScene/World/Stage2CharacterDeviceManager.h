@@ -4,17 +4,19 @@
 #include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
 #include "ApplicationLayer/Scene/GamePlayScene/Core/GamePlayStageContext.h"
 #include "Stage2DeviceActor.h"
+#include "Stage2HiddenPassageActor.h"
 
 #include <ActorWorld.h>
 #include <Input.h>
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <functional>
 #include <string>
 #include <vector>
 
-/// Stage 2装置をCharacterWorldのActorWorldへ生成し、探索戦闘・操作・Objective通知を管理する。
+/// Stage 2装置をCharacterWorldのActorWorldへ生成し、探索戦闘・隠し通路・Objective通知を管理する。
 class Stage2CharacterDeviceManager final
 {
 public:
@@ -38,7 +40,8 @@ public:
 				{ "MineDevice_West", { -34.0f, 1.2f, -10.0f } },
 				{ "MineDevice_East", { 38.0f, 2.0f, 45.0f } },
 				{ "MineDevice_Deep", { 0.0f, 2.0f, 110.0f } }
-			}; // 各装置を西作業床・東採掘床・最奥ボス床の実際の床面Yへ配置する。
+			}; // 各装置を西作業床・東採掘床・最奥制御床の実際の床面Yへ配置する。
+			hiddenPassageEnabled_ = true;
 		}
 		requiredDeviceCount_ = std::max(1, rule.requiredDeviceCount);
 	}
@@ -49,14 +52,19 @@ public:
 		{
 			if (device) device->Destroy();
 		}
+		if (hiddenGate_) hiddenGate_->Destroy();
 		devices_.clear();
+		hiddenGate_ = nullptr;
 		pendingDevicePoints_.clear();
 		prompt_ = {};
 		encounterTriggered_.fill(false);
 		requiredDeviceCount_ = 0;
 		activationSequence_ = 0;
 		feedbackTimer_ = 0.0f;
+		bossArenaEnterRequest_ = false;
+		bossArenaEntered_ = false;
 		bossPhaseStarted_ = false;
+		hiddenPassageEnabled_ = false;
 		active_ = false;
 	}
 
@@ -69,7 +77,9 @@ public:
 	{
 		prompt_ = {};
 		if (!active_) return;
-		SpawnDevicesIfNeeded(characters.GetActorWorld());
+		K4E::ActorWorld& actorWorld = characters.GetActorWorld();
+		SpawnDevicesIfNeeded(actorWorld);
+		SpawnHiddenGateIfNeeded(actorWorld);
 		UpdateAmbientEncounters(player, characters);
 
 		feedbackTimer_ = std::max(0.0f, feedbackTimer_ - std::max(0.0f, deltaTime));
@@ -84,30 +94,21 @@ public:
 			if (!activatedNow) continue;
 
 			++activationSequence_;
-			feedbackTimer_ = 1.1f;
+			feedbackTimer_ = activationSequence_ >= requiredDeviceCount_ ? 2.0f : 1.1f;
 			if (activationSequence_ < requiredDeviceCount_)
 			{
 				SpawnActivationReinforcements(*device, characters);
 			}
-			else
+			else if (hiddenGate_)
 			{
-				bossPhaseStarted_ = true;
+				hiddenGate_->RequestOpen(); // 3基目ではBossを即出現させず、封鎖壁を開いて探索区間へつなぐ。
 			}
 			if (onActivated) onActivated(device->GetDeviceId());
 		}
 
-		if (feedbackTimer_ > 0.0f)
-		{
-			prompt_.visible = true;
-			prompt_.text = AreAllDevicesActivated() ? "全装置起動　強い反応を検知" : "装置を起動しました";
-			prompt_.normalizedProgress = 1.0f;
-		}
-		else if (nearest && !nearest->IsActivated())
-		{
-			prompt_.visible = true;
-			prompt_.text = nearest->GetInteractionProgress() > 0.01f ? "E 長押し：起動中" : "E 長押し：装置を起動";
-			prompt_.normalizedProgress = nearest->GetInteractionProgress();
-		}
+		if (AreAllDevicesActivated() && hiddenGate_ && !hiddenGate_->IsOpen()) hiddenGate_->RequestOpen();
+		UpdateBossArenaEntry(player);
+		BuildPrompt(nearest);
 	}
 
 	void Draw() {}
@@ -119,6 +120,7 @@ public:
 		{
 			if (device) device->UpdateShadowMatrix(lightViewProjection);
 		}
+		if (hiddenGate_) hiddenGate_->UpdateShadowMatrix(lightViewProjection);
 	}
 
 	const PromptSnapshot& GetPromptSnapshot() const { return prompt_; }
@@ -130,7 +132,17 @@ public:
 			}));
 	}
 	bool AreAllDevicesActivated() const { return active_ && requiredDeviceCount_ > 0 && GetActivatedCount() >= requiredDeviceCount_; }
+	bool IsHiddenPassageOpen() const { return hiddenGate_ && hiddenGate_->IsOpen(); }
+	bool HasEnteredBossArena() const { return bossArenaEntered_; }
 	bool IsActive() const { return active_; }
+	const K4E::Vector3& GetBossArenaPosition() const { return bossArenaPosition_; }
+
+	bool ConsumeBossArenaEnterRequest()
+	{
+		const bool requested = bossArenaEnterRequest_;
+		bossArenaEnterRequest_ = false;
+		return requested;
+	}
 
 private:
 	void SpawnDevicesIfNeeded(K4E::ActorWorld& actorWorld)
@@ -146,6 +158,15 @@ private:
 			actor.Update(0.0f);
 			devices_.push_back(&actor);
 		}
+	}
+
+	void SpawnHiddenGateIfNeeded(K4E::ActorWorld& actorWorld)
+	{
+		if (!hiddenPassageEnabled_ || hiddenGate_) return;
+		auto& gate = actorWorld.SpawnActor<Stage2HiddenPassageActor>();
+		gate.Configure({ 0.0f, 6.0f, 119.0f }, 10.5f);
+		gate.Update(0.0f);
+		hiddenGate_ = &gate; // GateもActorWorld所有にして描画・Shadow・Physicsの寿命を装置とそろえる。
 	}
 
 	Stage2DeviceActor* FindNearestDevice(const IPlayerRuntime* player) const
@@ -168,9 +189,62 @@ private:
 		return nearest;
 	}
 
+	void UpdateBossArenaEntry(const IPlayerRuntime* player)
+	{
+		if (!player || bossArenaEntered_ || !AreAllDevicesActivated() || !IsHiddenPassageOpen()) return;
+		const K4E::Vector3 position = player->GetWorldPosition();
+		const bool insideEntrance = std::abs(position.x) <= 22.0f && position.z >= 158.0f && position.z <= 202.0f;
+		if (!insideEntrance) return;
+		bossArenaEntered_ = true;
+		bossPhaseStarted_ = true;
+		bossArenaEnterRequest_ = true; // 広間へ踏み込んだ瞬間だけBossIntroへ要求し、通路内ではカメラを奪わない。
+		feedbackTimer_ = 1.8f;
+	}
+
+	void BuildPrompt(const Stage2DeviceActor* nearest)
+	{
+		if (bossArenaEntered_)
+		{
+			if (feedbackTimer_ > 0.0f)
+			{
+				prompt_.visible = true;
+				prompt_.text = "大広間に巨大な反応を検知";
+				prompt_.normalizedProgress = 1.0f;
+			}
+			return;
+		}
+		if (AreAllDevicesActivated())
+		{
+			prompt_.visible = true;
+			if (hiddenGate_ && !hiddenGate_->IsOpen())
+			{
+				prompt_.text = "封鎖壁を開放中";
+				prompt_.normalizedProgress = hiddenGate_->GetOpenProgress();
+			}
+			else
+			{
+				prompt_.text = "隠し通路が開いた　最奥の広間へ進め";
+				prompt_.normalizedProgress = 1.0f;
+			}
+			return;
+		}
+		if (feedbackTimer_ > 0.0f)
+		{
+			prompt_.visible = true;
+			prompt_.text = "装置を起動しました";
+			prompt_.normalizedProgress = 1.0f;
+		}
+		else if (nearest && !nearest->IsActivated())
+		{
+			prompt_.visible = true;
+			prompt_.text = nearest->GetInteractionProgress() > 0.01f ? "E 長押し：起動中" : "E 長押し：装置を起動";
+			prompt_.normalizedProgress = nearest->GetInteractionProgress();
+		}
+	}
+
 	void UpdateAmbientEncounters(const IPlayerRuntime* player, CharacterWorld& characters)
 	{
-		if (!player || bossPhaseStarted_ || characters.GetAliveNormalEnemyCount() > 9) return;
+		if (!player || AreAllDevicesActivated() || bossPhaseStarted_ || characters.GetAliveNormalEnemyCount() > 9) return;
 		const K4E::Vector3 playerPosition = player->GetWorldPosition();
 		const std::array<K4E::Vector3, 5> centers = {{
 			{ 0.0f, 0.0f, -31.0f },
@@ -246,12 +320,17 @@ private:
 	}
 
 	std::vector<Stage2DeviceActor*> devices_;
+	Stage2HiddenPassageActor* hiddenGate_ = nullptr;
 	std::vector<GamePlayStageContext::DevicePointInfo> pendingDevicePoints_;
 	std::array<bool, 5> encounterTriggered_{};
 	PromptSnapshot prompt_{};
+	K4E::Vector3 bossArenaPosition_{ 0.0f, 4.35f, 180.0f };
 	int requiredDeviceCount_ = 0;
 	int activationSequence_ = 0;
 	float feedbackTimer_ = 0.0f;
+	bool bossArenaEnterRequest_ = false;
+	bool bossArenaEntered_ = false;
 	bool bossPhaseStarted_ = false;
+	bool hiddenPassageEnabled_ = false;
 	bool active_ = false;
 };
