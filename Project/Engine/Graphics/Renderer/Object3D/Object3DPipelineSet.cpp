@@ -169,7 +169,6 @@ namespace Ken4lowEngine
 			rootParameters[kShadowMapSRV].DescriptorTable.NumDescriptorRanges = 1;
 
 			rootParameters[kLightingSettingsCBV] = {};
-			// Ambient/Exposure/Contrast/Fog用CBVをObject3D PSのb5へ追加する。
 			rootParameters[kLightingSettingsCBV].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 			rootParameters[kLightingSettingsCBV].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 			rootParameters[kLightingSettingsCBV].Descriptor.ShaderRegister = 5;
@@ -217,7 +216,6 @@ namespace Ken4lowEngine
 
 			staticSamplers[0] = {};
 			staticSamplers[0].Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
-			// UV が 1 を超えるステージ/地面テクスチャを繰り返し表示できるようにする。
 			staticSamplers[0].AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 			staticSamplers[0].AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
 			staticSamplers[0].AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -329,10 +327,9 @@ namespace Ken4lowEngine
 		{
 			std::array<D3D12_DESCRIPTOR_RANGE, 11> ranges{};
 			std::array<D3D12_ROOT_PARAMETER, Object3DRootParameterIndex::kCount> rootParameters{};
-		std::array<D3D12_STATIC_SAMPLER_DESC, 3> staticSamplers{};
+			std::array<D3D12_STATIC_SAMPLER_DESC, 3> staticSamplers{};
 
-			D3D12_ROOT_SIGNATURE_DESC rootSigDesc =
-				MakeObject3DRootSignatureDesc(ranges, rootParameters, staticSamplers);
+			D3D12_ROOT_SIGNATURE_DESC rootSigDesc = MakeObject3DRootSignatureDesc(ranges, rootParameters, staticSamplers);
 
 			GraphicsPipelineDesc desc = MakeBaseObject3DDesc(rtvFormat, dsvFormat, inputLayout);
 			desc.debugName = L"Object3D.Default";
@@ -341,14 +338,27 @@ namespace Ken4lowEngine
 
 			defaultPipeline_ = factory.CreateGraphicsPipeline(desc, rootSigDesc);
 
-			if (defaultPipeline_.rootSignature)
-			{
-				defaultPipeline_.rootSignature->SetName(L"Object3D.Default.RootSignature");
-			}
-			if (defaultPipeline_.pipelineState)
-			{
-				defaultPipeline_.pipelineState->SetName(L"Object3D.Default.PSO");
-			}
+			if (defaultPipeline_.rootSignature) defaultPipeline_.rootSignature->SetName(L"Object3D.Default.RootSignature");
+			if (defaultPipeline_.pipelineState) defaultPipeline_.pipelineState->SetName(L"Object3D.Default.PSO");
+		}
+
+		{
+			std::array<D3D12_DESCRIPTOR_RANGE, 11> ranges{};
+			std::array<D3D12_ROOT_PARAMETER, Object3DRootParameterIndex::kCount> rootParameters{};
+			std::array<D3D12_STATIC_SAMPLER_DESC, 3> staticSamplers{};
+
+			D3D12_ROOT_SIGNATURE_DESC rootSigDesc = MakeObject3DRootSignatureDesc(ranges, rootParameters, staticSamplers);
+			GraphicsPipelineDesc desc = MakeBaseObject3DDesc(rtvFormat, dsvFormat, inputLayout);
+			desc.blendState = PipelineStatePresets::MakeBlendAlpha();
+			desc.depthStencilState = PipelineStatePresets::MakeDepthReadOnly();
+			desc.debugName = L"Object3D.Alpha";
+			desc.shaders.vertexShader.blob = objectVsBlob;
+			desc.shaders.pixelShader.blob = objectPsBlob;
+
+			alphaPipeline_ = factory.CreateGraphicsPipeline(desc, rootSigDesc); // 残像はDepthを読みつつ書き込まず、後続の本体描画を妨げない。
+
+			if (alphaPipeline_.rootSignature) alphaPipeline_.rootSignature->SetName(L"Object3D.Alpha.RootSignature");
+			if (alphaPipeline_.pipelineState) alphaPipeline_.pipelineState->SetName(L"Object3D.Alpha.PSO");
 		}
 
 		{
@@ -361,20 +371,15 @@ namespace Ken4lowEngine
 
 			shadowPipeline_ = factory.CreateGraphicsPipeline(desc, rootSigDesc);
 
-			if (shadowPipeline_.rootSignature)
-			{
-				shadowPipeline_.rootSignature->SetName(L"Object3D.Shadow.RootSignature");
-			}
-			if (shadowPipeline_.pipelineState)
-			{
-				shadowPipeline_.pipelineState->SetName(L"Object3D.Shadow.PSO");
-			}
+			if (shadowPipeline_.rootSignature) shadowPipeline_.rootSignature->SetName(L"Object3D.Shadow.RootSignature");
+			if (shadowPipeline_.pipelineState) shadowPipeline_.pipelineState->SetName(L"Object3D.Shadow.PSO");
 		}
 	}
 
 	void Object3DPipelineSet::Finalize()
 	{
 		defaultPipeline_.Reset();
+		alphaPipeline_.Reset();
 		shadowPipeline_.Reset();
 	}
-}
+} // namespace Ken4lowEngine
