@@ -8,6 +8,7 @@
 
 #include <ActorWorld.h>
 #include <Input.h>
+#include <LightManager.h>
 
 #include <algorithm>
 #include <array>
@@ -27,6 +28,8 @@ public:
 		float normalizedProgress = 0.0f;
 	};
 
+	static constexpr const char* GetBossArenaEnteredEventId() { return "__Stage2BossArenaEntered"; }
+
 	void Initialize(const GamePlayStageContext& stageContext)
 	{
 		Finalize();
@@ -42,6 +45,7 @@ public:
 				{ "MineDevice_Deep", { 0.0f, 2.0f, 110.0f } }
 			}; // 各装置を西作業床・東採掘床・最奥制御床の実際の床面Yへ配置する。
 			hiddenPassageEnabled_ = true;
+			ConfigureMineLighting();
 		}
 		requiredDeviceCount_ = std::max(1, rule.requiredDeviceCount);
 	}
@@ -108,6 +112,11 @@ public:
 
 		if (AreAllDevicesActivated() && hiddenGate_ && !hiddenGate_->IsOpen()) hiddenGate_->RequestOpen();
 		UpdateBossArenaEntry(player);
+		if (bossArenaEnterRequest_ && onActivated)
+		{
+			onActivated(GetBossArenaEnteredEventId());
+			bossArenaEnterRequest_ = false; // 既存Device通知経路を再利用し、World側に別Callback引数を増やさない。
+		}
 		BuildPrompt(nearest);
 	}
 
@@ -137,14 +146,91 @@ public:
 	bool IsActive() const { return active_; }
 	const K4E::Vector3& GetBossArenaPosition() const { return bossArenaPosition_; }
 
-	bool ConsumeBossArenaEnterRequest()
+private:
+	static void ConfigureMineLighting()
 	{
-		const bool requested = bossArenaEnterRequest_;
-		bossArenaEnterRequest_ = false;
-		return requested;
+		auto* lightManager = K4E::LightManager::GetInstance();
+		if (!lightManager) return;
+		lightManager->ResetToDefaultLighting();
+
+		auto& settings = lightManager->GetMutableLightingSettingsForEditor();
+		settings.ambientColor = { 0.018f, 0.022f, 0.030f, 0.10f };
+		settings.fogColor = { 0.030f, 0.040f, 0.050f, 1.0f };
+		settings.exposure = 0.92f;
+		settings.contrast = 1.12f;
+		settings.fogStart = 34.0f;
+		settings.fogEnd = 175.0f;
+		settings.enableFog = 1u;
+		settings.specularStrength = 0.07f;
+		settings.diffuseStrength = 0.88f;
+		settings.enableHalfLambert = 1u;
+
+		auto& lights = lightManager->GetMutablePunctualLightsForEditor();
+		lights.clear();
+		lights.reserve(32);
+
+		K4E::LightManager::PunctualLightGPU directional{};
+		directional.lightType = 1u;
+		directional.color = { 0.42f, 0.48f, 0.58f, 1.0f };
+		directional.intensity = 0.16f;
+		directional.direction = { 0.25f, -0.94f, 0.22f };
+		directional.enabled = 1u;
+		lights.push_back(directional);
+
+		auto addPoint = [&lights](const K4E::Vector3& position, const K4E::Vector4& color, float intensity, float radius)
+		{
+			K4E::LightManager::PunctualLightGPU light{};
+			light.lightType = 2u;
+			light.color = color;
+			light.intensity = intensity;
+			light.position = position;
+			light.radius = radius;
+			light.decay = 1.65f;
+			light.enabled = 1u;
+			lights.push_back(light);
+		};
+
+		const std::array<K4E::Vector3, 13> workLights = {{
+			{ 0.0f, 5.8f, -44.0f }, { 0.0f, 5.8f, -22.0f }, { -34.0f, 6.2f, -10.0f },
+			{ 0.0f, 5.8f, 4.0f }, { 0.0f, 5.8f, 26.0f }, { 34.0f, 7.0f, 45.0f },
+			{ 0.0f, 6.2f, 52.0f }, { 0.0f, 6.5f, 76.0f }, { -22.0f, 7.0f, 92.0f },
+			{ 22.0f, 7.0f, 102.0f }, { 0.0f, 7.0f, 112.0f }, { -40.0f, 6.8f, 58.0f },
+			{ 40.0f, 6.8f, 80.0f }
+		}};
+		for (size_t index = 0; index < workLights.size(); ++index)
+		{
+			const float variation = static_cast<float>(index % 3) * 0.08f;
+			addPoint(workLights[index], { 1.0f, 0.58f + variation, 0.28f, 1.0f }, 1.05f, 17.0f);
+		}
+
+		addPoint({ 0.0f, 5.0f, 128.0f }, { 0.20f, 0.58f, 1.0f, 1.0f }, 1.15f, 14.0f);
+		addPoint({ 0.0f, 5.0f, 140.0f }, { 0.18f, 0.52f, 1.0f, 1.0f }, 1.25f, 14.0f);
+		addPoint({ 0.0f, 5.5f, 152.0f }, { 0.25f, 0.68f, 1.0f, 1.0f }, 1.35f, 16.0f);
+
+		const K4E::Vector4 arenaWarm{ 1.0f, 0.48f, 0.18f, 1.0f };
+		addPoint({ -19.0f, 7.5f, 168.0f }, arenaWarm, 1.55f, 21.0f);
+		addPoint({ 19.0f, 7.5f, 168.0f }, arenaWarm, 1.55f, 21.0f);
+		addPoint({ -19.0f, 7.5f, 192.0f }, arenaWarm, 1.55f, 21.0f);
+		addPoint({ 19.0f, 7.5f, 192.0f }, arenaWarm, 1.55f, 21.0f);
+
+		K4E::LightManager::PunctualLightGPU arenaSpot{};
+		arenaSpot.lightType = 3u;
+		arenaSpot.color = { 0.54f, 0.72f, 1.0f, 1.0f };
+		arenaSpot.intensity = 2.15f;
+		arenaSpot.position = { 0.0f, 12.0f, 180.0f };
+		arenaSpot.direction = { 0.0f, -1.0f, 0.0f };
+		arenaSpot.distance = 34.0f;
+		arenaSpot.decay = 1.35f;
+		arenaSpot.cosFalloffStart = 0.82f;
+		arenaSpot.cosAngle = 0.55f;
+		arenaSpot.enabled = 1u;
+		lights.push_back(arenaSpot);
+
+		lightManager->SetShadowCasterLightIndex(0);
+		lightManager->SetManualShadowFocusPosition({ 0.0f, 2.0f, 110.0f });
+		lightManager->SetDirectionalShadowFrustum(120.0f, 120.0f, 0.1f, 280.0f); // 低い環境光と局所灯を併用し、暗さを保ちながら進路と敵の輪郭を残す。
 	}
 
-private:
 	void SpawnDevicesIfNeeded(K4E::ActorWorld& actorWorld)
 	{
 		if (!devices_.empty() || pendingDevicePoints_.empty()) return;
