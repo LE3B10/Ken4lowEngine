@@ -39,8 +39,11 @@ namespace Ken4lowEngine
 		void DrawUniqueObjects();
 		/// <summary>比較用に、バッチ対象を通常Object3Dで描画します。Object3D生成は必要になった時だけ行います。</summary>
 		void DrawBatchSourcesNormally();
-		/// <summary>同じステージモデルを複数配置している場合だけ、CPU側でObject3Dを大量生成せずGPUインスタンシングでまとめて描画する。</summary>
+		/// <summary>同じステージモデルを複数配置している場合だけGPUインスタンシングでまとめて描画します。</summary>
 		void DrawInstancedBatches();
+		/// <summary>通常配置とインスタンス配置を現在の描画モードに合わせてShadow Passへ送ります。</summary>
+		void DrawShadow(bool instancingEnabled, bool useInstancedDraw, bool useNormalDraw);
+		void UpdateShadowMatrix(const Matrix4x4& lightViewProjection);
 
 		size_t GetBatchCount() const { return batches_.size(); }
 		size_t GetTotalInstanceCount() const { return totalInstanceCount_; }
@@ -53,4 +56,4 @@ namespace Ken4lowEngine
 		std::vector<std::unique_ptr<Object3D>> uniqueObjects_{};
 		size_t totalInstanceCount_ = 0;
 	};
-}
+} // namespace Ken4lowEngine
