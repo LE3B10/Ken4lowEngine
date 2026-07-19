@@ -18,7 +18,7 @@ namespace Ken4lowEngine
 		/// 現在Phase Revisionを初期値として保持し、生成直後の不要な演出を防ぐ。
 		void Initialize() override;
 
-		/// Phase変更、攻撃予兆、Auraを更新してAnimationとVisualへ反映する。
+		/// Phase変更、攻撃予兆、Aura、攻撃着地Camera Shakeを更新する。
 		void Update(float deltaTime) override;
 
 		/// 攻撃Listenerを解除し、古いAttack Componentへの参照を残さない。
@@ -51,9 +51,6 @@ namespace Ken4lowEngine
 		/// Debug再検証用に演出状態を初期化する。
 		void ResetPresentation();
 
-		/// Phase移行・範囲攻撃が要求したCamera Shakeを一度だけ取り出す。
-		bool ConsumeCameraShakeRequest(float& outDuration, float& outAmplitude, float& outFrequency);
-
 	private:
 		/// JSON再読込後も現在のAttack ComponentへListenerを張り直す。
 		void EnsureAttackListener();
@@ -82,8 +79,11 @@ namespace Ken4lowEngine
 		/// Phase遷移中の攻撃を止め、専用Animationを開始する。
 		void StartPhaseTransition(int phase);
 
-		/// Controllerへ渡すCamera Shake要求を上書きせず強い値へ統合する。
-		void RequestCameraShake(float duration, float amplitude, float frequency);
+		/// 範囲攻撃・突進命中・死亡時のCamera Shakeを開始する。
+		void StartCameraShake(float duration, float amplitude, float frequency);
+
+		/// 現在のPlayer Cameraへ減衰するShake Offsetを加える。
+		void UpdateCameraShake(float deltaTime);
 
 	private:
 		BossAttackComponent* boundAttack_ = nullptr;
@@ -101,13 +101,14 @@ namespace Ken4lowEngine
 		float telegraphDuration_ = 0.0f;
 		float telegraphParticleTimer_ = 0.0f;
 		float phaseParticleTimer_ = 0.0f;
-		float pendingShakeDuration_ = 0.0f;
-		float pendingShakeAmplitude_ = 0.0f;
-		float pendingShakeFrequency_ = 0.0f;
+		float cameraShakeTimer_ = 0.0f;
+		float cameraShakeDuration_ = 0.0f;
+		float cameraShakeAmplitude_ = 0.0f;
+		float cameraShakeFrequency_ = 0.0f;
+		float cameraShakeSeed_ = 0.0f;
 		bool phaseTransitionActive_ = false;
 		bool deathPresentationActive_ = false;
 		bool attackTelegraphActive_ = false;
-		bool cameraShakePending_ = false;
 		std::string activeAttackId_;
 		std::string stateName_ = "Idle";
 	};
