@@ -91,7 +91,7 @@ namespace Ken4lowEngine
 		std::uint64_t attackListenerId_ = 0;
 		unsigned int observedPhaseRevision_ = 0;
 		int presentedPhase_ = 1;
-		float phaseTransitionDuration_ = 0.8f;
+		float phaseTransitionDuration_ = 0.50f; // Phase変更を見せつつ操作停止が長く感じない尺にする。
 		float deathPresentationDuration_ = 1.2f;
 		float telegraphParticleInterval_ = 0.10f;
 		float phaseAuraInterval_ = 0.18f;
