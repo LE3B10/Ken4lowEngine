@@ -2,11 +2,15 @@
 
 #include "BossIntroController.h"
 #include "Collider.h"
+#include "LightManager.h"
 #include "Object3D.h"
 #include "Vector3.h"
+#include "Vector4.h"
 
+#include <cstddef>
 #include <functional>
 #include <memory>
+#include <vector>
 
 namespace Ken4lowEngine
 {
@@ -102,6 +106,14 @@ public:
 	K4E::BossActor* GetBoss() const { return bossActor_; }
 
 private:
+	struct MineArenaBlock
+	{
+		std::unique_ptr<K4E::Object3D> visual;
+		std::unique_ptr<K4E::Collider> collider;
+		K4E::Vector3 closedPosition{};
+		K4E::Vector3 openPosition{};
+	};
+
 	void SpawnBossActor(const Dependencies& deps, bool enableBattleImmediately);
 	void RegisterBossCollider(const Dependencies& deps);
 	void DestroyBossActor(const Dependencies& deps);
@@ -115,7 +127,30 @@ private:
 	K4E::Vector3 BuildCameraShakeOffset() const;
 	static bool CalcLookAnglesToTarget(const K4E::Vector3& from, const K4E::Vector3& target, float& outPitch, float& outYaw);
 
+	void EnsureMineArenaInitialized(const Dependencies& deps);
+	void FinalizeMineArena(const Dependencies& deps);
+	void BuildMinePassageAndArena(const Dependencies& deps);
+	void UpdateMineArena(const Dependencies& deps, float deltaTime);
+	void DrawMineArena();
+	void DrawMineArenaShadow();
+	size_t AddMineArenaBlock(
+		const Dependencies& deps,
+		const K4E::Vector3& position,
+		const K4E::Vector3& scale,
+		const K4E::Vector3& rotation,
+		const K4E::Vector4& color,
+		bool collisionEnabled,
+		const char* debugName);
+	void SetMineMovableBlock(size_t blockIndex, const K4E::Vector3& closedPosition, const K4E::Vector3& openPosition);
+	void UpdateMineMovableBlock(size_t blockIndex, float openAmount);
+	bool IsPlayerInsideMineArena(const IPlayerRuntime& player) const;
+	void ApplyMineLighting();
+	void UpdateMineLighting();
+	void RestoreMineLighting();
+	static K4E::Vector3 LerpVector(const K4E::Vector3& a, const K4E::Vector3& b, float t);
+
 private:
+	static constexpr size_t kInvalidMineBlockIndex = static_cast<size_t>(-1);
 	K4E::BossActor* bossActor_ = nullptr; // 実体はCharacterWorldのActorWorldが所有する。
 	std::unique_ptr<BossClearItem> clearItem_;
 	K4E::Vector3 bossSpawnPosition_{ 0.0f, 2.25f, 30.0f };
@@ -136,4 +171,24 @@ private:
 	float cameraShakeFrequency_ = 0.0f;
 	float cameraShakeSeed_ = 0.0f;
 	unsigned int lastPresentedPhaseRevision_ = 0;
+
+	bool mineArenaEnabled_ = false;
+	bool mineArenaInitialized_ = false;
+	bool minePassageUnlocked_ = false;
+	bool mineArenaEntered_ = false;
+	float minePassageDoorOpenAmount_ = 0.0f;
+	float mineArenaGateOpenAmount_ = 1.0f;
+	K4E::Vector3 mineArenaCenter_{ 0.0f, 2.25f, 105.0f };
+	K4E::Vector3 minePassageDoorCenter_{ 0.0f, 3.5f, 45.0f };
+	K4E::Vector3 mineArenaGateCenter_{ 0.0f, 3.5f, 82.0f };
+	std::vector<MineArenaBlock> mineArenaBlocks_;
+	size_t minePassageDoorLeftIndex_ = kInvalidMineBlockIndex;
+	size_t minePassageDoorRightIndex_ = kInvalidMineBlockIndex;
+	size_t mineArenaGateLeftIndex_ = kInvalidMineBlockIndex;
+	size_t mineArenaGateRightIndex_ = kInvalidMineBlockIndex;
+	std::vector<K4E::LightManager::PunctualLightGPU> savedMineLights_;
+	K4E::LightManager::LightingSettingsGPU savedMineLightingSettings_{};
+	std::vector<size_t> mineCorridorLightIndices_;
+	std::vector<size_t> mineArenaLightIndices_;
+	bool mineLightingSaved_ = false;
 };
