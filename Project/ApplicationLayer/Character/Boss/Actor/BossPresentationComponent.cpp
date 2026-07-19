@@ -4,8 +4,10 @@
 #include "BossActorAttackComponent.h"
 #include "ApplicationLayer/Character/Boss/Attacks/BossAttackEffects.h"
 #include "ApplicationLayer/Character/Boss/Components/BossPhaseComponent.h"
+#include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
 
 #include <AudioManager.h>
+#include <Camera.h>
 #include <GpuParticleType.h>
 #include <Object3D.h>
 #include <Scene/Actor/Character/CharacterActor.h>
@@ -17,6 +19,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iterator>
 #include <numbers>
 #include <string_view>
 
@@ -142,6 +145,7 @@ namespace Ken4lowEngine
 			}
 		}
 
+		UpdateCameraShake(deltaTime);
 		ApplyVisualAppearance();
 	}
 
@@ -155,7 +159,7 @@ namespace Ken4lowEngine
 		attackListenerId_ = 0;
 		activeAttackId_.clear();
 		attackTelegraphActive_ = false;
-		cameraShakePending_ = false;
+		cameraShakeTimer_ = cameraShakeDuration_ = cameraShakeAmplitude_ = cameraShakeFrequency_ = cameraShakeSeed_ = 0.0f;
 	}
 
 	void BossPresentationComponent::DrawImGui()
@@ -164,7 +168,7 @@ namespace Ken4lowEngine
 		ImGui::SeparatorText("ボス演出");
 		ImGui::Text("状態: %s / Phase: %d / 経過: %.2f", stateName_.c_str(), presentedPhase_, elapsed_);
 		ImGui::Text("予兆: %s / %.2f / %.2f", attackTelegraphActive_ ? activeAttackId_.c_str() : "None", telegraphElapsed_, telegraphDuration_);
-		ImGui::Text("Shake要求: %s / %.2f", cameraShakePending_ ? "yes" : "no", pendingShakeAmplitude_);
+		ImGui::Text("攻撃Shake: %.2f / %.2f", cameraShakeTimer_, cameraShakeAmplitude_);
 #endif
 	}
 
@@ -203,7 +207,7 @@ namespace Ken4lowEngine
 		{
 			if (CharacterAnimationComponent* animation = character->GetAnimationComponent()) animation->Play("Boss.Dead", deathPresentationDuration_, false);
 		}
-		RequestCameraShake(0.65f, 0.34f, 22.0f);
+		StartCameraShake(0.65f, 0.34f, 22.0f);
 		ApplyVisualAppearance();
 	}
 
@@ -216,8 +220,7 @@ namespace Ken4lowEngine
 		phaseParticleTimer_ = 0.0f;
 		FinishAttackTelegraph();
 		stateName_ = "Idle";
-		cameraShakePending_ = false;
-		pendingShakeDuration_ = pendingShakeAmplitude_ = pendingShakeFrequency_ = 0.0f;
+		cameraShakeTimer_ = cameraShakeDuration_ = cameraShakeAmplitude_ = cameraShakeFrequency_ = cameraShakeSeed_ = 0.0f;
 		Actor* owner = GetOwner();
 		const auto* phase = owner ? owner->GetComponent<BossPhaseComponent>() : nullptr;
 		observedPhaseRevision_ = phase ? phase->GetPhaseRevision() : 0;
@@ -229,17 +232,6 @@ namespace Ken4lowEngine
 		}
 		EnsureAttackListener();
 		ApplyVisualAppearance();
-	}
-
-	bool BossPresentationComponent::ConsumeCameraShakeRequest(float& outDuration, float& outAmplitude, float& outFrequency)
-	{
-		if (!cameraShakePending_) return false;
-		outDuration = pendingShakeDuration_;
-		outAmplitude = pendingShakeAmplitude_;
-		outFrequency = pendingShakeFrequency_;
-		cameraShakePending_ = false;
-		pendingShakeDuration_ = pendingShakeAmplitude_ = pendingShakeFrequency_ = 0.0f;
-		return true;
 	}
 
 	void BossPresentationComponent::EnsureAttackListener()
@@ -262,9 +254,9 @@ namespace Ken4lowEngine
 			break;
 		case AttackEventType::Executed:
 			EmitAttackTelegraphPulse(true);
-			if (IsGroundSlamAttack(event.attackId)) RequestCameraShake(0.38f, 0.30f, 25.0f);
-			else if (IsShockwaveAttack(event.attackId)) RequestCameraShake(0.26f, ContainsAttackToken(event.attackId, "Fast") ? 0.20f : 0.17f, 24.0f);
-			else if (IsChargeAttack(event.attackId) && event.result.accepted) RequestCameraShake(0.18f, 0.13f, 28.0f);
+			if (IsGroundSlamAttack(event.attackId)) StartCameraShake(0.38f, 0.30f, 25.0f);
+			else if (IsShockwaveAttack(event.attackId)) StartCameraShake(0.26f, ContainsAttackToken(event.attackId, "Fast") ? 0.20f : 0.17f, 24.0f);
+			else if (IsChargeAttack(event.attackId) && event.result.accepted) StartCameraShake(0.18f, 0.13f, 28.0f);
 			if (IsAreaAttack(event.attackId)) AudioManager::GetInstance()->PlaySE("enemy_death.mp3", 0.18f, ContainsAttackToken(event.attackId, "Fast") ? 1.08f : 0.84f);
 			else if (event.result.accepted) AudioManager::GetInstance()->PlaySE("enemy_hit.mp3", 0.14f, IsChargeAttack(event.attackId) ? 0.72f : 1.05f);
 			break;
@@ -479,23 +471,35 @@ namespace Ken4lowEngine
 		}
 		AudioManager::GetInstance()->PlaySE("enemy_death.mp3", presentedPhase_ >= 3 ? 0.32f : 0.25f, presentedPhase_ >= 3 ? 0.58f : 0.74f);
 		EmitPhasePulse(true);
-		RequestCameraShake(presentedPhase_ >= 3 ? 0.85f : 0.55f, presentedPhase_ >= 3 ? 0.40f : 0.24f, presentedPhase_ >= 3 ? 25.0f : 20.0f);
-		ApplyVisualAppearance();
+		ApplyVisualAppearance(); // Phase移行のCamera Shakeは既存BossBattleControllerへ残し、二重適用を避ける。
 	}
 
-	void BossPresentationComponent::RequestCameraShake(float duration, float amplitude, float frequency)
+	void BossPresentationComponent::StartCameraShake(float duration, float amplitude, float frequency)
 	{
 		if (duration <= 0.0f || amplitude <= 0.0f) return;
-		if (!cameraShakePending_ || amplitude >= pendingShakeAmplitude_)
-		{
-			pendingShakeDuration_ = duration;
-			pendingShakeAmplitude_ = amplitude;
-			pendingShakeFrequency_ = std::max(1.0f, frequency);
-		}
-		else
-		{
-			pendingShakeDuration_ = std::max(pendingShakeDuration_, duration);
-		}
-		cameraShakePending_ = true;
+		if (cameraShakeTimer_ > 0.0f && amplitude < cameraShakeAmplitude_) return;
+		cameraShakeDuration_ = cameraShakeTimer_ = duration;
+		cameraShakeAmplitude_ = amplitude;
+		cameraShakeFrequency_ = std::max(1.0f, frequency);
+		cameraShakeSeed_ += 1.73f;
+	}
+
+	void BossPresentationComponent::UpdateCameraShake(float deltaTime)
+	{
+		if (cameraShakeTimer_ <= 0.0f || cameraShakeDuration_ <= 0.0f) return;
+		cameraShakeTimer_ = std::max(0.0f, cameraShakeTimer_ - deltaTime);
+		::IPlayerRuntime* player = ::IPlayerRuntime::GetActiveRuntime();
+		Camera* camera = player ? player->GetCamera() : nullptr;
+		if (!camera) return;
+		const float rate = Clamp01(cameraShakeTimer_ / cameraShakeDuration_);
+		const float time = (cameraShakeDuration_ - cameraShakeTimer_) * cameraShakeFrequency_ + cameraShakeSeed_;
+		const float amplitude = cameraShakeAmplitude_ * rate * rate;
+		const Vector3 offset{
+			std::sin(time * 1.47f) * amplitude,
+			std::cos(time * 1.11f) * amplitude * 0.45f,
+			std::sin(time * 0.79f) * amplitude * 0.25f
+		};
+		camera->SetTranslate(camera->GetTranslate() + offset);
+		camera->Update(); // 攻撃着地の短いShakeだけをここで加え、Phase移行はController側の既存処理を使う。
 	}
 } // namespace Ken4lowEngine
