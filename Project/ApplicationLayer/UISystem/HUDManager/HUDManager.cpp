@@ -19,6 +19,9 @@ namespace
 	constexpr K4E::Vector2 kObjectiveCenter{ 250.0f, 104.0f };
 	constexpr K4E::Vector2 kObjectivePanelSize{ 430.0f, 86.0f };
 	constexpr float kObjectiveProgressWidth = 360.0f;
+	constexpr K4E::Vector2 kInteractionCenter{ 960.0f, 918.0f };
+	constexpr K4E::Vector2 kInteractionPanelSize{ 520.0f, 76.0f };
+	constexpr float kInteractionProgressWidth = 438.0f;
 }
 
 HUDManager::~HUDManager() = default;
@@ -48,6 +51,7 @@ void HUDManager::Initialize()
 	bossHudUI_.Initialize();
 	stage1ObjectiveGuideUI_.Initialize();
 	InitializeStageObjectiveUI();
+	InitializeInteractionPromptUI();
 	SetRuntimeWeaponHudVisible(runtimeWeaponHudVisible_); // 旧Player用HUDを生成せず、現役Runtime表示だけ初期化する。
 }
 
@@ -70,6 +74,7 @@ void HUDManager::Update(float deltaTime)
 	bossHudUI_.Update(deltaTime);
 	stage1ObjectiveGuideUI_.Update(deltaTime);
 	UpdateStageObjectiveUI(deltaTime);
+	UpdateInteractionPromptUI(deltaTime);
 }
 
 void HUDManager::Draw()
@@ -81,6 +86,7 @@ void HUDManager::Draw()
 	}
 	if (waveUI_ && IsWaveUIDrawEnabled()) waveUI_->Draw();
 	DrawStageObjectiveUI();
+	DrawInteractionPromptUI();
 	stage1ObjectiveGuideUI_.Draw();
 	bossHudUI_.Draw();
 	if (damageIndicatorManager_) damageIndicatorManager_->Draw();
@@ -264,10 +270,98 @@ void HUDManager::DrawStageObjectiveUI()
 	stageObjectiveTextDrawer_->DrawTextCentered(stageObjectiveDisplayState_.detail, { kObjectiveCenter.x, kObjectiveCenter.y + 8.0f });
 }
 
+void HUDManager::InitializeInteractionPromptUI()
+{
+	interactionPromptBackSprite_ = std::make_unique<K4E::Sprite>();
+	interactionPromptBackSprite_->Initialize("Effects/white.dds");
+	interactionPromptBackSprite_->SetAnchorPoint({ 0.5f, 0.5f });
+
+	interactionPromptAccentSprite_ = std::make_unique<K4E::Sprite>();
+	interactionPromptAccentSprite_->Initialize("Effects/white.dds");
+	interactionPromptAccentSprite_->SetAnchorPoint({ 0.5f, 0.5f });
+
+	interactionPromptProgressBackSprite_ = std::make_unique<K4E::Sprite>();
+	interactionPromptProgressBackSprite_->Initialize("Effects/white.dds");
+	interactionPromptProgressBackSprite_->SetAnchorPoint({ 0.0f, 0.5f });
+
+	interactionPromptProgressFillSprite_ = std::make_unique<K4E::Sprite>();
+	interactionPromptProgressFillSprite_->Initialize("Effects/white.dds");
+	interactionPromptProgressFillSprite_->SetAnchorPoint({ 0.0f, 0.5f });
+}
+
+void HUDManager::UpdateInteractionPromptUI(float deltaTime)
+{
+	const float targetAlpha = interactionPromptDisplayState_.visible ? 0.90f : 0.0f;
+	const float approach = std::clamp(deltaTime * 10.0f, 0.0f, 1.0f);
+	interactionPromptAlpha_ += (targetAlpha - interactionPromptAlpha_) * approach;
+	const float progress = std::clamp(interactionPromptDisplayState_.normalizedProgress, 0.0f, 1.0f);
+	const K4E::Vector4 accentColor = interactionPromptDisplayState_.completed
+		? K4E::Vector4{ 0.32f, 1.0f, 0.52f, interactionPromptAlpha_ }
+		: K4E::Vector4{ 0.28f, 0.82f, 1.0f, interactionPromptAlpha_ };
+
+	if (interactionPromptBackSprite_)
+	{
+		interactionPromptBackSprite_->SetPosition(kInteractionCenter);
+		interactionPromptBackSprite_->SetSize(kInteractionPanelSize);
+		interactionPromptBackSprite_->SetColor({ 0.025f, 0.03f, 0.04f, interactionPromptAlpha_ * 0.88f });
+		interactionPromptBackSprite_->Update();
+	}
+	if (interactionPromptAccentSprite_)
+	{
+		interactionPromptAccentSprite_->SetPosition({ kInteractionCenter.x, kInteractionCenter.y - kInteractionPanelSize.y * 0.5f + 3.0f });
+		interactionPromptAccentSprite_->SetSize({ kInteractionPanelSize.x * 0.90f, 3.0f });
+		interactionPromptAccentSprite_->SetColor(accentColor);
+		interactionPromptAccentSprite_->Update();
+	}
+
+	const K4E::Vector2 progressPosition{ kInteractionCenter.x - kInteractionProgressWidth * 0.5f, kInteractionCenter.y + 24.0f };
+	if (interactionPromptProgressBackSprite_)
+	{
+		interactionPromptProgressBackSprite_->SetPosition(progressPosition);
+		interactionPromptProgressBackSprite_->SetSize({ kInteractionProgressWidth, 6.0f });
+		interactionPromptProgressBackSprite_->SetColor({ 0.12f, 0.14f, 0.18f, interactionPromptAlpha_ });
+		interactionPromptProgressBackSprite_->Update();
+	}
+	if (interactionPromptProgressFillSprite_)
+	{
+		interactionPromptProgressFillSprite_->SetPosition(progressPosition);
+		interactionPromptProgressFillSprite_->SetSize({ kInteractionProgressWidth * progress, 6.0f });
+		interactionPromptProgressFillSprite_->SetColor(accentColor);
+		interactionPromptProgressFillSprite_->Update(); // E長押し時間を横ゲージへ直接反映する。
+	}
+}
+
+void HUDManager::DrawInteractionPromptUI()
+{
+	if (!interactionPromptDisplayState_.visible || interactionPromptAlpha_ <= 0.01f)
+	{
+		return;
+	}
+	if (interactionPromptBackSprite_) interactionPromptBackSprite_->Draw();
+	if (interactionPromptAccentSprite_) interactionPromptAccentSprite_->Draw();
+	if (interactionPromptProgressBackSprite_) interactionPromptProgressBackSprite_->Draw();
+	if (interactionPromptProgressFillSprite_) interactionPromptProgressFillSprite_->Draw();
+	if (!stageObjectiveTextReady_ || !stageObjectiveTextDrawer_) return;
+
+	stageObjectiveTextDrawer_->Reset();
+	stageObjectiveTextDrawer_->SetLetterSpacing(1.0f);
+	stageObjectiveTextDrawer_->SetScale(0.64f);
+	stageObjectiveTextDrawer_->SetColor(interactionPromptDisplayState_.completed
+		? K4E::Vector4{ 0.72f, 1.0f, 0.78f, interactionPromptAlpha_ }
+		: K4E::Vector4{ 0.92f, 0.98f, 1.0f, interactionPromptAlpha_ });
+	stageObjectiveTextDrawer_->DrawTextCentered(interactionPromptDisplayState_.text, { kInteractionCenter.x, kInteractionCenter.y - 8.0f });
+}
+
 void HUDManager::SetStageObjectiveDisplayState(const StageObjectiveDisplayState& state)
 {
 	stageObjectiveDisplayState_ = state;
 	stageObjectiveDisplayState_.normalizedProgress = std::clamp(state.normalizedProgress, 0.0f, 1.0f); // Stage別実装から範囲外の進捗が来てもHUD形状を崩さない。
+}
+
+void HUDManager::SetInteractionPromptDisplayState(const InteractionPromptDisplayState& state)
+{
+	interactionPromptDisplayState_ = state;
+	interactionPromptDisplayState_.normalizedProgress = std::clamp(state.normalizedProgress, 0.0f, 1.0f); // 装置側の長押し値をHUD描画前に0から1へ正規化する。
 }
 
 void HUDManager::SetBossHP(float hp, float maxHp, bool bossBattleActive) { bossHudUI_.SetBossHP(hp, maxHp, bossBattleActive); }
