@@ -61,6 +61,8 @@ namespace Ken4lowEngine
 		void End(AttackContext& context, const AttackData& data, bool interrupted) override;
 
 	private:
+		float originalDriveForce_ = 0.0f;
+		bool driveForceOverridden_ = false;
 		bool hit_ = false;
 	};
 
