@@ -36,10 +36,10 @@ namespace Ken4lowEngine
 		/// <summary>
 		/// ステージを初期化する
 		/// ・LevelLoader でレベルデータを読む
-		/// ・StageAssetLoader で描画モデルを作る
+		/// ・通常Stageは一体型Model、Instanced-only Stageは明示的なmodel配置を使う
 		/// ・StageCollisionBuilder で衝突情報を作る
 		/// </summary>
-		void Initialize(const std::string& levelJsonPath, const std::string& defaultModelName);
+		void Initialize(const std::string& levelJsonPath, const std::string& defaultModelName, bool instancedOnly = false);
 
 		/// <summary>
 		/// ステージ内部状態を破棄して空に戻す
@@ -129,22 +129,22 @@ namespace Ken4lowEngine
 
 		inline static Stage* activeRuntimeStage_ = nullptr;
 		std::unique_ptr<LevelData> levelData_;
-		std::unique_ptr<Object3D> stageModel_;                 // ステージ描画モデル
+		std::unique_ptr<Object3D> stageModel_;                 // 一体型ステージだけが所有する描画モデル
 		StageChunkManager stageChunkManager_;                 // 静的ステージを Chunk 単位で Draw スキップする管理クラス
 		StageInstancingManager stageInstancingManager_;       // 明示的な同一modelPath配置だけをまとめる管理クラス
-		OcclusionCullingSystem occlusionCullingSystem_;          // Lv4: 遮蔽物裏の StageChunk Draw を安全側で止める管理クラス
-		std::vector<AABB> worldAABBs_;                         // BroadPhase・簡易範囲判定向けのStage AABB群
-		std::vector<AABB> floorAABBs_;                         // 接地・スポーン補正向けFloor AABB
-		std::vector<AABB> wallObstacleAABBs_;                  // Obstacle OBBを絞るBroadPhase AABB
-		std::vector<AABB> navigationObstacleAABBs_;            // Navigation向け障害物AABB(Floor除外)
+		OcclusionCullingSystem occlusionCullingSystem_;       // Lv4: 遮蔽物裏の StageChunk Draw を安全側で止める管理クラス
+		std::vector<AABB> worldAABBs_;                        // BroadPhase・簡易範囲判定向けのStage AABB群
+		std::vector<AABB> floorAABBs_;                        // 接地・スポーン補正向けFloor AABB
+		std::vector<AABB> wallObstacleAABBs_;                 // Obstacle OBBを絞るBroadPhase AABB
+		std::vector<AABB> navigationObstacleAABBs_;           // Navigation向け障害物AABB(Floor除外)
 		std::vector<std::unique_ptr<Collider>> worldColliders_; // PhysicsWorld/DebugDraw用の正式なStatic World Collider
-		std::vector<OBB> wallObstacleOBBs_;                  // Player最終横押し戻し用の壁/障害物OBB
-		std::vector<uint8_t> wallObstacleWalkable_;          // Obstacle上面を床として扱えるかの拡張用フラグ
-		std::vector<OBB> navigationObstacleOBBs_;            // デバッグ表示用のNavigation障害物OBB
-		std::vector<Collider*> ladderColliders_;             // worldColliders_所有のStatic Triggerを参照する梯子一覧
-		std::vector<AABB> ladderAABBs_;                      // Playerとの直接Overlap問い合わせに使う梯子AABB
-		std::vector<OBB> ladderOBBs_;                        // 通常壁と別色表示する梯子Trigger OBB
-		Vector3 offset_ = { 0.0f, 0.0f, 0.0f };               // ステージ全体オフセット
+		std::vector<OBB> wallObstacleOBBs_;                   // Player最終横押し戻し用の壁/障害物OBB
+		std::vector<uint8_t> wallObstacleWalkable_;           // Obstacle上面を床として扱えるかの拡張用フラグ
+		std::vector<OBB> navigationObstacleOBBs_;             // デバッグ表示用のNavigation障害物OBB
+		std::vector<Collider*> ladderColliders_;              // worldColliders_所有のStatic Triggerを参照する梯子一覧
+		std::vector<AABB> ladderAABBs_;                       // Playerとの直接Overlap問い合わせに使う梯子AABB
+		std::vector<OBB> ladderOBBs_;                         // 通常壁と別色表示する梯子Trigger OBB
+		Vector3 offset_ = { 0.0f, 0.0f, 0.0f };              // ステージ全体オフセット
 		bool stageInstancingEnabled_ = true;
 		bool useNormalStageDraw_ = true;
 		bool useInstancedStageDraw_ = true;
