@@ -76,6 +76,7 @@ namespace Ken4lowEngine
 	{
 		StageCollisionBuildResult result{};
 		const std::vector<ObjectData> hiddenArenaObjects = MineHiddenArenaLayout::Build(levelData);
+		const bool hasHiddenArena = !hiddenArenaObjects.empty();
 		const size_t estimatedCount = levelData.objects.size() + hiddenArenaObjects.size();
 		result.worldAABBs.reserve(estimatedCount);
 		result.floorAABBs.reserve(estimatedCount);
@@ -150,8 +151,12 @@ namespace Ken4lowEngine
 			result.worldColliders.push_back(std::move(collider));
 		};
 
-		for (const ObjectData& data : levelData.objects) appendCollider(data);
-		for (const ObjectData& data : hiddenArenaObjects) appendCollider(data); // 追加広間の見た目と同じ配置からFloor/Wall判定を生成する。
+		for (const ObjectData& data : levelData.objects)
+		{
+			if (hasHiddenArena && data.name == "Wall_North") continue; // 描画側と同じ旧終端壁を除き、隠し通路に見えない壁を残さない。
+			appendCollider(data);
+		}
+		for (const ObjectData& data : hiddenArenaObjects) appendCollider(data);
 
 		return result;
 	}
