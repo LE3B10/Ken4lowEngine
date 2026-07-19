@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AttackComponent.h"
+#include "Vector3.h"
 
 #include <memory>
 #include <string_view>
@@ -45,7 +46,7 @@ namespace Ken4lowEngine
 		bool fired_ = false;
 	};
 
-	/// 突進中だけOwnerへTarget方向の速度を与え、接近時に一度だけダメージを適用する。
+	/// 突進中だけOwnerへ固定方向の速度を与え、接近時に一度だけダメージを適用する。
 	class ChargeAttackBehavior final : public IAttackBehavior
 	{
 	public:
@@ -55,13 +56,15 @@ namespace Ken4lowEngine
 		bool CanStart(const AttackContext& context, const AttackData& data) const override;
 		/// 攻撃ごとの一度きり接触フラグを戻す。
 		void Begin(AttackContext& context, const AttackData& data) override;
-		/// Target方向の速度と接近時のDamageを共通Componentへ渡す。
+		/// Active開始時に固定した方向の速度と接近時のDamageを共通Componentへ渡す。
 		AttackExecutionResult Execute(AttackContext& context, const AttackData& data, float deltaTime, float normalizedActiveTime) override;
-		/// 終了時に突進速度と接触フラグを戻す。
+		/// 終了時に突進速度、固定方向、接触フラグを戻す。
 		void End(AttackContext& context, const AttackData& data, bool interrupted) override;
 
 	private:
+		Vector3 chargeDirection_{};
 		float originalDriveForce_ = 0.0f;
+		bool directionLocked_ = false;
 		bool driveForceOverridden_ = false;
 		bool hit_ = false;
 	};
