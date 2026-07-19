@@ -16,6 +16,7 @@
 #include "Scene/Actor/Character/CharacterHealthComponent.h"
 #include "Stage.h"
 #include <LogString.h>
+#include <TextComponent.h>
 
 #include <algorithm>
 #include <cassert>
@@ -33,7 +34,8 @@ namespace
 {
 	constexpr float kPi = std::numbers::pi_v<float>;
 	constexpr float kBeginnerBossMaxHp = 900.0f;
-	constexpr const char* kBossPrefabPath = "Resources/ActorPrefabs/ComponentBoss.json";
+	constexpr const char* kDefaultBossPrefabPath = "Resources/ActorPrefabs/ComponentBoss.json";
+	constexpr const char* kMineCrusherBossPrefabPath = "Resources/ActorPrefabs/ComponentMineCrusherBoss.json";
 }
 
 void BossClearItem::Initialize(const K4E::Vector3& position)
@@ -95,6 +97,10 @@ void BossClearItem::OnCollision(K4E::Collider* other){ (void)other; }
 void BossBattleController::Initialize(GamePlayStageContext& stageContext, bool beginnerBalance)
 {
 	stage1BeginnerBalanceEnabled_ = beginnerBalance;
+	const std::string& stageJsonPath = stageContext.GetCurrentStageAssets().jsonPath;
+	bossPrefabPath_ = stageJsonPath.find("wasureraretakoudou") != std::string::npos
+		? kMineCrusherBossPrefabPath
+		: kDefaultBossPrefabPath; // Stage2だけ別Archetypeを選び、他ステージの既存Bossを維持する。
 	bossSpawnPosition_ = stageContext.HasBossSpawnPoint() ? stageContext.GetBossSpawnPoint() : K4E::Vector3{ 0.0f, 2.25f, 30.0f };
 	bossDeathPosition_ = bossSpawnPosition_;
 	bossActor_ = nullptr;
@@ -128,7 +134,7 @@ bool BossBattleController::RequestBossBattle(const K4E::Vector3& bossPosition)
 	bossDeathPosition_ = bossPosition;
 	manualBossRequest_ = true;
 	bossSpawnConditionMet_ = true;
-	bossIntroController_.RequestStart(bossSpawnPosition_); // クリスタル以外のObjectiveからも既存の登場演出を再利用する。
+	bossIntroController_.RequestStart(bossSpawnPosition_);
 	return true;
 }
 
@@ -224,7 +230,14 @@ void BossBattleController::UpdatePausedWorld(const Dependencies& deps, float del
 void BossBattleController::UpdateHud(const Dependencies& deps, float deltaTime)
 {
 	(void)deltaTime;
-	if (bossActor_) bossActor_->SetHealthHudVisible(IsBossBattleActive());
+	if (bossActor_)
+	{
+		bossActor_->SetHealthHudVisible(IsBossBattleActive());
+		if (bossPrefabPath_ == kMineCrusherBossPrefabPath)
+		{
+			if (TextComponent* label = bossActor_->GetHealthLabelComponent()) label->SetText("坑道破砕体");
+		}
+	}
 	if (deps.hudManager) deps.hudManager->SetBossHP(GetBossHP(), GetBossMaxHP(), false);
 }
 
@@ -249,6 +262,7 @@ void BossBattleController::DrawImGui(const Dependencies& deps, bool introPresent
 {
 #ifdef USE_IMGUI
 	ImGui::SeparatorText("ボス状態");
+	ImGui::Text("Prefab: %s", bossPrefabPath_.c_str());
 	ImGui::Text("ActorWorld Boss: %s / Collider: %s", bossSpawned_ ? "spawned" : "none", bossColliderRegistered_ ? "enabled" : "disabled");
 	ImGui::Text("Intro: %s / Presentation camera: %s", bossIntroController_.IsRunning() ? "active" : "inactive", introPresentation ? "yes" : "no");
 	bossIntroController_.SetDebugSnapshot(bossActor_, deps.characters && deps.characters->GetPlayerRuntime() ? deps.characters->GetPlayerRuntime()->GetCamera() : nullptr);
@@ -292,7 +306,7 @@ void BossBattleController::SpawnBossActor(const Dependencies& deps, bool enableB
 	RegisterApplicationActorTypes();
 	K4E::ActorWorld& world = deps.characters->GetActorWorld();
 	K4E::BossActor* actor = nullptr;
-	if (K4E::Actor* prefabActor = world.SpawnActorFromJson(kBossPrefabPath))
+	if (K4E::Actor* prefabActor = world.SpawnActorFromJson(bossPrefabPath_))
 	{
 		actor = dynamic_cast<K4E::BossActor*>(prefabActor);
 		if (!actor) world.DestroyActor(prefabActor);
@@ -301,10 +315,12 @@ void BossBattleController::SpawnBossActor(const Dependencies& deps, bool enableB
 	else actor->Initialize();
 
 	bossActor_ = actor;
-	bossActor_->SetName("GameplayBossActor");
+	const bool isMineCrusher = bossPrefabPath_ == kMineCrusherBossPrefabPath;
+	bossActor_->SetName(isMineCrusher ? "GameplayMineCrusherBoss" : "GameplayBossActor");
 	bossActor_->SetLayer("Boss");
 	bossActor_->AddTag("Boss");
 	bossActor_->AddTag("GameplayBoss");
+	if (isMineCrusher) bossActor_->AddTag("MineCrusher");
 	bossActor_->SetTargetActor(deps.characters->GetPlayer());
 	if (stage1BeginnerBalanceEnabled_)
 	{
