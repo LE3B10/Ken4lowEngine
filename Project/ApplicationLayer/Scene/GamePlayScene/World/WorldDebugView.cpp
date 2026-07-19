@@ -32,6 +32,12 @@ void WorldDebugView::DrawGameDebugImGui(const Dependencies& deps)
 	// ステージ目的の進行状態はStageObjectiveManagerから参照して表示する。
 	if (deps.stageObjectiveManager)
 	{
+		const StageObjectiveManager::Snapshot& snapshot = deps.stageObjectiveManager->GetSnapshot();
+		ImGui::SeparatorText("Stage Objective");
+		ImGui::Text("Objective: %s", snapshot.title.c_str());
+		ImGui::Text("Status: %s", StageObjectiveManager::GetStatusDebugName(snapshot.status));
+		ImGui::Text("Detail: %s", snapshot.detail.c_str());
+		ImGui::Text("Progress: %.1f%%", snapshot.normalizedProgress * 100.0f);
 		ImGui::Text("Stage Time: %.2f sec", deps.stageObjectiveManager->GetStageElapsedSec());
 		ImGui::Text("Activated Devices: %d / %d", deps.stageObjectiveManager->GetActivatedDeviceCount(), deps.stageObjectiveManager->GetDevicePointCount());
 		ImGui::Text("Defense Targets: %d", deps.stageObjectiveManager->GetDefenseTargetPointCount());
