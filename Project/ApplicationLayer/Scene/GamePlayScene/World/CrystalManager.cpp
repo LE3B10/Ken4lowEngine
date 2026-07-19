@@ -1,4 +1,4 @@
-﻿#define NOMINMAX
+#define NOMINMAX
 #include "CrystalManager.h"
 
 #include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
@@ -181,7 +181,25 @@ void CrystalManager::DrawHpBars() { crystalHpBarController_.Draw(); }
 void CrystalManager::SetStage1BeginnerBalanceEnabled(bool enabled)
 {
 	stage1BeginnerBalanceEnabled_ = enabled;
-	if (!stage1BeginnerBalanceEnabled_) return;
+	if (!stage1BeginnerBalanceEnabled_)
+	{
+		if (collisionManager_)
+		{
+			for (EnemySpawnCrystal& crystal : crystals_) collisionManager_->RemoveCollider(&crystal);
+		}
+		crystalParameterController_.UnregisterCrystalParameters();
+		crystals_.clear();
+		spawnPoints_.clear();
+		crystalHpBarController_.Finalize();
+		enableCrystalEnemySpawn_ = false;
+		selectedCrystalIndex_ = 0;
+		nextSpawnCrystalIndex_ = 0;
+		hasCrystalBroken_ = false;
+		isFinalPhaseReady_ = false;
+		requestBossAppear_ = false; // Stage2以降ではStage1専用の見た目・Collider・敵生成・ボス要求を残さない。
+		RestoreWorldColor();
+		return;
+	}
 	for (size_t i = 0; i < spawnPoints_.size() && i < crystals_.size(); ++i)
 	{
 		ApplyStage1BeginnerBalance(spawnPoints_[i]);
