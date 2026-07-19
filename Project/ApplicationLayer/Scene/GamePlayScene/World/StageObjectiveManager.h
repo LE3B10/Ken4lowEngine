@@ -4,6 +4,7 @@
 #include <functional>
 #include <string>
 #include <unordered_set>
+#include <utility>
 
 /// -------------------------------------------------------------
 ///                 ステージ目的の進行状態管理クラス
