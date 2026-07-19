@@ -77,8 +77,13 @@ public:
 	bool NotifyStageDeviceActivated(const std::string& deviceId)
 	{
 		if (!stageObjectiveManager_) return false;
+		if (deviceId == Stage2CharacterDeviceManager::GetBossArenaEnteredEventId())
+		{
+			stageObjectiveManager_->SetBossArenaReached(true);
+			return bossBattleController_.RequestBossBattle(stage2DeviceManager_.GetBossArenaPosition()); // 広間入場時だけ既存カメラ演出と坑道Boss生成を開始する。
+		}
 		if (stage2DeviceManager_.IsActive()) stageObjectiveManager_->SetRequiresBossAfterDevices(true);
-		return stageObjectiveManager_->NotifyDeviceActivated(deviceId); // 3基目は通路だけを開き、Boss開始は大広間への入場判定へ任せる。
+		return stageObjectiveManager_->NotifyDeviceActivated(deviceId);
 	}
 	void NotifyStageGoalReached() { SetReachedGoal(true); }
 	void NotifyStageDefenseTargetDestroyed() { SetDefenseTargetDestroyed(true); }
@@ -96,7 +101,7 @@ public:
 	bool HasStage1TutorialCompleted() const { return stage1TutorialController_.HasCompletedTutorial(); }
 
 private:
-	void InitializeLighting(const GamePlayStageContext::StageAssetPaths& stageAssets);
+	void InitializeLighting();
 	void InitializeSkyBox();
 	void InitializeCollisionSystems();
 	void InitializeCharacterSystems();
@@ -170,7 +175,6 @@ private:
 	float bulletEnemySoACellSize_ = 2.0f;
 	bool stage1BeginnerBalanceEnabled_ = false;
 	bool skipStage1Tutorial_ = false;
-	bool isMineStage_ = false;
 	Stage1TutorialController stage1TutorialController_{};
 	BossBattleController bossBattleController_{};
 };
