@@ -38,6 +38,14 @@ public:
 		float normalizedProgress = 0.0f;
 	};
 
+	struct InteractionPromptDisplayState
+	{
+		bool visible = false;
+		bool completed = false;
+		std::string text;
+		float normalizedProgress = 0.0f;
+	};
+
 public:
 	~HUDManager();
 
@@ -58,6 +66,7 @@ public:
 	void NotifyStage1ObjectiveGuideStarted();
 	void NotifyStage1BossAppeared();
 	void SetStageObjectiveDisplayState(const StageObjectiveDisplayState& state);
+	void SetInteractionPromptDisplayState(const InteractionPromptDisplayState& state);
 	void SetBossGuide(const Ken4lowEngine::Vector3& playerPos, const Ken4lowEngine::Vector3& bossPos, const Ken4lowEngine::Vector3& cameraForward, bool bossBattleActive);
 	void NotifyBossIntroCompleted(const Ken4lowEngine::Vector3& bossPos);
 	void SetWeaponSlotVisibleSlotCount(int count);
@@ -100,6 +109,9 @@ private:
 	void InitializeStageObjectiveUI();
 	void UpdateStageObjectiveUI(float deltaTime);
 	void DrawStageObjectiveUI();
+	void InitializeInteractionPromptUI();
+	void UpdateInteractionPromptUI(float deltaTime);
+	void DrawInteractionPromptUI();
 
 	IPlayerRuntime* playerRuntime_ = nullptr;
 	bool runtimeWeaponHudVisible_ = true;
@@ -120,4 +132,11 @@ private:
 	std::unique_ptr<Ken4lowEngine::TextSpriteDrawer> stageObjectiveTextDrawer_;
 	bool stageObjectiveTextReady_ = false;
 	float stageObjectiveAlpha_ = 0.0f;
+
+	InteractionPromptDisplayState interactionPromptDisplayState_{};
+	std::unique_ptr<Ken4lowEngine::Sprite> interactionPromptBackSprite_;
+	std::unique_ptr<Ken4lowEngine::Sprite> interactionPromptAccentSprite_;
+	std::unique_ptr<Ken4lowEngine::Sprite> interactionPromptProgressBackSprite_;
+	std::unique_ptr<Ken4lowEngine::Sprite> interactionPromptProgressFillSprite_;
+	float interactionPromptAlpha_ = 0.0f;
 };
