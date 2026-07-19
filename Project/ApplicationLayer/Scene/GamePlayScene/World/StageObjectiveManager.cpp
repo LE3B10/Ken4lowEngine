@@ -118,7 +118,7 @@ int StageObjectiveManager::GetRequiredDeviceCount() const
 
 bool StageObjectiveManager::IsDeviceBossPhase() const
 {
-	return RequiresBossAfterDevices() && AreRequiredDevicesActivated() && !bossDefeated_;
+	return RequiresBossAfterDevices() && AreRequiredDevicesActivated(); // 3基目以降は撃破後の達成表示までボスObjectiveを維持する。
 }
 
 bool StageObjectiveManager::EvaluateCleared() const
@@ -201,9 +201,9 @@ void StageObjectiveManager::RefreshSnapshot()
 	case GamePlayStageContext::StageObjectiveType::ActivateDevices:
 		if (IsDeviceBossPhase())
 		{
-			snapshot_.currentValue = 0;
+			snapshot_.currentValue = bossDefeated_ ? 1 : 0;
 			snapshot_.targetValue = 1;
-			snapshot_.normalizedProgress = 0.0f;
+			snapshot_.normalizedProgress = bossDefeated_ ? 1.0f : 0.0f;
 			snapshot_.usesCount = false;
 		}
 		else
@@ -260,7 +260,7 @@ std::string StageObjectiveManager::BuildActiveDetail() const
 	case GamePlayStageContext::StageObjectiveType::ClearAllWaves:
 		return "すべての敵ウェーブを撃破";
 	case GamePlayStageContext::StageObjectiveType::ActivateDevices:
-		if (IsDeviceBossPhase()) return "装置の反応で出現したボスと交戦中";
+		if (IsDeviceBossPhase()) return bossDefeated_ ? "ボス撃破" : "装置の反応で出現したボスと交戦中";
 		std::snprintf(text, sizeof(text), "起動済み %d / %d", activatedDeviceCount_, GetRequiredDeviceCount());
 		return text;
 	case GamePlayStageContext::StageObjectiveType::DefendTarget:
