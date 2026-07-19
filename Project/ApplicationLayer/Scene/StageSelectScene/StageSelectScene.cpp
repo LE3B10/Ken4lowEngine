@@ -261,9 +261,13 @@ void StageSelectScene::InitializeSelectors()
 
 	context_.onRequestMap = [this](uint32_t stageIndex)
 	{
-		if (pendingUnlockIndex_ >= 0 || nextScene_ != NextScene::None) return;
-		StageRepository::GetInstance().SetStages(stages_);
-		StageRepository::GetInstance().SetStartIndex(static_cast<int>(stageIndex));
+		if (pendingUnlockIndex_ >= 0 || nextScene_ != NextScene::None || stages_.empty()) return;
+		const int selectedIndex = std::clamp(static_cast<int>(stageIndex), 0, static_cast<int>(stages_.size()) - 1);
+		if (stages_[static_cast<size_t>(selectedIndex)].locked) return;
+		currentStageIndex_ = selectedIndex;
+		auto& repository = StageRepository::GetInstance();
+		repository.SetStages(stages_);
+		repository.SetStartIndex(selectedIndex); // 決定した中央カードをGamePlay開始ステージとして明示的に確定する。
 		nextScene_ = NextScene::GamePlay;
 		GoToGamePlay();
 	};
@@ -385,8 +389,12 @@ void StageSelectScene::BackToTitle()
 
 void StageSelectScene::GoToGamePlay()
 {
-	if (sceneManager_)
+	if (sceneManager_ && !stages_.empty())
 	{
+		const int selectedIndex = std::clamp(currentStageIndex_, 0, static_cast<int>(stages_.size()) - 1);
+		auto& repository = StageRepository::GetInstance();
+		repository.SetStages(stages_);
+		repository.SetStartIndex(selectedIndex); // Scene切替直前にも選択値を再保存し、ロード開始時の0番Fallbackを防ぐ。
 		sceneManager_->ChangeScene("GamePlayScene");
 	}
 }
