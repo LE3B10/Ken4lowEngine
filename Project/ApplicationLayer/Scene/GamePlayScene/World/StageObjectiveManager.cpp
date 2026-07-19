@@ -35,7 +35,7 @@ void StageObjectiveManager::Update(float deltaTime)
 		return;
 	}
 
-	const float safeDeltaTime = std::clamp(deltaTime, 0.0f, 0.1f);
+	const float safeDeltaTime = std::max(0.0f, deltaTime);
 	stageElapsedSec_ += safeDeltaTime;
 
 	if (stageRule_.objectiveType == GamePlayStageContext::StageObjectiveType::DefendTarget && !defenseTargetDestroyed_)
@@ -66,8 +66,8 @@ bool StageObjectiveManager::NotifyDeviceActivated(const std::string& deviceId)
 		return false;
 	}
 
-	const auto [_, inserted] = activatedDeviceIds_.insert(deviceId);
-	if (!inserted)
+	const auto insertResult = activatedDeviceIds_.insert(deviceId);
+	if (!insertResult.second)
 	{
 		return false;
 	}
