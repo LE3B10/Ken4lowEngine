@@ -34,7 +34,7 @@ public:
 		if (stageContext.GetCurrentStageAssets().jsonPath.find("wasureraretakoudou") != std::string::npos)
 		{
 			pendingDevicePoints_ = {
-				{ "MineDevice_West", { -38.0f, 0.0f, -10.0f } },
+				{ "MineDevice_West", { -34.0f, 0.0f, -10.0f } },
 				{ "MineDevice_East", { 38.0f, 0.0f, 45.0f } },
 				{ "MineDevice_Deep", { 0.0f, 0.0f, 110.0f } }
 			}; // 拡張した長方形マップでは装置間距離を広げ、前半・中盤・最奥へ分散する。
