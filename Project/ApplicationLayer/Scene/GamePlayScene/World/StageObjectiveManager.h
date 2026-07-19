@@ -1,6 +1,10 @@
 #pragma once
 #include "GamePlayStageContext.h"
 
+#include <functional>
+#include <string>
+#include <unordered_set>
+
 /// -------------------------------------------------------------
 ///                 ステージ目的の進行状態管理クラス
 ///
@@ -9,6 +13,35 @@
 /// -------------------------------------------------------------
 class StageObjectiveManager
 {
+public: /// ---------- 列挙型 ---------- ///
+
+	enum class Status
+	{
+		Inactive,
+		Active,
+		Cleared,
+		Failed,
+	};
+
+public: /// ---------- 構造体 ---------- ///
+
+	struct Snapshot
+	{
+		GamePlayStageContext::StageObjectiveType type = GamePlayStageContext::StageObjectiveType::ClearAllWaves;
+		Status status = Status::Inactive;
+		std::string title;
+		std::string detail;
+		int currentValue = 0;
+		int targetValue = 0;
+		float normalizedProgress = 0.0f;
+		float elapsedSec = 0.0f;
+		float remainingSec = 0.0f;
+		bool usesCount = false;
+		bool usesTimer = false;
+	};
+
+	using StatusChangedCallback = std::function<void(Status, const Snapshot&)>;
+
 public: /// ---------- メンバ関数 ---------- ///
 
 	// StageContextから現在ステージのルールと配置数を読み取り、進行カウンタを初期化する。
@@ -26,10 +59,15 @@ public: /// ---------- メンバ関数 ---------- ///
 	bool HasReachedGoal() const { return reachedGoal_; }
 	bool IsBossDefeated() const { return bossDefeated_; }
 	bool IsDefenseTargetDestroyed() const { return defenseTargetDestroyed_; }
-	bool IsStageObjectiveCleared(bool allWavesCleared) const;
-	bool IsStageObjectiveFailed() const;
+	Status GetStatus() const { return status_; }
+	const Snapshot& GetSnapshot() const { return snapshot_; }
 
-	// 装置接触イベントが実装されたら、各装置から呼ぶ進行加算APIとして使う。
+	bool IsStageObjectiveCleared(bool allWavesCleared);
+	bool IsStageObjectiveFailed();
+
+	// 装置IDを記録し、同じ装置からの重複通知を進捗へ二重加算しない。
+	bool NotifyDeviceActivated(const std::string& deviceId);
+	// 既存デバッグ操作やIDを持たない仮実装向けの加算API。
 	void AddActivatedDeviceCount(int amount = 1);
 	// ゴール接触イベントが実装されたら、ゴール側から到達状態を通知する。
 	void SetReachedGoal(bool reached);
@@ -38,9 +76,19 @@ public: /// ---------- メンバ関数 ---------- ///
 	// 防衛対象の破壊イベントが接続されたら、対象側から失敗状態を通知する。
 	void SetDefenseTargetDestroyed(bool destroyed);
 
+	void SetStatusChangedCallback(StatusChangedCallback callback) { statusChangedCallback_ = std::move(callback); }
+	static const char* GetStatusDebugName(Status status);
+
 private: /// ---------- メンバ関数 ---------- ///
 
 	int GetRequiredDeviceCount() const;
+	bool EvaluateCleared() const;
+	bool EvaluateFailed() const;
+	void RefreshOutcome();
+	void TransitionTo(Status nextStatus);
+	void RefreshSnapshot();
+	std::string BuildActiveDetail() const;
+	static const char* GetObjectiveTitle(GamePlayStageContext::StageObjectiveType type);
 
 private: /// ---------- メンバ変数 ---------- ///
 
@@ -58,4 +106,10 @@ private: /// ---------- メンバ変数 ---------- ///
 	bool reachedGoal_ = false;
 	bool bossDefeated_ = false;
 	bool defenseTargetDestroyed_ = false;
+	bool allWavesCleared_ = false;
+
+	Status status_ = Status::Inactive;
+	Snapshot snapshot_{};
+	std::unordered_set<std::string> activatedDeviceIds_;
+	StatusChangedCallback statusChangedCallback_;
 };
