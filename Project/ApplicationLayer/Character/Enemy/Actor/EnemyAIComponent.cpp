@@ -60,7 +60,7 @@ namespace Ken4lowEngine
 		settings.cellSize = 1.5f;
 		settings.agentRadius = 0.9f;
 		settings.agentHalfHeight = 2.0f;
-		settings.floorHeightTolerance = 1.25f;
+		settings.floorHeightTolerance = 3.1f; // 2.8m以下の遮蔽物上から地面へ降りる経路も同じNavigation層として探索する。
 		settings.searchRangeCells = 32;
 		settings.maxExpandedNodes = 6000;
 		settings.waypointReachDistance = 0.85f;
