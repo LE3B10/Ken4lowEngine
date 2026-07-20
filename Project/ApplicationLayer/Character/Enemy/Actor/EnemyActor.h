@@ -45,8 +45,8 @@ namespace Ken4lowEngine
 			rigidbody.SetUseGravity(true);
 			rigidbody.SetSleepEnabled(false);
 			rigidbody.SetRestitution(0.0f);
-			rigidbody.SetStaticFriction(0.8f);
-			rigidbody.SetDynamicFriction(0.35f); // 通常敵は立位を保ちつつ床・段差へ物理的に接地させる。
+			rigidbody.SetStaticFriction(0.2f);
+			rigidbody.SetDynamicFriction(0.05f); // AIのMotor速度を床摩擦で毎Stepほぼ消さず、遮蔽物上でも移動を継続させる。
 		}
 
 		/// 必要なComponentを不足分だけ生成し、アーキタイプ別の基礎値を設定する。
@@ -64,6 +64,8 @@ namespace Ken4lowEngine
 
 			useGravity_ = false;
 			useWorldResolve_ = false;
+			rigidbody->SetStaticFriction(0.2f);
+			rigidbody->SetDynamicFriction(0.05f); // Prefab値が旧設定でもCharacter Motor向けの低摩擦へ毎フレーム同期する。
 			if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetMovementEnabled(true);
 			rigidbody->PostPhysicsUpdate(deltaTime);
 			if (CharacterColliderComponent* collider = GetColliderComponent()) collider->PostPhysicsUpdate(deltaTime);
