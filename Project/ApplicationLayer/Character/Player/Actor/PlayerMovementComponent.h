@@ -26,6 +26,7 @@ namespace Ken4lowEngine
 		void Initialize() override
 		{
 			CharacterMovementComponent::Initialize();
+			if (!automaticObstacleTraversalConfiguredFromJson_) ApplyAutomaticStepDefaults();
 			NormalizePlayerColliderLayout();
 			ResetTransientMovementState();
 		}
@@ -173,7 +174,9 @@ namespace Ken4lowEngine
 
 		void FromJson(const nlohmann::json& inJson) override
 		{
+			automaticObstacleTraversalConfiguredFromJson_ = inJson.contains("AutomaticObstacleTraversalEnabled");
 			CharacterMovementComponent::FromJson(inJson);
+			if (!automaticObstacleTraversalConfiguredFromJson_) ApplyAutomaticStepDefaults();
 			moveSpeed_ = Sanitize(inJson.value("MoveSpeed", moveSpeed_), 6.0f, 0.0f);
 			sprintSpeedMultiplier_ = Sanitize(inJson.value("SprintSpeedMultiplier", sprintSpeedMultiplier_), 1.55f, 1.0f);
 			reloadSpeedMultiplier_ = std::clamp(Sanitize(inJson.value("ReloadSpeedMultiplier", reloadSpeedMultiplier_), 0.65f, 0.1f), 0.1f, 1.0f);
@@ -268,6 +271,11 @@ namespace Ken4lowEngine
 		float GetReloadSpeedMultiplier() const { return reloadSpeedMultiplier_; }
 
 	private:
+		void ApplyAutomaticStepDefaults()
+		{
+			ConfigureAutomaticObstacleTraversal(true, kAutomaticStepMaxHeight, kAutomaticStepLookAheadDistance, kAutomaticStepMinimumJumpSpeed, kAutomaticStepCooldown); // 防衛拠点の1.5m級段差まで入力方向へ自動で乗り越える。
+		}
+
 		bool HandleLadderMovement(float deltaTime, RigidbodyComponent* rigidbodyComponent, Rigidbody* rigidbody)
 		{
 			if (!isInLadderArea_ || !rigidbodyComponent || !rigidbody) return false;
@@ -399,6 +407,10 @@ namespace Ken4lowEngine
 		static constexpr float kColliderHalfWidth = 0.45f;
 		static constexpr float kColliderHalfHeight = 0.90f;
 		static constexpr float kColliderHalfDepth = 0.45f;
+		static constexpr float kAutomaticStepMaxHeight = 1.60f;
+		static constexpr float kAutomaticStepLookAheadDistance = 0.65f;
+		static constexpr float kAutomaticStepMinimumJumpSpeed = 4.20f;
+		static constexpr float kAutomaticStepCooldown = 0.35f;
 		float moveInputX_ = 0.0f;
 		float moveInputZ_ = 0.0f;
 		float moveSpeed_ = 6.0f;
@@ -418,6 +430,7 @@ namespace Ken4lowEngine
 		bool isInLadderArea_ = false;
 		bool isClimbingLadder_ = false;
 		bool ladderDetachLocked_ = false;
+		bool automaticObstacleTraversalConfiguredFromJson_ = false;
 		bool fallTracking_ = false;
 		bool wasGrounded_ = false;
 		float fallStartY_ = 0.0f;
