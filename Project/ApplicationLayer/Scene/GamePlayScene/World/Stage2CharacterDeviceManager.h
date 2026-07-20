@@ -5,6 +5,7 @@
 #include "ApplicationLayer/Scene/GamePlayScene/Core/GamePlayStageContext.h"
 #include "Stage2DeviceActor.h"
 #include "Stage2HiddenPassageActor.h"
+#include "Stage3DefenseRuntime.h"
 
 #include <ActorWorld.h>
 #include <Input.h>
@@ -17,7 +18,7 @@
 #include <string>
 #include <vector>
 
-/// Stage 2装置をCharacterWorldのActorWorldへ生成し、探索戦闘・隠し通路・Objective通知を管理する。
+/// Stage 2装置とStage 3防衛対象を既存CharacterWorldのActorWorldへ生成し、Objective通知を管理する。
 class Stage2CharacterDeviceManager final
 {
 public:
@@ -29,10 +30,14 @@ public:
 	};
 
 	static constexpr const char* GetBossArenaEnteredEventId() { return "__Stage2BossArenaEntered"; }
+	static constexpr const char* GetDefenseTargetDestroyedEventId() { return Stage3DefenseRuntime::GetDestroyedEventId(); }
 
 	void Initialize(const GamePlayStageContext& stageContext)
 	{
 		Finalize();
+		defenseRuntime_.Initialize(stageContext);
+		if (defenseRuntime_.IsActive()) return;
+
 		const auto rule = stageContext.GetCurrentStageRule();
 		active_ = rule.objectiveType == GamePlayStageContext::StageObjectiveType::ActivateDevices;
 		if (!active_) return;
@@ -52,6 +57,7 @@ public:
 
 	void Finalize()
 	{
+		defenseRuntime_.Finalize();
 		for (Stage2DeviceActor* device : devices_)
 		{
 			if (device) device->Destroy();
@@ -80,6 +86,15 @@ public:
 		const std::function<void(const std::string&)>& onActivated)
 	{
 		prompt_ = {};
+		if (defenseRuntime_.IsActive())
+		{
+			defenseRuntime_.Update(player, characters, deltaTime, onActivated);
+			const auto& defensePrompt = defenseRuntime_.GetPromptSnapshot();
+			prompt_.visible = defensePrompt.visible;
+			prompt_.text = defensePrompt.text;
+			prompt_.normalizedProgress = defensePrompt.normalizedProgress;
+			return; // Stage 3は装置操作を行わず、防衛コアと増援Runtimeだけを更新する。
+		}
 		if (!active_) return;
 		K4E::ActorWorld& actorWorld = characters.GetActorWorld();
 		SpawnDevicesIfNeeded(actorWorld);
@@ -125,6 +140,7 @@ public:
 
 	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
 	{
+		defenseRuntime_.UpdateShadowMatrix(lightViewProjection);
 		for (Stage2DeviceActor* device : devices_)
 		{
 			if (device) device->UpdateShadowMatrix(lightViewProjection);
@@ -143,8 +159,10 @@ public:
 	bool AreAllDevicesActivated() const { return active_ && requiredDeviceCount_ > 0 && GetActivatedCount() >= requiredDeviceCount_; }
 	bool IsHiddenPassageOpen() const { return hiddenGate_ && hiddenGate_->IsOpen(); }
 	bool HasEnteredBossArena() const { return bossArenaEntered_; }
-	bool IsActive() const { return active_; }
+	bool IsActive() const { return active_ || defenseRuntime_.IsActive(); }
+	bool IsDefenseActive() const { return defenseRuntime_.IsActive(); }
 	const K4E::Vector3& GetBossArenaPosition() const { return bossArenaPosition_; }
+	Stage3DefenseTargetActor* GetDefenseTarget() const { return defenseRuntime_.GetTarget(); }
 
 private:
 	static void ConfigureMineLighting()
@@ -252,7 +270,7 @@ private:
 		auto& gate = actorWorld.SpawnActor<Stage2HiddenPassageActor>();
 		gate.Configure({ 0.0f, 6.0f, 119.0f }, 10.5f);
 		gate.Update(0.0f);
-		hiddenGate_ = &gate; // GateもActorWorld所有にして描画・Shadow・Physicsの寿命を装置とそろえる。
+		hiddenGate_ = &gate;
 	}
 
 	Stage2DeviceActor* FindNearestDevice(const IPlayerRuntime* player) const
@@ -405,6 +423,7 @@ private:
 		}
 	}
 
+	Stage3DefenseRuntime defenseRuntime_{};
 	std::vector<Stage2DeviceActor*> devices_;
 	Stage2HiddenPassageActor* hiddenGate_ = nullptr;
 	std::vector<GamePlayStageContext::DevicePointInfo> pendingDevicePoints_;
