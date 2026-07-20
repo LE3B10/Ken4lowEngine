@@ -211,18 +211,23 @@ namespace Ken4lowEngine
 
 		float nearestEnterT = std::numeric_limits<float>::max();
 		float selectedClimbHeight = 0.0f;
-		for (const AABB& obstacle : stage->GetNavigationObstacleAABBs())
-		{
-			const float climbHeight = obstacle.max.y - footY;
-			if (climbHeight <= 0.12f || climbHeight > automaticObstacleMaxClimbHeight_) continue;
-			if (obstacle.min.y > footY + 0.45f) continue;
+		const auto findNearestClimbSurface = [&](const std::vector<AABB>& surfaces)
+			{
+				for (const AABB& obstacle : surfaces)
+				{
+					const float climbHeight = obstacle.max.y - footY;
+					if (climbHeight <= 0.12f || climbHeight > automaticObstacleMaxClimbHeight_) continue;
+					if (obstacle.min.y > footY + 0.45f) continue;
 
-			float enterT = 0.0f;
-			if (!SegmentIntersectsExpandedAabbXZ(current, lookAheadEnd, obstacle, agentRadius + 0.08f, enterT)) continue;
-			if (enterT >= nearestEnterT) continue;
-			nearestEnterT = enterT;
-			selectedClimbHeight = climbHeight;
-		}
+					float enterT = 0.0f;
+					if (!SegmentIntersectsExpandedAabbXZ(current, lookAheadEnd, obstacle, agentRadius + 0.08f, enterT)) continue;
+					if (enterT >= nearestEnterT) continue;
+					nearestEnterT = enterT;
+					selectedClimbHeight = climbHeight;
+				}
+			};
+		findNearestClimbSurface(stage->GetNavigationObstacleAABBs());
+		findNearestClimbSurface(stage->GetFloorAABBs()); // 高さを持つFloorも段差候補へ含め、Stage3の指令台へ自動で乗れるようにする。
 
 		if (selectedClimbHeight <= 0.0f) return false;
 		const float requiredJumpSpeed = std::sqrt(2.0f * kGravityAcceleration * (selectedClimbHeight + 0.45f));
