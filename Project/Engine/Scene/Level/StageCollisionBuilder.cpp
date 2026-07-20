@@ -54,21 +54,45 @@ namespace Ken4lowEngine
 			return ToLower(name).find("ladder") != std::string::npos;
 		}
 
+		std::string ResolveCollisionType(const ObjectData& data)
+		{
+			if (!data.collider.collisionType.empty()) return data.collider.collisionType;
+			const std::string loweredName = ToLower(data.name);
+			if (loweredName.find("ladder") != std::string::npos) return "Ladder";
+			if (loweredName.find("floor") != std::string::npos ||
+				loweredName.find("ground") != std::string::npos ||
+				loweredName.find("catwalk") != std::string::npos ||
+				loweredName.find("platform") != std::string::npos ||
+				loweredName.find("bridge") != std::string::npos ||
+				loweredName.find("road") != std::string::npos ||
+				loweredName.find("path") != std::string::npos)
+			{
+				return "Floor";
+			}
+			return "Obstacle"; // collision_type未出力のStage3 BOXもA*と自動乗越へ接続する。
+		}
+
 		bool IsWalkableObstacleSurface(const ObjectData& data)
 		{
 			const std::string loweredName = ToLower(data.name);
 			const bool lowCover = loweredName.find("cover") != std::string::npos ||
 				loweredName.find("rubble") != std::string::npos ||
-				loweredName.find("brokenbeam") != std::string::npos;
+				loweredName.find("brokenbeam") != std::string::npos ||
+				loweredName.find("crate") != std::string::npos ||
+				loweredName.find("box") != std::string::npos ||
+				loweredName.find("block") != std::string::npos ||
+				loweredName.find("prop") != std::string::npos ||
+				loweredName.find("barricade") != std::string::npos;
 			const bool structural = loweredName.find("wall") != std::string::npos ||
 				loweredName.find("gate") != std::string::npos ||
 				loweredName.find("pillar") != std::string::npos ||
 				loweredName.find("ceiling") != std::string::npos ||
 				loweredName.find("rockdetail") != std::string::npos ||
 				loweredName.find("support") != std::string::npos ||
+				loweredName.find("container") != std::string::npos ||
 				loweredName.find("dome") != std::string::npos ||
 				(loweredName.find("beam") != std::string::npos && !lowCover);
-			return lowCover && !structural; // 低い遮蔽物だけを登れる面にし、通路壁・ドーム壁・天井の上へ立てなくする。
+			return lowCover && !structural; // 箱・Prop・低いCoverは登れ、外壁やContainerは必ず迂回させる。
 		}
 	}
 
@@ -118,7 +142,7 @@ namespace Ken4lowEngine
 			collider->SetDebugName(data.name);
 			const AABB aabb = BuildAABBFromRotatedOBB(centerW, halfW, colliderRotation);
 			const OBB colliderObb = collider->GetOBB();
-			const std::string& collisionType = data.collider.collisionType;
+			const std::string collisionType = ResolveCollisionType(data);
 			const bool isLadder = collisionType == "Ladder" || ContainsLadderName(data.name);
 			if (isLadder)
 			{
