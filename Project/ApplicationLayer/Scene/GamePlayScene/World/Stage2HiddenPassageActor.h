@@ -1,7 +1,10 @@
 #pragma once
 
 #include <Actor.h>
+#include <CameraManager.h>
 #include <ColliderComponent.h>
+#include <Input.h>
+#include <LightManager.h>
 #include <Object3D.h>
 #include <PhysicsCollisionLayer.h>
 #include <RigidbodyComponent.h>
@@ -9,6 +12,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <memory>
 #include <string>
 
@@ -24,6 +28,7 @@ public:
 	{
 		K4E::SceneComponent::Initialize();
 		gateObject_ = CreateCube();
+		backSealObject_ = CreateCube();
 		leftSignalObject_ = CreateCube();
 		rightSignalObject_ = CreateCube();
 		SyncVisuals();
@@ -46,6 +51,7 @@ public:
 	void Draw() override
 	{
 		if (gateObject_) gateObject_->Draw();
+		if (backSealObject_) backSealObject_->Draw();
 		if (leftSignalObject_) leftSignalObject_->Draw();
 		if (rightSignalObject_) rightSignalObject_->Draw();
 	}
@@ -53,12 +59,14 @@ public:
 	void DrawShadow() override
 	{
 		if (gateObject_) gateObject_->DrawShadow();
+		if (backSealObject_) backSealObject_->DrawShadow();
 	}
 
 	void Finalize() override
 	{
 		rightSignalObject_.reset();
 		leftSignalObject_.reset();
+		backSealObject_.reset();
 		gateObject_.reset();
 		K4E::SceneComponent::Finalize();
 	}
@@ -71,6 +79,7 @@ public:
 	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
 	{
 		if (gateObject_) gateObject_->UpdateShadowMatrix(lightViewProjection);
+		if (backSealObject_) backSealObject_->UpdateShadowMatrix(lightViewProjection);
 	}
 
 private:
@@ -100,10 +109,19 @@ private:
 		if (gateObject_)
 		{
 			gateObject_->SetTranslate(position);
-			gateObject_->SetScale({ 8.0f, 4.0f, 1.0f });
+			gateObject_->SetScale({ 13.8f, 6.5f, 1.6f });
 			gateObject_->SetColor({ 0.19f, 0.18f, 0.17f, 1.0f });
 			gateObject_->SetEmissiveFactor({ 0.015f, 0.012f, 0.008f, 1.0f });
 			gateObject_->Update();
+		}
+		if (backSealObject_)
+		{
+			backSealObject_->SetTranslate(position + K4E::Vector3{ 0.0f, -0.15f, 1.85f });
+			backSealObject_->SetRotate({ 0.04f, 0.02f, -0.025f });
+			backSealObject_->SetScale({ 13.35f, 6.25f, 1.15f });
+			backSealObject_->SetColor({ 0.125f, 0.12f, 0.115f, 1.0f });
+			backSealObject_->SetEmissiveFactor({ 0.0f, 0.0f, 0.0f, 1.0f });
+			backSealObject_->Update(); // 二重の岩壁で開放前の誘導路と奥側ライトを完全に遮る。
 		}
 
 		const K4E::Vector4 signalColor = openProgress_ > 0.98f
@@ -116,8 +134,8 @@ private:
 		{
 			K4E::Object3D* signal = side < 0 ? leftSignalObject_.get() : rightSignalObject_.get();
 			if (!signal) continue;
-			signal->SetTranslate(position + K4E::Vector3{ static_cast<float>(side) * 6.5f, 0.0f, -1.08f });
-			signal->SetScale({ 0.18f, 2.8f, 0.12f });
+			signal->SetTranslate(position + K4E::Vector3{ static_cast<float>(side) * 11.4f, 0.0f, -1.72f });
+			signal->SetScale({ 0.18f, 3.4f, 0.12f });
 			signal->SetColor(signalColor);
 			signal->SetEmissiveFactor(signalEmissive);
 			signal->Update();
@@ -125,6 +143,7 @@ private:
 	}
 
 	std::unique_ptr<K4E::Object3D> gateObject_;
+	std::unique_ptr<K4E::Object3D> backSealObject_;
 	std::unique_ptr<K4E::Object3D> leftSignalObject_;
 	std::unique_ptr<K4E::Object3D> rightSignalObject_;
 	float visualTimer_ = 0.0f;
@@ -144,6 +163,7 @@ public:
 			K4E::Actor::Initialize();
 			visualComponent_ = GetComponent<Stage2HiddenPassageVisualComponent>();
 			colliderComponent_ = GetComponent<K4E::ColliderComponent>();
+			EnsureFlashlightLight();
 			return;
 		}
 
@@ -157,7 +177,7 @@ public:
 		collider.SetName("Stage 2 Hidden Gate Collider");
 		collider.SetUpdateOrder(-20);
 		collider.SetShapeType(K4E::ECollisionShapeType::OBB);
-		collider.SetHalfSize({ 8.0f, 4.0f, 1.0f });
+		collider.SetHalfSize({ 13.6f, 6.5f, 1.8f });
 		collider.SetCollisionLayer(K4E::PhysicsCollisionLayer::WorldStatic);
 		collider.SetCollisionTag("Obstacle");
 		collider.SetIsTrigger(false);
@@ -172,12 +192,13 @@ public:
 		rigidbody.SetSleepEnabled(false);
 
 		K4E::Actor::Initialize();
+		EnsureFlashlightLight();
 	}
 
 	void Configure(const K4E::Vector3& closedPosition, float openOffsetY = 10.5f)
 	{
 		closedPosition_ = closedPosition;
-		openPosition_ = closedPosition + K4E::Vector3{ 0.0f, std::max(8.5f, openOffsetY), 0.0f };
+		openPosition_ = closedPosition + K4E::Vector3{ 0.0f, std::max(16.0f, openOffsetY), 0.0f };
 		SetName("Stage2HiddenPassageGate");
 		SetLayer("StageObjective");
 		AddTag("Stage2HiddenPassage");
@@ -187,6 +208,7 @@ public:
 
 	void Update(float deltaTime) override
 	{
+		UpdatePlayerFlashlight();
 		if (opening_ && openProgress_ < 1.0f)
 		{
 			openProgress_ = std::min(1.0f, openProgress_ + std::max(0.0f, deltaTime) / std::max(0.05f, openDuration_));
@@ -230,11 +252,52 @@ private:
 		if (K4E::Collider* collider = colliderComponent_->GetCollider()) collider->SetEnabled(false);
 	}
 
+	void EnsureFlashlightLight()
+	{
+		auto* lightManager = K4E::LightManager::GetInstance();
+		if (!lightManager) return;
+		auto& lights = lightManager->GetMutablePunctualLightsForEditor();
+		if (flashlightLightIndex_ < lights.size()) return;
+
+		K4E::LightManager::PunctualLightGPU flashlight{};
+		flashlight.lightType = 3u;
+		flashlight.color = { 0.92f, 0.96f, 1.0f, 1.0f };
+		flashlight.intensity = 3.6f;
+		flashlight.distance = 86.0f;
+		flashlight.decay = 1.10f;
+		flashlight.cosFalloffStart = 0.95f;
+		flashlight.cosAngle = 0.78f;
+		flashlight.direction = { 0.0f, 0.0f, 1.0f };
+		flashlight.enabled = 1u;
+		flashlightLightIndex_ = lights.size();
+		lights.push_back(flashlight); // Stage 2だけにPlayer視点追従の懐中電灯を一灯追加する。
+	}
+
+	void UpdatePlayerFlashlight()
+	{
+		EnsureFlashlightLight();
+		auto* lightManager = K4E::LightManager::GetInstance();
+		auto* cameraManager = K4E::CameraManager::GetInstance();
+		auto* input = K4E::Input::GetInstance();
+		if (!lightManager || !cameraManager || !input) return;
+		if (input->TriggerKey(DIK_F)) flashlightEnabled_ = !flashlightEnabled_;
+
+		auto& lights = lightManager->GetMutablePunctualLightsForEditor();
+		if (flashlightLightIndex_ >= lights.size()) return;
+		K4E::LightManager::PunctualLightGPU& flashlight = lights[flashlightLightIndex_];
+		const K4E::Vector3 forward = K4E::Vector3::NormalizeSafe(cameraManager->GetActiveCameraForward(), { 0.0f, 0.0f, 1.0f });
+		flashlight.position = cameraManager->GetActiveCameraPosition() + forward * 0.35f + K4E::Vector3{ 0.0f, -0.10f, 0.0f };
+		flashlight.direction = forward;
+		flashlight.enabled = flashlightEnabled_ ? 1u : 0u;
+	}
+
 	Stage2HiddenPassageVisualComponent* visualComponent_ = nullptr;
 	K4E::ColliderComponent* colliderComponent_ = nullptr;
 	K4E::Vector3 closedPosition_{ 0.0f, 6.0f, 119.0f };
-	K4E::Vector3 openPosition_{ 0.0f, 16.5f, 119.0f };
+	K4E::Vector3 openPosition_{ 0.0f, 22.0f, 119.0f };
+	size_t flashlightLightIndex_ = std::numeric_limits<size_t>::max();
 	float openDuration_ = 2.15f;
 	float openProgress_ = 0.0f;
+	bool flashlightEnabled_ = true;
 	bool opening_ = false;
 };
