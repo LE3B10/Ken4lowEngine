@@ -64,7 +64,7 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		observedPhase_ = phase ? ToBossPhase(phase->GetCurrentPhase()) : BossPhase::Phase1;
+		observedPhase_ = phase ? phase->GetCurrentBossPhase() : BossPhase::Phase1;
 		const BossBrainPhaseTuning phaseTuning = GetPhaseTuning(observedPhase_);
 		appliedMoveSpeed_ = moveSpeed_ * phaseTuning.moveMultiplier;
 		appliedRotateSpeed_ = rotateSpeed_ * phaseTuning.rotateMultiplier;
