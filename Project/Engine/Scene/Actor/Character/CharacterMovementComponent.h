@@ -57,6 +57,12 @@ namespace Ken4lowEngine
 		float GetMaxDriveForce() const { return maxDriveForce_; }
 		float GetMaxBrakingForce() const { return maxBrakingForce_; }
 
+		/// 進行方向の低いStage障害物を検知した時だけ、Rigidbodyへ上向き速度を与える設定をまとめて適用する。
+		void ConfigureAutomaticObstacleTraversal(bool enabled, float maxClimbHeight = 2.8f, float lookAheadDistance = 2.4f, float minimumJumpSpeed = 6.5f, float cooldown = 0.55f);
+
+		bool IsAutomaticObstacleTraversalEnabled() const { return automaticObstacleTraversalEnabled_; }
+		float GetAutomaticObstacleMaxClimbHeight() const { return automaticObstacleMaxClimbHeight_; }
+
 		/// Componentの移動反映を切り替える。
 		void SetMovementEnabled(bool enabled) { movementEnabled_ = enabled; }
 
@@ -68,6 +74,9 @@ namespace Ken4lowEngine
 		virtual void ApplyMovement(float deltaTime);
 
 	private:
+		/// 前方の乗越可能な障害物を探し、必要な上向き速度を現在の物理速度へ加える。
+		bool TryStartAutomaticObstacleTraversal(Vector3& physicalVelocity, const Vector3& targetVelocity, float deltaTime);
+
 		/// JSONとDetailsで共有する編集プロパティ一覧を生成する。
 		std::vector<ComponentProperty> CreateProperties();
 
@@ -75,6 +84,12 @@ namespace Ken4lowEngine
 		Vector3 velocity_{}; // Rigidbody使用時は現在速度ではなくMotorの目標速度を保持する。
 		float maxDriveForce_ = 80.0f;
 		float maxBrakingForce_ = 120.0f;
+		float automaticObstacleMaxClimbHeight_ = 2.8f;
+		float automaticObstacleLookAheadDistance_ = 2.4f;
+		float automaticObstacleMinimumJumpSpeed_ = 6.5f;
+		float automaticObstacleCooldown_ = 0.55f;
+		float automaticObstacleCooldownTimer_ = 0.0f;
+		bool automaticObstacleTraversalEnabled_ = false;
 		bool movementEnabled_ = true;
 	};
 } // namespace Ken4lowEngine
