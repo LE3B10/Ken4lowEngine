@@ -160,12 +160,18 @@ namespace Ken4lowEngine
 			}
 			else if (collisionType == "Obstacle" || collisionType == "Pillar" || collisionType == "Fence" || collisionType == "Tree")
 			{
+				const bool walkableSurface = IsWalkableObstacleSurface(data);
+				const float obstacleHeight = std::max(0.0f, aabb.max.y - aabb.min.y);
+				AABB navigationAabb = aabb;
+				if (!walkableSurface) navigationAabb.max.y = std::max(navigationAabb.max.y, navigationAabb.min.y + 8.0f);
+
 				result.worldAABBs.push_back(aabb);
 				result.wallObstacleAABBs.push_back(aabb);
-				result.navigationObstacleAABBs.push_back(aabb);
+				result.navigationObstacleAABBs.push_back(navigationAabb);
 				result.wallObstacleOBBs.push_back(colliderObb);
-				result.wallObstacleWalkable.push_back(IsWalkableObstacleSurface(data) ? 1u : 0u);
+				result.wallObstacleWalkable.push_back(walkableSurface ? 1u : 0u);
 				result.navigationObstacleOBBs.push_back(colliderObb);
+				if (walkableSurface && obstacleHeight <= 4.5f) result.floorAABBs.push_back(aabb); // 登った後の上面をA*の床支持として扱い、頂上で停止しないようにする。
 			}
 			else
 			{
