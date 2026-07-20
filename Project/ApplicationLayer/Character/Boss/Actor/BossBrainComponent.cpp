@@ -18,6 +18,30 @@
 
 namespace Ken4lowEngine
 {
+	namespace
+	{
+		struct BossBrainPhaseTuning
+		{
+			float moveMultiplier;
+			float rotateMultiplier;
+			float approachDistanceMultiplier;
+		};
+
+		constexpr BossBrainPhaseTuning GetPhaseTuning(BossPhase phase)
+		{
+			switch (phase)
+			{
+			case BossPhase::Phase3:
+				return { 1.45f, 1.35f, 0.82f };
+			case BossPhase::Phase2:
+				return { 1.15f, 1.10f, 1.0f };
+			case BossPhase::Phase1:
+			default:
+				return { 1.0f, 1.0f, 1.0f };
+			}
+		}
+	}
+
 	void BossBrainComponent::Update(float deltaTime)
 	{
 		auto* owner = dynamic_cast<CharacterActor*>(GetOwner());
@@ -40,11 +64,10 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		observedPhase_ = phase ? phase->GetCurrentPhase() : 1;
-		const float phaseMoveMultiplier = observedPhase_ >= 3 ? 1.45f : (observedPhase_ == 2 ? 1.15f : 1.0f);
-		const float phaseRotateMultiplier = observedPhase_ >= 3 ? 1.35f : (observedPhase_ == 2 ? 1.10f : 1.0f);
-		appliedMoveSpeed_ = moveSpeed_ * phaseMoveMultiplier;
-		appliedRotateSpeed_ = rotateSpeed_ * phaseRotateMultiplier;
+		observedPhase_ = phase ? phase->GetCurrentBossPhase() : BossPhase::Phase1;
+		const BossBrainPhaseTuning phaseTuning = GetPhaseTuning(observedPhase_);
+		appliedMoveSpeed_ = moveSpeed_ * phaseTuning.moveMultiplier;
+		appliedRotateSpeed_ = rotateSpeed_ * phaseTuning.rotateMultiplier;
 
 		const Vector3 current = root->GetWorldPosition();
 		const Vector3 toTarget = targetActor_->GetTargetPosition() - current;
@@ -71,7 +94,7 @@ namespace Ken4lowEngine
 			return;
 		}
 
-		const float phaseApproachDistance = observedPhase_ >= 3 ? approachDistance_ * 0.82f : approachDistance_;
+		const float phaseApproachDistance = approachDistance_ * phaseTuning.approachDistanceMultiplier;
 		if (distanceToTarget_ > phaseApproachDistance)
 		{
 			const float length = std::max(distanceToTarget_, 0.0001f);
@@ -92,7 +115,7 @@ namespace Ken4lowEngine
 	{
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("ボス行動判断");
-		ImGui::Text("状態: %s / Phase: %d / Target距離: %.2f", stateName_.c_str(), observedPhase_, distanceToTarget_);
+		ImGui::Text("状態: %s / Phase: %d / Target距離: %.2f", stateName_.c_str(), ToInt(observedPhase_), distanceToTarget_);
 		ImGui::Text("移動: %.2f -> %.2f / 旋回: %.2f -> %.2f", moveSpeed_, appliedMoveSpeed_, rotateSpeed_, appliedRotateSpeed_);
 		ImGui::Text("接近停止: %.2f", approachDistance_);
 #endif
@@ -133,7 +156,7 @@ namespace Ken4lowEngine
 		distanceToTarget_ = 0.0f;
 		appliedMoveSpeed_ = moveSpeed_;
 		appliedRotateSpeed_ = rotateSpeed_;
-		observedPhase_ = 1;
+		observedPhase_ = BossPhase::Phase1;
 		stateName_ = "Idle"; // 再戦時はPhase 1の速度表示へ戻し、前回の高速化状態を残さない。
 	}
 } // namespace Ken4lowEngine

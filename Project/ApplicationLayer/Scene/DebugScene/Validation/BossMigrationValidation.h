@@ -37,6 +37,7 @@ private:
 	bool requestHeadDamage_ = false;
 	bool requestBodyDamage_ = false;
 	bool requestDeathPositionTest_ = false;
+	bool requestSelectionRuleValidation_ = false;
 	bool requestReset_ = false;
 	bool requestSave_ = false;
 	bool requestReload_ = false;

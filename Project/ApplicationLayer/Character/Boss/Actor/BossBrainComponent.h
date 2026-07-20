@@ -1,5 +1,7 @@
 #pragma once
 
+#include "BossAttackTypes.h"
+
 #include <ActorComponent.h>
 
 #include <string>
@@ -50,7 +52,7 @@ namespace Ken4lowEngine
 		float distanceToTarget_ = 0.0f;
 		float appliedMoveSpeed_ = 0.0f;
 		float appliedRotateSpeed_ = 0.0f;
-		int observedPhase_ = 1;
+		BossPhase observedPhase_ = BossPhase::Phase1;
 		bool behaviorEnabled_ = true;
 		std::string stateName_ = "Idle";
 	};

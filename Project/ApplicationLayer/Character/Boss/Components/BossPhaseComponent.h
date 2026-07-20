@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ApplicationLayer/Character/Boss/Actor/BossAttackTypes.h"
+
 #include <ActorComponent.h>
 
 #include <string>
@@ -28,7 +30,11 @@ namespace Ken4lowEngine
 		void ToJson(nlohmann::json& outJson) const override;
 		void FromJson(const nlohmann::json& inJson) override;
 
-		int GetCurrentPhase() const { return currentPhase_; }
+		/// 現在フェーズを型付きで返す。
+		BossPhase GetCurrentBossPhase() const { return currentPhase_; }
+
+		/// 既存表示・外部APIとの互換用にフェーズ番号を返す。
+		int GetCurrentPhase() const { return ToInt(currentPhase_); }
 		unsigned int GetPhaseRevision() const { return phaseRevision_; }
 		float GetConfiguredMaxHealth() const { return configuredMaxHealth_; }
 		bool IsPhaseInvulnerabilityActive() const { return phaseInvulnerabilityActive_; }
@@ -38,7 +44,7 @@ namespace Ken4lowEngine
 		void ResetPhase();
 
 	private:
-		int EvaluatePhase(float healthRatio) const;
+		BossPhase EvaluatePhase(float healthRatio) const;
 		void SanitizeSettings();
 		void ApplyConfiguredHealthCapacity(CharacterHealthComponent& health);
 		void BeginPhaseInvulnerability(CharacterHealthComponent& health);
@@ -51,7 +57,7 @@ namespace Ken4lowEngine
 		float phase3HealthRatio_ = 0.35f;
 		float phaseInvulnerabilityDuration_ = 1.20f;
 		float phaseInvulnerabilityRemaining_ = 0.0f;
-		int currentPhase_ = 1;
+		BossPhase currentPhase_ = BossPhase::Phase1;
 		unsigned int phaseRevision_ = 0;
 		bool healthCapacityApplied_ = false;
 		bool phaseInvulnerabilityActive_ = false;

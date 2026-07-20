@@ -91,12 +91,13 @@ void BossMigrationValidation::DrawImGui()
 	ImGui::SameLine();
 	if (ImGui::Button("Bodyへ100基礎Damage")) requestBodyDamage_ = true;
 	if (ImGui::Button("撃破地点固定テスト")) requestDeathPositionTest_ = true;
+	if (ImGui::Button("全フェーズ攻撃選択を検証")) requestSelectionRuleValidation_ = true;
 	ImGui::SameLine();
 	if (ImGui::Button("Boss Reset")) requestReset_ = true;
 	if (ImGui::Button("Boss JSON保存")) requestSave_ = true;
 	ImGui::SameLine();
 	if (ImGui::Button("Boss JSON再読込")) requestReload_ = true;
-	ImGui::TextDisabled("撃破テスト後も崩壊位置とDeath positionが一致することを確認します。");
+	ImGui::TextDisabled("全フェーズ検証はPhase 1〜3とNear/Middle/Farの全候補登録を確認します。");
 	ImGui::End();
 #endif
 }
@@ -160,6 +161,16 @@ void BossMigrationValidation::ProcessRequests()
 			lastSucceeded_ = result.killed && K4E::Vector3::LengthSquared(after - before) <= 0.0001f;
 			lastMessage_ = lastSucceeded_ ? "Bossは撃破地点を維持したまま死亡演出へ移行しました。" : "Bossの撃破地点固定に失敗しました。";
 		}
+	}
+	if (requestSelectionRuleValidation_)
+	{
+		requestSelectionRuleValidation_ = false;
+		const K4E::BossAttackComponent* attack = boss_ ? boss_->GetBossAttackComponent() : nullptr;
+		std::string validationSummary;
+		lastSucceeded_ = attack && attack->ValidateSelectionRules(validationSummary);
+		lastMessage_ = attack
+			? (lastSucceeded_ ? "攻撃選択ルール検証OK: " : "攻撃選択ルール検証NG: ") + validationSummary
+			: "BossAttackComponentが見つからないため検証できませんでした。"; // DebugScene上で全フェーズ・全距離帯の登録漏れを即座に確認する。
 	}
 	if (requestReset_)
 	{
