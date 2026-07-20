@@ -191,17 +191,20 @@ namespace Ken4lowEngine
 	{
 		automaticObstacleCooldownTimer_ = std::max(0.0f, automaticObstacleCooldownTimer_ - std::max(0.0f, deltaTime));
 		if (!automaticObstacleTraversalEnabled_ || !movementEnabled_ || automaticObstacleCooldownTimer_ > 0.0f) return false;
-		if (std::abs(physicalVelocity.y) > 1.2f || automaticObstacleMaxClimbHeight_ <= 0.0f) return false; // 上昇中と落下中は再ジャンプせず、着地後だけ次の障害物を判定する。
+		if (automaticObstacleMaxClimbHeight_ <= 0.0f) return false;
 
 		const float horizontalSpeed = Vector3::LengthXZ(targetVelocity);
 		if (horizontalSpeed <= kDirectionEpsilon) return false;
 		const Vector3 direction{ targetVelocity.x / horizontalSpeed, 0.0f, targetVelocity.z / horizontalSpeed };
 
 		Actor* owner = GetOwner();
+		RigidbodyComponent* rigidbodyComponent = owner ? owner->GetComponent<RigidbodyComponent>() : nullptr;
+		Rigidbody* rigidbody = rigidbodyComponent ? rigidbodyComponent->GetRigidbody() : nullptr;
 		const CharacterColliderComponent* collider = owner ? owner->GetComponent<CharacterColliderComponent>() : nullptr;
 		const SceneComponent* root = owner ? owner->GetRootComponent() : nullptr;
 		Stage* stage = Stage::GetActiveRuntimeStage();
-		if (!owner || (!collider && !root) || !stage) return false;
+		if (!owner || !rigidbody || !rigidbody->IsGrounded() || (!collider && !root) || !stage) return false; // 壁へ触れた空中状態では再ジャンプせず、接地中の最初の一回だけ乗越を開始する。
+		if (std::abs(physicalVelocity.y) > 1.2f) return false;
 
 		const Vector3 halfSize = collider ? collider->GetHalfSize() : Vector3{ 0.7f, 2.0f, 0.7f };
 		const Vector3 current = collider ? collider->GetWorldPosition() : root->GetWorldPosition();
@@ -211,23 +214,27 @@ namespace Ken4lowEngine
 
 		float nearestEnterT = std::numeric_limits<float>::max();
 		float selectedClimbHeight = 0.0f;
-		const auto findNearestClimbSurface = [&](const std::vector<AABB>& surfaces)
+		const auto considerSurface = [&](const AABB& obstacle)
 			{
-				for (const AABB& obstacle : surfaces)
-				{
-					const float climbHeight = obstacle.max.y - footY;
-					if (climbHeight <= 0.12f || climbHeight > automaticObstacleMaxClimbHeight_) continue;
-					if (obstacle.min.y > footY + 0.45f) continue;
+				const float climbHeight = obstacle.max.y - footY;
+				if (climbHeight <= 0.12f || climbHeight > automaticObstacleMaxClimbHeight_) return;
+				if (obstacle.min.y > footY + 0.45f) return;
 
-					float enterT = 0.0f;
-					if (!SegmentIntersectsExpandedAabbXZ(current, lookAheadEnd, obstacle, agentRadius + 0.08f, enterT)) continue;
-					if (enterT >= nearestEnterT) continue;
-					nearestEnterT = enterT;
-					selectedClimbHeight = climbHeight;
-				}
+				float enterT = 0.0f;
+				if (!SegmentIntersectsExpandedAabbXZ(current, lookAheadEnd, obstacle, agentRadius + 0.08f, enterT)) return;
+				if (enterT >= nearestEnterT) return;
+				nearestEnterT = enterT;
+				selectedClimbHeight = climbHeight;
 			};
-		findNearestClimbSurface(stage->GetNavigationObstacleAABBs());
-		findNearestClimbSurface(stage->GetFloorAABBs()); // 高さを持つFloorも段差候補へ含め、Stage3の指令台へ自動で乗れるようにする。
+
+		const auto& wallObstacles = stage->GetWallObstacleAABBs();
+		const auto& walkableFlags = stage->GetWallObstacleWalkable();
+		for (size_t index = 0; index < wallObstacles.size(); ++index)
+		{
+			if (index >= walkableFlags.size() || walkableFlags[index] == 0u) continue;
+			considerSurface(wallObstacles[index]); // 壁・木・柱は除外し、上面へ立てる低い遮蔽物だけを自動乗越の対象にする。
+		}
+		for (const AABB& floor : stage->GetFloorAABBs()) considerSurface(floor);
 
 		if (selectedClimbHeight <= 0.0f) return false;
 		const float requiredJumpSpeed = std::sqrt(2.0f * kGravityAcceleration * (selectedClimbHeight + 0.45f));
