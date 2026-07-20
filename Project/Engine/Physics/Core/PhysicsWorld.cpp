@@ -8,6 +8,9 @@
 #include "Rigidbody.h"
 
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <limits>
 
 namespace Ken4lowEngine
 {
@@ -24,22 +27,151 @@ namespace Ken4lowEngine
 		{
 			values.erase(std::remove(values.begin(), values.end(), value), values.end());
 		}
+
+		bool IsBoxShape(ECollisionShapeType shapeType)
+		{
+			return shapeType == ECollisionShapeType::AABB || shapeType == ECollisionShapeType::OBB;
+		}
+
+		OBB BuildContactBox(const Collider& collider)
+		{
+			if (collider.GetShapeType() == ECollisionShapeType::OBB) return collider.GetOBB();
+
+			const AABB aabb = collider.GetAABB();
+			OBB box{};
+			box.center = (aabb.min + aabb.max) * 0.5f;
+			box.size = (aabb.max - aabb.min) * 0.5f;
+			box.orientations[0] = { 1.0f, 0.0f, 0.0f };
+			box.orientations[1] = { 0.0f, 1.0f, 0.0f };
+			box.orientations[2] = { 0.0f, 0.0f, 1.0f };
+			return box;
+		}
+
+		float GetBoxExtent(const OBB& box, size_t axisIndex)
+		{
+			switch (axisIndex)
+			{
+			case 0: return box.size.x;
+			case 1: return box.size.y;
+			default: return box.size.z;
+			}
+		}
+
+		float ProjectBoxRadius(const OBB& box, const Vector3& axis)
+		{
+			float radius = 0.0f;
+			for (size_t i = 0; i < 3; ++i)
+			{
+				radius += std::fabs(Vector3::Dot(box.orientations[i], axis)) * GetBoxExtent(box, i);
+			}
+			return radius;
+		}
+
+		Vector3 GetBoxSupportPoint(const OBB& box, const Vector3& direction)
+		{
+			Vector3 point = box.center;
+			for (size_t i = 0; i < 3; ++i)
+			{
+				const float sign = Vector3::Dot(box.orientations[i], direction) >= 0.0f ? 1.0f : -1.0f;
+				point += box.orientations[i] * (GetBoxExtent(box, i) * sign);
+			}
+			return point;
+		}
+
+		bool BuildBoxContactData(const OBB& boxA, const OBB& boxB, Vector3& outNormal, float& outPenetration, Vector3& outPoint)
+		{
+			constexpr float kAxisEpsilonSq = 0.00000001f;
+			constexpr float kSeparationTolerance = 0.0001f;
+			const Vector3 centerDelta = boxB.center - boxA.center;
+			float minimumPenetration = std::numeric_limits<float>::max();
+			Vector3 minimumAxis{ 0.0f, 1.0f, 0.0f };
+
+			const auto testAxis = [&](const Vector3& rawAxis)
+				{
+					const float lengthSq = Vector3::LengthSquared(rawAxis);
+					if (lengthSq <= kAxisEpsilonSq) return true;
+					const Vector3 axis = rawAxis * (1.0f / std::sqrt(lengthSq));
+					const float radiusA = ProjectBoxRadius(boxA, axis);
+					const float radiusB = ProjectBoxRadius(boxB, axis);
+					const float signedDistance = Vector3::Dot(centerDelta, axis);
+					const float penetration = radiusA + radiusB - std::fabs(signedDistance);
+					if (penetration < -kSeparationTolerance) return false;
+					if (penetration < minimumPenetration)
+					{
+						minimumPenetration = std::max(0.0f, penetration);
+						minimumAxis = signedDistance >= 0.0f ? axis : axis * -1.0f;
+					}
+					return true;
+				};
+
+			for (size_t i = 0; i < 3; ++i)
+			{
+				if (!testAxis(boxA.orientations[i]) || !testAxis(boxB.orientations[i])) return false;
+			}
+			for (size_t axisA = 0; axisA < 3; ++axisA)
+			{
+				for (size_t axisB = 0; axisB < 3; ++axisB)
+				{
+					if (!testAxis(Vector3::Cross(boxA.orientations[axisA], boxB.orientations[axisB]))) return false;
+				}
+			}
+
+			if (minimumPenetration == std::numeric_limits<float>::max()) return false;
+			outNormal = minimumAxis;
+			outPenetration = minimumPenetration;
+			const Vector3 pointA = GetBoxSupportPoint(boxA, outNormal);
+			const Vector3 pointB = GetBoxSupportPoint(boxB, outNormal * -1.0f);
+			outPoint = (pointA + pointB) * 0.5f; // 回転BOX同士の実際の分離軸から接触点を近似する。
+			return true;
+		}
+
+		void BuildFallbackAabbContact(Collider* colliderA, Collider* colliderB, Contact& contact)
+		{
+			const Vector3 centerA = colliderA->GetCenterPosition();
+			const Vector3 centerB = colliderB->GetCenterPosition();
+			const Vector3 delta = centerB - centerA;
+			const AABB aabbA = colliderA->GetAABB();
+			const AABB aabbB = colliderB->GetAABB();
+
+			const float overlapX = std::min(aabbA.max.x, aabbB.max.x) - std::max(aabbA.min.x, aabbB.min.x);
+			const float overlapY = std::min(aabbA.max.y, aabbB.max.y) - std::max(aabbA.min.y, aabbB.min.y);
+			const float overlapZ = std::min(aabbA.max.z, aabbB.max.z) - std::max(aabbA.min.z, aabbB.min.z);
+			const Vector3 overlapMin{
+				std::max(aabbA.min.x, aabbB.min.x),
+				std::max(aabbA.min.y, aabbB.min.y),
+				std::max(aabbA.min.z, aabbB.min.z),
+			};
+			const Vector3 overlapMax{
+				std::min(aabbA.max.x, aabbB.max.x),
+				std::min(aabbA.max.y, aabbB.max.y),
+				std::min(aabbA.max.z, aabbB.max.z),
+			};
+
+			contact.point = (overlapMin + overlapMax) * 0.5f;
+			contact.penetration = std::max(0.0f, overlapX);
+			contact.normal = { delta.x >= 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f };
+			if (overlapY < contact.penetration)
+			{
+				contact.penetration = std::max(0.0f, overlapY);
+				contact.normal = { 0.0f, delta.y >= 0.0f ? 1.0f : -1.0f, 0.0f };
+			}
+			if (overlapZ < contact.penetration)
+			{
+				contact.penetration = std::max(0.0f, overlapZ);
+				contact.normal = { 0.0f, 0.0f, delta.z >= 0.0f ? 1.0f : -1.0f };
+			}
+			if (Vector3::LengthSquared(delta) <= 0.00000001f) contact.normal = { 0.0f, 1.0f, 0.0f };
+		}
 	}
 
 	void PhysicsWorld::RegisterCollider(Collider* collider)
 	{
-		// nullptrと重複登録を避け、外部所有のCollider参照だけを保持する。
-		if (!collider || ContainsPointer(colliders_, collider))
-		{
-			return;
-		}
-
-		colliders_.push_back(collider);
+		if (!collider || ContainsPointer(colliders_, collider)) return;
+		colliders_.push_back(collider); // nullptrと重複登録を避け、外部所有のCollider参照だけを保持する。
 	}
 
 	void PhysicsWorld::UnregisterCollider(Collider* collider)
 	{
-		// Collider登録解除時は、古いContactやイベント履歴が次ステップへ残らないように掃除する。
 		ErasePointer(colliders_, collider);
 		contacts_.erase(
 			std::remove_if(contacts_.begin(), contacts_.end(),
@@ -48,12 +180,11 @@ namespace Ken4lowEngine
 					return contact.colliderA == collider || contact.colliderB == collider;
 				}),
 			contacts_.end());
-		eventDispatcher_.Clear();
+		eventDispatcher_.Clear(); // 古いContactやイベント履歴が次ステップへ残らないように掃除する。
 	}
 
 	void PhysicsWorld::ClearColliders()
 	{
-		// Scene終了時などに、PhysicsWorldが保持する外部所有Collider参照をまとめて破棄する。
 		colliders_.clear();
 		contacts_.clear();
 		eventDispatcher_.Clear();
@@ -61,27 +192,19 @@ namespace Ken4lowEngine
 
 	void PhysicsWorld::RegisterRigidbody(Rigidbody* rigidbody)
 	{
-		// nullptrと重複登録を避け、外部所有のRigidbody参照だけを保持する
-		if (!rigidbody || ContainsPointer(rigidbodies_, rigidbody))
-		{
-			return;
-		}
-
+		if (!rigidbody || ContainsPointer(rigidbodies_, rigidbody)) return;
 		rigidbodies_.push_back(rigidbody);
 	}
 
 	void PhysicsWorld::UnregisterRigidbody(Rigidbody* rigidbody)
 	{
-		// Rigidbodyは所有しないため、登録リストからのみ取り除く。
 		ErasePointer(rigidbodies_, rigidbody);
 	}
 
 	void PhysicsWorld::Update(float deltaTime)
 	{
-		// 物理更新を固定時間で進め、フレームレート差による挙動のブレを抑える。
 		const float clampedDeltaTime = std::clamp(deltaTime, 0.0f, maxDeltaTime_);
 		lastSubStepCount_ = 0;
-
 		if (!useFixedStep_)
 		{
 			accumulator_ = 0.0f;
@@ -97,35 +220,24 @@ namespace Ken4lowEngine
 			accumulator_ -= fixedTimeStep_;
 			++lastSubStepCount_;
 		}
-
-		if (lastSubStepCount_ >= maxSubSteps_ && accumulator_ >= fixedTimeStep_)
-		{
-			// サブステップ上限へ到達した場合は蓄積時間を捨て、重いフレーム後の暴走を防ぐ。
-			accumulator_ = 0.0f;
-		}
+		if (lastSubStepCount_ >= maxSubSteps_ && accumulator_ >= fixedTimeStep_) accumulator_ = 0.0f;
 	}
 
 	void PhysicsWorld::Step(float deltaTime)
 	{
 		contacts_.clear();
-
-		// 接地などのフレーム状態はContactから再計算するため、Step開始時に消しておく。
 		ClearRigidbodyFrameState();
-
-		// Rigidbodyの速度を更新し、その速度をCollider位置へ反映してから衝突を解決する
 		IntegrateBodies(deltaTime);
 		ClampRigidbodyVelocities();
 		IntegrateColliderPositions(deltaTime);
 		DetectCollisions();
 		ResolveContacts();
 		UpdateRigidbodySleepState(deltaTime);
-
 		eventDispatcher_.Update(contacts_);
 	}
 
 	void PhysicsWorld::SetUseFixedStep(bool useFixedStep)
 	{
-		// 固定更新の切り替え時は未消化時間を捨て、切り替え直後の余分なStepを避ける。
 		useFixedStep_ = useFixedStep;
 		accumulator_ = 0.0f;
 		lastSubStepCount_ = 0;
@@ -133,26 +245,22 @@ namespace Ken4lowEngine
 
 	void PhysicsWorld::SetFixedTimeStep(float fixedTimeStep)
 	{
-		// 固定ステップは極端な値を避け、15〜240Hz相当の範囲に収める。
 		fixedTimeStep_ = std::clamp(fixedTimeStep, 1.0f / 240.0f, 1.0f / 15.0f);
 		accumulator_ = std::min(accumulator_, fixedTimeStep_);
 	}
 
 	void PhysicsWorld::SetMaxDeltaTime(float maxDeltaTime)
 	{
-		// 入力deltaTimeの上限は、重いフレームで過剰な物理更新が走らない範囲に収める。
 		maxDeltaTime_ = std::clamp(maxDeltaTime, 0.016f, 0.5f);
 	}
 
 	void PhysicsWorld::SetMaxSubSteps(int maxSubSteps)
 	{
-		// サブステップ回数は暴走防止のため上限を持たせる。
 		maxSubSteps_ = std::clamp(maxSubSteps, 1, 16);
 	}
 
 	void PhysicsWorld::ApplySettings(const PhysicsWorldSettings& settings)
 	{
-		// 外部設定をPhysicsWorldへ反映し、固定更新やSolver設定を調整する。
 		SetUseFixedStep(settings.useFixedStep);
 		SetFixedTimeStep(settings.fixedTimeStep);
 		SetMaxDeltaTime(settings.maxDeltaTime);
@@ -161,20 +269,16 @@ namespace Ken4lowEngine
 		positionSolveEnabled_ = settings.enablePositionSolver;
 		velocitySolveEnabled_ = settings.enableVelocitySolver;
 		frictionSolveEnabled_ = settings.enableFrictionSolver;
-
 		for (Rigidbody* rigidbody : rigidbodies_)
 		{
-			if (rigidbody)
-			{
-				rigidbody->SetGravity(gravity_);
-				rigidbody->SetSleepEnabled(settings.enableSleep);
-			}
+			if (!rigidbody) continue;
+			rigidbody->SetGravity(gravity_);
+			rigidbody->SetSleepEnabled(settings.enableSleep);
 		}
 	}
 
 	PhysicsWorldSettings PhysicsWorld::GetSettings() const
 	{
-		// 現在のWorld状態を設定値として返し、ParameterManager側へ同期しやすくする。
 		PhysicsWorldSettings settings{};
 		settings.useFixedStep = useFixedStep_;
 		settings.fixedTimeStep = fixedTimeStep_;
@@ -189,69 +293,38 @@ namespace Ken4lowEngine
 
 	void PhysicsWorld::IntegrateBodies(float deltaTime)
 	{
-		// 登録済みRigidbodyへ速度積分を委譲する。
 		for (Rigidbody* rigidbody : rigidbodies_)
 		{
-			if (rigidbody)
-			{
-				rigidbody->SetGravity(gravity_);
-				rigidbody->Integrate(deltaTime);
-			}
+			if (!rigidbody) continue;
+			rigidbody->SetGravity(gravity_);
+			rigidbody->Integrate(deltaTime);
 		}
 	}
 
 	void PhysicsWorld::IntegrateColliderPositions(float deltaTime)
 	{
-		if (deltaTime <= 0.0f)
-		{
-			return; // 不正な時間ではCollider位置を更新しない
-		}
-
+		if (deltaTime <= 0.0f) return;
 		for (Collider* collider : colliders_)
 		{
-			if (!collider)
-			{
-				continue;
-			}
-
+			if (!collider) continue;
 			Rigidbody* rigidbody = collider->GetRigidbody();
-			if (!rigidbody || rigidbody->GetBodyType() != BodyType::Dynamic)
-			{
-				continue; // Rigidbodyがないか、Static/Triggerなら位置更新しない
-			}
-
-			const Vector3 velocity = rigidbody->GetVelocity();
-			collider->SetCenterPosition(collider->GetCenterPosition() + velocity * deltaTime); // Rigidbodyの速度をCollider中心へ反映する
+			if (!rigidbody || rigidbody->GetBodyType() != BodyType::Dynamic) continue;
+			collider->SetCenterPosition(collider->GetCenterPosition() + rigidbody->GetVelocity() * deltaTime);
 		}
 	}
 
 	void PhysicsWorld::DetectCollisions()
 	{
-		// Response設定に応じてIgnore / Trigger / Blockを分岐し、BroadPhase分離の差し替え口を残す。
 		for (size_t i = 0; i < colliders_.size(); ++i)
 		{
 			for (size_t j = i + 1; j < colliders_.size(); ++j)
 			{
 				Collider* colliderA = colliders_[i];
 				Collider* colliderB = colliders_[j];
-				if (!colliderA || !colliderB)
-				{
-					continue;
-				}
-				if (!colliderA->IsCollisionEnabledForQuery() || !colliderB->IsCollisionEnabledForQuery())
-				{
-					continue;
-				}
+				if (!colliderA || !colliderB) continue;
+				if (!colliderA->IsCollisionEnabledForQuery() || !colliderB->IsCollisionEnabledForQuery()) continue;
 				const CollisionResponseType response = responseMatrix_.GetResponse(colliderA->GetCollisionLayer(), colliderB->GetCollisionLayer());
-				if (response == CollisionResponseType::Ignore)
-				{
-					continue;
-				}
-				if (!TestCollisionPair(colliderA, colliderB))
-				{
-					continue;
-				}
-
+				if (response == CollisionResponseType::Ignore || !TestCollisionPair(colliderA, colliderB)) continue;
 				contacts_.push_back(BuildContact(colliderA, colliderB, response));
 			}
 		}
@@ -262,152 +335,90 @@ namespace Ken4lowEngine
 		PositionSolver positionSolver{};
 		VelocitySolver velocitySolver{};
 		FrictionSolver frictionSolver{};
-
-		// Contactごとに位置補正、速度補正、摩擦補正、接地状態更新を行い、応答分離の入口を保つ。
 		for (Contact& contact : contacts_)
 		{
-			if (positionSolveEnabled_)
-			{
-				positionSolver.Resolve(contact);
-			}
-			if (velocitySolveEnabled_)
-			{
-				velocitySolver.Resolve(contact);
-			}
-			if (frictionSolveEnabled_)
-			{
-				frictionSolver.Resolve(contact);
-			}
+			if (positionSolveEnabled_) positionSolver.Resolve(contact);
+			if (velocitySolveEnabled_) velocitySolver.Resolve(contact);
+			if (frictionSolveEnabled_) frictionSolver.Resolve(contact);
 			UpdateGroundedState(contact);
 		}
 	}
 
 	void PhysicsWorld::ClearRigidbodyFrameState()
 	{
-		// Rigidbody側の接触状態は毎フレームContactから作り直す。
 		for (Rigidbody* rigidbody : rigidbodies_)
 		{
-			if (rigidbody)
-			{
-				rigidbody->ClearFrameState();
-			}
+			if (rigidbody) rigidbody->ClearFrameState();
 		}
 	}
 
 	void PhysicsWorld::UpdateRigidbodySleepState(float deltaTime)
 	{
-		// Step末尾で各Rigidbodyの停止継続時間を評価し、不要な積分を抑えられるようにする。
 		for (Rigidbody* rigidbody : rigidbodies_)
 		{
-			if (rigidbody)
-			{
-				rigidbody->UpdateSleepState(deltaTime);
-			}
+			if (rigidbody) rigidbody->UpdateSleepState(deltaTime);
 		}
 	}
 
 	void PhysicsWorld::UpdateGroundedState(const Contact& contact) const
 	{
-		// Triggerは床判定に使わず、Contact normalが上向き床面を示す場合だけ接地扱いにする。
-		if (contact.isTrigger || !contact.colliderA || !contact.colliderB)
-		{
-			return;
-		}
-
+		if (contact.isTrigger || !contact.colliderA || !contact.colliderB) return;
 		Rigidbody* rigidbodyA = contact.colliderA->GetRigidbody();
 		Rigidbody* rigidbodyB = contact.colliderB->GetRigidbody();
 		constexpr float kGroundNormalThreshold = 0.5f;
-
-		if (rigidbodyA && rigidbodyA->GetBodyType() == BodyType::Dynamic && contact.normal.y < -kGroundNormalThreshold)
-		{
-			rigidbodyA->SetGrounded(true);
-		}
-		if (rigidbodyB && rigidbodyB->GetBodyType() == BodyType::Dynamic && contact.normal.y > kGroundNormalThreshold)
-		{
-			rigidbodyB->SetGrounded(true);
-		}
+		if (rigidbodyA && rigidbodyA->GetBodyType() == BodyType::Dynamic && contact.normal.y < -kGroundNormalThreshold) rigidbodyA->SetGrounded(true);
+		if (rigidbodyB && rigidbodyB->GetBodyType() == BodyType::Dynamic && contact.normal.y > kGroundNormalThreshold) rigidbodyB->SetGrounded(true);
 	}
 
 	bool PhysicsWorld::TestCollisionPair(Collider* colliderA, Collider* colliderB) const
 	{
-		// 既存CollisionUtilityを薄く利用し、NarrowPhase分離時の差し替え位置を明確にする。
 		switch (colliderA->GetShapeType())
 		{
 		case ECollisionShapeType::Sphere:
 			switch (colliderB->GetShapeType())
 			{
-			case ECollisionShapeType::Sphere:
-				return CollisionUtility::IsCollision(colliderA->GetSphere(), colliderB->GetSphere());
-			case ECollisionShapeType::AABB:
-				return CollisionUtility::IsCollision(colliderB->GetAABB(), colliderA->GetSphere());
-			case ECollisionShapeType::OBB:
-				return CollisionUtility::IsCollision(colliderB->GetOBB(), colliderA->GetSphere());
-			case ECollisionShapeType::Capsule:
-				return CollisionUtility::IsCollision(colliderB->GetCapsule(), colliderA->GetSphere());
-			default:
-				return false;
+			case ECollisionShapeType::Sphere: return CollisionUtility::IsCollision(colliderA->GetSphere(), colliderB->GetSphere());
+			case ECollisionShapeType::AABB: return CollisionUtility::IsCollision(colliderB->GetAABB(), colliderA->GetSphere());
+			case ECollisionShapeType::OBB: return CollisionUtility::IsCollision(colliderB->GetOBB(), colliderA->GetSphere());
+			case ECollisionShapeType::Capsule: return CollisionUtility::IsCollision(colliderB->GetCapsule(), colliderA->GetSphere());
+			default: return false;
 			}
-
 		case ECollisionShapeType::AABB:
 			switch (colliderB->GetShapeType())
 			{
-			case ECollisionShapeType::Sphere:
-				return CollisionUtility::IsCollision(colliderA->GetAABB(), colliderB->GetSphere());
-			case ECollisionShapeType::AABB:
-				return CollisionUtility::IsCollision(colliderA->GetAABB(), colliderB->GetAABB());
-			case ECollisionShapeType::OBB:
-				return CollisionUtility::IsCollision(colliderB->GetOBB(), colliderA->GetAABB());
-			case ECollisionShapeType::Capsule:
-				return CollisionUtility::IsCollision(colliderA->GetAABB(), colliderB->GetCapsule());
-			case ECollisionShapeType::Segment:
-				return CollisionUtility::IsCollision(colliderA->GetAABB(), colliderB->GetSegment());
-			default:
-				return false;
+			case ECollisionShapeType::Sphere: return CollisionUtility::IsCollision(colliderA->GetAABB(), colliderB->GetSphere());
+			case ECollisionShapeType::AABB: return CollisionUtility::IsCollision(colliderA->GetAABB(), colliderB->GetAABB());
+			case ECollisionShapeType::OBB: return CollisionUtility::IsCollision(colliderB->GetOBB(), colliderA->GetAABB());
+			case ECollisionShapeType::Capsule: return CollisionUtility::IsCollision(colliderA->GetAABB(), colliderB->GetCapsule());
+			case ECollisionShapeType::Segment: return CollisionUtility::IsCollision(colliderA->GetAABB(), colliderB->GetSegment());
+			default: return false;
 			}
-
 		case ECollisionShapeType::OBB:
 			switch (colliderB->GetShapeType())
 			{
-			case ECollisionShapeType::Sphere:
-				return CollisionUtility::IsCollision(colliderA->GetOBB(), colliderB->GetSphere());
-			case ECollisionShapeType::AABB:
-				return CollisionUtility::IsCollision(colliderA->GetOBB(), colliderB->GetAABB());
-			case ECollisionShapeType::OBB:
-				return CollisionUtility::IsCollision(colliderA->GetOBB(), colliderB->GetOBB());
-			case ECollisionShapeType::Segment:
-				return CollisionUtility::IsCollision(colliderA->GetOBB(), colliderB->GetSegment());
-			default:
-				return false;
+			case ECollisionShapeType::Sphere: return CollisionUtility::IsCollision(colliderA->GetOBB(), colliderB->GetSphere());
+			case ECollisionShapeType::AABB: return CollisionUtility::IsCollision(colliderA->GetOBB(), colliderB->GetAABB());
+			case ECollisionShapeType::OBB: return CollisionUtility::IsCollision(colliderA->GetOBB(), colliderB->GetOBB());
+			case ECollisionShapeType::Segment: return CollisionUtility::IsCollision(colliderA->GetOBB(), colliderB->GetSegment());
+			default: return false;
 			}
-
 		case ECollisionShapeType::Capsule:
 			switch (colliderB->GetShapeType())
 			{
-			case ECollisionShapeType::Sphere:
-				return CollisionUtility::IsCollision(colliderA->GetCapsule(), colliderB->GetSphere());
-			case ECollisionShapeType::AABB:
-				return CollisionUtility::IsCollision(colliderB->GetAABB(), colliderA->GetCapsule());
-			case ECollisionShapeType::Capsule:
-				return CollisionUtility::IsCollision(colliderA->GetCapsule(), colliderB->GetCapsule());
-			case ECollisionShapeType::Segment:
-				return CollisionUtility::IsCollision(colliderA->GetCapsule(), colliderB->GetSegment());
-			default:
-				return false;
+			case ECollisionShapeType::Sphere: return CollisionUtility::IsCollision(colliderA->GetCapsule(), colliderB->GetSphere());
+			case ECollisionShapeType::AABB: return CollisionUtility::IsCollision(colliderB->GetAABB(), colliderA->GetCapsule());
+			case ECollisionShapeType::Capsule: return CollisionUtility::IsCollision(colliderA->GetCapsule(), colliderB->GetCapsule());
+			case ECollisionShapeType::Segment: return CollisionUtility::IsCollision(colliderA->GetCapsule(), colliderB->GetSegment());
+			default: return false;
 			}
-
 		case ECollisionShapeType::Segment:
 			switch (colliderB->GetShapeType())
 			{
-			case ECollisionShapeType::AABB:
-				return CollisionUtility::IsCollision(colliderB->GetAABB(), colliderA->GetSegment());
-			case ECollisionShapeType::OBB:
-				return CollisionUtility::IsCollision(colliderB->GetOBB(), colliderA->GetSegment());
-			case ECollisionShapeType::Capsule:
-				return CollisionUtility::IsCollision(colliderB->GetCapsule(), colliderA->GetSegment());
-			default:
-				return false;
+			case ECollisionShapeType::AABB: return CollisionUtility::IsCollision(colliderB->GetAABB(), colliderA->GetSegment());
+			case ECollisionShapeType::OBB: return CollisionUtility::IsCollision(colliderB->GetOBB(), colliderA->GetSegment());
+			case ECollisionShapeType::Capsule: return CollisionUtility::IsCollision(colliderB->GetCapsule(), colliderA->GetSegment());
+			default: return false;
 			}
-
 		case ECollisionShapeType::None:
 		default:
 			return false;
@@ -419,76 +430,32 @@ namespace Ken4lowEngine
 		Contact contact{};
 		contact.colliderA = colliderA;
 		contact.colliderB = colliderB;
-
-		const Vector3 centerA = colliderA->GetCenterPosition();
-		const Vector3 centerB = colliderB->GetCenterPosition();
-		const Vector3 delta = centerB - centerA;
-		const AABB aabbA = colliderA->GetAABB();
-		const AABB aabbB = colliderB->GetAABB();
-
-		const float overlapX = std::min(aabbA.max.x, aabbB.max.x) - std::max(aabbA.min.x, aabbB.min.x);
-		const float overlapY = std::min(aabbA.max.y, aabbB.max.y) - std::max(aabbA.min.y, aabbB.min.y);
-		const float overlapZ = std::min(aabbA.max.z, aabbB.max.z) - std::max(aabbA.min.z, aabbB.min.z);
-
-		const Vector3 overlapMin{
-			std::max(aabbA.min.x, aabbB.min.x),
-			std::max(aabbA.min.y, aabbB.min.y),
-			std::max(aabbA.min.z, aabbB.min.z),
-		};
-		const Vector3 overlapMax{
-			std::min(aabbA.max.x, aabbB.max.x),
-			std::min(aabbA.max.y, aabbB.max.y),
-			std::min(aabbA.max.z, aabbB.max.z),
-		};
-
-		// まずはAABBの重なり量から最小侵入軸を選び、Contact確認に必要なnormal/penetrationを作る。
-		contact.point = (overlapMin + overlapMax) * 0.5f;
-		contact.penetration = std::max(0.0f, overlapX);
-		contact.normal = { delta.x >= 0.0f ? 1.0f : -1.0f, 0.0f, 0.0f };
-
-		if (overlapY < contact.penetration)
+		if (IsBoxShape(colliderA->GetShapeType()) && IsBoxShape(colliderB->GetShapeType()))
 		{
-			contact.penetration = std::max(0.0f, overlapY);
-			contact.normal = { 0.0f, delta.y >= 0.0f ? 1.0f : -1.0f, 0.0f };
+			const OBB boxA = BuildContactBox(*colliderA);
+			const OBB boxB = BuildContactBox(*colliderB);
+			if (!BuildBoxContactData(boxA, boxB, contact.normal, contact.penetration, contact.point)) BuildFallbackAabbContact(colliderA, colliderB, contact);
 		}
-		if (overlapZ < contact.penetration)
+		else
 		{
-			contact.penetration = std::max(0.0f, overlapZ);
-			contact.normal = { 0.0f, 0.0f, delta.z >= 0.0f ? 1.0f : -1.0f };
+			BuildFallbackAabbContact(colliderA, colliderB, contact);
 		}
-		if (std::abs(delta.x) <= 0.0001f && std::abs(delta.y) <= 0.0001f && std::abs(delta.z) <= 0.0001f)
-		{
-			contact.normal = { 0.0f, 1.0f, 0.0f };
-		}
-
 		contact.isTrigger = response == CollisionResponseType::Trigger || colliderA->IsTrigger() || colliderB->IsTrigger();
 		return contact;
 	}
 
 	void PhysicsWorld::ClampRigidbodyVelocities()
 	{
-		constexpr float kMaxFallSpeed = -100.0f; // 落下速度の上限（m/s）
-		constexpr float kMaxMoveSpeed = 100.0f;  // 移動速度の上限（m/s）
-
+		constexpr float kMaxFallSpeed = -100.0f;
+		constexpr float kMaxMoveSpeed = 100.0f;
 		for (Rigidbody* rigidbody : rigidbodies_)
 		{
-			if (!rigidbody || rigidbody->GetBodyType() != BodyType::Dynamic)
-			{
-				continue;
-			}
-
+			if (!rigidbody || rigidbody->GetBodyType() != BodyType::Dynamic) continue;
 			Vector3 velocity = rigidbody->GetVelocity();
-
-			if (velocity.y < kMaxFallSpeed)
-			{
-				velocity.y = kMaxFallSpeed;
-			}
-
+			if (velocity.y < kMaxFallSpeed) velocity.y = kMaxFallSpeed;
 			velocity.x = std::clamp(velocity.x, -kMaxMoveSpeed, kMaxMoveSpeed);
 			velocity.z = std::clamp(velocity.z, -kMaxMoveSpeed, kMaxMoveSpeed);
-
 			rigidbody->SetVelocity(velocity);
 		}
 	}
-
 } // namespace Ken4lowEngine
