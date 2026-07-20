@@ -426,10 +426,10 @@ private:
 		if (aliveCount >= aliveCap) return;
 
 		const std::array<K4E::Vector3, 3> laneOffsets = {{
-			{ 0.0f, 2.0f, 44.0f },
-			{ -42.0f, 2.0f, -23.0f },
-			{ 42.0f, 2.0f, -23.0f }
-		}};
+			{ 0.0f, 2.0f, 17.0f },
+			{ -14.5f, 2.0f, -8.5f },
+			{ 14.5f, 2.0f, -8.5f }
+		}}; // 近接Enemyの18m索敵内へ置き、北・南西・南東の三方向から即座に進軍させる。
 		const K4E::Vector3 laneCenter = targetPosition_ + laneOffsets[spawnSequence_ % laneOffsets.size()];
 		const int requestedCount = phase == 0 ? 2 : (phase == 1 ? 3 : 4);
 		const int spawnCount = std::min(requestedCount, std::max(0, aliveCap - aliveCount));
@@ -438,8 +438,8 @@ private:
 		{
 			const float side = static_cast<float>(index - (spawnCount - 1) / 2) * 2.2f;
 			const K4E::Vector3 spread = spawnSequence_ % 3u == 0u
-				? K4E::Vector3{ side, 0.0f, static_cast<float>(index % 2) * 1.6f }
-				: K4E::Vector3{ static_cast<float>(index % 2) * 1.6f, 0.0f, side };
+				? K4E::Vector3{ side, 0.0f, static_cast<float>(index % 2) * 0.8f }
+				: K4E::Vector3{ static_cast<float>(index % 2) * 0.8f, 0.0f, side };
 			const bool useMidRange = phase > 0 && index == spawnCount - 1;
 			EnemyBase& spawned = characters.SpawnEnemyAt(laneCenter + spread, useMidRange ? EnemyType::MidRange : EnemyType::Melee);
 			if (auto* enemy = dynamic_cast<K4E::EnemyActor*>(&spawned)) enemy->SetTargetActor(target_);
