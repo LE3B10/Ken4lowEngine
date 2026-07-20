@@ -3,6 +3,7 @@
 #include <Scene/Actor/Character/AttackBehaviors.h>
 
 #include <array>
+#include <sstream>
 #include <span>
 #include <string>
 #include <string_view>
@@ -181,14 +182,14 @@ namespace Ken4lowEngine
 			}
 		}};
 
-		constexpr const BossAttackSelectionRule& FindSelectionRule(BossAttackProfile profile, BossPhase phase)
+		constexpr const BossAttackSelectionRule* FindSelectionRule(BossAttackProfile profile, BossPhase phase)
 		{
 			for (const BossAttackSelectionRule& rule : kAttackSelectionRules)
 			{
-				if (rule.profile == profile && rule.phase == phase) return rule;
+				if (rule.profile == profile && rule.phase == phase) return &rule;
 			}
 
-			return kAttackSelectionRules.front();
+			return nullptr;
 		}
 
 		constexpr BossDistanceBand ClassifyDistance(const BossAttackSelectionRule& rule, float distanceToTarget)
@@ -248,9 +249,11 @@ namespace Ken4lowEngine
 
 	bool BossAttackComponent::TryStartBestAttack(float distanceToTarget, BossPhase bossPhase)
 	{
-		const BossAttackSelectionRule& rule = FindSelectionRule(attackProfile_, bossPhase);
-		const BossDistanceBand distanceBand = ClassifyDistance(rule, distanceToTarget);
-		const BossAttackIdList candidates = GetCandidates(rule, distanceBand);
+		const BossAttackSelectionRule* rule = FindSelectionRule(attackProfile_, bossPhase);
+		if (!rule) return false;
+
+		const BossDistanceBand distanceBand = ClassifyDistance(*rule, distanceToTarget);
+		const BossAttackIdList candidates = GetCandidates(*rule, distanceBand);
 
 		for (const BossAttackId attackId : candidates)
 		{
@@ -260,6 +263,59 @@ namespace Ken4lowEngine
 		}
 
 		return false;
+	}
+
+	bool BossAttackComponent::ValidateSelectionRules(std::string& outSummary) const
+	{
+		constexpr std::array<BossPhase, 3> phases{
+			BossPhase::Phase1,
+			BossPhase::Phase2,
+			BossPhase::Phase3
+		};
+		constexpr std::array<BossDistanceBand, 3> distanceBands{
+			BossDistanceBand::Near,
+			BossDistanceBand::Middle,
+			BossDistanceBand::Far
+		};
+
+		bool valid = true;
+		std::ostringstream summary;
+		summary << GetAttackProfileName() << " ";
+
+		for (const BossPhase phase : phases)
+		{
+			const BossAttackSelectionRule* rule = FindSelectionRule(attackProfile_, phase);
+			if (!rule)
+			{
+				valid = false;
+				summary << "P" << ToInt(phase) << "=RuleMissing ";
+				continue;
+			}
+
+			for (const BossDistanceBand distanceBand : distanceBands)
+			{
+				const BossAttackIdList candidates = GetCandidates(*rule, distanceBand);
+				summary << "P" << ToInt(phase) << "/" << ToString(distanceBand) << "=";
+				if (candidates.empty())
+				{
+					valid = false;
+					summary << "Empty ";
+					continue;
+				}
+
+				summary << ToString(candidates.front());
+				for (const BossAttackId attackId : candidates)
+				{
+					if (FindAttackData(ToString(attackId))) continue;
+					valid = false;
+					summary << "(Missing:" << ToString(attackId) << ")";
+				}
+				summary << " ";
+			}
+		}
+
+		outSummary = summary.str(); // DebugSceneで全組み合わせの先頭候補と登録漏れを一度に確認できる形へまとめる。
+		return valid;
 	}
 
 	void BossAttackComponent::RegisterDefaultAttacks()
