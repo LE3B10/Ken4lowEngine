@@ -77,6 +77,11 @@ public:
 	bool NotifyStageDeviceActivated(const std::string& deviceId)
 	{
 		if (!stageObjectiveManager_) return false;
+		if (deviceId == Stage2CharacterDeviceManager::GetDefenseTargetDestroyedEventId())
+		{
+			stageObjectiveManager_->SetDefenseTargetDestroyed(true);
+			return true; // Stage 3防衛コアの死亡イベントを共通Objective失敗へ変換する。
+		}
 		if (deviceId == Stage2CharacterDeviceManager::GetBossArenaEnteredEventId())
 		{
 			stageObjectiveManager_->SetBossArenaReached(true);
