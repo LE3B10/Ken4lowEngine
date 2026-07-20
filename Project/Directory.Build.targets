@@ -1,6 +1,8 @@
 <Project>
   <!-- Actor移行後に削除した旧Character実装を、残存vcxproj項目から安全に除外する。 -->
   <ItemGroup>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Actor\BossAttackTypes.h" />
+
     <ClCompile Remove="ApplicationLayer\Character\Boss\Core\BossFactory.cpp" />
     <ClCompile Remove="ApplicationLayer\Character\Boss\Components\BossStatusComponent.cpp" />
     <ClCompile Remove="ApplicationLayer\Character\Boss\Core\BossStateMachine.cpp" />
