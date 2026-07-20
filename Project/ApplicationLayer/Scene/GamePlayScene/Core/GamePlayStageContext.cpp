@@ -151,7 +151,7 @@ GamePlayStageContext::StageAssetPaths GamePlayStageContext::GetStageAssetPaths(i
 	{
 	case 0: return { "stages/hajimarinoheigen.json", "Stages/hajimarinoheigen.gltf", false };
 	case 1: return { "stages/wasureraretakoudou.json", "", true }; // Stage2は一体型glTFを読まず、JSONのモジュール配置だけをインスタンス描画する。
-	case 2: return { "stages/fps_stage02.json", "Stages/fps_stage02.gltf", false };
+	case 2: return { "stages/kyuuboueikyoten.json", "", true }; // Stage3は防衛拠点のモジュール配置だけをインスタンス描画する。
 	case 3: return { "stages/fps_stage03.json", "Stages/fps_stage03.gltf", false };
 	case 4: return { "stages/fps_stage04.json", "Stages/fps_stage04.gltf", false };
 	default:
