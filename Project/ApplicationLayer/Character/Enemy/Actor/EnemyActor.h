@@ -19,6 +19,7 @@
 #include <Scene/Actor/Character/CharacterMovementComponent.h>
 
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 namespace Ken4lowEngine
@@ -66,7 +67,7 @@ namespace Ken4lowEngine
 			useWorldResolve_ = false;
 			rigidbody->SetStaticFriction(0.2f);
 			rigidbody->SetDynamicFriction(0.05f); // Prefab値が旧設定でもCharacter Motor向けの低摩擦へ毎フレーム同期する。
-			if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetMovementEnabled(true);
+			EnsureAutomaticTraversalProfile();
 			rigidbody->PostPhysicsUpdate(deltaTime);
 			if (CharacterColliderComponent* collider = GetColliderComponent()) collider->PostPhysicsUpdate(deltaTime);
 		}
@@ -106,7 +107,7 @@ namespace Ken4lowEngine
 			{
 				useGravity_ = false;
 				useWorldResolve_ = false;
-				if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetMovementEnabled(true);
+				EnsureAutomaticTraversalProfile();
 				rigidbody->SetUseGravity(simulationEnabled_);
 				rigidbody->SetVelocity({}); // 再配置前の落下・移動速度を新しいSpawnへ持ち越さない。
 				rigidbody->WakeUp();
@@ -154,6 +155,19 @@ namespace Ken4lowEngine
 		void OnDeath(const CharacterDeathEvent& deathEvent) override;
 
 	private:
+		void EnsureAutomaticTraversalProfile()
+		{
+			CharacterMovementComponent* movement = GetMovementComponent();
+			if (!movement) return;
+			const bool profileChanged = std::fabs(movement->GetAutomaticObstacleMaxClimbHeight() - 4.2f) > 0.01f;
+			if (profileChanged)
+			{
+				movement->ConfigureAutomaticObstacleTraversal(true, 4.2f, 2.6f, 7.5f, 0.65f);
+				SetNavigationObstacles(navigationObstacles_); // 4m級のPropを登れる設定へ変えた時だけA*の通過・迂回対象を再構築する。
+			}
+			movement->SetMovementEnabled(true);
+		}
+
 		/// CharacterHealthの現在値をWorldGaugeへ反映する。
 		void SyncHealthGauge();
 		void ApplyPendingRuntimeBindings();
