@@ -1,8 +1,11 @@
 #pragma once
 
+#include "BossAttackTypes.h"
+
 #include <Scene/Actor/Character/AttackComponent.h>
 
 #include <string>
+#include <string_view>
 
 namespace Ken4lowEngine
 {
@@ -24,11 +27,16 @@ namespace Ken4lowEngine
 		std::string GetClassTypeName() const override { return "BossAttackComponent"; }
 
 		/// 距離と現在フェーズに適した登録攻撃を優先順に開始する。
-		bool TryStartBestAttack(float distanceToTarget, int bossPhase);
+		bool TryStartBestAttack(float distanceToTarget, BossPhase bossPhase);
 
-		/// 直近に開始できた攻撃IDを返す。
-		const std::string& GetLastSelectedAttackId() const { return lastSelectedAttackId_; }
-		const std::string& GetAttackProfile() const { return attackProfile_; }
+		/// 直近に開始できた攻撃を型付きIDで返す。
+		BossAttackId GetLastSelectedAttackType() const { return lastSelectedAttackId_; }
+
+		/// 既存Debug表示との互換用に攻撃ID文字列を返す。
+		std::string GetLastSelectedAttackId() const { return std::string(ToString(lastSelectedAttackId_)); }
+		std::string_view GetLastSelectedAttackName() const { return ToString(lastSelectedAttackId_); }
+		BossAttackProfile GetAttackProfile() const { return attackProfile_; }
+		std::string_view GetAttackProfileName() const { return ToString(attackProfile_); }
 
 	private:
 		/// 選択されたArchetypeに対応する近接・突進・範囲攻撃を登録する。
@@ -37,7 +45,7 @@ namespace Ken4lowEngine
 		void RegisterMineCrusherAttacks();
 
 	private:
-		std::string attackProfile_ = "Guardian";
-		std::string lastSelectedAttackId_ = "None";
+		BossAttackProfile attackProfile_ = BossAttackProfile::Guardian;
+		BossAttackId lastSelectedAttackId_ = BossAttackId::None;
 	};
 } // namespace Ken4lowEngine
