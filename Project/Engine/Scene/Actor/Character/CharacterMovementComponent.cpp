@@ -1,11 +1,14 @@
 #include "CharacterMovementComponent.h"
 
 #include "Actor.h"
+#include "CharacterColliderComponent.h"
 #include "SceneComponent.h"
 #include <RigidbodyComponent.h>
+#include <Stage.h>
 
 #include <algorithm>
 #include <cmath>
+#include <limits>
 #include <numbers>
 
 #ifdef USE_IMGUI
@@ -17,6 +20,7 @@ namespace Ken4lowEngine
 	namespace
 	{
 		constexpr float kDirectionEpsilon = 0.0001f;
+		constexpr float kGravityAcceleration = 9.81f;
 
 		/// Yaw差分を-πから+πへ正規化し、常に短い向きへ回転させる。
 		float WrapAngle(float angle)
@@ -34,6 +38,38 @@ namespace Ken4lowEngine
 			const float length = Vector3::LengthXZ(direction);
 			if (length <= kDirectionEpsilon) return { 0.0f, 0.0f, 1.0f };
 			return { direction.x / length, 0.0f, direction.z / length };
+		}
+
+		/// 進行線分とAgent半径で広げた障害物をXZ平面上で判定し、最初に接触する割合を返す。
+		bool SegmentIntersectsExpandedAabbXZ(
+			const Vector3& from,
+			const Vector3& to,
+			const AABB& obstacle,
+			float padding,
+			float& outEnterT)
+		{
+			const Vector3 delta = to - from;
+			float enterT = 0.0f;
+			float exitT = 1.0f;
+			const float safePadding = std::max(0.0f, padding);
+
+			const auto updateAxis = [](float origin, float direction, float minValue, float maxValue, float& inOutEnterT, float& inOutExitT)
+				{
+					if (std::abs(direction) <= 0.000001f) return origin >= minValue && origin <= maxValue;
+					const float inverse = 1.0f / direction;
+					float axisEnter = (minValue - origin) * inverse;
+					float axisExit = (maxValue - origin) * inverse;
+					if (axisEnter > axisExit) std::swap(axisEnter, axisExit);
+					inOutEnterT = std::max(inOutEnterT, axisEnter);
+					inOutExitT = std::min(inOutExitT, axisExit);
+					return inOutEnterT <= inOutExitT;
+				};
+
+			if (!updateAxis(from.x, delta.x, obstacle.min.x - safePadding, obstacle.max.x + safePadding, enterT, exitT)) return false;
+			if (!updateAxis(from.z, delta.z, obstacle.min.z - safePadding, obstacle.max.z + safePadding, enterT, exitT)) return false;
+			if (exitT < 0.0f || enterT > 1.0f) return false;
+			outEnterT = std::clamp(enterT, 0.0f, 1.0f);
+			return true;
 		}
 	}
 
@@ -102,6 +138,7 @@ namespace Ken4lowEngine
 
 		Vector3 physicalVelocity = rigidbody->GetVelocity();
 		const Vector3 targetVelocity = movementEnabled_ ? velocity_ : Vector3{};
+		TryStartAutomaticObstacleTraversal(physicalVelocity, targetVelocity, deltaTime);
 		const float deltaX = targetVelocity.x - physicalVelocity.x;
 		const float deltaZ = targetVelocity.z - physicalVelocity.z;
 		const float deltaSpeed = std::sqrt(deltaX * deltaX + deltaZ * deltaZ);
@@ -129,6 +166,68 @@ namespace Ken4lowEngine
 	void CharacterMovementComponent::SetMaxBrakingForce(float force)
 	{
 		maxBrakingForce_ = std::isfinite(force) ? std::max(0.0f, force) : 0.0f;
+	}
+
+	void CharacterMovementComponent::ConfigureAutomaticObstacleTraversal(
+		bool enabled,
+		float maxClimbHeight,
+		float lookAheadDistance,
+		float minimumJumpSpeed,
+		float cooldown)
+	{
+		automaticObstacleTraversalEnabled_ = enabled;
+		automaticObstacleMaxClimbHeight_ = std::isfinite(maxClimbHeight) ? std::max(0.0f, maxClimbHeight) : 0.0f;
+		automaticObstacleLookAheadDistance_ = std::isfinite(lookAheadDistance) ? std::max(0.1f, lookAheadDistance) : 0.1f;
+		automaticObstacleMinimumJumpSpeed_ = std::isfinite(minimumJumpSpeed) ? std::max(0.0f, minimumJumpSpeed) : 0.0f;
+		automaticObstacleCooldown_ = std::isfinite(cooldown) ? std::max(0.0f, cooldown) : 0.0f;
+		if (!enabled) automaticObstacleCooldownTimer_ = 0.0f;
+	}
+
+	bool CharacterMovementComponent::TryStartAutomaticObstacleTraversal(
+		Vector3& physicalVelocity,
+		const Vector3& targetVelocity,
+		float deltaTime)
+	{
+		automaticObstacleCooldownTimer_ = std::max(0.0f, automaticObstacleCooldownTimer_ - std::max(0.0f, deltaTime));
+		if (!automaticObstacleTraversalEnabled_ || !movementEnabled_ || automaticObstacleCooldownTimer_ > 0.0f) return false;
+		if (physicalVelocity.y > 1.0f || automaticObstacleMaxClimbHeight_ <= 0.0f) return false;
+
+		const float horizontalSpeed = Vector3::LengthXZ(targetVelocity);
+		if (horizontalSpeed <= kDirectionEpsilon) return false;
+		const Vector3 direction{ targetVelocity.x / horizontalSpeed, 0.0f, targetVelocity.z / horizontalSpeed };
+
+		Actor* owner = GetOwner();
+		const CharacterColliderComponent* collider = owner ? owner->GetComponent<CharacterColliderComponent>() : nullptr;
+		const SceneComponent* root = owner ? owner->GetRootComponent() : nullptr;
+		Stage* stage = Stage::GetActiveRuntimeStage();
+		if (!owner || (!collider && !root) || !stage) return false;
+
+		const Vector3 halfSize = collider ? collider->GetHalfSize() : Vector3{ 0.7f, 2.0f, 0.7f };
+		const Vector3 current = collider ? collider->GetWorldPosition() : root->GetWorldPosition();
+		const float agentRadius = std::max(0.2f, std::max(halfSize.x, halfSize.z));
+		const float footY = current.y - std::max(0.2f, halfSize.y);
+		const Vector3 lookAheadEnd = current + direction * (automaticObstacleLookAheadDistance_ + agentRadius);
+
+		float nearestEnterT = std::numeric_limits<float>::max();
+		float selectedClimbHeight = 0.0f;
+		for (const AABB& obstacle : stage->GetNavigationObstacleAABBs())
+		{
+			const float climbHeight = obstacle.max.y - footY;
+			if (climbHeight <= 0.12f || climbHeight > automaticObstacleMaxClimbHeight_) continue;
+			if (obstacle.min.y > footY + 0.45f) continue;
+
+			float enterT = 0.0f;
+			if (!SegmentIntersectsExpandedAabbXZ(current, lookAheadEnd, obstacle, agentRadius + 0.08f, enterT)) continue;
+			if (enterT >= nearestEnterT) continue;
+			nearestEnterT = enterT;
+			selectedClimbHeight = climbHeight;
+		}
+
+		if (selectedClimbHeight <= 0.0f) return false;
+		const float requiredJumpSpeed = std::sqrt(2.0f * kGravityAcceleration * (selectedClimbHeight + 0.45f));
+		physicalVelocity.y = std::max(physicalVelocity.y, std::clamp(std::max(automaticObstacleMinimumJumpSpeed_, requiredJumpSpeed), 0.0f, 12.0f));
+		automaticObstacleCooldownTimer_ = automaticObstacleCooldown_;
+		return true; // 水平Motorを維持したまま上向き速度だけを加え、上面への着地と反対側への降下はPhysicsへ任せる。
 	}
 
 	Vector3 CharacterMovementComponent::CalculateDisplacement(float deltaTime) const
@@ -177,6 +276,11 @@ namespace Ken4lowEngine
 			{ "Velocity", "目標速度", ComponentPropertyType::Vector3, [this]() -> ComponentPropertyValue { return velocity_; }, [this](const ComponentPropertyValue& value) { if (const Vector3* typedValue = std::get_if<Vector3>(&value)) SetVelocity(*typedValue); }, 0.0f, 0.0f, 0.05f, false, {}, ComponentPropertyDisplay::Default },
 			{ "MaxDriveForce", "最大駆動力", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return maxDriveForce_; }, [this](const ComponentPropertyValue& value) { if (const float* typedValue = std::get_if<float>(&value)) SetMaxDriveForce(*typedValue); }, 0.0f, 5000.0f, 1.0f, true },
 			{ "MaxBrakingForce", "最大制動力", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return maxBrakingForce_; }, [this](const ComponentPropertyValue& value) { if (const float* typedValue = std::get_if<float>(&value)) SetMaxBrakingForce(*typedValue); }, 0.0f, 5000.0f, 1.0f, true },
+			{ "AutomaticObstacleTraversalEnabled", "低障害物の自動乗越", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return automaticObstacleTraversalEnabled_; }, [this](const ComponentPropertyValue& value) { if (const bool* typedValue = std::get_if<bool>(&value)) automaticObstacleTraversalEnabled_ = *typedValue; }, 0.0f, 0.0f, 0.1f, false, {}, ComponentPropertyDisplay::Default },
+			{ "AutomaticObstacleMaxClimbHeight", "自動乗越の最大高さ", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return automaticObstacleMaxClimbHeight_; }, [this](const ComponentPropertyValue& value) { if (const float* typedValue = std::get_if<float>(&value)) automaticObstacleMaxClimbHeight_ = std::max(0.0f, *typedValue); }, 0.0f, 8.0f, 0.05f, true },
+			{ "AutomaticObstacleLookAheadDistance", "自動乗越の前方距離", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return automaticObstacleLookAheadDistance_; }, [this](const ComponentPropertyValue& value) { if (const float* typedValue = std::get_if<float>(&value)) automaticObstacleLookAheadDistance_ = std::max(0.1f, *typedValue); }, 0.1f, 8.0f, 0.05f, true },
+			{ "AutomaticObstacleMinimumJumpSpeed", "自動乗越の最低上昇速度", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return automaticObstacleMinimumJumpSpeed_; }, [this](const ComponentPropertyValue& value) { if (const float* typedValue = std::get_if<float>(&value)) automaticObstacleMinimumJumpSpeed_ = std::max(0.0f, *typedValue); }, 0.0f, 20.0f, 0.1f, true },
+			{ "AutomaticObstacleCooldown", "自動乗越の再実行間隔", ComponentPropertyType::Float, [this]() -> ComponentPropertyValue { return automaticObstacleCooldown_; }, [this](const ComponentPropertyValue& value) { if (const float* typedValue = std::get_if<float>(&value)) automaticObstacleCooldown_ = std::max(0.0f, *typedValue); }, 0.0f, 3.0f, 0.05f, true },
 			{ "MovementEnabled", "移動有効", ComponentPropertyType::Bool, [this]() -> ComponentPropertyValue { return movementEnabled_; }, [this](const ComponentPropertyValue& value) { if (const bool* typedValue = std::get_if<bool>(&value)) SetMovementEnabled(*typedValue); }, 0.0f, 0.0f, 0.1f, false, {}, ComponentPropertyDisplay::Default }
 		};
 	}
