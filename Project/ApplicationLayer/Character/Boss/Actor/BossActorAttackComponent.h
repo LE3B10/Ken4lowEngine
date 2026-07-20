@@ -29,6 +29,9 @@ namespace Ken4lowEngine
 		/// 距離と現在フェーズに適した登録攻撃を優先順に開始する。
 		bool TryStartBestAttack(float distanceToTarget, BossPhase bossPhase);
 
+		/// 現在プロファイルの全フェーズ・全距離帯に有効な候補が登録されているか検証する。
+		bool ValidateSelectionRules(std::string& outSummary) const;
+
 		/// 直近に開始できた攻撃を型付きIDで返す。
 		BossAttackId GetLastSelectedAttackType() const { return lastSelectedAttackId_; }
 
