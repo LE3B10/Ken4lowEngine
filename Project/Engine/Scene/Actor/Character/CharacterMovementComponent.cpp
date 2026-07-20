@@ -190,7 +190,7 @@ namespace Ken4lowEngine
 	{
 		automaticObstacleCooldownTimer_ = std::max(0.0f, automaticObstacleCooldownTimer_ - std::max(0.0f, deltaTime));
 		if (!automaticObstacleTraversalEnabled_ || !movementEnabled_ || automaticObstacleCooldownTimer_ > 0.0f) return false;
-		if (physicalVelocity.y > 1.0f || automaticObstacleMaxClimbHeight_ <= 0.0f) return false;
+		if (std::abs(physicalVelocity.y) > 1.2f || automaticObstacleMaxClimbHeight_ <= 0.0f) return false; // 上昇中と落下中は再ジャンプせず、着地後だけ次の障害物を判定する。
 
 		const float horizontalSpeed = Vector3::LengthXZ(targetVelocity);
 		if (horizontalSpeed <= kDirectionEpsilon) return false;
