@@ -155,6 +155,7 @@ namespace Ken4lowEngine
 		/// CharacterHealthの現在値をWorldGaugeへ反映する。
 		void SyncHealthGauge();
 		void ApplyPendingRuntimeBindings();
+		void RebuildNavigationBlockingObstacles();
 		void EnsureRuntimeStateInitialized();
 		void EnsureArchetypeComponents();
 		int GetConfiguredArchetypeMaxHp() const;
@@ -162,6 +163,7 @@ namespace Ken4lowEngine
 	private:
 		CharacterActor* targetActor_ = nullptr;
 		const std::vector<AABB>* navigationObstacles_ = nullptr;
+		std::vector<AABB> navigationBlockingObstacles_{};
 		::EnemyType enemyType_ = ::EnemyType::Melee;
 		bool runtimeStateInitialized_ = false;
 		bool simulationEnabled_ = true;
