@@ -3,17 +3,17 @@
     "AssetType":  "Mesh",
     "SourcePath":  "Resources/Models/Sources/Stages/hajimarinoheigen.gltf",
     "OutputPath":  "Resources/Models/Compiled/Stages/hajimarinoheigen.kmesh",
-    "DependencyFingerprint":  "402d100094e8d1713167ffcbab808d6af23e35af7838aae149492916a53bb972",
+    "DependencyFingerprint":  "b89d282298de90efa18cdd46a75d9031161bbff5be8899667c680a73955eb7d3",
     "Dependencies":  [
                          {
                              "Path":  "Resources/Models/Sources/Stages/hajimarinoheigen.bin",
-                             "SizeBytes":  863276,
-                             "Sha256":  "ed644c9f93cb00abc132b30cd24cb7215aceb6f42181c713ffcef4f4e022ae22"
+                             "SizeBytes":  868652,
+                             "Sha256":  "5f9d692bee64b0f61a0f3780d5b02b27322815747f7cdf1a4347ead9982dec82"
                          },
                          {
                              "Path":  "Resources/Models/Sources/Stages/hajimarinoheigen.gltf",
-                             "SizeBytes":  708026,
-                             "Sha256":  "72ffa90238bf9b6938cbbb468c12bda25b2609a85a15b203a22ad7b382fd1ff6"
+                             "SizeBytes":  672734,
+                             "Sha256":  "1609cfb4b8a638746d100b7bdbf74155463475feaa0419a8fdc0ca0d001bc490"
                          }
                      ]
 }
