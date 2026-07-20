@@ -28,19 +28,19 @@ namespace Ken4lowEngine
 		{
 			std::vector<ObjectData> objects;
 			if (!IsTargetMine(levelData)) return objects;
-			objects.reserve(112);
+			objects.reserve(128);
 
 			AddBox(objects, "MineOuterSeal_West", { -51.0f, 8.5f, 35.0f }, { 1.0f, 0.5f, 91.0f }, "Obstacle");
 			AddBox(objects, "MineOuterSeal_East", { 51.0f, 8.5f, 35.0f }, { 1.0f, 0.5f, 91.0f }, "Obstacle");
 			AddBox(objects, "MineOuterSeal_South", { 0.0f, 8.5f, -56.0f }, { 51.0f, 0.5f, 1.0f }, "Obstacle");
 			AddBox(objects, "MineOuterNorthWall_L", { -32.0f, 4.5f, 126.0f }, { 19.0f, 4.5f, 1.0f }, "Obstacle");
-			AddBox(objects, "MineOuterNorthWall_R", { 32.0f, 4.5f, 126.0f }, { 19.0f, 4.5f, 1.0f }, "Obstacle"); // 旧終端壁の中央だけを通路幅として開け、左右と天井際の外光漏れを塞ぐ。
+			AddBox(objects, "MineOuterNorthWall_R", { 32.0f, 4.5f, 126.0f }, { 19.0f, 4.5f, 1.0f }, "Obstacle"); // 中央開口以外を岩壁で閉じ、封鎖壁の左右から奥を見せない。
 
 			AddBox(objects, "HiddenPassageFloor", { 0.0f, 1.0f, 137.0f }, { 12.0f, 1.0f, 18.0f }, "Floor");
 			AddBox(objects, "HiddenPassageWall_L", { -13.0f, 7.0f, 137.0f }, { 1.0f, 5.0f, 18.0f }, "Obstacle");
 			AddBox(objects, "HiddenPassageWall_R", { 13.0f, 7.0f, 137.0f }, { 1.0f, 5.0f, 18.0f }, "Obstacle");
 			AddBox(objects, "HiddenPassageCeiling", { 0.0f, 12.5f, 137.0f }, { 12.0f, 0.5f, 18.0f }, "Obstacle");
-			AddBox(objects, "HiddenGateLintel", { 0.0f, 10.5f, 119.0f }, { 12.0f, 1.5f, 1.0f }, "Obstacle");
+			AddBox(objects, "HiddenGateLintel", { 0.0f, 10.5f, 119.0f }, { 13.0f, 1.5f, 1.4f }, "Obstacle");
 
 			for (int index = 0; index < 5; ++index)
 			{
@@ -56,80 +56,50 @@ namespace Ken4lowEngine
 				AddBox(objects, "HiddenPassageGuide_" + std::to_string(index + 1), { 0.0f, 2.04f, z }, { 0.35f, 0.04f, 3.6f });
 			}
 
-			AddBox(objects, "DomeArenaFloor", { 0.0f, 1.0f, 180.0f }, { 32.0f, 1.0f, 30.0f }, "Floor");
-			AddBox(objects, "DomeArenaCeiling", { 0.0f, 13.0f, 180.0f }, { 32.0f, 0.6f, 30.0f }, "Obstacle");
-			AddBox(objects, "DomeEntryWall_L", { -19.0f, 7.0f, 156.0f }, { 7.0f, 5.0f, 1.2f }, "Obstacle", { 0.0f, -0.46f, 0.0f });
-			AddBox(objects, "DomeEntryWall_R", { 19.0f, 7.0f, 156.0f }, { 7.0f, 5.0f, 1.2f }, "Obstacle", { 0.0f, 0.46f, 0.0f });
-			AddBox(objects, "DomeEntryCeiling", { 0.0f, 12.4f, 155.0f }, { 19.0f, 0.7f, 5.0f }, "Obstacle");
+			AddBox(objects, "DomeArenaFloor", { 0.0f, 1.0f, 180.0f }, { 50.0f, 1.0f, 48.0f }, "Floor");
+			AddBox(objects, "DomeArenaCeiling", { 0.0f, 17.0f, 180.0f }, { 50.0f, 0.8f, 48.0f }, "Obstacle");
+			AddBox(objects, "DomeEntryWall_L", { -31.0f, 9.0f, 156.0f }, { 19.0f, 7.0f, 1.5f }, "Obstacle", { 0.0f, -0.25f, 0.0f });
+			AddBox(objects, "DomeEntryWall_R", { 31.0f, 9.0f, 156.0f }, { 19.0f, 7.0f, 1.5f }, "Obstacle", { 0.0f, 0.25f, 0.0f });
+			AddBox(objects, "DomeEntryCeiling", { 0.0f, 16.2f, 155.0f }, { 31.0f, 0.8f, 5.5f }, "Obstacle");
 
 			constexpr int wallSegmentCount = 16;
 			constexpr float arenaCenterZ = 180.0f;
-			constexpr float wallRadius = 30.0f;
+			constexpr float wallRadius = 46.0f;
 			for (int index = 0; index < wallSegmentCount; ++index)
 			{
 				if (index >= 11 && index <= 13) continue; // 南側3区画だけを隠し通路の入口として開ける。
 				const float angle = std::numbers::pi_v<float> * 2.0f * static_cast<float>(index) / static_cast<float>(wallSegmentCount);
-				const Vector3 position{ std::cos(angle) * wallRadius, 7.5f, arenaCenterZ + std::sin(angle) * wallRadius };
-				AddBox(
-					objects,
-					"DomeWall_" + std::to_string(index + 1),
-					position,
-					{ 6.55f, 5.5f, 1.25f },
-					"Obstacle",
-					{ 0.0f, -angle - std::numbers::pi_v<float> * 0.5f, 0.0f });
+				const Vector3 position{ std::cos(angle) * wallRadius, 9.0f, arenaCenterZ + std::sin(angle) * wallRadius };
+				AddBox(objects, "DomeWall_" + std::to_string(index + 1), position, { 10.0f, 7.0f, 1.6f }, "Obstacle", { 0.0f, -angle - std::numbers::pi_v<float> * 0.5f, 0.0f });
 			}
 
 			for (int index = 0; index < 12; ++index)
 			{
 				const float angle = std::numbers::pi_v<float> * static_cast<float>(index) / 12.0f;
-				AddBox(
-					objects,
-					"DomeRib_" + std::to_string(index + 1),
-					{ 0.0f, 11.7f, arenaCenterZ },
-					{ 0.42f, 0.42f, 29.0f },
-					nullptr,
-					{ 0.0f, angle, 0.0f });
+				AddBox(objects, "DomeRib_" + std::to_string(index + 1), { 0.0f, 15.6f, arenaCenterZ }, { 0.48f, 0.48f, 45.0f }, nullptr, { 0.0f, angle, 0.0f });
 			}
 
 			for (int index = 0; index < wallSegmentCount; ++index)
 			{
 				const float angle = std::numbers::pi_v<float> * 2.0f * static_cast<float>(index) / static_cast<float>(wallSegmentCount);
-				const Vector3 position{ std::cos(angle) * 18.0f, 10.4f, arenaCenterZ + std::sin(angle) * 18.0f };
-				AddBox(
-					objects,
-					"DomeRing_" + std::to_string(index + 1),
-					position,
-					{ 3.9f, 0.35f, 0.55f },
-					nullptr,
-					{ 0.0f, -angle - std::numbers::pi_v<float> * 0.5f, 0.0f });
+				const Vector3 position{ std::cos(angle) * 30.0f, 13.5f, arenaCenterZ + std::sin(angle) * 30.0f };
+				AddBox(objects, "DomeRing_" + std::to_string(index + 1), position, { 6.2f, 0.45f, 0.7f }, nullptr, { 0.0f, -angle - std::numbers::pi_v<float> * 0.5f, 0.0f });
 			}
 
 			const std::vector<Vector3> arenaRocks = {
-				{ -26.0f, 3.0f, 169.0f }, { 26.0f, 2.7f, 170.0f }, { -25.0f, 3.4f, 191.0f },
-				{ 25.0f, 3.1f, 193.0f }, { -14.0f, 2.8f, 204.0f }, { 14.0f, 3.3f, 205.0f }
+				{ -42.0f, 3.0f, 161.0f }, { 42.0f, 2.7f, 162.0f }, { -42.0f, 3.4f, 199.0f },
+				{ 42.0f, 3.1f, 201.0f }, { -24.0f, 2.8f, 220.0f }, { 24.0f, 3.3f, 221.0f }
 			};
 			for (size_t index = 0; index < arenaRocks.size(); ++index)
 			{
-				AddBox(
-					objects,
-					"DomeRockSeal_" + std::to_string(index + 1),
-					arenaRocks[index],
-					{ 3.2f + static_cast<float>(index % 2), 2.1f, 2.4f },
-					"Obstacle",
-					{ 0.12f, 0.48f * static_cast<float>(index), 0.08f });
+				AddBox(objects, "DomeRockSeal_" + std::to_string(index + 1), arenaRocks[index], { 4.0f + static_cast<float>(index % 2), 2.3f, 3.0f }, "Obstacle", { 0.12f, 0.48f * static_cast<float>(index), 0.08f });
 			}
 
-			return objects; // 描画とCollisionの両方がこの同じObjectData群を参照し、隙間や位置ずれを作らない。
+			return objects; // 直径約92mの広間でも描画とCollisionを同じ配置から生成し、外周の隙間を残さない。
 		}
 
 	private:
-		static void AddBox(
-			std::vector<ObjectData>& objects,
-			std::string name,
-			const Vector3& position,
-			const Vector3& scale,
-			const char* collisionType = nullptr,
-			const Vector3& rotation = {})
+		static void AddBox(std::vector<ObjectData>& objects, std::string name, const Vector3& position, const Vector3& scale, const char* collisionType = nullptr, const Vector3& rotation = {})
 		{
 			ObjectData data{};
 			data.name = std::move(name);
