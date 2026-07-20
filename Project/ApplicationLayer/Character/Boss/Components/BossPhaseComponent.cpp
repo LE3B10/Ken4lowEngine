@@ -15,7 +15,7 @@ namespace Ken4lowEngine
 	void BossPhaseComponent::Initialize()
 	{
 		SanitizeSettings();
-		currentPhase_ = std::clamp(currentPhase_, 1, 3);
+		currentPhase_ = ToBossPhase(ToInt(currentPhase_));
 		healthCapacityApplied_ = false;
 		phaseInvulnerabilityRemaining_ = 0.0f;
 		phaseInvulnerabilityActive_ = false;
@@ -32,10 +32,11 @@ namespace Ken4lowEngine
 		UpdatePhaseInvulnerability(*health, deltaTime);
 		if (health->IsDead() || phaseInvulnerabilityActive_) return;
 
-		const int evaluated = EvaluatePhase(health->GetHealthRatio());
-		if (evaluated <= currentPhase_) return; // 回復しても戦闘フェーズは巻き戻さない。
+		const BossPhase evaluatedPhase = EvaluatePhase(health->GetHealthRatio());
+		if (ToInt(evaluatedPhase) <= ToInt(currentPhase_)) return; // 回復しても戦闘フェーズは巻き戻さない。
 
-		currentPhase_ = std::min(evaluated, currentPhase_ + 1); // 大ダメージでもPhase 2とPhase 3を順番に見せる。
+		const int nextPhaseNumber = std::min(ToInt(evaluatedPhase), ToInt(currentPhase_) + 1);
+		currentPhase_ = ToBossPhase(nextPhaseNumber); // 大ダメージでもPhase 2とPhase 3を順番に見せる。
 		++phaseRevision_;
 		BeginPhaseInvulnerability(*health);
 	}
@@ -58,7 +59,7 @@ namespace Ken4lowEngine
 #ifdef USE_IMGUI
 		ImGui::SeparatorText("ボスフェーズ");
 		ImGui::Text("最大HP設定: %.0f", configuredMaxHealth_);
-		ImGui::Text("現在: Phase %d / Revision %u", currentPhase_, phaseRevision_);
+		ImGui::Text("現在: Phase %d / Revision %u", ToInt(currentPhase_), phaseRevision_);
 		ImGui::Text("Phase 2: HP %.0f%% / Phase 3: HP %.0f%%", phase2HealthRatio_ * 100.0f, phase3HealthRatio_ * 100.0f);
 		ImGui::Text("移行無敵: %s %.2f / %.2f", phaseInvulnerabilityActive_ ? "有効" : "無効", phaseInvulnerabilityRemaining_, phaseInvulnerabilityDuration_);
 #endif
@@ -71,7 +72,7 @@ namespace Ken4lowEngine
 		outJson["Phase2HealthRatio"] = phase2HealthRatio_;
 		outJson["Phase3HealthRatio"] = phase3HealthRatio_;
 		outJson["PhaseInvulnerabilityDuration"] = phaseInvulnerabilityDuration_;
-		outJson["CurrentPhase"] = currentPhase_;
+		outJson["CurrentPhase"] = ToInt(currentPhase_);
 	}
 
 	void BossPhaseComponent::FromJson(const nlohmann::json& inJson)
@@ -81,9 +82,9 @@ namespace Ken4lowEngine
 		phase2HealthRatio_ = inJson.value("Phase2HealthRatio", phase2HealthRatio_);
 		phase3HealthRatio_ = inJson.value("Phase3HealthRatio", phase3HealthRatio_);
 		phaseInvulnerabilityDuration_ = inJson.value("PhaseInvulnerabilityDuration", phaseInvulnerabilityDuration_);
-		currentPhase_ = inJson.value("CurrentPhase", currentPhase_);
+		const int currentPhaseNumber = inJson.value("CurrentPhase", ToInt(currentPhase_));
+		currentPhase_ = ToBossPhase(currentPhaseNumber); // JSONでは既存Prefab互換のため数値を維持し、読込直後に列挙型へ変換する。
 		SanitizeSettings();
-		currentPhase_ = std::clamp(currentPhase_, 1, 3);
 		healthCapacityApplied_ = false;
 	}
 
@@ -94,17 +95,17 @@ namespace Ken4lowEngine
 		{
 			if (phaseInvulnerabilityActive_) EndPhaseInvulnerability(*health);
 		}
-		currentPhase_ = 1;
+		currentPhase_ = BossPhase::Phase1;
 		healthCapacityApplied_ = false;
 		phaseInvulnerabilityRemaining_ = 0.0f;
 		++phaseRevision_; // PresentationへReset後の状態再同期を通知する。
 	}
 
-	int BossPhaseComponent::EvaluatePhase(float healthRatio) const
+	BossPhase BossPhaseComponent::EvaluatePhase(float healthRatio) const
 	{
-		if (healthRatio <= phase3HealthRatio_) return 3;
-		if (healthRatio <= phase2HealthRatio_) return 2;
-		return 1;
+		if (healthRatio <= phase3HealthRatio_) return BossPhase::Phase3;
+		if (healthRatio <= phase2HealthRatio_) return BossPhase::Phase2;
+		return BossPhase::Phase1;
 	}
 
 	void BossPhaseComponent::SanitizeSettings()
