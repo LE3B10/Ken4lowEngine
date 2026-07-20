@@ -80,7 +80,11 @@ namespace Ken4lowEngine
 
 		SetMaxHp(GetConfiguredArchetypeMaxHp());
 		EnemyBase::Initialize(); // Collision、地形補正、被弾、死亡演出は両アーキタイプで同じ本番経路を使う。
-		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetMovementEnabled(false);
+		if (CharacterMovementComponent* movement = GetMovementComponent())
+		{
+			movement->ConfigureAutomaticObstacleTraversal(true, 2.8f, 2.4f, 6.5f, 0.55f);
+			movement->SetMovementEnabled(false); // 通常敵だけに低障害物の乗越を有効化し、PlayerとBossのMovement設定は変更しない。
+		}
 		runtimeStateInitialized_ = true;
 		simulationEnabled_ = true;
 		if (visual && visual->GetSkinTexturePath().empty()) visual->ApplySkinToAllParts("Characters/enemy.dds");
@@ -152,8 +156,10 @@ namespace Ken4lowEngine
 	void EnemyActor::SetNavigationObstacles(const std::vector<AABB>* obstacles)
 	{
 		navigationObstacles_ = obstacles;
-		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->SetNavigationObstacles(navigationObstacles_);
-		if (MidRangeEnemyAIComponent* ai = GetMidRangeEnemyAIComponent()) ai->SetNavigationObstacles(navigationObstacles_);
+		RebuildNavigationBlockingObstacles();
+		const std::vector<AABB>* blockingObstacles = navigationObstacles_ ? &navigationBlockingObstacles_ : nullptr;
+		if (EnemyAIComponent* ai = GetEnemyAIComponent()) ai->SetNavigationObstacles(blockingObstacles);
+		if (MidRangeEnemyAIComponent* ai = GetMidRangeEnemyAIComponent()) ai->SetNavigationObstacles(blockingObstacles);
 	}
 
 	CharacterDamageResult EnemyActor::ApplyComparisonDamage(float amount)
@@ -288,6 +294,23 @@ namespace Ken4lowEngine
 		SetNavigationObstacles(navigationObstacles_);
 	}
 
+	void EnemyActor::RebuildNavigationBlockingObstacles()
+	{
+		navigationBlockingObstacles_.clear();
+		if (!navigationObstacles_) return;
+
+		float maxClimbHeight = 2.8f;
+		if (const CharacterMovementComponent* movement = GetMovementComponent()) maxClimbHeight = movement->GetAutomaticObstacleMaxClimbHeight();
+		navigationBlockingObstacles_.reserve(navigationObstacles_->size());
+		for (const AABB& obstacle : *navigationObstacles_)
+		{
+			const float obstacleHeight = std::max(0.0f, obstacle.max.y - obstacle.min.y);
+			if (obstacleHeight <= maxClimbHeight + 0.05f) continue;
+			navigationBlockingObstacles_.push_back(obstacle);
+		}
+		// 低いColliderは物理判定へ残し、A*だけが通過候補として扱うことで乗越と迂回を役割分担する。
+	}
+
 	void EnemyActor::EnsureRuntimeStateInitialized()
 	{
 		if (runtimeStateInitialized_) return;
@@ -316,7 +339,11 @@ namespace Ken4lowEngine
 		const bool usesPhysicsBody = GetComponent<RigidbodyComponent>() != nullptr;
 		useGravity_ = !usesPhysicsBody;
 		useWorldResolve_ = !usesPhysicsBody;
-		if (CharacterMovementComponent* movement = GetMovementComponent()) movement->SetMovementEnabled(usesPhysicsBody);
+		if (CharacterMovementComponent* movement = GetMovementComponent())
+		{
+			movement->ConfigureAutomaticObstacleTraversal(true, 2.8f, 2.4f, 6.5f, 0.55f);
+			movement->SetMovementEnabled(usesPhysicsBody);
+		}
 		if (CharacterColliderComponent* collider = GetColliderComponent())
 		{
 			obbHalf_ = collider->GetHalfSize();
