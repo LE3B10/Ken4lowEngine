@@ -80,9 +80,11 @@ namespace Ken4lowEngine
 
 		bool BuildBoxContactData(const OBB& boxA, const OBB& boxB, Vector3& outNormal, float& outPenetration, Vector3& outPoint)
 		{
-			constexpr float kAxisEpsilonSq = 0.00000001f;
+			constexpr float kAxisEpsilonSq = 0.000001f;
 			constexpr float kSeparationTolerance = 0.0001f;
+			constexpr float kContactTieTolerance = 0.02f;
 			const Vector3 centerDelta = boxB.center - boxA.center;
+			const bool verticallySeparated = std::fabs(centerDelta.y) > 0.2f;
 			float minimumPenetration = std::numeric_limits<float>::max();
 			Vector3 minimumAxis{ 0.0f, 1.0f, 0.0f };
 
@@ -96,7 +98,12 @@ namespace Ken4lowEngine
 					const float signedDistance = Vector3::Dot(centerDelta, axis);
 					const float penetration = radiusA + radiusB - std::fabs(signedDistance);
 					if (penetration < -kSeparationTolerance) return false;
-					if (penetration < minimumPenetration)
+
+					const bool isFirstAxis = minimumPenetration == std::numeric_limits<float>::max();
+					const bool hasSmallerPenetration = penetration < minimumPenetration - kContactTieTolerance;
+					const bool isNearTie = !isFirstAxis && std::fabs(penetration - minimumPenetration) <= kContactTieTolerance;
+					const bool prefersSupportNormal = verticallySeparated && isNearTie && std::fabs(axis.y) > std::fabs(minimumAxis.y) + 0.05f;
+					if (isFirstAxis || hasSmallerPenetration || prefersSupportNormal)
 					{
 						minimumPenetration = std::max(0.0f, penetration);
 						minimumAxis = signedDistance >= 0.0f ? axis : axis * -1.0f;
@@ -121,7 +128,7 @@ namespace Ken4lowEngine
 			outPenetration = minimumPenetration;
 			const Vector3 pointA = GetBoxSupportPoint(boxA, outNormal);
 			const Vector3 pointB = GetBoxSupportPoint(boxB, outNormal * -1.0f);
-			outPoint = (pointA + pointB) * 0.5f; // 回転BOX同士の実際の分離軸から接触点を近似する。
+			outPoint = (pointA + pointB) * 0.5f; // 上面と側面の侵入量が同程度なら、縦に積まれたBoxは接地法線を優先して端で固着させない。
 			return true;
 		}
 
