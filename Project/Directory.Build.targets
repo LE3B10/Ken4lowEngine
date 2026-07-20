@@ -50,12 +50,7 @@
     <ClInclude Remove="ApplicationLayer\Character\Boss\Components\BossAttackComponent.h" />
     <ClInclude Remove="ApplicationLayer\Character\Boss\Core\BossBase.h" />
     <ClInclude Remove="ApplicationLayer\Character\Boss\Components\BossMovementComponent.h" />
-    <ClInclude Remove="ApplicationLayer\Character\Boss\BehaviorTree\BTActionNode.h" />
-    <ClInclude Remove="ApplicationLayer\Character\Boss\BehaviorTree\BTConditionNode.h" />
-    <ClInclude Remove="ApplicationLayer\Character\Boss\BehaviorTree\BTSelectorNode.h" />
-    <ClInclude Remove="ApplicationLayer\Character\Boss\BehaviorTree\BTSequenceNode.h" />
-    <ClInclude Remove="ApplicationLayer\Character\Boss\BehaviorTree\BehaviorStatus.h" />
-    <ClInclude Remove="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.h" />
+    <ClInclude Remove="ApplicationLayer\Character\Boss\BehaviorTree\*.h" />
     <ClInclude Remove="ApplicationLayer\Character\Boss\Core\BossTypes.h" />
     <ClInclude Remove="ApplicationLayer\Character\Boss\Attacks\IBossAttack.h" />
     <ClInclude Remove="ApplicationLayer\Character\Boss\Attacks\BossMeleeAttackUtility.h" />
