@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include "CharacterMovementComponent.h"
 
 #include "Actor.h"
