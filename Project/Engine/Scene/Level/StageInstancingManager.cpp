@@ -26,6 +26,18 @@ namespace Ken4lowEngine
 
 		Vector4 ResolveStageInstanceColor(const ObjectData& data)
 		{
+			if (ContainsIgnoreCase(data.name, "defensehazard")) return { 0.90f, 0.58f, 0.10f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "defensecore")) return { 0.18f, 0.62f, 0.82f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "defensetower") || ContainsIgnoreCase(data.name, "defensegatepylon")) return { 0.24f, 0.30f, 0.36f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "defenseouterwall") || ContainsIgnoreCase(data.name, "defenseinnerwall")) return { 0.31f, 0.36f, 0.43f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "defensesupply")) return { 0.42f, 0.42f, 0.25f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "defensegenerator")) return { 0.26f, 0.39f, 0.48f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "defensebarricade")) return { 0.44f, 0.36f, 0.27f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "defensecover")) return { 0.35f, 0.40f, 0.45f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "defensefloor") || ContainsIgnoreCase(data.name, "defensecommandplatform") || ContainsIgnoreCase(data.name, "defenseapproach"))
+			{
+				return { 0.27f, 0.30f, 0.33f, 1.0f }; // 防衛拠点は役割ごとに色を分け、同一モデルでも戦場の構造を読み取りやすくする。
+			}
 			if (ContainsIgnoreCase(data.name, "hiddenpassageguide")) return { 0.12f, 0.42f, 0.72f, 1.0f };
 			if (ContainsIgnoreCase(data.name, "hiddenpassage")) return { 0.18f, 0.19f, 0.20f, 1.0f };
 			if (ContainsIgnoreCase(data.name, "hiddensupport") || ContainsIgnoreCase(data.name, "hiddengate")) return { 0.23f, 0.21f, 0.18f, 1.0f };
