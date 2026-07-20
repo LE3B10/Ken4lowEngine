@@ -9,10 +9,19 @@ namespace Ken4lowEngine
 			return type == "StaticMesh" || type == "MESH";
 		}
 
+		bool IsInstancedOnlyLevel(const LevelData& levelData)
+		{
+			for (const ObjectData& data : levelData.objects)
+			{
+				if (data.name == "CollapsedCity_InstancedOnlyMarker") return true;
+			}
+			return false;
+		}
 	}
 
 	std::string StageAssetLoader::ResolveStageModelName(const LevelData& levelData, const std::string& defaultModelName)
 	{
+		if (IsInstancedOnlyLevel(levelData)) return {}; // 崩落都市圏は旧一体型glTFを読み込まず、モジュール配置だけを描画する。
 		// GamePlayから渡された一体型ステージを優先し、個別配置modelPathで誤って置き換えない。
 		if (!defaultModelName.empty()) { return defaultModelName; }
 		for (const ObjectData& data : levelData.objects)
@@ -28,6 +37,7 @@ namespace Ken4lowEngine
 		const Vector3& offset)
 	{
 		const std::string modelName = ResolveStageModelName(levelData, defaultModelName);
+		if (modelName.empty()) return nullptr;
 
 		auto stageModel = std::make_unique<Object3D>();
 		stageModel->Initialize(modelName);
