@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include "StageInstancingManager.h"
 #include "MineHiddenArenaLayout.h"
+#include "CollapsedCityLayout.h"
 
 #include <algorithm>
 #include <cctype>
@@ -26,6 +27,16 @@ namespace Ken4lowEngine
 
 		Vector4 ResolveStageInstanceColor(const ObjectData& data)
 		{
+			if (ContainsIgnoreCase(data.name, "cityroad")) return { 0.13f, 0.14f, 0.16f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "citysinkhole")) return { 0.07f, 0.075f, 0.085f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "citybuswreck")) return { 0.38f, 0.22f, 0.12f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "citymonument")) return { 0.38f, 0.37f, 0.35f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "cityevac")) return { 0.18f, 0.42f, 0.54f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "citybuilding") || ContainsIgnoreCase(data.name, "cityfacade") ||
+				ContainsIgnoreCase(data.name, "cityboundary") || ContainsIgnoreCase(data.name, "cityfreeway"))
+			{
+				return { 0.27f, 0.29f, 0.33f, 1.0f }; // 崩落都市のコンクリート群は寒色寄りに統一し、道路・瓦礫との材質差を残す。
+			}
 			if (ContainsIgnoreCase(data.name, "defensehazard")) return { 0.90f, 0.58f, 0.10f, 1.0f };
 			if (ContainsIgnoreCase(data.name, "defensecore")) return { 0.18f, 0.62f, 0.82f, 1.0f };
 			if (ContainsIgnoreCase(data.name, "defensetower") || ContainsIgnoreCase(data.name, "defensegatepylon")) return { 0.24f, 0.30f, 0.36f, 1.0f };
@@ -81,6 +92,7 @@ namespace Ken4lowEngine
 		};
 
 		const std::vector<ObjectData> hiddenArenaObjects = MineHiddenArenaLayout::Build(levelData);
+		const std::vector<ObjectData> collapsedCityObjects = CollapsedCityLayout::Build(levelData);
 		const bool hasHiddenArena = !hiddenArenaObjects.empty();
 		for (const ObjectData& data : levelData.objects)
 		{
@@ -88,6 +100,7 @@ namespace Ken4lowEngine
 			appendSource(data);
 		}
 		for (const ObjectData& data : hiddenArenaObjects) appendSource(data);
+		for (const ObjectData& data : collapsedCityObjects) appendSource(data); // JSONマーカーから生成した都市モジュールを同一モデルの一括描画へ追加する。
 
 		for (auto& [modelPath, sources] : sourcesByModel)
 		{
