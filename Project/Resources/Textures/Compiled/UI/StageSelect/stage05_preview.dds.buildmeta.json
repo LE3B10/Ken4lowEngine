@@ -4,8 +4,8 @@
     "Operation":  "Convert",
     "SourcePath":  "Resources/Textures/Sources/UI/StageSelect/stage05_preview.png",
     "OutputPath":  "Resources/Textures/Compiled/UI/StageSelect/stage05_preview.dds",
-    "SourceSizeBytes":  81,
-    "SourceSha256":  "63cb99ad2b5ddbd6044f1df437cdb5be8eed70e85358b540750937f31cc01f87",
+    "SourceSizeBytes":  357942,
+    "SourceSha256":  "8fb8b2b7933be3701c50d1764d814073cc5fa6b26657df5c7dfa065dd8fdb8c1",
     "MipLevel":  0,
     "DisableMipMap":  false
 }
