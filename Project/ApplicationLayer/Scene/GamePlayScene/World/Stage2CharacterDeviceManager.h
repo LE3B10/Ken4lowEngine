@@ -6,6 +6,7 @@
 #include "Stage2DeviceActor.h"
 #include "Stage2HiddenPassageActor.h"
 #include "Stage3DefenseRuntime.h"
+#include "Stage4OpeningBridgeRuntime.h"
 
 #include <ActorWorld.h>
 #include <Input.h>
@@ -18,7 +19,7 @@
 #include <string>
 #include <vector>
 
-/// Stage 2装置とStage 3防衛対象を既存CharacterWorldのActorWorldへ生成し、Objective通知を管理する。
+/// Stage 2装置、Stage 3防衛対象、Stage 4序盤ギミックを既存CharacterWorldのActorWorldへ生成し、Objective通知を管理する。
 class Stage2CharacterDeviceManager final
 {
 public:
@@ -37,6 +38,8 @@ public:
 		Finalize();
 		defenseRuntime_.Initialize(stageContext);
 		if (defenseRuntime_.IsActive()) return;
+		openingBridgeRuntime_.Initialize(stageContext);
+		if (openingBridgeRuntime_.IsActive()) return; // Stage 4では装置・防衛・橋展開を専用Runtimeへまとめ、Stage 2装置処理と重複させない。
 
 		const auto rule = stageContext.GetCurrentStageRule();
 		active_ = rule.objectiveType == GamePlayStageContext::StageObjectiveType::ActivateDevices;
@@ -58,6 +61,7 @@ public:
 	void Finalize()
 	{
 		defenseRuntime_.Finalize();
+		openingBridgeRuntime_.Finalize();
 		for (Stage2DeviceActor* device : devices_)
 		{
 			if (device) device->Destroy();
@@ -94,6 +98,15 @@ public:
 			prompt_.text = defensePrompt.text;
 			prompt_.normalizedProgress = defensePrompt.normalizedProgress;
 			return; // Stage 3は装置操作を行わず、防衛コアと増援Runtimeだけを更新する。
+		}
+		if (openingBridgeRuntime_.IsActive())
+		{
+			openingBridgeRuntime_.Update(player, input, characters, deltaTime);
+			const auto& openingPrompt = openingBridgeRuntime_.GetPromptSnapshot();
+			prompt_.visible = openingPrompt.visible;
+			prompt_.text = openingPrompt.text;
+			prompt_.normalizedProgress = openingPrompt.normalizedProgress;
+			return; // Stage 4の長押し案内だけ既存Interaction HUDへ渡し、上中央の進捗バーはRuntime Actorが描画する。
 		}
 		if (!active_) return;
 		K4E::ActorWorld& actorWorld = characters.GetActorWorld();
@@ -141,6 +154,7 @@ public:
 	void UpdateShadowMatrix(const K4E::Matrix4x4& lightViewProjection)
 	{
 		defenseRuntime_.UpdateShadowMatrix(lightViewProjection);
+		openingBridgeRuntime_.UpdateShadowMatrix(lightViewProjection);
 		for (Stage2DeviceActor* device : devices_)
 		{
 			if (device) device->UpdateShadowMatrix(lightViewProjection);
@@ -159,7 +173,7 @@ public:
 	bool AreAllDevicesActivated() const { return active_ && requiredDeviceCount_ > 0 && GetActivatedCount() >= requiredDeviceCount_; }
 	bool IsHiddenPassageOpen() const { return hiddenGate_ && hiddenGate_->IsOpen(); }
 	bool HasEnteredBossArena() const { return bossArenaEntered_; }
-	bool IsActive() const { return active_ || defenseRuntime_.IsActive(); }
+	bool IsActive() const { return active_ || defenseRuntime_.IsActive() || openingBridgeRuntime_.IsActive(); }
 	bool IsDefenseActive() const { return defenseRuntime_.IsActive(); }
 	const K4E::Vector3& GetBossArenaPosition() const { return bossArenaPosition_; }
 	Stage3DefenseTargetActor* GetDefenseTarget() const { return defenseRuntime_.GetTarget(); }
@@ -424,6 +438,7 @@ private:
 	}
 
 	Stage3DefenseRuntime defenseRuntime_{};
+	Stage4OpeningBridgeRuntime openingBridgeRuntime_{};
 	std::vector<Stage2DeviceActor*> devices_;
 	Stage2HiddenPassageActor* hiddenGate_ = nullptr;
 	std::vector<GamePlayStageContext::DevicePointInfo> pendingDevicePoints_;
