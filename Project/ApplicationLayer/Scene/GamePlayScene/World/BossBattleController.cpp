@@ -2,6 +2,7 @@
 #include "BossBattleController.h"
 
 #include "ApplicationLayer/Character/Boss/Actor/BossActor.h"
+#include "ApplicationLayer/Character/Boss/Components/BossPhaseComponent.h"
 #include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
 #include "ApplicationLayer/Scene/DebugScene/DebugActorRegistration.h"
 #include "Camera.h"
@@ -34,6 +35,7 @@ namespace
 {
 	constexpr float kPi = std::numbers::pi_v<float>;
 	constexpr float kBeginnerBossMaxHp = 900.0f;
+	constexpr int kFinalBossStageIndex = 4;
 	constexpr const char* kDefaultBossPrefabPath = "Resources/ActorPrefabs/ComponentBoss.json";
 	constexpr const char* kMineCrusherBossPrefabPath = "Resources/ActorPrefabs/ComponentMineCrusherBoss.json";
 }
@@ -97,6 +99,7 @@ void BossClearItem::OnCollision(K4E::Collider* other){ (void)other; }
 void BossBattleController::Initialize(GamePlayStageContext& stageContext, bool beginnerBalance)
 {
 	stage1BeginnerBalanceEnabled_ = beginnerBalance;
+	stage5Phase3Enabled_ = stageContext.GetCurrentStageIndex() == kFinalBossStageIndex; // 表示上のStage 5だけ第三フェーズを解禁する。
 	const std::string& stageJsonPath = stageContext.GetCurrentStageAssets().jsonPath;
 	bossPrefabPath_ = stageJsonPath.find("wasureraretakoudou") != std::string::npos
 		? kMineCrusherBossPrefabPath
@@ -263,6 +266,7 @@ void BossBattleController::DrawImGui(const Dependencies& deps, bool introPresent
 #ifdef USE_IMGUI
 	ImGui::SeparatorText("ボス状態");
 	ImGui::Text("Prefab: %s", bossPrefabPath_.c_str());
+	ImGui::Text("Phase 3: %s", stage5Phase3Enabled_ ? "Stage 5で有効" : "無効");
 	ImGui::Text("ActorWorld Boss: %s / Collider: %s", bossSpawned_ ? "spawned" : "none", bossColliderRegistered_ ? "enabled" : "disabled");
 	ImGui::Text("Intro: %s / Presentation camera: %s", bossIntroController_.IsRunning() ? "active" : "inactive", introPresentation ? "yes" : "no");
 	bossIntroController_.SetDebugSnapshot(bossActor_, deps.characters && deps.characters->GetPlayerRuntime() ? deps.characters->GetPlayerRuntime()->GetCamera() : nullptr);
@@ -322,6 +326,7 @@ void BossBattleController::SpawnBossActor(const Dependencies& deps, bool enableB
 	bossActor_->AddTag("GameplayBoss");
 	if (isMineCrusher) bossActor_->AddTag("MineCrusher");
 	bossActor_->SetTargetActor(deps.characters->GetPlayer());
+	if (auto* phase = bossActor_->GetBossPhaseComponent()) phase->SetPhase3Enabled(stage5Phase3Enabled_);
 	if (stage1BeginnerBalanceEnabled_)
 	{
 		if (auto* health = bossActor_->GetHealthComponent()) health->ResetHealth(kBeginnerBossMaxHp);
