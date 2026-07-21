@@ -2,6 +2,7 @@
 #include "StageInstancingManager.h"
 #include "MineHiddenArenaLayout.h"
 #include "CollapsedCityLayout.h"
+#include "CollapsedCityPassageLayout.h"
 
 #include <algorithm>
 #include <cctype>
@@ -93,6 +94,7 @@ namespace Ken4lowEngine
 
 		const std::vector<ObjectData> hiddenArenaObjects = MineHiddenArenaLayout::Build(levelData);
 		const std::vector<ObjectData> collapsedCityObjects = CollapsedCityLayout::Build(levelData);
+		const std::vector<ObjectData> collapsedCityPassageObjects = CollapsedCityPassageLayout::Build(levelData);
 		const bool hasHiddenArena = !hiddenArenaObjects.empty();
 		for (const ObjectData& data : levelData.objects)
 		{
@@ -101,6 +103,7 @@ namespace Ken4lowEngine
 		}
 		for (const ObjectData& data : hiddenArenaObjects) appendSource(data);
 		for (const ObjectData& data : collapsedCityObjects) appendSource(data); // JSONマーカーから生成した都市モジュールを同一モデルの一括描画へ追加する。
+		for (const ObjectData& data : collapsedCityPassageObjects) appendSource(data); // 陥没区画の通行橋も都市本体と同じInstance Batchへ統合する。
 
 		for (auto& [modelPath, sources] : sourcesByModel)
 		{
