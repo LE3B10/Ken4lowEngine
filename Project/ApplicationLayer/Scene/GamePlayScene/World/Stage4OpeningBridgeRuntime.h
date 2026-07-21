@@ -6,6 +6,7 @@
 #include "Stage2DeviceActor.h"
 
 #include <Actor.h>
+#include <Camera.h>
 #include <Collider.h>
 #include <ColliderComponent.h>
 #include <GaugeComponent.h>
@@ -305,6 +306,12 @@ public:
 		state_ = State::WaitingForActivation;
 		defenseElapsedSec_ = 0.0f;
 		completionDisplayTimer_ = 0.0f;
+		cameraMoveElapsedSec_ = 0.0f;
+		cameraReturnElapsedSec_ = 0.0f;
+		cameraShakeElapsedSec_ = 0.0f;
+		savedCameraPosition_ = {};
+		savedCameraForward_ = { 0.0f, 0.0f, 1.0f };
+		cameraPresentationStarted_ = false;
 		initialEncounterCount_ = 0;
 		active_ = false;
 	}
@@ -330,8 +337,14 @@ public:
 		case State::Defending:
 			UpdateDefense(characters, safeDeltaTime);
 			break;
+		case State::CameraMoveToBridge:
+			UpdateCameraMoveToBridge(player, safeDeltaTime);
+			break;
 		case State::OpeningBridge:
-			UpdateBridgeOpening(safeDeltaTime);
+			UpdateBridgeOpening(player, safeDeltaTime);
+			break;
+		case State::CameraReturn:
+			UpdateCameraReturn(player, safeDeltaTime);
 			break;
 		case State::Complete:
 			UpdateComplete(safeDeltaTime);
@@ -353,7 +366,9 @@ private:
 	{
 		WaitingForActivation,
 		Defending,
+		CameraMoveToBridge,
 		OpeningBridge,
+		CameraReturn,
 		Complete,
 	};
 
@@ -445,13 +460,56 @@ private:
 		gaugeActor_->SetDisplay(true, label, progress, fillColor);
 
 		if (!minimumDefenseComplete || aliveCount > 0) return;
+		cameraMoveElapsedSec_ = 0.0f;
+		cameraPresentationStarted_ = false;
+		state_ = State::CameraMoveToBridge;
+	}
+
+	void UpdateCameraMoveToBridge(IPlayerRuntime* player, float deltaTime)
+	{
+		K4E::Camera* camera = player ? player->GetCamera() : nullptr;
+		if (!camera)
+		{
+			bridge_->RequestOpen();
+			state_ = State::OpeningBridge;
+			return;
+		}
+
+		if (!cameraPresentationStarted_)
+		{
+			savedCameraPosition_ = camera->GetTranslate();
+			savedCameraForward_ = NormalizeDirection(camera->GetForward(), { 0.0f, 0.0f, 1.0f });
+			cameraPresentationStarted_ = true;
+		}
+
+		cameraMoveElapsedSec_ += deltaTime;
+		const float t = SmoothStep(cameraMoveElapsedSec_ / std::max(0.05f, cameraMoveDurationSec_));
+		const K4E::Vector3 startTarget = savedCameraPosition_ + savedCameraForward_ * 14.0f;
+		ApplyCameraLookAt(
+			camera,
+			Lerp(savedCameraPosition_, bridgeCameraPosition_, t),
+			Lerp(startTarget, bridgeCameraTarget_, t),
+			{});
+		gaugeActor_->SetDisplay(
+			true,
+			"崩落橋を展開準備",
+			t,
+			{ 0.18f, 0.72f, 0.94f, 0.98f });
+
+		if (t < 1.0f) return;
 		bridge_->RequestOpen();
+		cameraShakeElapsedSec_ = 0.0f;
 		state_ = State::OpeningBridge;
 	}
 
-	void UpdateBridgeOpening(float)
+	void UpdateBridgeOpening(IPlayerRuntime* player, float deltaTime)
 	{
 		const float progress = bridge_->GetOpenProgress();
+		cameraShakeElapsedSec_ += deltaTime;
+		if (K4E::Camera* camera = player ? player->GetCamera() : nullptr)
+		{
+			ApplyCameraLookAt(camera, bridgeCameraPosition_, bridgeCameraTarget_, BuildBridgeCameraShake(progress)); // 橋が組み上がっている間だけ専用カメラへ機械振動を加える。
+		}
 		gaugeActor_->SetDisplay(
 			true,
 			"崩落橋を展開中",
@@ -459,6 +517,36 @@ private:
 			{ 0.18f, 0.72f, 0.94f, 0.98f });
 		if (!bridge_->IsOpen()) return;
 
+		cameraReturnElapsedSec_ = 0.0f;
+		state_ = State::CameraReturn;
+	}
+
+	void UpdateCameraReturn(IPlayerRuntime* player, float deltaTime)
+	{
+		K4E::Camera* camera = player ? player->GetCamera() : nullptr;
+		if (!camera)
+		{
+			completionDisplayTimer_ = 2.8f;
+			state_ = State::Complete;
+			return;
+		}
+
+		const K4E::Vector3 liveCameraPosition = camera->GetTranslate();
+		const K4E::Vector3 liveCameraForward = NormalizeDirection(camera->GetForward(), savedCameraForward_);
+		const K4E::Vector3 bridgeCameraForward = NormalizeDirection(bridgeCameraTarget_ - bridgeCameraPosition_, savedCameraForward_);
+		cameraReturnElapsedSec_ += deltaTime;
+		const float t = SmoothStep(cameraReturnElapsedSec_ / std::max(0.05f, cameraReturnDurationSec_));
+		ApplyCameraForward(
+			camera,
+			Lerp(bridgeCameraPosition_, liveCameraPosition, t),
+			NormalizeDirection(Lerp(bridgeCameraForward, liveCameraForward, t), liveCameraForward));
+		gaugeActor_->SetDisplay(
+			true,
+			"橋梁ルート開通　先へ進め",
+			1.0f,
+			{ 0.22f, 0.94f, 0.42f, 0.98f });
+
+		if (t < 1.0f) return;
 		completionDisplayTimer_ = 2.8f;
 		state_ = State::Complete;
 	}
@@ -509,14 +597,82 @@ private:
 		return count;
 	}
 
+	static float SmoothStep(float value)
+	{
+		const float clamped = std::clamp(value, 0.0f, 1.0f);
+		return clamped * clamped * (3.0f - 2.0f * clamped);
+	}
+
+	static K4E::Vector3 Lerp(const K4E::Vector3& from, const K4E::Vector3& to, float t)
+	{
+		return from + (to - from) * std::clamp(t, 0.0f, 1.0f);
+	}
+
+	static K4E::Vector3 NormalizeDirection(const K4E::Vector3& direction, const K4E::Vector3& fallback)
+	{
+		const float lengthSq = K4E::Vector3::LengthSquared(direction);
+		if (lengthSq <= 0.000001f) return fallback;
+		return direction * (1.0f / std::sqrt(lengthSq));
+	}
+
+	void ApplyCameraLookAt(
+		K4E::Camera* camera,
+		const K4E::Vector3& cameraPosition,
+		const K4E::Vector3& targetPosition,
+		const K4E::Vector3& shakeOffset) const
+	{
+		if (!camera) return;
+		const K4E::Vector3 shakenPosition = cameraPosition + shakeOffset;
+		camera->SetTranslate(shakenPosition);
+		camera->SetForward(NormalizeDirection(targetPosition - shakenPosition, savedCameraForward_));
+		camera->Update();
+	}
+
+	void ApplyCameraForward(
+		K4E::Camera* camera,
+		const K4E::Vector3& cameraPosition,
+		const K4E::Vector3& cameraForward) const
+	{
+		if (!camera) return;
+		camera->SetTranslate(cameraPosition);
+		camera->SetForward(NormalizeDirection(cameraForward, savedCameraForward_));
+		camera->Update();
+	}
+
+	K4E::Vector3 BuildBridgeCameraShake(float progress) const
+	{
+		if (progress <= 0.0f || progress >= 1.0f) return {};
+		const float fadeIn = SmoothStep(std::min(progress / 0.12f, 1.0f));
+		const float fadeOut = SmoothStep(std::min((1.0f - progress) / 0.12f, 1.0f));
+		const float amplitude = bridgeCameraShakeAmplitude_ * fadeIn * fadeOut;
+		const float phase = cameraShakeElapsedSec_ * bridgeCameraShakeFrequency_;
+		return {
+			std::sin(phase * 1.37f) * amplitude,
+			std::cos(phase * 1.91f) * amplitude * 0.55f,
+			std::sin(phase * 0.73f) * amplitude * 0.35f
+		};
+	}
+
 	Stage2DeviceActor* console_ = nullptr;
 	Stage4CollapsedBridgeActor* bridge_ = nullptr;
 	Stage4OpeningGaugeActor* gaugeActor_ = nullptr;
 	PromptSnapshot prompt_{};
 	State state_ = State::WaitingForActivation;
+	K4E::Vector3 savedCameraPosition_{};
+	K4E::Vector3 savedCameraForward_{ 0.0f, 0.0f, 1.0f };
+	K4E::Vector3 bridgeCameraPosition_{ 10.5f, 7.5f, -62.0f };
+	K4E::Vector3 bridgeCameraTarget_{ 0.0f, 0.55f, -29.0f };
 	float defenseDurationSec_ = 8.0f;
 	float defenseElapsedSec_ = 0.0f;
 	float completionDisplayTimer_ = 0.0f;
+	float cameraMoveDurationSec_ = 0.65f;
+	float cameraReturnDurationSec_ = 0.75f;
+	float cameraMoveElapsedSec_ = 0.0f;
+	float cameraReturnElapsedSec_ = 0.0f;
+	float cameraShakeElapsedSec_ = 0.0f;
+	float bridgeCameraShakeAmplitude_ = 0.11f;
+	float bridgeCameraShakeFrequency_ = 24.0f;
 	int initialEncounterCount_ = 0;
+	bool cameraPresentationStarted_ = false;
 	bool active_ = false;
 };
