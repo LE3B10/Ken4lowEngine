@@ -72,6 +72,7 @@ private:
 	bool IsDeviceBossPhase() const;
 	bool EvaluateCleared() const;
 	bool EvaluateFailed() const;
+	void UpdateReachGoalState();
 	void RefreshOutcome();
 	void TransitionTo(Status nextStatus);
 	void RefreshSnapshot();
@@ -83,6 +84,9 @@ private:
 	int devicePointCount_ = 0;
 	int defenseTargetPointCount_ = 0;
 	int goalPointCount_ = 0;
+	K4E::Vector3 goalPosition_{};
+	float goalDistance_ = -1.0f;
+	bool hasGoalPoint_ = false;
 	bool hasBossSpawnPoint_ = false;
 	int activatedDeviceCount_ = 0;
 	float defendElapsedSec_ = 0.0f;
