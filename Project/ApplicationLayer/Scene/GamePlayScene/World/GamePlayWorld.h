@@ -72,6 +72,13 @@ public:
 	{
 		return stageObjectiveManager_ ? &stageObjectiveManager_->GetSnapshot() : nullptr;
 	}
+	void EnsureBossStageStarted()
+	{
+		if (!stageObjectiveManager_ || bossBattleController_.IsSpawned() || bossBattleController_.IsIntroActive() || bossBattleController_.HasIntroPlayed()) return;
+		const StageObjectiveManager::Snapshot& snapshot = stageObjectiveManager_->GetSnapshot();
+		if (snapshot.type != GamePlayStageContext::StageObjectiveType::DefeatBoss || snapshot.status != StageObjectiveManager::Status::Active) return;
+		bossBattleController_.RequestBossBattle(bossBattleController_.GetBossSpawnPosition()); // 中枢制御塔は前提ギミックを挟まず、Arena表示後すぐBoss登場演出へ移る。
+	}
 
 	const K4E::Matrix4x4& GetShadowLightViewProjection() const { return shadowLightViewProjection_; }
 	bool NotifyStageDeviceActivated(const std::string& deviceId)
