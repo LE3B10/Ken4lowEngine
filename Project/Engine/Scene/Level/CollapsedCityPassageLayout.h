@@ -2,13 +2,14 @@
 
 #include "LevelData.h"
 
+#include <array>
 #include <string>
 #include <utility>
 #include <vector>
 
 namespace Ken4lowEngine
 {
-	/// 動的な中央橋を必須ルートにするため、陥没地点の旧迂回路だけを崩落瓦礫で封鎖する。
+	/// 中央橋の迂回封鎖と、崩落高架アスレチックの入口・出口を追加する補助レイアウト。
 	class CollapsedCityPassageLayout final
 	{
 	public:
@@ -17,11 +18,49 @@ namespace Ken4lowEngine
 			if (!IsTargetLevel(levelData)) return {};
 
 			std::vector<ObjectData> objects;
-			objects.reserve(3u);
+			objects.reserve(20u);
 			AddBox(objects, "CityBypassPermanentCollapse_Main", { -16.0f, 2.6f, -51.0f }, { 9.5f, 2.6f, 1.6f }, "Obstacle", { 0.04f, 0.08f, -0.03f });
 			AddBox(objects, "Rubble_BypassPermanentCollapse_Left", { -25.0f, 1.55f, -46.5f }, { 3.6f, 1.55f, 2.4f }, "Obstacle", { -0.08f, -0.30f, 0.06f });
 			AddBox(objects, "BrokenBeam_BypassPermanentCollapse_Top", { -14.0f, 5.7f, -50.5f }, { 7.5f, 0.35f, 0.45f }, nullptr, { 0.18f, 0.12f, 0.22f });
-			return objects; // 左側の旧迂回路を残したまま中央橋を待ててしまう抜け道を塞ぎ、敵全滅まで進行不能にする。
+
+			const std::array<float, 4> entryTopHeights = { 7.0f, 8.0f, 9.0f, 10.0f };
+			for (size_t index = 0; index < entryTopHeights.size(); ++index)
+			{
+				const float top = entryTopHeights[index];
+				AddBox(
+					objects,
+					"Step_AthleticEntry_" + std::to_string(index + 1),
+					{ 0.0f, top * 0.5f, 98.8f + static_cast<float>(index) * 1.7f },
+					{ 10.8f, top * 0.5f, 1.05f },
+					"Floor");
+			}
+
+			const std::array<float, 5> exitTopHeights = { 10.0f, 8.0f, 6.0f, 4.0f, 2.0f };
+			for (size_t index = 0; index < exitTopHeights.size(); ++index)
+			{
+				const float top = exitTopHeights[index];
+				AddBox(
+					objects,
+					"Step_AthleticExit_" + std::to_string(index + 1),
+					{ 0.0f, top * 0.5f, 152.0f + static_cast<float>(index) * 2.8f },
+					{ 10.8f, top * 0.5f, 1.65f },
+					"Floor");
+			}
+
+			AddBox(objects, "BrokenBeam_AthleticEntry_Left", { -10.2f, 10.8f, 103.0f }, { 0.25f, 0.65f, 5.0f }, "Obstacle", { 0.06f, 0.02f, -0.08f });
+			AddBox(objects, "BrokenBeam_AthleticEntry_Right", { 10.2f, 10.8f, 103.0f }, { 0.25f, 0.65f, 5.0f }, "Obstacle", { -0.05f, -0.02f, 0.07f });
+			AddBox(objects, "BrokenBeam_AthleticExit_Left", { -10.2f, 10.8f, 149.0f }, { 0.25f, 0.65f, 4.0f }, "Obstacle", { -0.08f, 0.03f, 0.06f });
+			AddBox(objects, "BrokenBeam_AthleticExit_Right", { 10.2f, 10.8f, 149.0f }, { 0.25f, 0.65f, 4.0f }, "Obstacle", { 0.07f, -0.03f, -0.05f });
+
+			for (size_t index = 0; index < 3; ++index)
+			{
+				AddBox(
+					objects,
+					"Strip_AthleticWarning_" + std::to_string(index + 1),
+					{ 0.0f, 10.08f, 101.0f + static_cast<float>(index) * 2.0f },
+					{ 1.2f, 0.04f, 0.18f });
+			}
+			return objects; // 下層へ落ちた場合は北側の高い出口を越えられず、南側の入口へ戻って足場を再生成させる。
 		}
 
 	private:
@@ -39,8 +78,8 @@ namespace Ken4lowEngine
 			std::string name,
 			const Vector3& position,
 			const Vector3& scale,
-			const char* collisionType,
-			const Vector3& rotation)
+			const char* collisionType = nullptr,
+			const Vector3& rotation = {})
 		{
 			ObjectData data{};
 			data.name = std::move(name);
