@@ -60,7 +60,7 @@ namespace Ken4lowEngine
 					{ 0.0f, 10.08f, 101.0f + static_cast<float>(index) * 2.0f },
 					{ 1.2f, 0.04f, 0.18f });
 			}
-			return objects; // 下層へ落ちた場合は北側の高い出口を越えられず、南側の入口へ戻って足場を再生成させる。
+			return objects; // 入口と成功時の出口階段だけを残し、崩落足場の下には復帰用の床を設けない。
 		}
 
 	private:
