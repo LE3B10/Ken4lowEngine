@@ -216,20 +216,22 @@ namespace Ken4lowEngine
 		static void BuildCollapsedFreeway(std::vector<ObjectData>& objects)
 		{
 			AddBox(objects, "CityRoad_FreewayApproach", { 0.0f, -0.45f, 64.0f }, { 20.0f, 0.45f, 7.0f }, "Floor");
+
+			AddBox(objects, "CityBusWreck_Checkpoint", { -8.5f, 1.65f, 64.0f }, { 5.2f, 1.65f, 2.25f }, "Obstacle", { 0.04f, 0.18f, -0.02f });
+			AddBox(objects, "DefenseBarricade_Checkpoint_Right", { 10.5f, 0.65f, 65.5f }, { 4.0f, 0.65f, 0.65f }, "Obstacle", { 0.0f, -0.16f, 0.0f });
+			AddBox(objects, "CityCheckpoint_Pillar", { 15.0f, 2.8f, 61.5f }, { 0.55f, 2.8f, 0.55f }, "Pillar", { 0.0f, 0.08f, 0.02f });
+			AddBox(objects, "BrokenBeam_CheckpointArm", { 11.0f, 5.35f, 61.5f }, { 4.4f, 0.28f, 0.38f }, nullptr, { 0.05f, -0.08f, -0.14f });
+			AddBox(objects, "Rubble_Checkpoint_Left", { -1.0f, 0.42f, 67.8f }, { 1.8f, 0.42f, 1.0f }, "Obstacle", { 0.0f, 0.42f, 0.0f });
+			for (size_t index = 0; index < 3; ++index)
+			{
+				AddBox(objects, "Strip_CheckpointRoute_" + std::to_string(index + 1), { 4.0f, 0.05f, 61.0f + static_cast<float>(index) * 2.6f }, { 1.2f, 0.03f, 0.18f });
+			}
+
 			const std::array<float, 6> rampZ = { 72.0f, 77.0f, 82.0f, 87.0f, 92.0f, 97.0f };
 			for (size_t index = 0; index < rampZ.size(); ++index)
 			{
 				const float top = static_cast<float>(index + 1);
 				AddBox(objects, "Step_FreewayRamp_" + std::to_string(index + 1), { 0.0f, top * 0.5f, rampZ[index] }, { 11.0f, top * 0.5f, 2.8f }, "Floor");
-			}
-
-			const std::array<float, 3> freewayZ = { 103.0f, 114.0f, 125.0f };
-			for (size_t index = 0; index < freewayZ.size(); ++index)
-			{
-				const float z = freewayZ[index];
-				AddBox(objects, "RaisedFloor_Freeway_" + std::to_string(index + 1), { 0.0f, 6.0f, z }, { 11.0f, 0.75f, 5.0f }, "Floor");
-				AddBox(objects, "BrokenBeam_FreewayEdgeL_" + std::to_string(index + 1), { -10.5f, 7.0f, z }, { 0.35f, 1.0f, 5.0f }, "Obstacle");
-				AddBox(objects, "BrokenBeam_FreewayEdgeR_" + std::to_string(index + 1), { 10.5f, 7.0f, z }, { 0.35f, 1.0f, 5.0f }, "Obstacle");
 			}
 
 			const std::array<Vector3, 4> supports = {{
@@ -241,22 +243,14 @@ namespace Ken4lowEngine
 				AddBox(objects, "CityFreeway_Pillar_" + std::to_string(index + 1), supports[index], { 1.2f, 3.0f, 1.2f }, "Pillar");
 			}
 
-			AddBox(objects, "Rubble_FreewayGap_Left", { -3.0f, 7.0f, 109.0f }, { 4.0f, 0.50f, 2.2f }, "Obstacle", { 0.05f, 0.12f, 0.0f });
-			AddBox(objects, "Rubble_FreewayGap_Right", { 4.0f, 7.0f, 117.0f }, { 4.0f, 0.50f, 2.2f }, "Obstacle", { -0.05f, -0.10f, 0.0f });
 			AddBox(objects, "CityFreeway_CollapsedLane_Left", { -17.0f, 7.4f, 117.0f }, { 8.0f, 0.55f, 3.5f }, nullptr, { -0.22f, -0.28f, 0.0f }, { 0.18f, 0.19f, 0.21f, 1.0f });
 			AddBox(objects, "CityFreeway_CollapsedLane_Right", { 17.0f, 5.3f, 124.0f }, { 8.0f, 0.55f, 3.5f }, nullptr, { 0.30f, 0.25f, 0.0f }, { 0.18f, 0.19f, 0.21f, 1.0f });
-
-			const std::array<float, 5> downZ = { 132.0f, 137.0f, 142.0f, 147.0f, 152.0f };
-			for (size_t index = 0; index < downZ.size(); ++index)
-			{
-				const float top = static_cast<float>(5 - index);
-				AddBox(objects, "Step_FreewayDown_" + std::to_string(index + 1), { 0.0f, top * 0.5f, downZ[index] }, { 11.0f, top * 0.5f, 2.8f }, "Floor");
-			}
 
 			AddBuilding(objects, "CityBuilding_WF1", -43.0f, 82.0f, 12.0f, 10.0f, 33.0f, 0.12f, 1.0f);
 			AddBuilding(objects, "CityBuilding_EF1", 43.0f, 83.0f, 11.0f, 12.0f, 37.0f, -0.10f, -1.0f);
 			AddBuilding(objects, "CityBuilding_WF2", -45.0f, 119.0f, 10.0f, 12.0f, 25.0f, -0.18f, -1.0f);
 			AddBuilding(objects, "CityBuilding_EF2", 46.0f, 121.0f, 12.0f, 11.0f, 29.0f, 0.16f, 1.0f);
+			// 高架下の固定床と復帰階段は置かず、崩落足場から落ちた場合はそのまま落下失敗にする。
 		}
 
 		static void BuildEvacuationTerminal(std::vector<ObjectData>& objects)
@@ -297,4 +291,4 @@ namespace Ken4lowEngine
 			// 一本道に見えないよう、道路・陥没迂回路・広場・高架・避難ゲートの五区画で景観を切り替える。
 		}
 	};
-}
+} // namespace Ken4lowEngine
