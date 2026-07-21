@@ -112,7 +112,6 @@ public:
 
 	void Update(float deltaTime) override
 	{
-		(void)deltaTime;
 		ApplyVisualTransforms();
 		K4E::Actor::Update(deltaTime);
 	}
@@ -212,12 +211,12 @@ private:
 	static const std::array<PlatformSpec, kPlatformCount>& GetPlatformSpecs()
 	{
 		static const std::array<PlatformSpec, kPlatformCount> specs = {{
-			{ { 0.0f, 6.0f, 103.0f }, { 5.5f, 0.55f, 3.4f }, 0.00f, 3.0f },
-			{ { -3.2f, 6.4f, 111.0f }, { 4.8f, 0.50f, 3.2f }, 0.05f, 2.8f },
-			{ { 3.5f, 6.8f, 119.0f }, { 4.5f, 0.50f, 3.2f }, -0.06f, 2.6f },
-			{ { -2.8f, 6.4f, 127.0f }, { 4.4f, 0.50f, 3.2f }, 0.07f, 2.5f },
-			{ { 4.0f, 6.8f, 135.0f }, { 4.5f, 0.50f, 3.2f }, -0.07f, 2.4f },
-			{ { 0.0f, 6.0f, 143.0f }, { 5.5f, 0.55f, 3.4f }, 0.00f, 2.3f }
+			{ { 0.0f, 10.0f, 107.0f }, { 5.5f, 0.55f, 3.4f }, 0.00f, 3.0f },
+			{ { -3.2f, 10.4f, 115.0f }, { 4.8f, 0.50f, 3.2f }, 0.05f, 2.8f },
+			{ { 3.5f, 10.8f, 123.0f }, { 4.5f, 0.50f, 3.2f }, -0.06f, 2.6f },
+			{ { -2.8f, 10.4f, 131.0f }, { 4.4f, 0.50f, 3.2f }, 0.07f, 2.5f },
+			{ { 4.0f, 10.8f, 139.0f }, { 4.5f, 0.50f, 3.2f }, -0.07f, 2.4f },
+			{ { 0.0f, 10.0f, 147.0f }, { 5.5f, 0.55f, 3.4f }, 0.00f, 2.3f }
 		}};
 		return specs;
 	}
@@ -415,7 +414,7 @@ public:
 		}
 
 		const K4E::Vector3 position = player->GetWorldPosition();
-		if (!complete_ && athleticActor_->HasCollapsedPlatform() && position.z < resetSouthZ_ && position.y < 4.5f)
+		if (!complete_ && athleticActor_->HasCollapsedPlatform() && position.z < resetSouthZ_ && position.y < lowerRouteHeightThreshold_)
 		{
 			athleticActor_->ResetAll();
 			sectionEntered_ = false;
@@ -428,7 +427,7 @@ public:
 			athleticActor_->Advance(position, safeDeltaTime);
 		}
 
-		if (!complete_ && position.z >= completionZ_ && position.y >= 4.4f)
+		if (!complete_ && position.z >= completionZ_ && position.y >= upperRouteHeightThreshold_)
 		{
 			complete_ = true;
 			completionTimer_ = 2.6f;
@@ -470,7 +469,7 @@ private:
 			return;
 		}
 
-		if (sectionEntered_ && playerPosition.y < 4.0f && playerPosition.z >= resetSouthZ_)
+		if (sectionEntered_ && playerPosition.y < lowerRouteHeightThreshold_ && playerPosition.z >= resetSouthZ_)
 		{
 			gaugeActor_->SetDisplay(
 				true,
@@ -508,10 +507,12 @@ private:
 	Stage4CollapsingAthleticActor* athleticActor_ = nullptr;
 	Stage4AthleticGaugeActor* gaugeActor_ = nullptr;
 	float completionTimer_ = 0.0f;
-	float sectionStartZ_ = 91.0f;
-	float sectionEndZ_ = 155.0f;
-	float resetSouthZ_ = 89.0f;
-	float completionZ_ = 147.0f;
+	float sectionStartZ_ = 99.0f;
+	float sectionEndZ_ = 166.0f;
+	float resetSouthZ_ = 100.0f;
+	float completionZ_ = 150.5f;
+	float lowerRouteHeightThreshold_ = 9.5f;
+	float upperRouteHeightThreshold_ = 9.5f;
 	bool sectionEntered_ = false;
 	bool complete_ = false;
 	bool active_ = false;
