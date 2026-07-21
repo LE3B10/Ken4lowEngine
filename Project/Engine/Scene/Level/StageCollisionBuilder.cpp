@@ -4,6 +4,7 @@
 #include "Matrix4x4.h"
 #include "MineHiddenArenaLayout.h"
 #include "CollapsedCityLayout.h"
+#include "CollapsedCityPassageLayout.h"
 #include <algorithm>
 #include <cctype>
 #include <limits>
@@ -102,8 +103,9 @@ namespace Ken4lowEngine
 		StageCollisionBuildResult result{};
 		const std::vector<ObjectData> hiddenArenaObjects = MineHiddenArenaLayout::Build(levelData);
 		const std::vector<ObjectData> collapsedCityObjects = CollapsedCityLayout::Build(levelData);
+		const std::vector<ObjectData> collapsedCityPassageObjects = CollapsedCityPassageLayout::Build(levelData);
 		const bool hasHiddenArena = !hiddenArenaObjects.empty();
-		const size_t estimatedCount = levelData.objects.size() + hiddenArenaObjects.size() + collapsedCityObjects.size();
+		const size_t estimatedCount = levelData.objects.size() + hiddenArenaObjects.size() + collapsedCityObjects.size() + collapsedCityPassageObjects.size();
 		result.worldAABBs.reserve(estimatedCount);
 		result.floorAABBs.reserve(estimatedCount);
 		result.wallObstacleAABBs.reserve(estimatedCount);
@@ -190,6 +192,7 @@ namespace Ken4lowEngine
 		}
 		for (const ObjectData& data : hiddenArenaObjects) appendCollider(data);
 		for (const ObjectData& data : collapsedCityObjects) appendCollider(data); // 描画と同じ生成物へColliderを付け、崩落路面と高架を実際に歩けるようにする。
+		for (const ObjectData& data : collapsedCityPassageObjects) appendCollider(data); // 仮設橋の各床面へColliderを付け、陥没区画を確実に通過できるようにする。
 
 		return result;
 	}
