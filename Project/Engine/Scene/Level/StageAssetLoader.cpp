@@ -13,15 +13,15 @@ namespace Ken4lowEngine
 		{
 			for (const ObjectData& data : levelData.objects)
 			{
-				if (data.name == "CollapsedCity_InstancedOnlyMarker") return true;
+				if (data.name.find("InstancedOnlyMarker") != std::string::npos) return true;
 			}
-			return false;
+			return false; // 専用Markerを持つStageは旧一体型glTFを使わず、生成モジュールだけを描画する。
 		}
 	}
 
 	std::string StageAssetLoader::ResolveStageModelName(const LevelData& levelData, const std::string& defaultModelName)
 	{
-		if (IsInstancedOnlyLevel(levelData)) return {}; // 崩落都市圏は旧一体型glTFを読み込まず、モジュール配置だけを描画する。
+		if (IsInstancedOnlyLevel(levelData)) return {};
 		// GamePlayから渡された一体型ステージを優先し、個別配置modelPathで誤って置き換えない。
 		if (!defaultModelName.empty()) { return defaultModelName; }
 		for (const ObjectData& data : levelData.objects)
