@@ -3,6 +3,7 @@
 #include "MineHiddenArenaLayout.h"
 #include "CollapsedCityLayout.h"
 #include "CollapsedCityPassageLayout.h"
+#include "CentralControlColosseumLayout.h"
 
 #include <algorithm>
 #include <cctype>
@@ -28,6 +29,20 @@ namespace Ken4lowEngine
 
 		Vector4 ResolveStageInstanceColor(const ObjectData& data)
 		{
+			if (ContainsIgnoreCase(data.name, "controlglow")) return { 0.12f, 0.72f, 0.96f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "controlpanel")) return { 0.92f, 0.58f, 0.14f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "controlpylon") || ContainsIgnoreCase(data.name, "controlupperring")) return { 0.19f, 0.25f, 0.31f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "controlarenafloor") || ContainsIgnoreCase(data.name, "controlarenadais")) return { 0.25f, 0.27f, 0.30f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "colosseumseat")) return { 0.39f, 0.34f, 0.29f, 1.0f };
+			if (ContainsIgnoreCase(data.name, "colosseumcolumn") || ContainsIgnoreCase(data.name, "colosseumcapital") ||
+				ContainsIgnoreCase(data.name, "colosseumarc") || ContainsIgnoreCase(data.name, "colosseumcrown"))
+			{
+				return { 0.48f, 0.44f, 0.38f, 1.0f };
+			}
+			if (ContainsIgnoreCase(data.name, "colosseumouterwall") || ContainsIgnoreCase(data.name, "colosseumimperial") || ContainsIgnoreCase(data.name, "colosseumentry"))
+			{
+				return { 0.34f, 0.31f, 0.29f, 1.0f }; // 古代石造の外観へ制御塔の寒色発光を重ね、最終Stageだけの材質差を出す。
+			}
 			if (ContainsIgnoreCase(data.name, "cityroad")) return { 0.13f, 0.14f, 0.16f, 1.0f };
 			if (ContainsIgnoreCase(data.name, "citysinkhole")) return { 0.07f, 0.075f, 0.085f, 1.0f };
 			if (ContainsIgnoreCase(data.name, "citybuswreck")) return { 0.38f, 0.22f, 0.12f, 1.0f };
@@ -95,6 +110,7 @@ namespace Ken4lowEngine
 		const std::vector<ObjectData> hiddenArenaObjects = MineHiddenArenaLayout::Build(levelData);
 		const std::vector<ObjectData> collapsedCityObjects = CollapsedCityLayout::Build(levelData);
 		const std::vector<ObjectData> collapsedCityPassageObjects = CollapsedCityPassageLayout::Build(levelData);
+		const std::vector<ObjectData> centralControlObjects = CentralControlColosseumLayout::Build(levelData);
 		const bool hasHiddenArena = !hiddenArenaObjects.empty();
 		for (const ObjectData& data : levelData.objects)
 		{
@@ -104,6 +120,7 @@ namespace Ken4lowEngine
 		for (const ObjectData& data : hiddenArenaObjects) appendSource(data);
 		for (const ObjectData& data : collapsedCityObjects) appendSource(data); // JSONマーカーから生成した都市モジュールを同一モデルの一括描画へ追加する。
 		for (const ObjectData& data : collapsedCityPassageObjects) appendSource(data); // 陥没区画の通行橋も都市本体と同じInstance Batchへ統合する。
+		for (const ObjectData& data : centralControlObjects) appendSource(data); // 円形Arenaの全石材・機械設備を共通CubeのInstance Batchへまとめる。
 
 		for (auto& [modelPath, sources] : sourcesByModel)
 		{
