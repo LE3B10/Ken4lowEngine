@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include "StageObjectiveManager.h"
+#include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
 
 #include <algorithm>
 #include <cmath>
@@ -11,6 +12,19 @@ void StageObjectiveManager::Initialize(const GamePlayStageContext& stageContext)
 	devicePointCount_ = static_cast<int>(stageContext.GetDevicePoints().size());
 	defenseTargetPointCount_ = static_cast<int>(stageContext.GetDefenseTargetPoints().size());
 	goalPointCount_ = static_cast<int>(stageContext.GetGoalPoints().size());
+	goalPosition_ = {};
+	goalDistance_ = -1.0f;
+	hasGoalPoint_ = false;
+	if (!stageContext.GetGoalPoints().empty())
+	{
+		goalPosition_ = stageContext.GetGoalPoints().front().position;
+		hasGoalPoint_ = true;
+	}
+	else if (stageRule_.objectiveType == GamePlayStageContext::StageObjectiveType::ReachGoal)
+	{
+		goalPosition_ = { 0.0f, 1.0f, 181.0f };
+		hasGoalPoint_ = true; // GoalPointが欠けた場合も崩落都市の終端へ到達すれば進行不能にならない。
+	}
 	hasBossSpawnPoint_ = stageContext.HasBossSpawnPoint();
 	activatedDeviceCount_ = 0;
 	defendElapsedSec_ = 0.0f;
@@ -39,6 +53,7 @@ void StageObjectiveManager::Update(float deltaTime)
 	{
 		defendElapsedSec_ += safeDeltaTime;
 	}
+	UpdateReachGoalState();
 	RefreshOutcome();
 }
 
@@ -90,6 +105,7 @@ void StageObjectiveManager::SetReachedGoal(bool reached)
 {
 	if (status_ != Status::Active && reached) return;
 	reachedGoal_ = reached;
+	if (reached) goalDistance_ = 0.0f;
 	RefreshOutcome();
 }
 
@@ -163,6 +179,24 @@ bool StageObjectiveManager::EvaluateFailed() const
 		return stageRule_.timeLimitSec > 0.0f && stageElapsedSec_ >= stageRule_.timeLimitSec && !reachedGoal_;
 	default:
 		return false;
+	}
+}
+
+void StageObjectiveManager::UpdateReachGoalState()
+{
+	if (stageRule_.objectiveType != GamePlayStageContext::StageObjectiveType::ReachGoal || reachedGoal_ || !hasGoalPoint_) return;
+	IPlayerRuntime* player = IPlayerRuntime::GetActiveRuntime();
+	if (!player) return;
+
+	const K4E::Vector3 playerPosition = player->GetWorldPosition();
+	const float deltaX = playerPosition.x - goalPosition_.x;
+	const float deltaZ = playerPosition.z - goalPosition_.z;
+	const float deltaY = std::fabs(playerPosition.y - goalPosition_.y);
+	goalDistance_ = std::sqrt(deltaX * deltaX + deltaZ * deltaZ);
+	if (goalDistance_ <= 6.0f && deltaY <= 8.0f)
+	{
+		reachedGoal_ = true; // JSONのEscapePoint半径へ入った瞬間に共通Objectiveを達成させる。
+		goalDistance_ = 0.0f;
 	}
 }
 
@@ -284,12 +318,18 @@ std::string StageObjectiveManager::BuildActiveDetail() const
 		std::snprintf(text, sizeof(text), "残り %.0f 秒", std::max(0.0f, stageRule_.defendTimeSec - defendElapsedSec_));
 		return text;
 	case GamePlayStageContext::StageObjectiveType::ReachGoal:
-		if (stageRule_.timeLimitSec > 0.0f)
+		if (reachedGoal_) return "脱出地点に到達";
+		if (hasGoalPoint_ && goalDistance_ >= 0.0f)
 		{
-			std::snprintf(text, sizeof(text), "制限時間 残り %.0f 秒", std::max(0.0f, stageRule_.timeLimitSec - stageElapsedSec_));
+			std::snprintf(text, sizeof(text), "青いビーコンまで %.0f m　残り %.0f 秒", goalDistance_, std::max(0.0f, stageRule_.timeLimitSec - stageElapsedSec_));
 			return text;
 		}
-		return "目標地点を探索中";
+		if (stageRule_.timeLimitSec > 0.0f)
+		{
+			std::snprintf(text, sizeof(text), "青いビーコンを探せ　残り %.0f 秒", std::max(0.0f, stageRule_.timeLimitSec - stageElapsedSec_));
+			return text;
+		}
+		return "青いビーコンを探せ";
 	case GamePlayStageContext::StageObjectiveType::DefeatBoss:
 		return "ボス戦進行中";
 	}
