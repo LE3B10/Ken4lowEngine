@@ -40,6 +40,10 @@ namespace Ken4lowEngine
 		bool IsPhaseInvulnerabilityActive() const { return phaseInvulnerabilityActive_; }
 		float GetPhaseInvulnerabilityRemaining() const { return phaseInvulnerabilityRemaining_; }
 
+		/// ステージ進行に応じてPhase 3への移行可否を切り替える。
+		void SetPhase3Enabled(bool enabled);
+		bool IsPhase3Enabled() const { return phase3Enabled_; }
+
 		/// Debug再検証用にPhase 1へ戻す。
 		void ResetPhase();
 
@@ -59,6 +63,7 @@ namespace Ken4lowEngine
 		float phaseInvulnerabilityRemaining_ = 0.0f;
 		BossPhase currentPhase_ = BossPhase::Phase1;
 		unsigned int phaseRevision_ = 0;
+		bool phase3Enabled_ = true;
 		bool healthCapacityApplied_ = false;
 		bool phaseInvulnerabilityActive_ = false;
 		bool wasInvulnerableBeforePhase_ = false;
