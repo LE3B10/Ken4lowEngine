@@ -18,7 +18,7 @@ namespace Ken4lowEngine
 			if (!IsTargetLevel(levelData)) return {};
 
 			std::vector<ObjectData> objects;
-			objects.reserve(20u);
+			objects.reserve(28u);
 			AddBox(objects, "CityBypassPermanentCollapse_Main", { -16.0f, 2.6f, -51.0f }, { 9.5f, 2.6f, 1.6f }, "Obstacle", { 0.04f, 0.08f, -0.03f });
 			AddBox(objects, "Rubble_BypassPermanentCollapse_Left", { -25.0f, 1.55f, -46.5f }, { 3.6f, 1.55f, 2.4f }, "Obstacle", { -0.08f, -0.30f, 0.06f });
 			AddBox(objects, "BrokenBeam_BypassPermanentCollapse_Top", { -14.0f, 5.7f, -50.5f }, { 7.5f, 0.35f, 0.45f }, nullptr, { 0.18f, 0.12f, 0.22f });
@@ -60,7 +60,20 @@ namespace Ken4lowEngine
 					{ 0.0f, 10.08f, 101.0f + static_cast<float>(index) * 2.0f },
 					{ 1.2f, 0.04f, 0.18f });
 			}
-			return objects; // 入口と成功時の出口階段だけを残し、崩落足場の下には復帰用の床を設けない。
+
+			AddBox(objects, "Strip_EscapeGoalPad", { 0.0f, 0.08f, 181.0f }, { 5.0f, 0.05f, 5.0f });
+			AddBox(objects, "Strip_EscapeBeaconColumn", { 0.0f, 12.0f, 181.0f }, { 0.34f, 12.0f, 0.34f });
+			AddBox(objects, "Strip_EscapeBeaconArmX", { 0.0f, 6.0f, 181.0f }, { 4.6f, 0.16f, 0.28f });
+			AddBox(objects, "Strip_EscapeBeaconArmZ", { 0.0f, 6.0f, 181.0f }, { 0.28f, 0.16f, 4.6f });
+			const std::array<Vector3, 4> goalPosts = {{
+				{ -4.3f, 1.8f, 176.7f }, { 4.3f, 1.8f, 176.7f },
+				{ -4.3f, 1.8f, 185.3f }, { 4.3f, 1.8f, 185.3f }
+			}};
+			for (size_t index = 0; index < goalPosts.size(); ++index)
+			{
+				AddBox(objects, "Strip_EscapeGoalPost_" + std::to_string(index + 1), goalPosts[index], { 0.22f, 1.8f, 0.22f });
+			}
+			return objects; // 青い大型ビーコンと距離表示を一致させ、終端へ入れば必ずクリア判定へ届くようにする。
 		}
 
 	private:
