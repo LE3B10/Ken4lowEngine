@@ -24,6 +24,7 @@ public:
 
 		if (world)
 		{
+			world->EnsureBossStageStarted(); // 完全Boss Stageでは最初のHUDフレームから登場演出を予約する。
 			if (HUDManager* hud = world->GetHUDManager())
 			{
 				HUDManager::StageObjectiveDisplayState displayState{};
