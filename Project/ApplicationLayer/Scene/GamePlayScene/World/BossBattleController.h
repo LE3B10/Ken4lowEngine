@@ -125,6 +125,7 @@ private:
 	K4E::Vector3 bossDeathPosition_{};
 	BossIntroController bossIntroController_;
 	bool stage1BeginnerBalanceEnabled_ = false;
+	bool stage5Phase3Enabled_ = false;
 	bool manualBossRequest_ = false;
 	bool bossSpawned_ = false;
 	bool bossColliderRegistered_ = false;
