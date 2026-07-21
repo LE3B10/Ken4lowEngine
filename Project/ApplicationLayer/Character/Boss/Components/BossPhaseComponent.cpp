@@ -61,6 +61,7 @@ namespace Ken4lowEngine
 		ImGui::Text("最大HP設定: %.0f", configuredMaxHealth_);
 		ImGui::Text("現在: Phase %d / Revision %u", ToInt(currentPhase_), phaseRevision_);
 		ImGui::Text("Phase 2: HP %.0f%% / Phase 3: HP %.0f%%", phase2HealthRatio_ * 100.0f, phase3HealthRatio_ * 100.0f);
+		ImGui::Text("Phase 3: %s", phase3Enabled_ ? "有効" : "無効");
 		ImGui::Text("移行無敵: %s %.2f / %.2f", phaseInvulnerabilityActive_ ? "有効" : "無効", phaseInvulnerabilityRemaining_, phaseInvulnerabilityDuration_);
 #endif
 	}
@@ -88,6 +89,17 @@ namespace Ken4lowEngine
 		healthCapacityApplied_ = false;
 	}
 
+	void BossPhaseComponent::SetPhase3Enabled(bool enabled)
+	{
+		if (phase3Enabled_ == enabled) return;
+		phase3Enabled_ = enabled;
+		if (!phase3Enabled_ && currentPhase_ == BossPhase::Phase3)
+		{
+			currentPhase_ = BossPhase::Phase2;
+			++phaseRevision_; // 実行中に無効化された場合もPresentation側へPhase 2への補正を通知する。
+		}
+	}
+
 	void BossPhaseComponent::ResetPhase()
 	{
 		auto* owner = dynamic_cast<CharacterActor*>(GetOwner());
@@ -103,7 +115,7 @@ namespace Ken4lowEngine
 
 	BossPhase BossPhaseComponent::EvaluatePhase(float healthRatio) const
 	{
-		if (healthRatio <= phase3HealthRatio_) return BossPhase::Phase3;
+		if (phase3Enabled_ && healthRatio <= phase3HealthRatio_) return BossPhase::Phase3; // Phase 3は許可されたステージだけで判定する。
 		if (healthRatio <= phase2HealthRatio_) return BossPhase::Phase2;
 		return BossPhase::Phase1;
 	}
