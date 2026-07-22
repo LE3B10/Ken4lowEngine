@@ -68,8 +68,11 @@ public: /// ---------- ゲッター ---------- ///
 	// アイテムの種類を返す
 	ItemType GetType() const { return type_; }
 
-	// アイテムの位置を返す
+	// 取得判定とColliderに使用する固定位置を返す
 	const K4E::Vector3& GetPosition() const { return position_; }
+
+	// 浮遊・回転する見た目と演出に使用する位置を返す
+	const K4E::Vector3& GetVisualPosition() const { return visualPosition_; }
 
 	// アイテムの取得半径を返す
 	float GetPickupRadius() const { return pickupRadius_; }
@@ -91,8 +94,13 @@ public: /// ---------- オーバーライド ---------- ///
 	// OBBのメンバ関数のオーバーライド
 	K4E::Vector3 GetCenterPosition() const override { return position_; }
 
-	// OBBのメンバ関数のオーバーライド
-	void SetCenterPosition(const K4E::Vector3& pos) override { position_ = pos; }
+	// Collider位置を変更した時は浮遊基準も同じ場所へ移す
+	void SetCenterPosition(const K4E::Vector3& pos) override
+	{
+		position_ = pos;
+		basePosition_ = pos;
+		visualPosition_ = pos;
+	}
 
 	// OBBのメンバ関数のオーバーライド
 	K4E::Vector3 GetOBBHalfSize() const override { return scale_; }
@@ -112,19 +120,20 @@ private: /// ---------- メンバ変数 ---------- ///
 	std::unique_ptr<K4E::Object3D> object3d_;
 
 	ItemType type_ = ItemType::None; // アイテムの種類
-	K4E::Vector3 position_ = {};	 // アイテムの位置
-	bool active_ = false;			 // アイテムがアクティブかどうか
-	float pickupRadius_ = 2.0f;		 // アイテムの取得半径
-	int healAmount_ = 25;			 // アイテムの回復量
-	int ammoAmount_ = 30;			 // アイテムの弾薬量
+	K4E::Vector3 position_ = {}; // Colliderと取得判定に使用する固定位置
+	K4E::Vector3 visualPosition_ = {}; // 浮遊するモデルと演出に使用する位置
+	bool active_ = false; // アイテムがアクティブかどうか
+	float pickupRadius_ = 2.0f; // アイテムの取得半径
+	int healAmount_ = 25; // アイテムの回復量
+	int ammoAmount_ = 30; // アイテムの弾薬量
 
-	K4E::Vector3 scale_ = { 0.4f, 0.4f, 0.4f };		// アイテムのスケール
-	float floatTimer_ = 0.0f;						// 浮遊アニメーション用のタイマー
-	float floatAmplitude_ = 0.6f;					// 浮遊アニメーションの振幅
-	float floatSpeed_ = 4.0f;						// 浮遊アニメーションの速度
-	K4E::Vector3 basePosition_ = {};				// 浮遊アニメーションの基準位置
-	K4E::Vector3 rotation_ = { 0.0f, 0.0f, 0.0f };	// 回転角度
-	float rotationSpeed_ = 0.01f;					// 回転速度
-	float lifetime_ = 0.0f;							// アイテムの寿命
-	const float maxLifetime_ = 999.0f;				// アイテムの最大寿命（999秒で事実上無限）
+	K4E::Vector3 scale_ = { 0.4f, 0.4f, 0.4f }; // アイテムのスケール
+	float floatTimer_ = 0.0f; // 浮遊アニメーション用のタイマー
+	float floatAmplitude_ = 0.6f; // 浮遊アニメーションの振幅
+	float floatSpeed_ = 4.0f; // 浮遊アニメーションの速度
+	K4E::Vector3 basePosition_ = {}; // 浮遊アニメーションの基準位置
+	K4E::Vector3 rotation_ = { 0.0f, 0.0f, 0.0f }; // 回転角度
+	float rotationSpeed_ = 0.01f; // 回転速度
+	float lifetime_ = 0.0f; // アイテムの寿命
+	const float maxLifetime_ = 999.0f; // アイテムの最大寿命（999秒で事実上無限）
 };
