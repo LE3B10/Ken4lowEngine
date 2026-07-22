@@ -2,12 +2,15 @@
 #include "ItemManager.h"
 #include "ApplicationLayer/Character/Player/IPlayerRuntime.h"
 #include "CollisionManager.h"
+#include "Stage.h"
 
 #ifdef USE_IMGUI
 #include <imgui.h>
 #endif
 
 #include <algorithm>
+#include <cmath>
+#include <limits>
 #include <sstream>
 #include <string>
 #include <Windows.h>
@@ -16,6 +19,10 @@ namespace K4E = ::Ken4lowEngine;
 
 namespace
 {
+	constexpr float kDropGroundClearance = 0.45f;
+	constexpr float kFloorHorizontalTolerance = 0.05f;
+	constexpr float kMaximumFloorAboveDeath = 0.5f;
+
 	const char* ToItemTypeName(ItemType type)
 	{
 		switch (type)
@@ -26,6 +33,28 @@ namespace
 		case ItemType::None:
 		default: return "None";
 		}
+	}
+
+	K4E::Vector3 ResolveEnemyDropPosition(const K4E::Vector3& deathPosition)
+	{
+		K4E::Stage* stage = K4E::Stage::GetActiveRuntimeStage();
+		if (!stage) return deathPosition;
+
+		float highestFloorY = -std::numeric_limits<float>::infinity();
+		for (const K4E::AABB& floor : stage->GetFloorAABBs())
+		{
+			const bool containsXZ = deathPosition.x >= floor.min.x - kFloorHorizontalTolerance &&
+				deathPosition.x <= floor.max.x + kFloorHorizontalTolerance &&
+				deathPosition.z >= floor.min.z - kFloorHorizontalTolerance &&
+				deathPosition.z <= floor.max.z + kFloorHorizontalTolerance;
+			if (!containsXZ || floor.max.y > deathPosition.y + kMaximumFloorAboveDeath) continue;
+			highestFloorY = std::max(highestFloorY, floor.max.y);
+		}
+
+		if (!std::isfinite(highestFloorY)) return deathPosition;
+		K4E::Vector3 groundedPosition = deathPosition;
+		groundedPosition.y = highestFloorY + kDropGroundClearance; // 敵の中心位置ではなく足元の床面を基準にItemを生成する。
+		return groundedPosition;
 	}
 }
 
@@ -46,7 +75,10 @@ void ItemManager::Update(IPlayerRuntime* player)
 
 void ItemManager::Draw()
 {
-	for (auto& item : items_) if (item) item->Draw();
+	for (auto& item : items_)
+	{
+		if (item) item->Draw();
+	}
 }
 
 void ItemManager::RegisterColliders(CollisionManager* collisionManager)
@@ -54,27 +86,36 @@ void ItemManager::RegisterColliders(CollisionManager* collisionManager)
 	if (!collisionManager) return;
 	if (registeredCollisionManager_)
 	{
-		for (auto& item : items_) if (item) registeredCollisionManager_->RemoveCollider(item.get());
+		for (auto& item : items_)
+		{
+			if (item) registeredCollisionManager_->RemoveCollider(item.get());
+		}
 	}
 	registeredCollisionManager_ = collisionManager;
-	for (auto& item : items_) if (item && item->IsActive()) registeredCollisionManager_->AddCollider(item.get());
+	for (auto& item : items_)
+	{
+		if (item && item->IsActive()) registeredCollisionManager_->AddCollider(item.get());
+	}
 }
 
-void ItemManager::Spawn(ItemType type, const K4E::Vector3& position) { SpawnConfigured(type, position); }
-void ItemManager::SpawnHealSmall(const K4E::Vector3& position) { SpawnConfigured(ItemType::HealSmall, position); }
+void ItemManager::Spawn(ItemType type, const K4E::Vector3& position)
+{
+	SpawnConfigured(type, position);
+}
+
+void ItemManager::SpawnHealSmall(const K4E::Vector3& position)
+{
+	SpawnConfigured(ItemType::HealSmall, position);
+}
 
 void ItemManager::SpawnAmmoSmall(const K4E::Vector3& position)
 {
-	K4E::Vector3 spawnPosition = position;
-	spawnPosition.y += 0.5f;
-	SpawnConfigured(ItemType::AmmoSmall, spawnPosition);
+	SpawnConfigured(ItemType::AmmoSmall, position);
 }
 
 void ItemManager::SpawnAmmoSmall(const K4E::Vector3& position, int ammoAmount)
 {
-	K4E::Vector3 spawnPosition = position;
-	spawnPosition.y += 0.5f;
-	SpawnConfigured(ItemType::AmmoSmall, spawnPosition, ammoAmount);
+	SpawnConfigured(ItemType::AmmoSmall, position, ammoAmount);
 }
 
 bool ItemManager::TryGetFirstActiveItemPosition(ItemType type, K4E::Vector3& outPosition) const
@@ -90,12 +131,14 @@ bool ItemManager::TryGetFirstActiveItemPosition(ItemType type, K4E::Vector3& out
 	return false;
 }
 
-void ItemManager::TryDropFromEnemyDeath(const K4E::Vector3& deathPosition) { TryDropEnemyItem(deathPosition); }
+void ItemManager::TryDropFromEnemyDeath(const K4E::Vector3& deathPosition)
+{
+	TryDropEnemyItem(deathPosition);
+}
 
 void ItemManager::TryDropEnemyItem(const K4E::Vector3& deathPosition)
 {
-	K4E::Vector3 dropPosition = deathPosition;
-	dropPosition.y += 0.5f;
+	const K4E::Vector3 dropPosition = ResolveEnemyDropPosition(deathPosition);
 	lastDropPosition_ = dropPosition;
 	if (!enemyDeathDropEnabled_)
 	{
@@ -146,7 +189,7 @@ void ItemManager::CheckPickup(IPlayerRuntime& player)
 		const bool consumePickedItem = effectApplied || (consumeItemWhenFull_ && lastItemEffectDebugInfo_.noEffectBecauseFull);
 		if (consumePickedItem)
 		{
-			itemVisualEffect_.PlayPickup(lastItemEffectDebugInfo_.itemType, item->GetPosition());
+			itemVisualEffect_.PlayPickup(lastItemEffectDebugInfo_.itemType, item->GetVisualPosition());
 			itemVisualEffect_.StopIdle(*item);
 			item->MarkCollected();
 			collectedEvents_.push_back(lastItemEffectDebugInfo_.itemType);
@@ -236,7 +279,10 @@ void ItemManager::Clear()
 {
 	if (registeredCollisionManager_)
 	{
-		for (auto& item : items_) if (item) registeredCollisionManager_->RemoveCollider(item.get());
+		for (auto& item : items_)
+		{
+			if (item) registeredCollisionManager_->RemoveCollider(item.get());
+		}
 	}
 	items_.clear();
 	collectedEvents_.clear();
@@ -262,12 +308,18 @@ bool ItemManager::ConsumeCollected(ItemType type)
 
 int ItemManager::GetActiveItemCount() const
 {
-	return static_cast<int>(std::count_if(items_.begin(), items_.end(), [](const std::unique_ptr<Item>& item) { return item && item->IsActive(); }));
+	return static_cast<int>(std::count_if(items_.begin(), items_.end(), [](const std::unique_ptr<Item>& item)
+		{
+			return item && item->IsActive();
+		}));
 }
 
 int ItemManager::GetActiveItemCount(ItemType type) const
 {
-	return static_cast<int>(std::count_if(items_.begin(), items_.end(), [type](const std::unique_ptr<Item>& item) { return item && item->IsActive() && item->GetType() == type; }));
+	return static_cast<int>(std::count_if(items_.begin(), items_.end(), [type](const std::unique_ptr<Item>& item)
+		{
+			return item && item->IsActive() && item->GetType() == type;
+		}));
 }
 
 float ItemManager::GetNoneDropChance() const
@@ -309,18 +361,22 @@ void ItemManager::DrawImGui()
 
 void ItemManager::RemoveInactiveItems()
 {
-	items_.erase(std::remove_if(items_.begin(), items_.end(), [this](const std::unique_ptr<Item>& item) {
-		const bool shouldRemove = !item || item->IsCollected() || item->IsExpired();
-		if (shouldRemove && item)
+	items_.erase(std::remove_if(items_.begin(), items_.end(), [this](const std::unique_ptr<Item>& item)
 		{
-			itemVisualEffect_.StopIdle(*item);
-			if (registeredCollisionManager_) registeredCollisionManager_->RemoveCollider(item.get());
-		}
-		return shouldRemove;
+			const bool shouldRemove = !item || item->IsCollected() || item->IsExpired();
+			if (shouldRemove && item)
+			{
+				itemVisualEffect_.StopIdle(*item);
+				if (registeredCollisionManager_) registeredCollisionManager_->RemoveCollider(item.get());
+			}
+			return shouldRemove;
 		}), items_.end());
 }
 
-void ItemManager::SpawnDropItem(ItemType type, const K4E::Vector3& position) { SpawnConfigured(type, position); }
+void ItemManager::SpawnDropItem(ItemType type, const K4E::Vector3& position)
+{
+	SpawnConfigured(type, position);
+}
 
 void ItemManager::SpawnConfigured(ItemType type, const K4E::Vector3& position, int overrideAmmoAmount)
 {
