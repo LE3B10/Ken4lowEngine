@@ -52,6 +52,7 @@ public:
 		player_->SetLayer("Player");
 		player_->AddTag("Player");
 		stageColliders_ = stage_->GetWorldColliderPointers();
+		ApplyP0MovementTuning(player_->GetPlayerMovementComponent());
 		player_->ResetForValidation(ResolveSpawnRootPosition(spawnPosition));
 		if (K4E::WeaponComponent* weapon = player_->GetWeaponComponent()) weapon->ConfigureAmmoState(30, 30, 90, 120);
 		RefreshPlayerRuntimeBindings();
@@ -82,6 +83,7 @@ public:
 		ClearNearbyStageColliders();
 		stageColliders_.clear();
 		player_ = nullptr;
+		lastTunedMovement_ = nullptr;
 		bulletManager_ = nullptr;
 		legacyCollisionManager_ = nullptr;
 		stage_ = nullptr;
@@ -160,9 +162,22 @@ public:
 	K4E::Vector3 GetPlayerPosition() const { return player_ ? player_->GetWorldPosition() : K4E::Vector3{}; }
 
 private:
+	void ApplyP0MovementTuning(K4E::PlayerMovementComponent* movement)
+	{
+		if (!movement || movement == lastTunedMovement_) return;
+		nlohmann::json tuning;
+		movement->ToJson(tuning);
+		tuning["MoveSpeed"] = kGroundedMoveSpeed;
+		tuning["SprintSpeedMultiplier"] = kGroundedSprintMultiplier;
+		tuning["JumpSpeed"] = kGroundedJumpSpeed;
+		movement->FromJson(tuning); // Prefabの他設定を維持したままP0の重い操作感だけを一度適用する。
+		lastTunedMovement_ = movement;
+	}
+
 	void RefreshPlayerRuntimeBindings()
 	{
 		if (!player_) return;
+		ApplyP0MovementTuning(player_->GetPlayerMovementComponent());
 		if (K4E::PlayerMeleeAttackComponent* melee = player_->GetPlayerMeleeAttackComponent())
 		{
 			melee->SetCollisionManager(legacyCollisionManager_);
@@ -305,12 +320,16 @@ private:
 	static constexpr const char* kPlayerPrefabPath = "Resources/ActorPrefabs/Player.json";
 	static constexpr float kMouseLookSensitivity = 0.0025f;
 	static constexpr float kSpawnGroundClearance = 0.02f;
+	static constexpr float kGroundedMoveSpeed = 5.5f;
+	static constexpr float kGroundedSprintMultiplier = 1.4f;
+	static constexpr float kGroundedJumpSpeed = 6.0f;
 	static constexpr float kStageActivationRadius = 72.0f;
 	static constexpr float kStageRefreshDistance = 5.0f;
 	static constexpr size_t kMaxActiveStageColliders = 256;
 	K4E::ActorWorld* actorWorld_ = nullptr;
 	K4E::PhysicsWorld* physicsWorld_ = nullptr;
 	K4E::PlayerActor* player_ = nullptr;
+	K4E::PlayerMovementComponent* lastTunedMovement_ = nullptr;
 	BulletManager* bulletManager_ = nullptr;
 	CollisionManager* legacyCollisionManager_ = nullptr;
 	K4E::Stage* stage_ = nullptr;
