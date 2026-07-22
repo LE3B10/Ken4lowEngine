@@ -44,6 +44,7 @@ void Item::Initialize(ItemType type, const K4E::Vector3& pos, int healAmount, in
 	type_ = type;
 	position_ = pos;
 	basePosition_ = pos;
+	visualPosition_ = pos;
 	active_ = (type_ != ItemType::None);
 	SetEnabled(active_);
 	pickupRadius_ = pickupRadius;
@@ -55,7 +56,7 @@ void Item::Initialize(ItemType type, const K4E::Vector3& pos, int healAmount, in
 
 	object3d_ = std::make_unique<K4E::Object3D>();
 	object3d_->Initialize(GetModelPath(type_));
-	object3d_->SetTranslate(position_);
+	object3d_->SetTranslate(visualPosition_);
 	object3d_->SetScale(scale_);
 
 	switch (type_)
@@ -105,17 +106,18 @@ void Item::Update()
 	// 非アクティブ状態なら更新処理をスキップ
 	if (!active_) return;
 
-	float deltaTime = GameTimer::GetInstance()->GetDeltaTime();
+	const float deltaTime = GameTimer::GetInstance()->GetDeltaTime();
 
 	lifetime_ += deltaTime;
 	floatTimer_ += floatSpeed_ * deltaTime;
 	const float floatOffset = std::sinf(floatTimer_) * floatAmplitude_;
-	position_.y = basePosition_.y + floatOffset + 1.0f;
+	visualPosition_ = basePosition_;
+	visualPosition_.y += floatOffset; // 見た目だけを浮遊させ、取得Colliderは床付近の固定位置に残す。
 	rotation_.y += rotationSpeed_ * deltaTime;
 
 	if (object3d_)
 	{
-		object3d_->SetTranslate(position_);
+		object3d_->SetTranslate(visualPosition_);
 		object3d_->SetRotate(rotation_);
 		object3d_->Update();
 	}
