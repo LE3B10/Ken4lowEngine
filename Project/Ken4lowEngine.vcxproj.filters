@@ -235,9 +235,6 @@
     <ClCompile Include="ApplicationLayer\Item\ItemDropTable.cpp">
       <Filter>ApplicationLayer\Item</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Player.cpp">
-      <Filter>ApplicationLayer\Character\Player</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\UISystem\ReloadCircle\ReloadCircle.cpp">
       <Filter>ApplicationLayer\UISystem\ReloadCircle</Filter>
     </ClCompile>
@@ -313,9 +310,6 @@
     <ClCompile Include="ApplicationLayer\EffectLayer\BossEnemyVfx.cpp">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\DebugTools\EnemyScalability\EnemyScalabilitySystem.cpp">
-      <Filter>ApplicationLayer\DebugTools</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\DebugScene\DebugScene.cpp">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClCompile>
@@ -342,9 +336,6 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Bullet\BulletManager.cpp">
       <Filter>ApplicationLayer\Character\Bullet</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\PlayerDamageCollider.cpp">
-      <Filter>ApplicationLayer\Character\Player</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\World\EnemySpawnCrystal.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\World</Filter>
@@ -376,18 +367,6 @@
     <ClCompile Include="ApplicationLayer\UISystem\HUDManager\HUDManager.cpp">
       <Filter>ApplicationLayer\UISystem\HUDManager</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerMotorComponent.cpp">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerViewComponent.cpp">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerWeaponComponent.cpp">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Effect\PlayerVfx.cpp">
-      <Filter>ApplicationLayer\Character\Player\Effect</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\OverlaySystem\BaseOverlay.cpp">
       <Filter>ApplicationLayer\OverlaySystem</Filter>
     </ClCompile>
@@ -417,9 +396,6 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\UISystem\WaveUI\WaveUI.cpp">
       <Filter>ApplicationLayer\UISystem\WaveUI</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.cpp">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.cpp">
       <Filter>ApplicationLayer\Scene\GamePlayScene\Camera</Filter>
@@ -463,52 +439,10 @@
     <ClCompile Include="ApplicationLayer\Character\Boss\Components\BossWeakPointComponent.cpp">
       <Filter>ApplicationLayer\Character\Boss\Components</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Derived</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.cpp">
-      <Filter>ApplicationLayer\Character\Boss\BaseTypes</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Core\BossBase.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Core\BossBrain.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Core\BossFactory.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Core\BossStateMachine.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.cpp">
-      <Filter>ApplicationLayer\Character\Boss\Animations</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Boss\Attacks\BossAttackEffects.cpp">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerBrainComponent.cpp">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerDeathComponent.cpp">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerCombatComponent.cpp">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerDamageComponent.cpp">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\PlayerWeaponController.cpp">
-      <Filter>ApplicationLayer\Character\Player</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\PlayerFsmApi.cpp">
-      <Filter>ApplicationLayer\Character\Player</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\EnemyFactory.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Actor\EnemyActor.cpp">
@@ -522,9 +456,6 @@
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Actor\EnemyEffectComponent.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Actor</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Core\EnemyBase.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
@@ -711,9 +642,6 @@
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Camera\DebugCamera\DebugCamera.cpp">
       <Filter>Engine\Graphics\Camera\DebugCamera</Filter>
-    </ClCompile>
-    <ClCompile Include="Engine\Graphics\Camera\FPS\FpsCamera.cpp">
-      <Filter>Engine\Graphics\Camera\FPS</Filter>
     </ClCompile>
     <ClCompile Include="Engine\Graphics\Culling\Frustum.cpp">
       <Filter>Engine\Graphics\Culling</Filter>
@@ -1033,9 +961,6 @@
     <ClCompile Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.cpp">
       <Filter>ApplicationLayer\UISystem\ControlGuideUI</Filter>
     </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.cpp">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Navigation</Filter>
     </ClCompile>
@@ -1062,9 +987,6 @@
     </ClCompile>
     <ClCompile Include="Engine\System\JsonAssets\JsonEditorWindow.cpp">
       <Filter>Engine\System\JsonAssets</Filter>
-    </ClCompile>
-    <ClCompile Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.cpp">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClCompile>
     <ClCompile Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.cpp">
       <Filter>ApplicationLayer\Character\Enemy\Projectile</Filter>
@@ -1458,9 +1380,6 @@
     <ClInclude Include="ApplicationLayer\EffectLayer\BossEnemyVfx.h">
       <Filter>ApplicationLayer\EffectLayer</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\DebugTools\EnemyScalability\EnemyScalabilitySystem.h">
-      <Filter>ApplicationLayer\DebugTools</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\DebugScene.h">
       <Filter>ApplicationLayer\Scene\DebugScene</Filter>
     </ClInclude>
@@ -1492,12 +1411,6 @@
       <Filter>ApplicationLayer\Character\Bullet</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Player\PlayerInputSnapshot.h">
-      <Filter>ApplicationLayer\Character\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\PlayerStateMachines.h">
-      <Filter>ApplicationLayer\Character\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\PlayerDamageCollider.h">
       <Filter>ApplicationLayer\Character\Player</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\World\EnemySpawnCrystal.h">
@@ -1532,18 +1445,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\UISystem\HUDManager\HUDManager.h">
       <Filter>ApplicationLayer\UISystem\HUDManager</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerMotorComponent.h">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerViewComponent.h">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerWeaponComponent.h">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Effect\PlayerVfx.h">
-      <Filter>ApplicationLayer\Character\Player\Effect</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\OverlaySystem\BaseOverlay.h">
       <Filter>ApplicationLayer\OverlaySystem</Filter>
@@ -1580,9 +1481,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\UISystem\WaveUI\WaveUI.h">
       <Filter>ApplicationLayer\UISystem\WaveUI</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerWeaponVisualComponent.h">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\GamePlayScene\Camera\GamePlayIntroDirector.h">
       <Filter>ApplicationLayer\Scene\GamePlayScene\Camera</Filter>
@@ -1626,76 +1524,13 @@
     <ClInclude Include="ApplicationLayer\Character\Boss\Components\BossWeakPointComponent.h">
       <Filter>ApplicationLayer\Character\Boss\Components</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BTActionNode.h">
-      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BTConditionNode.h">
-      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BTSelectorNode.h">
-      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BTSequenceNode.h">
-      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\IBTNode.h">
-      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Derived\GuardianBoss\GuardianBoss.h">
-      <Filter>ApplicationLayer\Character\Boss\Derived</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\BaseTypes\HumanoidBossBase.h">
-      <Filter>ApplicationLayer\Character\Boss\BaseTypes</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossBase.h">
-      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossBrain.h">
-      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossFactory.h">
-      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossStateMachine.h">
-      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Core\BossTypes.h">
-      <Filter>ApplicationLayer\Character\Boss\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Animations\BossPunchAttackAnimation.h">
-      <Filter>ApplicationLayer\Character\Boss\Animations</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Animations\IBossAttackAnimation.h">
-      <Filter>ApplicationLayer\Character\Boss\Animations</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Attacks\BossAttackEffects.h">
       <Filter>ApplicationLayer\Character\Boss\Attacks</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerBrainComponent.h">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerDeathComponent.h">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerCombatComponent.h">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerDamageComponent.h">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\PlayerWeaponController.h">
-      <Filter>ApplicationLayer\Character\Player</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\PlayerFsmApi.h">
-      <Filter>ApplicationLayer\Character\Player</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyFactory.h">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyType.h">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\MeleeEnemy.h">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\EnemyActor.h">
@@ -1709,12 +1544,6 @@
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\EnemyEffectComponent.h">
       <Filter>ApplicationLayer\Character\Enemy\Actor</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\MeleeAttackController.h">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\AI\MeleeAttackPattern.h">
-      <Filter>ApplicationLayer\Character\Enemy\AI</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Core\EnemyBase.h">
       <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
@@ -1967,9 +1796,6 @@
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Camera\DebugCamera\DebugCamera.h">
       <Filter>Engine\Graphics\Camera\DebugCamera</Filter>
-    </ClInclude>
-    <ClInclude Include="Engine\Graphics\Camera\FPS\FpsCamera.h">
-      <Filter>Engine\Graphics\Camera\FPS</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Graphics\Culling\Frustum.h">
       <Filter>Engine\Graphics\Culling</Filter>
@@ -2373,9 +2199,6 @@
     <ClInclude Include="ApplicationLayer\UISystem\ControlGuideUI\ControlGuideUI.h">
       <Filter>ApplicationLayer\UISystem\ControlGuideUI</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.h">
-      <Filter>ApplicationLayer\Character\Player\Component</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Navigation\EnemyAStarNavigator.h">
       <Filter>ApplicationLayer\Character\Enemy\Navigation</Filter>
     </ClInclude>
@@ -2418,14 +2241,8 @@
     <ClInclude Include="Engine\System\JsonAssets\JsonSerializable.h">
       <Filter>Engine\System\JsonAssets</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Core\MidRangeEnemy.h">
-      <Filter>ApplicationLayer\Character\Enemy\Core</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Enemy\Projectile\MidRangeBombProjectile.h">
       <Filter>ApplicationLayer\Character\Enemy\Projectile</Filter>
-    </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\BehaviorTree\BehaviorStatus.h">
-      <Filter>ApplicationLayer\Character\Boss\BehaviorTree</Filter>
     </ClInclude>
     <ClInclude Include="Engine\Platform\Windows\GameViewportConstants.h">
       <Filter>Engine\Platform\Windows</Filter>
@@ -2820,7 +2637,18 @@
     <ClInclude Include="Engine\Scene\Management\SceneDefinitionRegistry.h">
       <Filter>Engine\Scene\Management</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\MidRangeEnemyComponents.h" />
+    <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\MidRangeEnemyComponents.h">
+      <Filter>ApplicationLayer\Character\Enemy\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Actor\BossAttackTypes.h">
+      <Filter>ApplicationLayer\Character\Boss\Actor</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\StageSelectUIActor.h">
+      <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Actor\NonHumanoidBossActor.h">
+      <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Shader">
@@ -2952,23 +2780,8 @@
     <Filter Include="ApplicationLayer\Character\Boss\Attacks">
       <UniqueIdentifier>{0a274766-b157-4428-9898-f9ce7b378bfb}</UniqueIdentifier>
     </Filter>
-    <Filter Include="ApplicationLayer\Character\Boss\BaseTypes">
-      <UniqueIdentifier>{b49e0cd2-4c71-49db-8bbd-2dea12098b9b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\Boss\BehaviorTree">
-      <UniqueIdentifier>{621d510e-a99a-4f8b-a00d-4adcfa44ed34}</UniqueIdentifier>
-    </Filter>
     <Filter Include="ApplicationLayer\Character\Boss\Components">
       <UniqueIdentifier>{1583b068-e191-4518-b9a7-1aa545d90d97}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\Boss\Core">
-      <UniqueIdentifier>{6c715102-1e04-49ad-a580-e54c603a9e54}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\Boss\Derived">
-      <UniqueIdentifier>{18fe000a-2c8a-49d3-a448-6a9db9fcf513}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\Boss\Animations">
-      <UniqueIdentifier>{e5af30ea-1e9d-43c1-9c9f-0876d8c7c70b}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Character\Boss\Actor">
       <UniqueIdentifier>{4de25284-4f17-4cb4-a898-973ae6d88f09}</UniqueIdentifier>
@@ -3299,9 +3112,6 @@
     </Filter>
     <Filter Include="ApplicationLayer\UISystem\ControlGuideUI">
       <UniqueIdentifier>{e3047797-8f02-4860-be31-91fd1bcb3eb6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="ApplicationLayer\Character\Enemy\AI">
-      <UniqueIdentifier>{fbfb788f-ed0f-4c82-b4ff-bbe45e366213}</UniqueIdentifier>
     </Filter>
     <Filter Include="ApplicationLayer\Character\Enemy\Navigation">
       <UniqueIdentifier>{505378d6-1e02-4983-891e-b58cd07dbdae}</UniqueIdentifier>

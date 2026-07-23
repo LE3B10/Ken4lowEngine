@@ -854,6 +854,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Actor\NonHumanoidBossActor.h" />
     <ClInclude Include="ApplicationLayer\Character\CharacterWorld\BulletEnemySoABridge.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\EnemyActor.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\EnemyAIComponent.h" />
@@ -878,6 +879,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\LevelDataValidation.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\LevelImportValidation.h" />
     <ClInclude Include="ApplicationLayer\Scene\DebugScene\Validation\PerformancePhaseValidation.h" />
+    <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\StageSelectUIActor.h" />
     <ClInclude Include="ApplicationLayer\UISystem\UiSpriteFactory.h" />
     <ClInclude Include="Engine\Editor\ActorWorldEditorBridge.h" />
     <ClInclude Include="Engine\Editor\EditorActorStateRegistry.h" />
