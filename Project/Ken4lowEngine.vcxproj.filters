@@ -2640,14 +2640,14 @@
     <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\MidRangeEnemyComponents.h">
       <Filter>ApplicationLayer\Character\Enemy\Actor</Filter>
     </ClInclude>
-    <ClInclude Include="ApplicationLayer\Character\Boss\Actor\BossAttackTypes.h">
-      <Filter>ApplicationLayer\Character\Boss\Actor</Filter>
-    </ClInclude>
     <ClInclude Include="ApplicationLayer\Scene\StageSelectScene\StageSelectUIActor.h">
       <Filter>ApplicationLayer\Scene\StageSelectScene</Filter>
     </ClInclude>
     <ClInclude Include="ApplicationLayer\Character\Boss\Actor\NonHumanoidBossActor.h">
       <Filter>ApplicationLayer\Character\Boss\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Actor\BossAttackTypes.h">
+      <Filter>ApplicationLayer\Character\Boss\Actor</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

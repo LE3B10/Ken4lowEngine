@@ -854,6 +854,7 @@ copy "$(WindowsSdkDir)bin\$(TargetPlatformVersion)\x64\dxil.dll" "$(TargetDir)dx
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ApplicationLayer\Character\Boss\Actor\BossAttackTypes.h" />
     <ClInclude Include="ApplicationLayer\Character\Boss\Actor\NonHumanoidBossActor.h" />
     <ClInclude Include="ApplicationLayer\Character\CharacterWorld\BulletEnemySoABridge.h" />
     <ClInclude Include="ApplicationLayer\Character\Enemy\Actor\EnemyActor.h" />
