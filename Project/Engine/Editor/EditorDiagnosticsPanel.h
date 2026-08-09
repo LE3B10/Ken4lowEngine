@@ -294,6 +294,34 @@ namespace Ken4lowEngine
 				ImGui::EndTable();
 			}
 
+			ImGui::SeparatorText("Memory / Allocation");
+			if (ImGui::BeginTable("##ProfilerMemoryAllocation", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchSame))
+			{
+				DrawProfilerMetric("Tracked Asset", stats.trackedAssetMemoryMB, "%.2f MB");
+				DrawProfilerMetric("Texture GPU", stats.textureGpuMemoryMB, "%.2f MB");
+				DrawProfilerMetric("Model CPU", stats.modelCpuMemoryMB, "%.2f MB");
+				DrawProfilerMetric("Model GPU", stats.modelGpuMemoryMB, "%.2f MB");
+				DrawProfilerMetric("Audio PCM", stats.audioCpuMemoryMB, "%.2f MB");
+				DrawProfilerMetric("Textures", static_cast<float>(stats.loadedTextureCount), "%.0f");
+				DrawProfilerMetric("Models", static_cast<float>(stats.loadedModelCount), "%.0f");
+				DrawProfilerMetric("Audio Clips", static_cast<float>(stats.cachedAudioClipCount), "%.0f");
+				DrawProfilerMetric("Texture SRV", static_cast<float>(stats.textureDescriptorCount), "%.0f");
+				DrawProfilerMetric("Audio Voices", static_cast<float>(stats.activeAudioVoiceCount), "%.0f");
+				if (stats.allocationTrackingSupported)
+				{
+					DrawProfilerMetric("Alloc / Frame", static_cast<float>(stats.frameAllocationCount), "%.0f");
+					DrawProfilerMetric("Alloc MB / Frame", static_cast<float>(stats.frameAllocatedBytes) / (1024.0f * 1024.0f), "%.3f MB");
+					DrawProfilerMetric("Peak Alloc", static_cast<float>(stats.peakFrameAllocationCount), "%.0f");
+					DrawProfilerMetric("Peak Alloc MB", static_cast<float>(stats.peakFrameAllocatedBytes) / (1024.0f * 1024.0f), "%.3f MB");
+				}
+				ImGui::EndTable();
+			}
+			if (!stats.allocationTrackingSupported)
+			{
+				ImGui::TextDisabled("Allocation計測はDebug CRTビルドで有効です。"); // Releaseでは計測hookを入れず実行時オーバーヘッドを増やさない。
+			}
+			ImGui::TextDisabled("Asset値は主要payloadの概算です。D3D12 Heap alignment / driver residency / transient bufferは未集計です。");
+
 			ImGui::TextDisabled("目標フレーム予算: %.2f ms / 完了済み直前フレームを表示", targetBudgetMs);
 			const float graphMaximum = (std::max)({ 40.0f, stats.maxFrameTimeMs * 1.15f, frameSpikeThresholdMs_ * 1.15f });
 			const int historyOffset = static_cast<int>(profiler_.GetHistoryWriteIndex());
