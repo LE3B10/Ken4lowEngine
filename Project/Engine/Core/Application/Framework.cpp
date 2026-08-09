@@ -21,6 +21,7 @@
 #include "GpuParticleManager.h"
 #include <GameTimer.h>
 #include <ResolutionManager.h>
+#include <FrameAllocationTracker.h>
 
 #ifdef USE_IMGUI
 #include <Editor/EditorWindowManager.h>
@@ -42,9 +43,14 @@ namespace Ken4lowEngine
 		// 初期化処理
 		Initialize();
 
+		FrameAllocationTracker* allocationTracker = FrameAllocationTracker::GetInstance();
+		allocationTracker->Initialize(); // 起動時allocationを除外し、ゲームループ内だけをフレーム計測する。
+
 		// ゲームループ
 		while (!winApp_->ProcessMessage())// 終了リクエストが来たら抜ける
 		{
+			allocationTracker->BeginFrame();
+
 			// Alt+Enter の入力要求を検知し、現在の表示モードに応じて次の表示設定を組み立てる。
 			if (winApp_->ConsumeToggleFullscreen())
 			{
@@ -97,7 +103,10 @@ namespace Ken4lowEngine
 
 			// 更新済みの状態をもとに、3D / 2D / UI を描画する。
 			Draw();
+			allocationTracker->EndFrame(); // 次フレームのDiagnosticsから直前フレームのallocationを参照できるよう確定する。
 		}
+
+		allocationTracker->Finalize();
 
 		// ゲームの終了
 		Finalize();

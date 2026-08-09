@@ -84,4 +84,10 @@
     <ClInclude Remove="ApplicationLayer\Character\Player\Component\PlayerMeleeComponent.h" />
     <ClInclude Remove="Engine\Graphics\Camera\FPS\FpsCamera.h" />
   </ItemGroup>
+
+  <!-- Phase 1 profilerは本体vcxprojを肥大化させず、共通targetsからビルドへ追加する。 -->
+  <ItemGroup>
+    <ClCompile Include="Engine\DebugTools\Performance\FrameAllocationTracker.cpp" />
+    <ClInclude Include="Engine\DebugTools\Performance\FrameAllocationTracker.h" />
+  </ItemGroup>
 </Project>
