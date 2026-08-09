@@ -3,6 +3,9 @@
 #include "LogString.h"
 
 #include <DirectXTex.h>
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <vector>
 #include <unordered_map>
@@ -30,6 +33,15 @@ namespace Ken4lowEngine
 			uint32_t srvIndex = UINT32_MAX;				// SRVヒープ上のインデックス。UINT32_MAXは未割り当てを示す。
 			D3D12_CPU_DESCRIPTOR_HANDLE srvHandleCPU{}; // CPU側のSRVハンドル
 			D3D12_GPU_DESCRIPTOR_HANDLE srvHandleGPU{}; // GPU側のSRVハンドル
+		};
+
+	public: /// ---------- 構造体 ---------- ///
+
+		struct TextureMemoryStats
+		{
+			std::size_t textureCount = 0;
+			std::size_t descriptorCount = 0;
+			uint64_t estimatedGpuBytes = 0;
 		};
 
 	public: /// ---------- メンバ関数 ---------- ///
@@ -80,6 +92,32 @@ namespace Ken4lowEngine
 
 		// テクスチャリソースを取得
 		ID3D12Resource* GetResource(const std::string& filePath);
+
+		TextureMemoryStats GetMemoryStats() const
+		{
+			TextureMemoryStats stats{};
+			stats.textureCount = textureDatas.size();
+			for (const auto& [path, texture] : textureDatas)
+			{
+				(void)path;
+				if (texture.srvIndex != UINT32_MAX) ++stats.descriptorCount;
+
+				const DirectX::TexMetadata& meta = texture.metaData;
+				for (std::size_t mip = 0; mip < (std::max<std::size_t>)(1, meta.mipLevels); ++mip)
+				{
+					const std::size_t width = (std::max<std::size_t>)(1, meta.width >> mip);
+					const std::size_t height = (std::max<std::size_t>)(1, meta.height >> mip);
+					const std::size_t depth = (std::max<std::size_t>)(1, meta.depth >> mip);
+					std::size_t rowPitch = 0;
+					std::size_t slicePitch = 0;
+					if (SUCCEEDED(DirectX::ComputePitch(meta.format, width, height, rowPitch, slicePitch)))
+					{
+						stats.estimatedGpuBytes += static_cast<uint64_t>(slicePitch) * depth * (std::max<std::size_t>)(1, meta.arraySize);
+					}
+				}
+			}
+			return stats; // Texture payloadのみを概算し、D3D12 Heap alignmentやdriver residencyは含めない。
+		}
 
 		// テクスチャパスのインデックスを構築
 		void BuildTexturePathIndex();

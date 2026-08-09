@@ -5,6 +5,7 @@
 #include "Engine/Graphics/Culling/Frustum.h"
 
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 #include <string>
 
@@ -60,6 +61,27 @@ namespace Ken4lowEngine
 
 		// マテリアルのポイントサンプリングフラグの取得
 		const std::vector<bool>& GetMaterialPointSamplingFlags() const { return materialUsePointSampling_; }
+
+		uint64_t GetEstimatedCpuMemoryBytes() const
+		{
+			uint64_t bytes = 0;
+			for (const SubMesh& subMesh : modelData_.subMeshes)
+			{
+				bytes += static_cast<uint64_t>(subMesh.vertices.capacity()) * sizeof(VertexData);
+				bytes += static_cast<uint64_t>(subMesh.indices.capacity()) * sizeof(uint32_t);
+			}
+			for (const Mesh& mesh : meshes_) bytes += mesh.GetEstimatedCpuMemoryBytes();
+			bytes += static_cast<uint64_t>(materialSRVs_.capacity()) * sizeof(D3D12_GPU_DESCRIPTOR_HANDLE);
+			bytes += static_cast<uint64_t>(meshLocalBounds_.capacity()) * sizeof(BoundingSphere);
+			return bytes; // ModelDataと描画Meshが保持する主要な永続CPU配列を合算する。
+		}
+
+		uint64_t GetEstimatedGpuMemoryBytes() const
+		{
+			uint64_t bytes = 0;
+			for (const Mesh& mesh : meshes_) bytes += mesh.GetEstimatedGpuMemoryBytes();
+			return bytes; // TextureはTextureManager側で別集計し、ModelではVB/IBだけを数える。
+		}
 
 	private: /// ---------- メンバ変数 ---------- ///
 

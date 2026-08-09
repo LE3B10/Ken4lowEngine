@@ -23,6 +23,23 @@ namespace Ken4lowEngine
 		float memoryUsageMB = 0.0f;
 		uint64_t frameCount = 0;
 		uint64_t frameSpikeCount = 0;
+
+		bool allocationTrackingSupported = false;
+		uint64_t frameAllocationCount = 0;
+		uint64_t frameAllocatedBytes = 0;
+		uint64_t peakFrameAllocationCount = 0;
+		uint64_t peakFrameAllocatedBytes = 0;
+
+		std::size_t loadedTextureCount = 0;
+		std::size_t textureDescriptorCount = 0;
+		float textureGpuMemoryMB = 0.0f;
+		std::size_t loadedModelCount = 0;
+		float modelCpuMemoryMB = 0.0f;
+		float modelGpuMemoryMB = 0.0f;
+		std::size_t cachedAudioClipCount = 0;
+		std::size_t activeAudioVoiceCount = 0;
+		float audioCpuMemoryMB = 0.0f;
+		float trackedAssetMemoryMB = 0.0f;
 	};
 
 	class PerformanceMonitor
@@ -48,6 +65,8 @@ namespace Ken4lowEngine
 		const std::array<float, kHistorySize>& GetDrawHistory() const { return drawHistory_; }
 		const std::array<float, kHistorySize>& GetPresentHistory() const { return presentHistory_; }
 		const std::array<float, kHistorySize>& GetSleepHistory() const { return sleepHistory_; }
+		const std::array<float, kHistorySize>& GetAllocationCountHistory() const { return allocationCountHistory_; }
+		const std::array<float, kHistorySize>& GetAllocationBytesHistoryMB() const { return allocationBytesHistoryMB_; }
 		size_t GetHistoryWriteIndex() const { return historyWriteIndex_; }
 		size_t GetValidHistoryCount() const { return validHistoryCount_; }
 		float GetSpikeThresholdMs() const { return spikeThresholdMs_; }
@@ -66,6 +85,8 @@ namespace Ken4lowEngine
 		std::array<float, kHistorySize> drawHistory_{};
 		std::array<float, kHistorySize> presentHistory_{};
 		std::array<float, kHistorySize> sleepHistory_{};
+		std::array<float, kHistorySize> allocationCountHistory_{};
+		std::array<float, kHistorySize> allocationBytesHistoryMB_{};
 		size_t historyWriteIndex_ = 0;
 		size_t validHistoryCount_ = 0;
 		float spikeThresholdMs_ = 33.333f;

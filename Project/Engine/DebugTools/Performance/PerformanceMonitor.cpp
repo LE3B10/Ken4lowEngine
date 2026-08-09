@@ -1,4 +1,8 @@
 #include "PerformanceMonitor.h"
+#include "FrameAllocationTracker.h"
+#include <AudioManager.h>
+#include <ModelManager.h>
+#include <TextureManager.h>
 
 #define NOMINMAX
 #include <Windows.h>
@@ -16,6 +20,11 @@ namespace
 		value.LowPart = fileTime.dwLowDateTime;
 		value.HighPart = fileTime.dwHighDateTime;
 		return value.QuadPart;
+	}
+
+	float BytesToMegabytes(uint64_t bytes)
+	{
+		return static_cast<float>(bytes) / (1024.0f * 1024.0f); // Profiler表示用に全Asset counterをMiBへ統一する。
 	}
 }
 
@@ -39,12 +48,22 @@ void PerformanceMonitor::Update(
 	++stats_.frameCount;
 	if (stats_.totalFrameMs > spikeThresholdMs_) ++stats_.frameSpikeCount;
 
+	const FrameAllocationTracker* allocationTracker = FrameAllocationTracker::GetInstance();
+	const FrameAllocationStats allocationStats = allocationTracker->GetLastFrameStats();
+	stats_.allocationTrackingSupported = allocationTracker->IsSupported();
+	stats_.frameAllocationCount = allocationStats.allocationCount;
+	stats_.frameAllocatedBytes = allocationStats.allocatedBytes;
+	stats_.peakFrameAllocationCount = allocationStats.peakAllocationCount;
+	stats_.peakFrameAllocatedBytes = allocationStats.peakAllocatedBytes;
+
 	fpsHistory_[historyWriteIndex_] = stats_.instantFps;
 	frameTimeHistory_[historyWriteIndex_] = stats_.totalFrameMs;
 	updateHistory_[historyWriteIndex_] = stats_.updateMs;
 	drawHistory_[historyWriteIndex_] = stats_.drawMs;
 	presentHistory_[historyWriteIndex_] = stats_.presentMs;
 	sleepHistory_[historyWriteIndex_] = stats_.sleepMs;
+	allocationCountHistory_[historyWriteIndex_] = static_cast<float>(stats_.frameAllocationCount);
+	allocationBytesHistoryMB_[historyWriteIndex_] = BytesToMegabytes(stats_.frameAllocatedBytes);
 	historyWriteIndex_ = (historyWriteIndex_ + 1) % kHistorySize;
 	validHistoryCount_ = (std::min)(validHistoryCount_ + 1, kHistorySize);
 	RecalculateFrameAggregates(); // 240フレームだけを対象に平均と最大値を毎フレーム更新する。
@@ -52,7 +71,7 @@ void PerformanceMonitor::Update(
 	statsRefreshAccumulator_ += static_cast<double>(deltaSeconds);
 	if (statsRefreshAccumulator_ >= 0.5)
 	{
-		// CPU使用率は毎フレームではなく一定間隔で更新して計測負荷を抑える。
+		// CPU使用率とAssetメモリは毎フレームではなく一定間隔で更新して計測負荷を抑える。
 		UpdateSystemStats();
 		statsRefreshAccumulator_ = 0.0;
 	}
@@ -67,6 +86,8 @@ void PerformanceMonitor::Reset()
 	drawHistory_.fill(0.0f);
 	presentHistory_.fill(0.0f);
 	sleepHistory_.fill(0.0f);
+	allocationCountHistory_.fill(0.0f);
+	allocationBytesHistoryMB_.fill(0.0f);
 	historyWriteIndex_ = 0;
 	validHistoryCount_ = 0;
 	statsRefreshAccumulator_ = 0.0;
@@ -103,6 +124,22 @@ void PerformanceMonitor::UpdateSystemStats()
 	{
 		stats_.memoryUsageMB = static_cast<float>(memoryCounter.WorkingSetSize) / (1024.0f * 1024.0f);
 	}
+
+	const TextureManager::TextureMemoryStats textureStats = TextureManager::GetInstance()->GetMemoryStats();
+	stats_.loadedTextureCount = textureStats.textureCount;
+	stats_.textureDescriptorCount = textureStats.descriptorCount;
+	stats_.textureGpuMemoryMB = BytesToMegabytes(textureStats.estimatedGpuBytes);
+
+	const ModelManager::ModelMemoryStats modelStats = ModelManager::GetInstance()->GetMemoryStats();
+	stats_.loadedModelCount = modelStats.modelCount;
+	stats_.modelCpuMemoryMB = BytesToMegabytes(modelStats.estimatedCpuBytes);
+	stats_.modelGpuMemoryMB = BytesToMegabytes(modelStats.estimatedGpuBytes);
+
+	const AudioManager::AudioMemoryStats audioStats = AudioManager::GetInstance()->GetMemoryStats();
+	stats_.cachedAudioClipCount = audioStats.cachedClipCount;
+	stats_.activeAudioVoiceCount = audioStats.activeVoiceCount;
+	stats_.audioCpuMemoryMB = BytesToMegabytes(audioStats.decodedPcmBytes);
+	stats_.trackedAssetMemoryMB = stats_.textureGpuMemoryMB + stats_.modelCpuMemoryMB + stats_.modelGpuMemoryMB + stats_.audioCpuMemoryMB;
 }
 
 float PerformanceMonitor::ComputeCpuUsagePercent()

@@ -1,11 +1,14 @@
 #pragma once
 #include "VertexData.h"
 #include "ModelData.h"
+#include "Model.h"
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 
 // Assimp
 #include <assimp/Importer.hpp>
@@ -15,14 +18,20 @@
 namespace Ken4lowEngine
 {
 
-	/// ---------- 前方宣言 ---------- ///
-	class Model;
-
 	/// -------------------------------------------------------------
 	///					モデルマネージャークラス
 	/// -------------------------------------------------------------
 	class ModelManager
 	{
+	public: /// ---------- 構造体 ---------- ///
+
+		struct ModelMemoryStats
+		{
+			std::size_t modelCount = 0;
+			uint64_t estimatedCpuBytes = 0;
+			uint64_t estimatedGpuBytes = 0;
+		};
+
 	public: /// ---------- メンバ関数 ---------- ///
 
 		/// <summary>
@@ -59,6 +68,20 @@ namespace Ken4lowEngine
 		/// <returns>指定パスに対応する Model の shared_ptr。</returns>
 		std::shared_ptr<Model> FindModel(const std::string& filePath);
 
+		ModelMemoryStats GetMemoryStats() const
+		{
+			ModelMemoryStats stats{};
+			stats.modelCount = models_.size();
+			for (const auto& [path, model] : models_)
+			{
+				(void)path;
+				if (!model) continue;
+				stats.estimatedCpuBytes += model->GetEstimatedCpuMemoryBytes();
+				stats.estimatedGpuBytes += model->GetEstimatedGpuMemoryBytes();
+			}
+			return stats; // Managerが強参照している全Modelの主要CPU/GPU payloadを集計する。
+		}
+
 		/// <summary>
 		/// 終了処理を実行します。
 		/// </summary>
@@ -94,9 +117,9 @@ namespace Ken4lowEngine
 		/// 座標系の違いを吸収するため、X 反転や UV の V 反転などの調整もここで行います。
 		/// </summary>
 		/// <param name="s">"f" 行の残り部分。</param>
-		/// <param name="positions">事前に読み込まれた頂点位置リスト。</param>
-		/// <param name="texcoords">事前に読み込まれたテクスチャ座標リスト。</param>
-		/// <param name="normals">事前に読み込まれた法線リスト。</param>
+		/// <param name="positions">事前に読み込んだ頂点位置リスト。</param>
+		/// <param name="texcoords">事前に読み込んだテクスチャ座標リスト。</param>
+		/// <param name="normals">事前に読み込んだ法線リスト。</param>
 		/// <param name="vertices">展開先の頂点データ配列。</param>
 		static void ParseFace(
 			std::istringstream& s,

@@ -4,6 +4,7 @@
 
 #include <xaudio2.h>
 #include <wrl/client.h>
+#include <cstddef>
 #include <cstdint>
 #include <unordered_map>
 #include <vector>
@@ -25,6 +26,13 @@ namespace Ken4lowEngine
 	public:
 		using AudioHandle = uint64_t;
 		static constexpr AudioHandle InvalidAudioHandle = 0;
+
+		struct AudioMemoryStats
+		{
+			std::size_t cachedClipCount = 0;
+			std::size_t activeVoiceCount = 0;
+			uint64_t decodedPcmBytes = 0;
+		};
 
 	private: /// ---------- 内部構造体 ---------- ///
 
@@ -155,6 +163,22 @@ namespace Ken4lowEngine
 		/// カテゴリごとの音量を取得する。
 		/// </summary>
 		float GetCategoryVolume(AudioCategory category) const;
+
+		AudioMemoryStats GetMemoryStats() const
+		{
+			std::lock_guard<std::mutex> lock(mutex_);
+			AudioMemoryStats stats{};
+			stats.activeVoiceCount = activeVoices_.size() + (bgmVoice_ ? 1u : 0u);
+			for (const auto& [path, weakClip] : cache_)
+			{
+				(void)path;
+				const std::shared_ptr<CachedClip> clip = weakClip.lock();
+				if (!clip) continue;
+				++stats.cachedClipCount;
+				stats.decodedPcmBytes += static_cast<uint64_t>(clip->data.pcmData.capacity());
+			}
+			return stats; // weak cacheのうち現在生存しているPCM bufferだけを永続CPU Assetとして数える。
+		}
 
 	private: /// ---------- メンバ関数 ---------- ///
 
