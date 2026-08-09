@@ -12,8 +12,6 @@ if (-not (Test-Path $vcxprojPath)) {
 
 # Phase 1監査は削除を行わず、消えたファイル参照と責務混在を再現可能な形で報告する。
 [xml]$projectXml = Get-Content -LiteralPath $vcxprojPath -Raw
-$namespace = New-Object System.Xml.XmlNamespaceManager($projectXml.NameTable)
-$namespace.AddNamespace("msb", "http://schemas.microsoft.com/developer/msbuild/2003")
 
 function Normalize-ProjectPath([string]$Path) {
     if ([string]::IsNullOrWhiteSpace($Path)) { return "" }
@@ -36,7 +34,7 @@ foreach ($nodeName in @("ClCompile", "ClInclude")) {
     $nodes = $projectXml.SelectNodes("//*[local-name()='$nodeName']")
     foreach ($node in $nodes) {
         $include = Normalize-ProjectPath $node.Include
-        if ([string]::IsNullOrWhiteSpace($include) -or $include.Contains("$(")) { continue }
+        if ([string]::IsNullOrWhiteSpace($include) -or $include.Contains('$(')) { continue }
         $fullPath = Join-Path $ProjectRoot $include
         $sourceEntries += [pscustomobject]@{
             Kind = $nodeName
